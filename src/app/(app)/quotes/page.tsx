@@ -1,0 +1,197 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { and, desc, eq, ilike, or } from "drizzle-orm";
+import { db } from "@/db";
+import { customers, quotes } from "@/db/schema";
+import { getCurrentUser } from "@/lib/auth/current-user";
+
+const STATUS_LABELS: Record<string, string> = {
+  draft: "Draft",
+  sent: "Sent",
+  viewed: "Viewed",
+  accepted: "Accepted",
+  declined: "Declined",
+  expired: "Expired",
+};
+
+const STATUS_STYLES: Record<string, string> = {
+  draft: "border-slate-200 bg-slate-50 text-slate-600",
+  sent: "border-blue-200 bg-blue-50 text-blue-700",
+  viewed: "border-amber-200 bg-amber-50 text-amber-700",
+  accepted: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  declined: "border-rose-200 bg-rose-50 text-rose-700",
+  expired: "border-slate-200 bg-slate-50 text-slate-400",
+};
+
+type SearchParams = { q?: string; status?: string };
+
+function dollars(cents: number) {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
+function hrefWith(params: SearchParams, key: keyof SearchParams, value: string) {
+  const next = new URLSearchParams();
+  Object.entries(params).forEach(([name, current]) => {
+    if (name !== key && current) next.set(name, current);
+  });
+  if (value) next.set(key, value);
+  const query = next.toString();
+  return query ? `/quotes?${query}` : "/quotes";
+}
+
+export default async function QuotesPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const admin = await getCurrentUser();
+  if (!admin) redirect("/login");
+  if (admin.role !== "admin") redirect("/my-day");
+
+  const sp = await searchParams;
+  const conditions = [eq(quotes.companyId, admin.companyId)];
+
+  if (sp.status && sp.status !== "all") {
+    conditions.push(eq(quotes.status, sp.status as typeof quotes.status.enumValues[number]));
+  }
+
+  if (sp.q?.trim()) {
+    const query = `%${sp.q.trim()}%`;
+    conditions.push(or(ilike(customers.firstName, query), ilike(customers.lastName, query), ilike(quotes.id, query))!);
+  }
+
+  const rows = await db
+    .select({
+      id: quotes.id,
+      status: quotes.status,
+      totalCents: quotes.totalCents,
+      requestedServiceType: quotes.requestedServiceType,
+      acceptedServiceType: quotes.acceptedServiceType,
+      customerFirstName: customers.firstName,
+      customerLastName: customers.lastName,
+      createdAt: quotes.createdAt,
+      sentAt: quotes.sentAt,
+      viewedAt: quotes.viewedAt,
+      acceptedAt: quotes.acceptedAt,
+      publicToken: quotes.publicToken,
+    })
+    .from(quotes)
+    .innerJoin(customers, eq(quotes.customerId, customers.id))
+    .where(and(...conditions))
+    .orderBy(desc(quotes.createdAt));
+
+  const counts = {
+    all: rows.length,
+    draft: rows.filter((row) => row.status === "draft").length,
+    sent: rows.filter((row) => row.status === "sent" || row.status === "viewed").length,
+    accepted: rows.filter((row) => row.status === "accepted").length,
+    stale: rows.filter((row) => row.status === "sent" || row.status === "viewed").length,
+  };
+
+  return (
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="eyebrow">Operations / Sales</p>
+          <h1 className="page-title">Quotes</h1>
+          <p className="page-subtitle">Build thoughtful proposals, track decisions, and turn accepted options into scheduled work.</p>
+        </div>
+        <Link href="/quotes/new" className="co-button-primary">
+          + New quote
+        </Link>
+      </header>
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          ["All quotes", counts.all, "all", "All records"],
+          ["Drafts", counts.draft, "draft", "Needs sending"],
+          ["Sent / viewed", counts.sent, "sent", "Waiting on customer"],
+          ["Accepted", counts.accepted, "accepted", "Ready to convert"],
+        ].map(([label, value, status, detail]) => (
+          <Link key={String(label)} href={hrefWith(sp, "status", String(status))} className="co-card flex items-center justify-between p-5">
+            <div>
+              <p className="text-sm text-[var(--co-muted)]">{label}</p>
+              <p className="mt-1 text-2xl font-semibold">{value}</p>
+              <p className="mt-2 text-xs text-[var(--co-muted)]">{detail}</p>
+            </div>
+            <span className="text-xl text-[var(--co-evergreen)]">{label === "Accepted" ? "✓" : "◧"}</span>
+          </Link>
+        ))}
+      </section>
+
+      <section className="co-card overflow-hidden">
+        <form className="flex flex-wrap gap-3 border-b border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 p-4">
+          <input name="q" defaultValue={sp.q} placeholder="Search customer or quote" className="co-input min-w-[240px] flex-1" />
+          <select name="status" defaultValue={sp.status ?? "all"} className="co-input w-full sm:w-auto">
+            <option value="all">All statuses</option>
+            {Object.entries(STATUS_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <button type="submit" className="co-button-secondary">
+            Filter quotes
+          </button>
+          {Object.keys(sp).length ? (
+            <Link href="/quotes" className="self-center text-sm font-medium text-[var(--co-evergreen)]">
+              Clear
+            </Link>
+          ) : null}
+        </form>
+
+        {rows.length === 0 ? (
+          <div className="p-12 text-center">
+            <p className="font-medium">No quotes found.</p>
+            <p className="mt-1 text-sm text-[var(--co-muted)]">Create a quote when a GHL prospect is ready for pricing.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[980px] text-left text-sm">
+              <thead className="bg-[var(--co-surface-muted)] text-xs uppercase tracking-[0.1em] text-[var(--co-muted)]">
+                <tr>
+                  <th className="px-5 py-3">Customer</th>
+                  <th className="px-5 py-3">Suggested service</th>
+                  <th className="px-5 py-3">Accepted option</th>
+                  <th className="px-5 py-3">Total</th>
+                  <th className="px-5 py-3">Status</th>
+                  <th className="px-5 py-3">Created</th>
+                  <th className="px-5 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--co-line-soft)]">
+                {rows.map((quote) => (
+                  <tr key={quote.id} className="hover:bg-[var(--co-surface-muted)]/50">
+                    <td className="px-5 py-4">
+                      <Link href={`/quotes/${quote.id}`} className="font-semibold text-[var(--co-ink)] hover:text-[var(--co-evergreen)]">
+                        {quote.customerFirstName} {quote.customerLastName}
+                      </Link>
+                      <span className="mt-1 block text-xs text-[var(--co-muted)]">Q-{quote.id.slice(0, 6).toUpperCase()}</span>
+                    </td>
+                    <td className="px-5 py-4 text-[var(--co-muted)]">{quote.requestedServiceType?.replaceAll("_", " ") ?? "Not selected"}</td>
+                    <td className="px-5 py-4 text-[var(--co-muted)]">{quote.acceptedServiceType?.replaceAll("_", " ") ?? "—"}</td>
+                    <td className="px-5 py-4 font-semibold">{dollars(quote.totalCents)}</td>
+                    <td className="px-5 py-4">
+                      <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[quote.status] ?? "border-slate-200 bg-slate-50"}`}>
+                        {STATUS_LABELS[quote.status] ?? quote.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-xs text-[var(--co-muted)]">{new Date(quote.createdAt).toLocaleDateString()}</td>
+                    <td className="px-5 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <Link href={`/quotes/${quote.id}`} className="rounded-lg border border-[var(--co-line)] px-3 py-2 text-xs font-medium text-[var(--co-evergreen)]">
+                          Open
+                        </Link>
+                        <Link href={`/quote/${quote.publicToken}`} target="_blank" className="rounded-lg border border-[var(--co-line)] px-3 py-2 text-xs font-medium text-[var(--co-ink)]">
+                          Proposal
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className="border-t border-[var(--co-line-soft)] px-5 py-3 text-xs text-[var(--co-muted)]">Showing {rows.length} quote{rows.length === 1 ? "" : "s"}</div>
+      </section>
+    </div>
+  );
+}

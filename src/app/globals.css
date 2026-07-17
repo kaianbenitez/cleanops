@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --co-bg: #f5f6f2;
+  --co-surface: #ffffff;
+  --co-surface-muted: #edf3e9;
+  --co-ink: #1b2925;
+  --co-muted: #718179;
+  --co-faint: #8a9b93;
+  --co-line: #e1e8df;
+  --co-line-soft: #edf0ec;
+  --co-evergreen: #14211f;
+  --co-evergreen-soft: #2a3d38;
+  --co-accent: #c8e86b;
+  --co-success: #5c7436;
+  --co-warning: #a86d2f;
+  --co-danger: #b96845;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(200, 232, 107, 0.09), transparent 26%),
+    radial-gradient(circle at top right, rgba(20, 33, 31, 0.05), transparent 18%),
+    var(--co-bg);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+::selection {
+  background: rgba(200, 232, 107, 0.45);
+  color: var(--co-evergreen);
+}
+
+.co-card {
+  border: 1px solid var(--co-line);
+  border-radius: 1.1rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 1));
+  box-shadow:
+    0 1px 0 rgba(20, 33, 31, 0.03),
+    0 12px 30px rgba(20, 33, 31, 0.04);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.eyebrow {
+  color: var(--co-faint);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.page-title {
+  color: var(--co-ink);
+  font-size: clamp(1.75rem, 2.5vw, 2.45rem);
+  font-weight: 650;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+}
+
+.page-subtitle {
+  color: var(--co-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-top: 0.55rem;
+}
+
+.co-input {
+  background: var(--co-surface);
+  border: 1px solid #d9e1da;
+  border-radius: 0.65rem;
+  color: var(--co-ink);
+  min-height: 2.55rem;
+  padding: 0.65rem 0.8rem;
+}
+
+.co-input::placeholder { color: #9aaa9f; }
+.co-input:hover { border-color: #bdcbbf; }
+.co-input:focus { border-color: #78964a; box-shadow: 0 0 0 3px rgba(137, 166, 80, 0.16); outline: none; }
+
+.co-button-primary {
+  align-items: center;
+  background: linear-gradient(180deg, #18302a, #14211f);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  box-shadow: 0 8px 18px rgba(20, 33, 31, 0.09);
+  border-radius: 0.65rem;
+  color: white;
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 700;
+  gap: 0.45rem;
+  justify-content: center;
+  min-height: 2.55rem;
+  padding: 0.65rem 1rem;
+}
+
+.co-button-primary:hover { background: linear-gradient(180deg, #223731, #182723); }
+.co-button-secondary { background: rgba(255, 255, 255, 0.95); border: 1px solid #d9e1da; border-radius: 0.65rem; color: #34443e; font-size: 0.8rem; font-weight: 700; min-height: 2.55rem; padding: 0.65rem 1rem; box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset; }
+.co-button-secondary:hover { border-color: #bfcdbf; background: #fafbf8; }
+
+button, a, input, select, textarea { transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
+button:active { transform: translateY(1px); }
+:focus-visible { outline: 3px solid rgba(137, 166, 80, 0.42); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .co-card:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 1px 0 rgba(20, 33, 31, 0.03),
+      0 16px 34px rgba(20, 33, 31, 0.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

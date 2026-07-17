@@ -1,0 +1,327 @@
+"use client";
+
+import Link from "next/link";
+import { use, useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+type Tier = {
+  roomSubtotalCents: number;
+  travelFeeCents: number;
+  discountPercent: number;
+  minimumApplied: boolean;
+  finalCents: number;
+};
+
+type Quote = {
+  id: string;
+  status: string;
+  totalCents: number;
+  publicToken: string;
+  requestedServiceType: string | null;
+  acceptedServiceType: string | null;
+  signatureName: string | null;
+  acceptedAt: string | null;
+  sentAt: string | null;
+  allTierPricing: Record<string, Tier> | null;
+};
+
+type QuoteDetails = Quote & {
+  viewCount?: number;
+  lastViewedAt?: string | null;
+};
+
+const LABELS: Record<string, string> = {
+  supreme_deep: "Supreme Deep",
+  deep: "Deep Clean",
+  first_time: "First Time",
+  weekly: "Weekly",
+  biweekly: "Bi-Weekly",
+  four_weeks: "Every 4 Weeks",
+  move_in_out: "Move In / Out",
+};
+
+function dollars(cents: number) {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
+function PageCard({
+  eyebrow,
+  title,
+  description,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="co-card overflow-hidden">
+      <div className="border-b border-[var(--co-line-soft)] px-5 py-4">
+        <p className="eyebrow">{eyebrow}</p>
+        <h2 className="mt-1 text-lg font-semibold">{title}</h2>
+        {description ? <p className="mt-1 text-sm text-[var(--co-muted)]">{description}</p> : null}
+      </div>
+      <div className="px-5 py-5">{children}</div>
+    </section>
+  );
+}
+
+export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId: string }> }) {
+  const { quoteId } = use(params);
+  const router = useRouter();
+  const [quote, setQuote] = useState<QuoteDetails | null>(null);
+  const [customerId, setCustomerId] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [locationName, setLocationName] = useState("");
+  const [publicUrl, setPublicUrl] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [convertDate, setConvertDate] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [loaded, setLoaded] = useState(false);
+
+  const load = useCallback(async () => {
+    const response = await fetch(`/api/quotes/${quoteId}`, { cache: "no-store" });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error ?? `Quote could not be loaded (${response.status}).`);
+    setQuote({ ...body.quote, viewCount: body.viewCount, lastViewedAt: body.lastViewedAt });
+    setCustomerId(body.customerId ?? "");
+    setCustomerName(`${body.customerFirstName} ${body.customerLastName}`);
+    setLocationName(body.locationName ?? "");
+    setLoaded(true);
+  }, [quoteId]);
+
+  useEffect(() => {
+    // Protected quote API load boundary.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load().catch((cause: unknown) => {
+      setError(cause instanceof Error ? cause.message : "Quote could not be loaded.");
+      setLoaded(true);
+    });
+  }, [load]);
+
+  async function send() {
+    setSending(true);
+    setError("");
+    const response = await fetch(`/api/quotes/${quoteId}/send`, { method: "POST" });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) setError(body.error ?? "Quote could not be sent.");
+    else {
+      setPublicUrl(body.publicUrl ?? "");
+      await load();
+    }
+    setSending(false);
+  }
+
+  async function copy() {
+    if (!publicUrl) return;
+    await navigator.clipboard.writeText(publicUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1400);
+  }
+
+  async function convert(forceJob = false) {
+    if (!convertDate) {
+      setError("Choose a start date first.");
+      return;
+    }
+    const response = await fetch(`/api/quotes/${quoteId}/convert`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ startDate: convertDate, forceJob }),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setError(body.error ? JSON.stringify(body.error) : "Quote could not be converted.");
+      return;
+    }
+    router.push(body.series ? "/calendar" : `/jobs/${body.job.id}`);
+  }
+
+  if (!loaded) {
+    return (
+      <div className="space-y-4">
+        <div className="h-4 w-32 animate-pulse rounded bg-[var(--co-line)]" />
+        <div className="h-36 animate-pulse rounded-2xl bg-[var(--co-surface)]" />
+        <div className="h-64 animate-pulse rounded-2xl bg-[var(--co-surface)]" />
+      </div>
+    );
+  }
+
+  if (!quote) {
+    return (
+      <div className="co-card p-8 text-center">
+        <p className="font-medium">Unable to load this quote.</p>
+        <p className="mt-2 text-sm text-rose-600">{error}</p>
+      </div>
+    );
+  }
+
+  const tiers = quote.allTierPricing ? Object.entries(quote.allTierPricing) : [];
+  const publicLink = `/quote/${quote.publicToken}`;
+
+  return (
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <Link href="/quotes" className="text-sm font-medium text-[var(--co-evergreen)] hover:underline">
+            Back to quotes
+          </Link>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <p className="eyebrow">Sales / Quote detail</p>
+            <span className="rounded-full border border-[var(--co-line)] bg-[var(--co-surface-muted)] px-2.5 py-1 text-xs font-medium">{quote.status}</span>
+          </div>
+          <h1 className="page-title mt-2">{customerName}</h1>
+          <p className="page-subtitle">
+            {locationName || "Service location not recorded"} - Q-{quote.id.slice(0, 6).toUpperCase()}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2 text-xs">
+            <span className="rounded-full border border-[var(--co-line)] bg-[var(--co-surface-muted)] px-2.5 py-1 font-medium text-[var(--co-muted)]">
+              Viewed {quote.viewCount ?? 0} time{(quote.viewCount ?? 0) === 1 ? "" : "s"}
+            </span>
+            <span className="rounded-full border border-[var(--co-line)] bg-[var(--co-surface-muted)] px-2.5 py-1 font-medium text-[var(--co-muted)]">
+              Last viewed {quote.lastViewedAt ? new Date(quote.lastViewedAt).toLocaleString() : "—"}
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {customerId ? (
+            <Link href={`/customers/${customerId}`} className="co-button-secondary">
+              Customer profile
+            </Link>
+          ) : null}
+          <Link href={publicLink} target="_blank" className="co-button-secondary">
+            Open proposal
+          </Link>
+          {quote.status !== "accepted" ? (
+            <button className="co-button-secondary" onClick={() => convert(true)} disabled={!convertDate}>
+              Convert as job
+            </button>
+          ) : null}
+          {quote.status === "draft" ? (
+            <button className="co-button-primary" onClick={send} disabled={sending}>
+              {sending ? "Sending..." : "Mark sent & get link"}
+            </button>
+          ) : null}
+        </div>
+      </header>
+
+      {error ? (
+        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error}
+        </div>
+      ) : null}
+
+      <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+        <section className="space-y-5">
+          <PageCard eyebrow="Proposal options" title="Customer can choose one service" description="The selected tier controls the final price and conversion.">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-[var(--co-muted)]">Selected total</p>
+              <span className="text-2xl font-semibold">{dollars(quote.totalCents)}</span>
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {tiers.map(([type, tier], index) => (
+                <div key={type} className={`rounded-2xl border p-4 ${type === quote.acceptedServiceType ? "border-emerald-300 bg-emerald-50" : "border-[var(--co-line)] bg-white"}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold">{LABELS[type] ?? type}</p>
+                      <p className="mt-1 text-xs text-[var(--co-muted)]">Prepared from the home profile</p>
+                    </div>
+                    {index === 1 ? <span className="rounded-full bg-[var(--co-evergreen)] px-2 py-1 text-[10px] font-bold text-white">Most popular</span> : null}
+                  </div>
+                  <p className="mt-4 text-2xl font-semibold">{dollars(tier.finalCents)}</p>
+                  <p className="mt-1 text-xs text-[var(--co-muted)]">Travel {dollars(tier.travelFeeCents)}{tier.minimumApplied ? " · minimum applied" : ""}</p>
+                </div>
+              ))}
+            </div>
+
+            {quote.signatureName ? (
+              <div className="mt-5 rounded-xl bg-[var(--co-surface-muted)] p-4 text-sm">
+                Accepted by <span className="font-semibold">{quote.signatureName}</span>
+                {quote.acceptedAt ? ` on ${new Date(quote.acceptedAt).toLocaleString()}` : ""}.
+              </div>
+            ) : null}
+          </PageCard>
+
+          <PageCard eyebrow="What this quote will become" title="Conversion context" description="Accepted quotes can turn into scheduled work.">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Requested service</p>
+                <p className="mt-2 text-sm font-medium">{LABELS[quote.requestedServiceType ?? ""] ?? quote.requestedServiceType ?? "Not selected"}</p>
+              </div>
+              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Accepted service</p>
+                <p className="mt-2 text-sm font-medium">{LABELS[quote.acceptedServiceType ?? ""] ?? quote.acceptedServiceType ?? "Not accepted yet"}</p>
+              </div>
+            </div>
+          </PageCard>
+        </section>
+
+        <aside className="space-y-5">
+          <PageCard eyebrow="Public proposal link" title="Share with customer" description="Send the quote to generate the customer-facing link.">
+            {publicUrl ? (
+              <div className="flex gap-2">
+                <input readOnly value={publicUrl} className="co-input min-w-0 flex-1 text-xs" />
+                <button className="co-button-secondary" onClick={copy}>
+                  {copied ? "Copied" : "Copy"}
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-[var(--co-muted)]">Send the quote to generate the customer-facing link.</p>
+            )}
+            {quote.status !== "draft" && !publicUrl ? (
+              <button className="co-button-secondary mt-4 w-full" onClick={send} disabled={sending}>
+                {sending ? "Loading link..." : "Regenerate link"}
+              </button>
+            ) : null}
+          </PageCard>
+
+          {quote.status === "accepted" ? (
+            <PageCard eyebrow="Next step" title="Convert into work" description="Choose the first service date. Recurring options create the series and initial jobs.">
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Start date</span>
+                <input type="date" value={convertDate} onChange={(event) => setConvertDate(event.target.value)} className="co-input w-full" />
+              </label>
+              <div className="mt-4 grid gap-2">
+                <button onClick={() => convert(false)} className="co-button-primary w-full">
+                  Convert to scheduled work →
+                </button>
+                <button onClick={() => convert(true)} className="co-button-secondary w-full" type="button">
+                  Convert as job now
+                </button>
+              </div>
+              <p className="mt-3 text-xs text-[var(--co-muted)]">
+                “Convert as job now” skips the acceptance gate and is meant for internal scheduling when you already have approval elsewhere.
+              </p>
+            </PageCard>
+          ) : null}
+
+          <PageCard eyebrow="Payment status" title="Quote state" description="This helps the office know what happened without opening the public page.">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Sent</p>
+                <p className="mt-2 text-sm font-medium">{quote.sentAt ? new Date(quote.sentAt).toLocaleDateString() : "Not sent"}</p>
+              </div>
+              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Viewed / accepted</p>
+                <p className="mt-2 text-sm font-medium">{quote.acceptedAt ? new Date(quote.acceptedAt).toLocaleDateString() : "No response yet"}</p>
+              </div>
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Viewed count</p>
+                <p className="mt-2 text-sm font-medium">{quote.viewCount ?? 0} times</p>
+              </div>
+              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Last viewed</p>
+                <p className="mt-2 text-sm font-medium">{quote.lastViewedAt ? new Date(quote.lastViewedAt).toLocaleString() : "Not viewed yet"}</p>
+              </div>
+            </div>
+          </PageCard>
+        </aside>
+      </div>
+    </div>
+  );
+}
