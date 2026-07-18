@@ -48,8 +48,11 @@ export default function RoutePreview({
     if (!apiKey || !googleReady || !maps || !mapElement.current || orderedJobs.length === 0) return;
 
     const map = new maps.Map(mapElement.current, {
-      center: { lat: 36.15, lng: -95.99 },
-      zoom: 10,
+      // Neutral continental-US default — real stops immediately re-center
+      // via fitBounds() below once geocoding resolves, so this is only ever
+      // visible for a moment and shouldn't assume any one company's city.
+      center: { lat: 39.5, lng: -98.35 },
+      zoom: 4,
       disableDefaultUI: true,
       zoomControl: true,
       mapTypeControl: false,
