@@ -25,25 +25,37 @@ type CalculationLine = {
 };
 
 export type PayTier = { minHours: number; maxHours: number | null; rateCents: number };
+export type PayTierBracket = { minHours: number; maxHours: number | null; label: string };
 
-/** Fixed company-wide hour brackets (confirmed with the user 2026-07-14: the
- * breakpoints are the same for every commission_jth employee, only the
- * dollar rate per bracket varies per person). Used both when computing
- * payroll and when the employee-profile UI edits an employee's 4 rates. */
-export const PAY_TIER_BRACKETS: Array<{ minHours: number; maxHours: number | null; label: string }> = [
+/** Default hour brackets — Simply Maid's original 4-bracket structure
+ * (confirmed with the user 2026-07-14). Every company gets this as a
+ * starting point, but the bracket count and cutoffs are configurable per
+ * company via companies.settings.payTierBrackets (Settings → Payroll
+ * Tiers) — different businesses use different commission structures, so
+ * this must not be hardcoded company-wide. */
+export const DEFAULT_PAY_TIER_BRACKETS: PayTierBracket[] = [
   { minHours: 0, maxHours: 25.99, label: "Under 26 hrs" },
   { minHours: 26, maxHours: 29.99, label: "26–29.99 hrs" },
   { minHours: 30, maxHours: 33.99, label: "30–33.99 hrs" },
   { minHours: 34, maxHours: null, label: "34+ hrs" },
 ];
 
-/** Builds a full PayTier[] schedule from 4 per-bracket rates, in the fixed
- * bracket order above. */
-export function buildPayTiers(rateCentsByBracket: [number, number, number, number]): PayTier[] {
-  return PAY_TIER_BRACKETS.map((bracket, i) => ({
+/** Reads this company's configured pay-tier brackets, falling back to the
+ * default 4-bracket structure if the company hasn't customized them. */
+export async function getPayTierBrackets(companyId: string): Promise<PayTierBracket[]> {
+  const [company] = await db.select({ settings: companies.settings }).from(companies).where(eq(companies.id, companyId)).limit(1);
+  const settings = (company?.settings as { payTierBrackets?: PayTierBracket[] } | null) ?? {};
+  return settings.payTierBrackets && settings.payTierBrackets.length > 0 ? settings.payTierBrackets : DEFAULT_PAY_TIER_BRACKETS;
+}
+
+/** Builds a full PayTier[] schedule by zipping this company's bracket
+ * definitions with one rate per bracket. rateCentsByBracket must be the
+ * same length as brackets. */
+export function buildPayTiers(brackets: PayTierBracket[], rateCentsByBracket: number[]): PayTier[] {
+  return brackets.map((bracket, i) => ({
     minHours: bracket.minHours,
     maxHours: bracket.maxHours,
-    rateCents: rateCentsByBracket[i],
+    rateCents: rateCentsByBracket[i] ?? 0,
   }));
 }
 

@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
 import { auditLog, customers, users, jobs, jobAssignments, timeEntries, payrollLines, payrollPeriods } from "@/db/schema";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
-import { buildPayTiers } from "@/lib/payroll/calculate";
+import { buildPayTiers, getPayTierBrackets } from "@/lib/payroll/calculate";
 
 const updateEmployeeSchema = z.object({
   firstName: z.string().trim().min(1).optional(),
@@ -16,14 +16,10 @@ const updateEmployeeSchema = z.object({
   hiredDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
   payType: z.enum(["commission_jth", "office_hourly"]).optional(),
   hourlyRateCents: z.number().int().nonnegative().optional(),
-  // 4 rates in fixed-bracket order (<26, 26-29.99, 30-33.99, 34+) — see
-  // lib/payroll/calculate.ts PAY_TIER_BRACKETS. commission_jth employees only.
-  tierRatesCents: z.tuple([
-    z.number().int().nonnegative(),
-    z.number().int().nonnegative(),
-    z.number().int().nonnegative(),
-    z.number().int().nonnegative(),
-  ]).optional(),
+  // One rate per this company's configured pay-tier bracket (Settings →
+  // Payroll Tiers) — length varies per company, validated against the
+  // company's actual bracket count below. commission_jth employees only.
+  tierRatesCents: z.array(z.number().int().nonnegative()).min(1).optional(),
   gustoEmployeeId: z.string().trim().optional(),
   isActive: z.boolean().optional(),
 });
@@ -143,6 +139,8 @@ export async function GET(
     .orderBy(desc(timeEntries.clockIn))
     .limit(8);
 
+  const payTierBrackets = await getPayTierBrackets(admin.companyId);
+
   return NextResponse.json({
     employee,
     stats: {
@@ -153,6 +151,7 @@ export async function GET(
     upcomingJobs,
     recentJobs,
     recentTimeEntries,
+    payTierBrackets,
   });
 }
 
@@ -183,7 +182,14 @@ export async function PATCH(
   const { tierRatesCents, ...rest } = parsed.data;
   const fields: Record<string, unknown> = { ...rest };
   if (tierRatesCents) {
-    fields.payTiers = buildPayTiers(tierRatesCents);
+    const brackets = await getPayTierBrackets(admin.companyId);
+    if (tierRatesCents.length !== brackets.length) {
+      return NextResponse.json(
+        { error: `Expected ${brackets.length} tier rate(s) for this company's pay-tier brackets, got ${tierRatesCents.length}.` },
+        { status: 400 }
+      );
+    }
+    fields.payTiers = buildPayTiers(brackets, tierRatesCents);
   }
 
   if (Object.keys(fields).length > 0) {

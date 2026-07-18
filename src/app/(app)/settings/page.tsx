@@ -7,6 +7,7 @@ const SECTIONS = [
   { href: "/settings/pricing", label: "Pricing & service locations", desc: "Hourly rates, minimums, dirty-code discounts, and travel-zone fees." },
   { href: "/settings/room-types", label: "Room types & pricing weights", desc: "Room counts and hours-per-room that drive quote calculations." },
   { href: "/settings/services", label: "Service catalog", desc: "The service options available when creating one-off jobs." },
+  { href: "/settings/payroll-tiers", label: "Payroll tiers", desc: "Weekly-hour brackets used to set commission employees' pay rates." },
   { href: "/settings/branding", label: "Company branding", desc: "Logo, color, contact details, and proposal identity." },
   { href: "/settings/ghl", label: "GHL integration", desc: "Workflow tags and connection settings for GoHighLevel." },
   { href: "/settings/quote-template", label: "Quote page content", desc: "Intro letter and terms shown on customer proposals." },

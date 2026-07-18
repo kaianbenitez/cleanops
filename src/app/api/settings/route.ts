@@ -48,6 +48,12 @@ const ghlWorkflowMapSchema = z.object({
   invoiceSent: z.string().trim().max(200).optional().or(z.literal("")),
 });
 
+const payTierBracketSchema = z.object({
+  minHours: z.number().nonnegative(),
+  maxHours: z.number().nonnegative().nullable(),
+  label: z.string().trim().min(1).max(60),
+});
+
 const inventoryItemSchema = z.object({
   id: z.string().trim().min(1).max(100),
   name: z.string().trim().min(1).max(120),
@@ -87,6 +93,7 @@ const schema = z.object({
   ghlTagMap: ghlTagMapSchema.optional(),
   ghlWorkflowMap: ghlWorkflowMapSchema.optional(),
   mileageRateCents: z.number().int().nonnegative().max(500).optional(),
+  payTierBrackets: z.array(payTierBracketSchema).min(1).max(12).optional(),
   inventory: z.array(inventoryItemSchema).max(500).optional(),
   branding: z
     .object({
@@ -128,6 +135,7 @@ export async function PATCH(req: NextRequest) {
     ...(parsed.data.ghlTagMap ? { ghlTagMap: parsed.data.ghlTagMap } : {}),
     ...(parsed.data.ghlWorkflowMap ? { ghlWorkflowMap: parsed.data.ghlWorkflowMap } : {}),
     ...(parsed.data.mileageRateCents !== undefined ? { mileageRateCents: parsed.data.mileageRateCents } : {}),
+    ...(parsed.data.payTierBrackets ? { payTierBrackets: parsed.data.payTierBrackets } : {}),
     ...(parsed.data.inventory ? { inventory: parsed.data.inventory } : {}),
     ...(parsed.data.branding ? { branding: parsed.data.branding } : {}),
   };

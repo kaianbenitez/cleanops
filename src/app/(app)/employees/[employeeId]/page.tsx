@@ -50,7 +50,7 @@ type EmployeeTimeEntry = {
   customerLastName: string;
 };
 
-const PAY_TIER_BRACKET_LABELS = ["Under 26 hrs", "26 to 29.99 hrs", "30 to 33.99 hrs", "34+ hrs"];
+type PayTierBracket = { minHours: number; maxHours: number | null; label: string };
 
 const JOB_TYPE_LABELS: Record<EmployeeJob["type"], string> = {
   first_clean: "First clean",
@@ -95,6 +95,7 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
   const [upcomingJobs, setUpcomingJobs] = useState<EmployeeJob[]>([]);
   const [recentJobs, setRecentJobs] = useState<EmployeeJob[]>([]);
   const [recentTimeEntries, setRecentTimeEntries] = useState<EmployeeTimeEntry[]>([]);
+  const [payTierBrackets, setPayTierBrackets] = useState<PayTierBracket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -115,6 +116,7 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
     setUpcomingJobs(data.upcomingJobs ?? []);
     setRecentJobs(data.recentJobs ?? []);
     setRecentTimeEntries(data.recentTimeEntries ?? []);
+    setPayTierBrackets(data.payTierBrackets ?? []);
     setError(null);
     setLoading(false);
   }, [employeeId]);
@@ -267,6 +269,7 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
               <TierRatesEditor
                 employeeId={employee.id}
                 payTiers={employee.payTiers}
+                brackets={payTierBrackets}
                 fallbackRateCents={employee.hourlyRateCents ?? 0}
                 onSaved={load}
               />
@@ -500,25 +503,29 @@ function EmptyState({ label, detail }: { label: string; detail: string }) {
 function TierRatesEditor({
   employeeId,
   payTiers,
+  brackets,
   fallbackRateCents,
   onSaved,
 }: {
   employeeId: string;
   payTiers: PayTier[] | null;
+  brackets: PayTierBracket[];
   fallbackRateCents: number;
   onSaved: () => void;
 }) {
-  const [rates, setRates] = useState<[string, string, string, string]>(() => {
-    if (payTiers && payTiers.length === 4) {
-      return payTiers.map((tier) => dollars(tier.rateCents)) as [string, string, string, string];
+  const [rates, setRates] = useState<string[]>(() => {
+    if (payTiers && payTiers.length === brackets.length) {
+      return payTiers.map((tier) => dollars(tier.rateCents));
     }
     const fallback = dollars(fallbackRateCents);
-    return [fallback, fallback, fallback, fallback];
+    return brackets.map(() => fallback);
   });
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleSave() {
-    const tierRatesCents = rates.map((rate) => Math.round(parseFloat(rate || "0") * 100)) as [number, number, number, number];
+    setError("");
+    const tierRatesCents = rates.map((rate) => Math.round(parseFloat(rate || "0") * 100));
     const response = await fetch(`/api/employees/${employeeId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -526,6 +533,8 @@ function TierRatesEditor({
     });
 
     if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      setError(body.error ?? "Could not save tier rates.");
       return;
     }
 
@@ -534,22 +543,26 @@ function TierRatesEditor({
     onSaved();
   }
 
+  if (brackets.length === 0) {
+    return null;
+  }
+
   return (
     <div className="mt-5 border-t border-[#edf0ec] pt-5">
       <label className="mb-3 block text-xs font-semibold text-[#65775e]">Tier rate schedule by weekly job ticket hours</label>
       <div className="grid gap-2 sm:grid-cols-4">
-        {PAY_TIER_BRACKET_LABELS.map((label, index) => (
-          <div key={label}>
-            <label className="mb-1.5 block text-[11px] text-[#8a9b93]">{label}</label>
+        {brackets.map((bracket, index) => (
+          <div key={bracket.label}>
+            <label className="mb-1.5 block text-[11px] text-[#8a9b93]">{bracket.label}</label>
             <div className="relative">
               <span className="absolute left-3 top-2.5 text-xs text-[#8a9b93]">$</span>
               <input
                 type="number"
                 step="0.01"
                 min="0"
-                value={rates[index]}
+                value={rates[index] ?? "0.00"}
                 onChange={(e) => {
-                  const next = [...rates] as [string, string, string, string];
+                  const next = [...rates];
                   next[index] = e.target.value;
                   setRates(next);
                 }}
@@ -564,6 +577,7 @@ function TierRatesEditor({
           Save tier rates
         </button>
         {saved && <span className="text-xs font-semibold text-[#5c7436]">Saved</span>}
+        {error && <span className="text-xs font-semibold text-rose-600">{error}</span>}
       </div>
     </div>
   );
