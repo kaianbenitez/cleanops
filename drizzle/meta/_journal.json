@@ -15,6 +15,13 @@
       "when": 1783994309596,
       "tag": "0001_cute_scrambler",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784405704810,
+      "tag": "0002_nebulous_firebird",
+      "breakpoints": true
     }
   ]
 }
