@@ -62,30 +62,43 @@ const SERVICE_LABELS: Record<string, string> = {
 };
 
 const SERVICE_DESCRIPTIONS: Record<string, string> = {
-  supreme_deep: "Our most detailed clean for a full reset.",
-  deep: "Extra attention to buildup, detail, and high-touch areas.",
-  first_time: "A thorough first visit to establish your home baseline.",
-  weekly: "Consistent maintenance for a home that stays ready.",
-  biweekly: "A popular rhythm for busy households.",
-  four_weeks: "Monthly maintenance with more time between visits.",
-  move_in_out: "A transition clean for moving in or moving out.",
+  supreme_deep: "Hand wipe + steam mop + fridge + oven.",
+  deep: "Hand wipe only.",
+  first_time: "Dusting only.",
+  weekly: "Maintenance clean.",
+  biweekly: "Every 2 weeks.",
+  four_weeks: "Every 4 weeks.",
+  move_in_out: "Move-in / move-out.",
 };
+
+const SERVICE_SCOPE_PARAGRAPHS: Record<string, string> = {
+  supreme_deep:
+    "Our most detailed option for a true refresh. We handle the full hand-wipe detail work, then finish with steam mopping plus fridge and oven cleaning.",
+  deep:
+    "A thorough, detail-focused clean that keeps the home looking polished and cared for with extra attention where it matters most.",
+  first_time:
+    "The best starting point for a home that needs a reset before regular service begins. We focus on dusting and a strong overall refresh.",
+  weekly:
+    "A dependable maintenance visit that helps the home stay consistently clean, fresh, and ready for the week ahead.",
+  biweekly:
+    "A popular balance of coverage and value for busy households that want things kept in great shape between visits.",
+  four_weeks:
+    "A monthly upkeep clean that brings the home back to a fresh baseline and keeps buildup from getting ahead of you.",
+  move_in_out:
+    "A transition clean designed to help a home feel ready for its next chapter, whether you are moving in or moving out.",
+};
+
+const ADD_ONS = [
+  { key: "inside_windows", label: "Inside windows", priceCents: 4500 },
+  { key: "oven_interior", label: "Oven interior", priceCents: 3500 },
+  { key: "fridge_interior", label: "Fridge interior", priceCents: 3500 },
+  { key: "baseboards", label: "Baseboards", priceCents: 2500 },
+  { key: "cabinet_fronts", label: "Cabinet fronts", priceCents: 3000 },
+  { key: "laundry", label: "Laundry / folding", priceCents: 5000 },
+] as const;
 
 const DEFAULT_INTRO =
   "Thank you for considering our cleaning service. We prepared the options below around the home details you provided. Choose the service that feels right, and your total will update as you compare.";
-
-const TESTIMONIALS = [
-  {
-    name: "Taylor R.",
-    city: "Tulsa, OK",
-    text: "CleanOps was consistently thorough and easy to work with. Coming home to a clean house is everything.",
-  },
-  {
-    name: "Marcus H.",
-    city: "Tulsa, OK",
-    text: "They pay attention to the details I care about most. Highly recommend!",
-  },
-];
 
 const FAQS = [
   { q: "Do I have to be home?", a: "That is up to your comfort level. If you are not home, please let us know how we will be getting in so we can keep the visit smooth and secure." },
@@ -177,6 +190,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [openFaq, setOpenFaq] = useState<string | null>(FAQS[0].q);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
 
   useEffect(() => {
     fetch(`/api/public/quotes/${token}`)
@@ -206,7 +220,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
     const response = await fetch(`/api/public/quotes/${token}/accept`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ serviceType: selectedType, signatureName }),
+      body: JSON.stringify({ serviceType: selectedType, signatureName, addOns: selectedAddOns }),
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -249,8 +263,10 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
   const reviewUrl = data?.companyReviewUrl || data?.quoteTemplate?.reviewUrl || "";
   const requiresDeposit = selectedType ? ["first_time", "deep"].includes(selectedType) : false;
   const selectedTotalCents = selectedBreakdown?.finalCents ?? data?.quote.totalCents ?? 0;
-  const depositCents = requiresDeposit ? Math.round(selectedTotalCents * 0.5) : 0;
-  const remainingCents = requiresDeposit ? Math.max(0, selectedTotalCents - depositCents) : 0;
+  const selectedAddOnTotalCents = selectedAddOns.reduce((sum, key) => sum + (ADD_ONS.find((item) => item.key === key)?.priceCents ?? 0), 0);
+  const quotedTotalCents = selectedTotalCents + selectedAddOnTotalCents;
+  const depositCents = requiresDeposit ? Math.round(quotedTotalCents * 0.5) : 0;
+  const remainingCents = requiresDeposit ? Math.max(0, quotedTotalCents - depositCents) : 0;
 
   if (notFound) {
     return <div className="flex min-h-screen items-center justify-center bg-[#f4f2eb] p-6 text-center text-sm text-slate-500">This proposal link is invalid or has expired.</div>;
@@ -278,7 +294,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                 <p className="text-sm text-[#718179]">
                   Proposal for {data.customerFirstName} {data.customerLastName}
                 </p>
-                <p className="mt-2 text-xs text-[#718179]">{data.locationName || "Your home"} Â· Proposal {data.quote.id.slice(0, 8).toUpperCase()}</p>
+                <p className="mt-2 text-xs text-[#718179]">{data.locationName || "Your home"} · Proposal {data.quote.id.slice(0, 8).toUpperCase()}</p>
               </div>
             </div>
 
@@ -346,21 +362,13 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                           <p className="mt-2 min-h-10 text-xs leading-5 text-[#718179]">{SERVICE_DESCRIPTIONS[type] || "A service option prepared for your home."}</p>
                         </div>
                         <span className={`flex h-6 w-6 items-center justify-center rounded-md border text-sm ${selected ? "border-[#14211f] bg-[#14211f] text-[#c8e86b]" : "border-[#bdcbbf] text-transparent"}`}>
-                          âœ“
+                          ✓
                         </span>
                       </div>
-                      <div className="mt-4 rounded-2xl border border-[#edf0ec] bg-[#fbfcf8] p-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#718179]">Photo checklist</p>
-                        <ul className="mt-2 space-y-1.5 text-xs leading-5 text-[#52625a]">
-                          {tier.roomLines.slice(0, 3).map((room) => (
-                            <li key={`${type}-${room.roomTypeName}`} className="flex items-center justify-between gap-3">
-                              <span className="truncate">{room.roomTypeName}</span>
-                              <span className="rounded-full bg-white px-2 py-0.5 font-medium text-[#536d35]">{room.count}</span>
-                            </li>
-                          ))}
-                          {tier.roomLines.length > 3 ? <li className="text-[11px] text-[#718179]">+{tier.roomLines.length - 3} more room types</li> : null}
-                        </ul>
-                      </div>
+                      <p className="mt-4 text-sm leading-6 text-[#52625a]">
+                        {SERVICE_SCOPE_PARAGRAPHS[type] ||
+                          "A thoughtful option built around the home’s needs, with add-ons available if you want to go a little further."}
+                      </p>
                       <p className="mt-5 text-2xl font-semibold">{dollars(tier.finalCents)}</p>
                       <p className="mt-1 text-xs text-[#718179]">Per scheduled visit</p>
                     </button>
@@ -374,22 +382,58 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                 <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#718179]">Add-on services</p>
                 <h3 className="mt-2 text-2xl font-semibold text-[#1b2925]">Add extras without reopening the whole quote</h3>
                 <p className="mt-3 max-w-2xl text-base leading-7 text-[#52625a]">
-                  If you want windows, inside appliances, or a custom add-on, just call or text the office and we can update the scope before you accept.
+                  Choose any extras below and the total updates right away. Selected items will stay on the accepted quote.
                 </p>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {[
-                    "Inside windows",
-                    "Oven interior",
-                    "Fridge interior",
-                    "Baseboards",
-                    "Cabinet fronts",
-                    "Laundry / folding",
-                  ].map((item) => (
-                    <div key={item} className="rounded-2xl border border-[#e7ebe2] bg-[#fbfcf8] px-4 py-3 text-sm font-medium text-[#1b2925]">
-                      {item}
-                    </div>
-                  ))}
+                  {ADD_ONS.map((item) => {
+                    const checked = selectedAddOns.includes(item.key);
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() =>
+                          setSelectedAddOns((current) => (checked ? current.filter((key) => key !== item.key) : [...current, item.key]))
+                        }
+                        className={`flex h-full flex-col gap-3 rounded-2xl border px-4 py-4 text-left transition ${
+                          checked ? "border-[#5c7436] bg-[#f0f8df]" : "border-[#e7ebe2] bg-[#fbfcf8]"
+                        }`}
+                      >
+                        <div className="flex w-full items-start gap-3">
+                          <span
+                            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border text-[11px] ${
+                              checked ? "border-[#14211f] bg-[#14211f] text-[#c8e86b]" : "border-[#bdcbbf] text-transparent"
+                            }`}
+                          >
+                            ✓
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium leading-6 text-[#1b2925]">{item.label}</p>
+                            <p className="mt-1 text-xs text-[#718179]">Tap to add or remove this extra.</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 border-t border-[#e7ebe2] pt-3">
+                          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#718179]">Add-on price</span>
+                          <span className={`rounded-full border px-3 py-1 text-sm font-semibold whitespace-nowrap ${checked ? "border-[#5c7436] bg-white text-[#536d35]" : "border-[#d8dfd4] bg-white text-[#536d35]"}`}>
+                            +{dollars(item.priceCents)}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
+                {selectedAddOnTotalCents ? (
+                  <div className="mt-5 rounded-2xl border border-[#dfe8cf] bg-[#f4f8ef] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#6b7e58]">Add-ons selected</p>
+                    <div className="mt-3 space-y-2 text-sm text-[#52625a]">
+                      {ADD_ONS.filter((item) => selectedAddOns.includes(item.key)).map((item) => (
+                        <div key={item.key} className="flex items-center justify-between gap-3">
+                          <span>{item.label}</span>
+                          <span className="font-medium text-[#1b2925]">+{dollars(item.priceCents)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 {contactPhone ? (
                   <div className="mt-6 flex flex-wrap gap-2">
                     <a href={`tel:${contactPhone}`} className="co-button-secondary">
@@ -403,15 +447,12 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
               </div>
 
               <div className="rounded-[28px] bg-white p-6 shadow-[0_12px_40px_rgba(33,52,43,.06)]">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#718179]">Google reviews</p>
-                <h3 className="mt-2 text-2xl font-semibold text-[#1b2925]">Make it easy for customers to trust the team</h3>
-                <p className="mt-3 text-sm leading-7 text-[#52625a]">
-                  The proposal can point customers straight to your review profile so they can see real feedback before they decide.
-                </p>
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#718179]">Trust links</p>
+                <h3 className="mt-2 text-2xl font-semibold text-[#1b2925]">Keep the proof short and clear</h3>
+                <p className="mt-3 text-sm leading-7 text-[#52625a]">Your review link still lives here, but the proposal stays clean and focused on the quote.</p>
                 <div className="mt-5 rounded-[26px] border border-[#e7ebe2] bg-[#f7f8f3] p-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718179]">Review link</p>
                   <p className="mt-2 text-lg font-semibold text-[#1b2925]">{reviewUrl ? "Configured" : "Add your Google review link"}</p>
-                  <p className="mt-2 text-sm leading-6 text-[#52625a]">{reviewUrl ? "This link will appear in the proposal header and the trust section." : "Paste your Google Business review URL here so customers can open it directly."}</p>
                   {reviewUrl ? (
                     <a href={reviewUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex rounded-full border border-[#d7dfd4] bg-white px-4 py-2 text-sm font-medium text-[#1b2925]">
                       Open review page
@@ -437,16 +478,16 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
 
             <section className="grid gap-6 md:grid-cols-2">
               <div className="rounded-[28px] bg-white p-6 shadow-[0_12px_40px_rgba(33,52,43,.06)]">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#718179]">What neighbors say</p>
-                <div className="mt-5 space-y-5">
-                  {TESTIMONIALS.map((testimonial) => (
-                    <div key={testimonial.name} className="rounded-2xl bg-[#f8f7f2] p-4">
-                      <p className="text-sm leading-6 text-[#52625a]">â€œ{testimonial.text}â€</p>
-                      <p className="mt-3 text-sm font-semibold text-[#1b2925]">
-                        â€” {testimonial.name}, {testimonial.city}
-                      </p>
-                    </div>
-                  ))}
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#718179]">Insurance & W-9</p>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-[#e7ebe2] bg-[#f8f8f4] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718179]">Insurance certificate</p>
+                    <p className="mt-2 text-sm leading-6 text-[#52625a]">Upload your certificate here so customers can open it right from the proposal.</p>
+                  </div>
+                  <div className="rounded-2xl border border-[#e7ebe2] bg-[#f8f8f4] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718179]">W-9 available</p>
+                    <p className="mt-2 text-sm leading-6 text-[#52625a]">Keep the W-9 ready for bookkeeping or vendor setup requests.</p>
+                  </div>
                 </div>
               </div>
 
@@ -459,7 +500,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                       <button key={faq.q} onClick={() => setOpenFaq(open ? null : faq.q)} className="block w-full rounded-2xl border border-[#e7ebe2] px-4 py-3 text-left">
                         <div className="flex items-center justify-between gap-4">
                           <span className="text-sm font-medium text-[#1b2925]">{faq.q}</span>
-                          <span className="text-lg text-[#718179]">{open ? "âˆ’" : "+"}</span>
+                          <span className="text-lg text-[#718179]">{open ? "-" : "+"}</span>
                         </div>
                         {open ? <p className="mt-3 text-sm leading-6 text-[#52625a]">{faq.a}</p> : null}
                       </button>
@@ -469,37 +510,12 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
               </div>
             </section>
 
-            <section className="grid gap-6 md:grid-cols-2">
-              <div className="rounded-[28px] bg-white p-6 shadow-[0_12px_40px_rgba(33,52,43,.06)]">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#718179]">Weâ€™re covered so youâ€™re protected</p>
-                <p className="mt-3 text-sm leading-7 text-[#52625a]">
-                  CleanOps carries general liability insurance and bonding for peace of mind. Your service team and home are both protected.
-                </p>
-                <a
-                  href={data.companyReviewUrl || "#"}
-                  target={data.companyReviewUrl ? "_blank" : undefined}
-                  rel={data.companyReviewUrl ? "noreferrer" : undefined}
-                  className="mt-4 inline-flex text-sm font-semibold text-[#536d35] underline decoration-[#c8e86b] decoration-2 underline-offset-4"
-                >
-                  {data.companyReviewUrl ? "Leave a Google rating" : "Google rating link coming soon"}
-                </a>
-              </div>
-
-              <div className="rounded-[28px] bg-white p-6 shadow-[0_12px_40px_rgba(33,52,43,.06)]">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#718179]">W-9 available</p>
-                <p className="mt-3 text-sm leading-7 text-[#52625a]">Weâ€™re happy to provide our W-9 upon request for bookkeeping or vendor setup.</p>
-                <a href="#" className="mt-4 inline-flex text-sm font-semibold text-[#536d35] underline decoration-[#c8e86b] decoration-2 underline-offset-4">
-                  Download W-9
-                </a>
-              </div>
-            </section>
-
           </main>
 
           <aside className="space-y-5 lg:sticky lg:top-6 lg:self-start">
             <section className="rounded-[32px] bg-white p-6 shadow-[0_18px_60px_rgba(33,52,43,.1)]">
               <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#718179]">Your total</p>
-              <p className="mt-2 text-4xl font-semibold">{dollars(selectedBreakdown?.finalCents ?? data.quote.totalCents)}</p>
+              <p className="mt-2 text-4xl font-semibold">{dollars(quotedTotalCents)}</p>
               <p className="mt-1 text-sm text-[#718179]">{selectedType ? SERVICE_LABELS[selectedType] : "Select an option"}</p>
               <p className="mt-2 text-sm font-medium text-[#536d35]">{data.customerCity || data.locationName || "Your service area"}</p>
               <p className="mt-1 text-xs text-[#718179]">This proposal is tailored to the home and location on file.</p>
@@ -519,11 +535,11 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                 <div className="mt-6 rounded-2xl border border-[#e7ebe2] bg-[#fbfcf8] p-4">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#718179]">Selected option</p>
-                    <span className="text-xs text-[#718179]">{dollars(selectedBreakdown.finalCents)} final</span>
+                    <span className="text-xs text-[#718179]">{dollars(quotedTotalCents)} final</span>
                   </div>
                   <p className="mt-2 text-sm font-medium text-[#1b2925]">{SERVICE_LABELS[selectedType ?? ""] ?? "Service option"}</p>
                   <p className="mt-2 text-sm leading-6 text-[#52625a]">
-                    Total includes the service scope, travel where applicable, and the live pricing rules tied to this home.
+                    Total includes the service scope, travel where applicable, and any selected add-ons.
                   </p>
                 </div>
               ) : null}
@@ -547,7 +563,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
 
               {isAccepted ? (
                 <div className="mt-6 rounded-2xl bg-[#edf3e9] p-4 text-center text-sm text-[#5c7436]">
-                  Accepted{data.quote.signatureName ? ` by ${data.quote.signatureName}` : ""}. Weâ€™ll be in touch to confirm scheduling.
+                  Accepted{data.quote.signatureName ? ` by ${data.quote.signatureName}` : ""}. We'll be in touch to confirm scheduling.
                 </div>
               ) : isExpired ? (
                 <div className="mt-6 rounded-2xl bg-slate-100 p-4 text-center text-sm text-slate-500">This proposal is no longer available.</div>
@@ -572,14 +588,14 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
             </section>
 
             <section className="rounded-[28px] bg-[#14211f] p-6 text-white shadow-[0_18px_60px_rgba(33,52,43,.15)]">
-              <p className="text-sm font-semibold text-[#c8e86b]">Youâ€™re in good hands</p>
+              <p className="text-sm font-semibold text-[#c8e86b]">You're in good hands</p>
               <p className="mt-3 text-sm leading-7 text-white/75">
                 Background-checked and trained pros, thoughtful communication, and a service standard built to make your home feel calm and cared for.
               </p>
               <div className="mt-6 grid gap-3 text-sm text-white/80">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">â€¢ 100% satisfaction-minded service</div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">â€¢ Eco-friendly products available</div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">â€¢ Fully licensed & insured</div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">• 100% satisfaction-minded service</div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">• Eco-friendly products available</div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">• Fully licensed & insured</div>
               </div>
             </section>
           </aside>
@@ -587,7 +603,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
 
         <footer className="py-8 text-center text-xs text-[#718179]">
           Prepared by {data.quoteTemplate?.ownerName || data.companyName}
-          {data.quoteTemplate?.ownerTitle ? ` Â· ${data.quoteTemplate.ownerTitle}` : ""}
+          {data.quoteTemplate?.ownerTitle ? ` · ${data.quoteTemplate.ownerTitle}` : ""}
         </footer>
       </div>
     </div>

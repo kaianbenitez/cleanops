@@ -107,6 +107,13 @@ export default function PricingSettingsPage() {
       <section className="rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface-muted)]/70 p-4 text-sm text-[var(--co-muted)]">
         <span className="font-semibold text-[var(--co-ink)]">Keep this page operational.</span> Changes save when you leave a field, and affect new quotes immediately.
       </section>
+      <section className="rounded-2xl border border-[var(--co-line)] bg-white p-4 text-sm text-[var(--co-muted)]">
+        <p className="font-semibold text-[var(--co-ink)]">Service areas are configurable per company.</p>
+        <p className="mt-1">
+          Rename travel zones to match the towns, ZIP codes, or neighborhoods each business serves. CleanOps uses these zones to price travel and to block quotes
+          outside the service area when a customer falls beyond the configured coverage.
+        </p>
+      </section>
 
       {locations.map((loc) => (
         <LocationCard
@@ -284,6 +291,9 @@ function LocationCard({
             Add zone
           </button>
         </div>
+        <p className="mt-2 text-xs text-[var(--co-muted)]">
+          Tip: use zone names that match how the owner thinks about service coverage. This keeps quoting flexible for any company.
+        </p>
       </div>
     </section>
   );

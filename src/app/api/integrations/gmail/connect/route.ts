@@ -6,18 +6,22 @@ import { buildGoogleAuthUrl } from "@/lib/gmail/client";
 const STATE_COOKIE = "cleanops_gmail_oauth_state";
 
 export async function GET(req: NextRequest) {
-  await requireAdmin();
+  try {
+    await requireAdmin();
 
-  const redirectUri = new URL("/api/integrations/gmail/callback", req.url).toString();
-  const state = randomUUID();
-  const response = NextResponse.redirect(buildGoogleAuthUrl({ state, redirectUri }));
-  response.cookies.set(STATE_COOKIE, state, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 10 * 60,
-  });
-  return response;
+    const redirectUri = new URL("/api/integrations/gmail/callback", req.url).toString();
+    const state = randomUUID();
+    const response = NextResponse.redirect(buildGoogleAuthUrl({ state, redirectUri }));
+    response.cookies.set(STATE_COOKIE, state, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 10 * 60,
+    });
+    return response;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not start Gmail sign-in.";
+    return NextResponse.redirect(new URL(`/settings/gmail?error=${encodeURIComponent(message)}`, req.url));
+  }
 }
-

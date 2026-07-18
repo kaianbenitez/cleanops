@@ -15,6 +15,8 @@ export async function GET() {
       firstName: customers.firstName,
       lastName: customers.lastName,
       status: customers.status,
+      city: customers.city,
+      zip: customers.zip,
     })
     .from(customers)
     .where(eq(customers.companyId, admin.companyId))

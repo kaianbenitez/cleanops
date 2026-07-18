@@ -77,6 +77,15 @@ type AuditEntry = {
   editorLastName: string | null;
 };
 
+type ServiceAreaSummary = {
+  status: "in_area" | "outside_area" | "missing_address" | "no_service_zones";
+  label: string;
+  detail: string;
+  matchedServiceLocationName?: string | null;
+  matchedZoneName?: string | null;
+  addressLabel?: string | null;
+};
+
 const STATUS_OPTIONS = [
   { value: "lead", label: "Lead" },
   { value: "quoted", label: "Quoted" },
@@ -188,6 +197,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
   const [jobs, setJobs] = useState<CustomerJob[]>([]);
   const [invoices, setInvoices] = useState<CustomerInvoice[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
+  const [serviceArea, setServiceArea] = useState<ServiceAreaSummary | null>(null);
   const [activeLocationIndex, setActiveLocationIndex] = useState(0);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -204,6 +214,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
     setJobs(body.jobs ?? []);
     setInvoices(body.invoices ?? []);
     setAuditLogs(body.auditLogs ?? []);
+    setServiceArea(body.serviceArea ?? null);
     setLoaded(true);
   }, [customerId]);
 
@@ -369,10 +380,15 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <p className="mt-1 text-xs text-[var(--co-muted)]">Preferred contact: {customer.preferredCommunication || "Not recorded"}</p>
             </div>
           </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <InfoCard label="Visits" value={`${upcomingJobs.length}`} sub="Upcoming jobs" />
             <InfoCard label="Invoices" value={`${invoices.length}`} sub="Recorded invoices" />
             <InfoCard label="Open balance" value={money(openBalance)} sub={openBalance ? "Needs collection" : "Paid through"} />
+            <InfoCard
+              label="Service area"
+              value={serviceArea?.label ?? "Checking..."}
+              sub={serviceArea?.detail ?? "Matched against configured zones"}
+            />
           </div>
           <div className="mt-5 grid gap-3 rounded-[24px] border border-[var(--co-line-soft)] bg-[linear-gradient(135deg,#f8fbf5,#eef5eb)] p-4 sm:grid-cols-2">
             <div>

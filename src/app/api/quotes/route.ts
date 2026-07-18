@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { quotes, customers } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { calculateAllTierPrices, SERVICE_TYPES } from "@/lib/pricing/calculate";
+import { resolveCustomerServiceArea } from "@/lib/service-area";
 
 const createQuoteSchema = z.object({
   customerId: z.string().uuid(),
@@ -66,6 +67,18 @@ export async function POST(req: NextRequest) {
 
   if (!customer) {
     return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+  }
+
+  const serviceArea = await resolveCustomerServiceArea({
+    companyId: admin.companyId,
+    customerId: data.customerId,
+    serviceLocationId: data.serviceLocationId,
+  });
+  if (serviceArea.status === "missing_address") {
+    return NextResponse.json({ error: "This customer is missing an address. Add city or ZIP before quoting." }, { status: 400 });
+  }
+  if (serviceArea.status === "outside_area") {
+    return NextResponse.json({ error: "This customer is outside the selected service area." }, { status: 400 });
   }
 
   const allTierPricing = await calculateAllTierPrices({

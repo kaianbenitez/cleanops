@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { auditLog, customers, customerLocations, invoices, jobs, users } from "@/db/schema";
 import { and, eq, asc, desc } from "drizzle-orm";
 import { syncToGhl } from "@/lib/ghl/sync";
+import { resolveCustomerServiceArea } from "@/lib/service-area";
 
 const updateCustomerSchema = z.object({
   status: z.enum(["lead", "quoted", "first_clean_booked", "client", "lost", "moved"]).optional(),
@@ -72,6 +73,7 @@ export async function GET(
   }
   const customerJobs = await db.select({ id: jobs.id, type: jobs.type, status: jobs.status, scheduledDate: jobs.scheduledDate, scheduledStartTime: jobs.scheduledStartTime, estimatedDurationMinutes: jobs.estimatedDurationMinutes, priceCents: jobs.priceCents }).from(jobs).where(and(eq(jobs.customerId, customerId), eq(jobs.companyId, admin.companyId))).orderBy(desc(jobs.scheduledDate), desc(jobs.scheduledStartTime));
   const customerInvoices = await db.select({ id: invoices.id, status: invoices.status, method: invoices.method, totalCents: invoices.totalCents, amountPaidCents: invoices.amountPaidCents, tipCents: invoices.tipCents, createdAt: invoices.createdAt, paidAt: invoices.paidAt }).from(invoices).where(and(eq(invoices.customerId, customerId), eq(invoices.companyId, admin.companyId))).orderBy(desc(invoices.createdAt));
+  const serviceArea = await resolveCustomerServiceArea({ companyId: admin.companyId, customerId });
   const auditLogs = await db
     .select({
       id: auditLog.id,
@@ -86,7 +88,7 @@ export async function GET(
     .leftJoin(users, eq(auditLog.userId, users.id))
     .where(and(eq(auditLog.companyId, admin.companyId), eq(auditLog.entityType, "customer"), eq(auditLog.entityId, customerId)))
     .orderBy(desc(auditLog.createdAt));
-  return NextResponse.json({ customer, locations, jobs: customerJobs, invoices: customerInvoices, auditLogs });
+  return NextResponse.json({ customer, locations, jobs: customerJobs, invoices: customerInvoices, auditLogs, serviceArea });
 }
 
 /** PATCH /api/customers/[customerId] — status changes only for now (no full Customers

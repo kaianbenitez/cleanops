@@ -10,6 +10,7 @@ import { refreshGoogleAccessToken, sendGmailMessage } from "@/lib/gmail/client";
 const acceptSchema = z.object({
   serviceType: z.enum(SERVICE_TYPES),
   signatureName: z.string().trim().min(1, "Signature name is required"),
+  addOns: z.array(z.string().trim().min(1)).default([]),
 });
 
 const SERVICE_LABELS: Record<string, string> = {
@@ -22,13 +23,19 @@ const SERVICE_LABELS: Record<string, string> = {
   move_in_out: "Move In / Out",
 };
 
+const ADD_ONS: Record<string, { label: string; priceCents: number }> = {
+  inside_windows: { label: "Inside windows", priceCents: 4500 },
+  oven_interior: { label: "Oven interior", priceCents: 3500 },
+  fridge_interior: { label: "Fridge interior", priceCents: 3500 },
+  baseboards: { label: "Baseboards", priceCents: 2500 },
+  cabinet_fronts: { label: "Cabinet fronts", priceCents: 3000 },
+  laundry: { label: "Laundry / folding", priceCents: 5000 },
+};
+
 /** POST /api/public/quotes/[token]/accept — unauthenticated customer-facing accept action.
  * The customer picks which of the quote's priced tiers they want, and types their name as
  * a lightweight e-signature. */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ token: string }> }
-) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const body = await req.json();
   const parsed = acceptSchema.safeParse(body);
@@ -50,7 +57,7 @@ export async function POST(
     return NextResponse.json({ error: "Quote not found" }, { status: 404 });
   }
   if (quote.status === "accepted") {
-    return NextResponse.json({ ok: true }); // idempotent
+    return NextResponse.json({ ok: true });
   }
   if (quote.status === "declined" || quote.status === "expired") {
     return NextResponse.json({ error: "This quote can no longer be accepted" }, { status: 400 });
@@ -62,13 +69,19 @@ export async function POST(
     return NextResponse.json({ error: "Selected service type is not priced on this quote" }, { status: 400 });
   }
 
+  const addOnEntries = parsed.data.addOns
+    .map((key) => ADD_ONS[key])
+    .filter((addon): addon is { label: string; priceCents: number } => Boolean(addon));
+  const addOnTotalCents = addOnEntries.reduce((sum, addon) => sum + addon.priceCents, 0);
+  const finalTotalCents = chosenTier.finalCents + addOnTotalCents;
+
   await db
     .update(quotes)
     .set({
       status: "accepted",
       acceptedAt: new Date(),
       acceptedServiceType: parsed.data.serviceType,
-      totalCents: chosenTier.finalCents,
+      totalCents: finalTotalCents,
       signatureName: parsed.data.signatureName,
       signatureAt: new Date(),
     })
@@ -85,14 +98,17 @@ export async function POST(
 
     const recipientEmails = admins.map((admin) => admin.email).filter(Boolean);
     if (recipientEmails.length > 0) {
-      const accessToken = await refreshGoogleAccessToken(gmailConnection.refreshToken);
       const customerLabel = customer ? `${customer.firstName} ${customer.lastName}`.trim() : `Customer ${quote.customerId.slice(0, 8).toUpperCase()}`;
       const subject = `Quote accepted in CleanOps`;
+      const addonText = addOnEntries.length
+        ? `Add-ons: ${addOnEntries.map((addon) => `${addon.label} (+$${(addon.priceCents / 100).toFixed(2)})`).join(", ")}`
+        : "";
       const text = [
         `A quote was accepted in CleanOps.`,
         `Quote ID: ${quote.id}`,
         `Customer: ${customerLabel}`,
         `Service type: ${parsed.data.serviceType}`,
+        addonText,
         "",
         `Open CleanOps to view the full record.`,
       ].join("\n");
@@ -103,6 +119,7 @@ export async function POST(
             <li><strong>Quote ID:</strong> ${quote.id}</li>
             <li><strong>Customer:</strong> ${customerLabel}</li>
             <li><strong>Service type:</strong> ${parsed.data.serviceType}</li>
+            ${addonText ? `<li><strong>Add-ons:</strong> ${escapeHtml(addonText)}</li>` : ""}
           </ul>
           <p>Open CleanOps to view the full record.</p>
         </div>
@@ -122,11 +139,14 @@ export async function POST(
       const customerName = customer ? `${customer.firstName} ${customer.lastName}`.trim() : "there";
       const serviceLabel = SERVICE_LABELS[parsed.data.serviceType] ?? parsed.data.serviceType;
       const customerSubject = `We received your CleanOps quote acceptance`;
+      const customerAddonText = addOnEntries.length
+        ? `Add-ons: ${addOnEntries.map((addon) => `${addon.label} (+$${(addon.priceCents / 100).toFixed(2)})`).join(", ")}`
+        : "";
       const customerText = [
         `Hi ${customerName || "there"},`,
         "",
         `Thanks for accepting your ${serviceLabel} quote.`,
-        "We’ve received your signature and our team will follow up to confirm scheduling.",
+        `We’ve received your signature and our team will follow up to confirm scheduling.${customerAddonText ? `\n${customerAddonText}` : ""}`,
         "",
         "If you have any questions or want to add a service, just reply to this email.",
       ].join("\n");
@@ -135,6 +155,7 @@ export async function POST(
           <p>Hi ${escapeHtml(customerName || "there")},</p>
           <p>Thanks for accepting your ${escapeHtml(serviceLabel)} quote.</p>
           <p>We’ve received your signature and our team will follow up to confirm scheduling.</p>
+          ${customerAddonText ? `<p><strong>${escapeHtml(customerAddonText)}</strong></p>` : ""}
           <p>If you have any questions or want to add a service, just reply to this email.</p>
         </div>
       `;

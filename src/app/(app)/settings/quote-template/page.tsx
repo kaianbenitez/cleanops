@@ -348,7 +348,6 @@ export default function QuoteTemplateSettingsPage() {
                 placeholder="https://... or upload an image"
                 accept="image/*"
               />
-              <Field label="Google review link" value={template.reviewUrl} onChange={(value) => update("reviewUrl", value)} placeholder="https://g.page/..." />
               <Field label="Company phone on quote" value={template.contactPhone} onChange={(value) => update("contactPhone", value)} placeholder="(555) 123-4567" />
             </div>
 
@@ -380,12 +379,12 @@ export default function QuoteTemplateSettingsPage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <AssetField
-                label="Insurance certificate"
+                label="Insurance certificate (JPG/PDF)"
                 value={template.insuranceUrl}
                 onChange={(value) => update("insuranceUrl", value)}
                 onUpload={(file) => upload("insuranceUrl", file)}
-                placeholder="https://... or upload a PDF"
-                accept=".pdf,application/pdf"
+                placeholder="https://... or upload a JPG/PDF"
+                accept="image/*,.pdf,application/pdf"
               />
               <AssetField
                 label="W-9"
@@ -446,12 +445,11 @@ export default function QuoteTemplateSettingsPage() {
 
           <section className="co-card p-5">
             <p className="eyebrow">Trust assets</p>
-            <h3 className="mt-1 text-lg font-semibold">Insurance, W-9, and review link</h3>
-            <p className="mt-1 text-sm text-[var(--co-muted)]">These are still available, but the quote page keeps them compact so the main proposal stays cleaner.</p>
+            <h3 className="mt-1 text-lg font-semibold">Insurance and W-9</h3>
+            <p className="mt-1 text-sm text-[var(--co-muted)]">These stay available for the proposal and can be uploaded directly here.</p>
             <div className="mt-4 grid gap-3">
               <PreviewCard title="Insurance certificate" url={template.insuranceUrl} fallback="No insurance link" />
               <PreviewCard title="W-9" url={template.w9Url} fallback="No W-9 link" />
-              <PreviewCard title="Google review link" url={template.reviewUrl} fallback="No review link" />
             </div>
             <p className="mt-4 text-xs text-[var(--co-muted)]">
               {hasTrustAssets ? "Trust assets are ready for the proposal page." : "Add links now; storage can be upgraded later without changing the proposal layout."}
