@@ -9,7 +9,6 @@ const SECTIONS = [
   { href: "/settings/services", label: "Service catalog", desc: "The service options available when creating one-off jobs." },
   { href: "/settings/branding", label: "Company branding", desc: "Logo, color, contact details, and proposal identity." },
   { href: "/settings/ghl", label: "GHL integration", desc: "Workflow tags and connection settings for GoHighLevel." },
-  { href: "/settings/gmail", label: "Gmail sending", desc: "Connect a company mailbox for quote and invoice email." },
   { href: "/settings/quote-template", label: "Quote page content", desc: "Intro letter and terms shown on customer proposals." },
 ];
 
@@ -23,13 +22,8 @@ type CompanySettings = {
   inventory?: Array<{ id: string; name: string }>;
 };
 
-type IntegrationStatus = {
-  gmail?: { connected: boolean; senderEmail?: string; senderName?: string | null; connectedAt?: string; lastUsedAt?: string | null };
-};
-
 type ApiConfig = {
   ghl?: { apiKeyConfigured?: boolean; locationConfigured?: boolean; webhookSecretConfigured?: boolean };
-  gmail?: { oauthConfigured?: boolean };
   square?: { configured?: boolean; webhookConfigured?: boolean };
 };
 
@@ -79,7 +73,6 @@ export default function SettingsPage() {
   const [mileageRate, setMileageRate] = useState("0.35");
   const [admins, setAdmins] = useState<AdminRow[]>([]);
   const [settings, setSettings] = useState<CompanySettings>({});
-  const [integrations, setIntegrations] = useState<IntegrationStatus>({});
   const [apiConfig, setApiConfig] = useState<ApiConfig>({});
   const [ghlTest, setGhlTest] = useState<GhlTestStatus | null>(null);
   const [testingGhl, setTestingGhl] = useState(false);
@@ -98,7 +91,6 @@ export default function SettingsPage() {
           setTimezone(settingsData.company.timezone ?? "America/Chicago");
           setMileageRate(((settingsData.company.settings?.mileageRateCents ?? 35) / 100).toFixed(2));
           setSettings(settingsData.company.settings ?? {});
-          setIntegrations(settingsData.integrations ?? {});
           setApiConfig(settingsData.apiConfig ?? {});
         } else {
           setMessage(settingsData.error ?? "Settings could not be loaded.");
@@ -117,28 +109,21 @@ export default function SettingsPage() {
     const ghlReady = Boolean(settings.ghlTagMap && Object.keys(settings.ghlTagMap).length >= 5);
     const workflowReady = Boolean(settings.ghlWorkflowMap && Object.values(settings.ghlWorkflowMap).some((value) => Boolean(value)));
     const brandingReady = Boolean(settings.branding?.brandColor || settings.branding?.logoUrl || settings.branding?.phone || settings.branding?.email);
-    const gmailReady = Boolean(integrations.gmail?.connected);
     const inventoryCount = settings.inventory?.length ?? 0;
     return [
       { label: "Quote template", value: quoteTemplateReady ? "Ready" : "Needs setup", hint: quoteTemplateReady ? "Intro + terms are configured" : "Set up proposal copy" },
       { label: "GHL tags", value: ghlReady ? "Mapped" : "Needs setup", hint: ghlReady ? "Workflow tags saved" : "Connect workflow tags" },
       { label: "GHL workflows", value: workflowReady ? "Mapped" : "Needs setup", hint: workflowReady ? "Workflow IDs saved" : "Map workflow IDs" },
-      { label: "Gmail", value: gmailReady ? "Connected" : "Needs setup", hint: gmailReady ? integrations.gmail?.senderEmail ?? "Company mailbox ready" : "Connect a mailbox" },
       { label: "Branding", value: brandingReady ? "Configured" : "Needs setup", hint: brandingReady ? "Proposal identity saved" : "Add logo/contact details" },
       { label: "Inventory items", value: String(inventoryCount), hint: inventoryCount > 0 ? "Items are tracked" : "Add supplies later" },
     ];
-  }, [integrations, settings]);
+  }, [settings]);
 
   const apiCards = [
     {
       label: "GHL API",
       status: apiConfig.ghl?.apiKeyConfigured ? "Configured" : "Needs setup",
       hint: apiConfig.ghl?.locationConfigured && apiConfig.ghl?.webhookSecretConfigured ? "Location + webhook ready" : "Set API key, location ID, and webhook secret",
-    },
-    {
-      label: "Gmail API",
-      status: apiConfig.gmail?.oauthConfigured ? "Configured" : "Needs setup",
-      hint: integrations.gmail?.connected ? `Connected as ${integrations.gmail.senderEmail ?? "mailbox"}` : "Connect a company mailbox with OAuth",
     },
     {
       label: "Square",

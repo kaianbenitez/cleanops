@@ -3,33 +3,19 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { auditLog, companies, gmailConnections } from "@/db/schema";
+import { auditLog, companies } from "@/db/schema";
 
 export async function GET() {
   const admin = await requireAdmin();
   const [company] = await db.select().from(companies).where(eq(companies.id, admin.companyId)).limit(1);
   if (!company) return NextResponse.json({ error: "Company not found" }, { status: 404 });
-  const [gmail] = await db
-    .select({
-      senderEmail: gmailConnections.senderEmail,
-      senderName: gmailConnections.senderName,
-      connectedAt: gmailConnections.connectedAt,
-      lastUsedAt: gmailConnections.lastUsedAt,
-    })
-    .from(gmailConnections)
-    .where(eq(gmailConnections.companyId, admin.companyId))
-    .limit(1);
   return NextResponse.json({
     company,
-    integrations: { gmail: gmail ? { connected: true, ...gmail } : { connected: false } },
     apiConfig: {
       ghl: {
         apiKeyConfigured: Boolean(process.env.GHL_API_KEY),
         locationConfigured: Boolean(process.env.GHL_LOCATION_ID),
         webhookSecretConfigured: Boolean(process.env.GHL_WEBHOOK_SECRET),
-      },
-      gmail: {
-        oauthConfigured: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
       },
       square: {
         configured: Boolean(process.env.SQUARE_ACCESS_TOKEN),
@@ -47,6 +33,7 @@ const ghlTagMapSchema = z.object({
   client: z.string().trim().min(1).max(100),
   lost: z.string().trim().min(1).max(100),
   moved: z.string().trim().min(1).max(100),
+  invoiceSent: z.string().trim().min(1).max(100),
 });
 
 const ghlWorkflowMapSchema = z.object({
@@ -58,6 +45,7 @@ const ghlWorkflowMapSchema = z.object({
   client: z.string().trim().max(200).optional().or(z.literal("")),
   lost: z.string().trim().max(200).optional().or(z.literal("")),
   moved: z.string().trim().max(200).optional().or(z.literal("")),
+  invoiceSent: z.string().trim().max(200).optional().or(z.literal("")),
 });
 
 const inventoryItemSchema = z.object({

@@ -174,7 +174,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
     if (!response.ok) {
       setError(readableError(body));
     } else {
-      setNotice("Invoice emailed through Gmail.");
+      setNotice("Invoice marked sent — GHL will handle the email.");
     }
     await load().catch(() => undefined);
     setBusy(false);

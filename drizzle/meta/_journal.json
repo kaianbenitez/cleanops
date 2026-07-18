@@ -22,6 +22,13 @@
       "when": 1784405704810,
       "tag": "0002_nebulous_firebird",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784412585470,
+      "tag": "0003_charming_toad_men",
+      "breakpoints": true
     }
   ]
 }

@@ -20,6 +20,7 @@ export type GhlTagMap = {
   client: string;
   lost: string;
   moved: string;
+  invoiceSent: string;
 };
 
 export type GhlWorkflowMap = {
@@ -32,6 +33,7 @@ export type GhlWorkflowMap = {
   client: string;
   lost: string;
   moved: string;
+  invoiceSent: string;
 };
 
 const DEFAULT_TAG_MAP: GhlTagMap = {
@@ -42,6 +44,7 @@ const DEFAULT_TAG_MAP: GhlTagMap = {
   client: "client",
   lost: "lost",
   moved: "moved",
+  invoiceSent: "invoice-sent",
 };
 
 const DEFAULT_WORKFLOW_MAP: GhlWorkflowMap = {
@@ -54,12 +57,14 @@ const DEFAULT_WORKFLOW_MAP: GhlWorkflowMap = {
   client: "",
   lost: "",
   moved: "",
+  invoiceSent: "",
 };
 
 export type GhlSyncEvent =
   | { type: "quote.sent"; customerId: string; quoteUrl: string }
   | { type: "quote.viewed"; customerId: string; quoteUrl: string; viewedAt: string }
   | { type: "quote.accepted"; customerId: string }
+  | { type: "invoice.sent"; customerId: string; invoiceUrl: string }
   | { type: "first_clean.scheduled"; customerId: string; scheduledDate: string }
   | { type: "first_clean.completed"; customerId: string }
   | { type: "customer.became_client"; customerId: string; recurrence: string }
@@ -184,6 +189,12 @@ function applyEvent(ghlContactId: string, event: GhlSyncEvent, tagMap: GhlTagMap
         addTags(ghlContactId, [tagMap.quoteAccepted]),
         removeTags(ghlContactId, [tagMap.quoteGiven]),
         workflowMap.quoteAccepted ? addContactToWorkflow(ghlContactId, workflowMap.quoteAccepted) : Promise.resolve(null),
+      ]);
+    case "invoice.sent":
+      return Promise.all([
+        addTags(ghlContactId, [tagMap.invoiceSent]),
+        setCustomFields(ghlContactId, { invoice_url: event.invoiceUrl }),
+        workflowMap.invoiceSent ? addContactToWorkflow(ghlContactId, workflowMap.invoiceSent) : Promise.resolve(null),
       ]);
     case "first_clean.scheduled":
       return Promise.all([

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { and, desc, eq, gte, inArray, lt } from "drizzle-orm";
 import { db } from "@/db";
-import { companies, customers, gmailConnections, ghlSyncLog, invoices, jobs, jobAssignments, payrollLines, payrollPeriods, quotes, timeEntries, users, webhookEvents } from "@/db/schema";
+import { companies, customers, ghlSyncLog, invoices, jobs, jobAssignments, payrollLines, payrollPeriods, quotes, timeEntries, users, webhookEvents } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { payrollWeekRangeForDate } from "@/lib/payroll/periods";
 import ReportsMotion from "./reports-motion";
@@ -358,7 +358,6 @@ export default async function ReportsPage() {
     overdueInvoiceRows,
     ghlSyncRows,
     webhookRows,
-    gmailRows,
     payrollPeriodRows,
   ] = await Promise.all([
     db
@@ -461,7 +460,6 @@ export default async function ReportsPage() {
       .from(webhookEvents)
       .orderBy(desc(webhookEvents.createdAt))
       .limit(8),
-    db.select({ senderEmail: gmailConnections.senderEmail, senderName: gmailConnections.senderName, connectedAt: gmailConnections.connectedAt, lastUsedAt: gmailConnections.lastUsedAt }).from(gmailConnections).where(eq(gmailConnections.companyId, user.companyId)).limit(1),
     db
       .select()
       .from(payrollPeriods)
@@ -708,7 +706,7 @@ export default async function ReportsPage() {
       label: "Sync health",
       value: String(syncHealthCount),
       note: `${retryingCount} retrying, ${failedCount} failed, ${webhookIssueCount} webhook issues`,
-      trend: "GHL, Gmail, Square, webhooks",
+      trend: "GHL, Square, webhooks",
       tone: syncHealthCount ? "warn" : "good",
     },
   ];
@@ -1164,7 +1162,7 @@ export default async function ReportsPage() {
             <SectionPanel
               id="integrations"
               eyebrow="Integration health"
-              title="Keeps GHL, Gmail, Square, and future tools visible and accountable"
+              title="Keeps GHL, Square, and future tools visible and accountable"
               description="Real time + weekly. Stops silent sync problems from turning into business problems."
               action={<Pill tone={syncHealthCount ? "warn" : "success"}>{syncHealthCount} issues</Pill>}
             >
@@ -1173,7 +1171,6 @@ export default async function ReportsPage() {
                   { label: "Failed webhooks", value: webhookIssueCount },
                   { label: "Retry log", value: retryingCount + failedCount },
                   { label: "Workflow enrollment status", value: ghlSyncRows.filter((row) => row.status === "ok").length },
-                  { label: "Email send status", value: gmailRows.length ? "Connected" : "Not connected" },
                   { label: "API errors", value: retryingCount + failedCount + webhookIssueCount },
                 ].map((item) => (
                   <div key={item.label} className="rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/30 p-4">
@@ -1208,25 +1205,6 @@ export default async function ReportsPage() {
                     );
                   })}
                 </div>
-              </div>
-
-              <div className="mt-4 rounded-[20px] border border-[var(--co-line-soft)] bg-white p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--co-muted)]">Gmail</p>
-                    <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{gmailRows[0]?.senderEmail ?? "Not connected"}</p>
-                  </div>
-                  <Pill tone={gmailRows.length ? "success" : "warn"}>{gmailRows.length ? "Connected" : "Offline"}</Pill>
-                </div>
-                {gmailRows[0] ? (
-                  <div className="mt-3 space-y-1 text-sm text-[var(--co-muted)]">
-                    <p>{gmailRows[0].senderName || "Company mailbox"}</p>
-                    <p>Connected {formatDateTime(gmailRows[0].connectedAt)}</p>
-                    <p>Last used {formatDateTime(gmailRows[0].lastUsedAt)}</p>
-                  </div>
-                ) : (
-                  <p className="mt-3 text-sm text-[var(--co-muted)]">Connect Gmail so CleanOps can send quotes and invoices from the company mailbox.</p>
-                )}
               </div>
 
               <div className="mt-4 rounded-[20px] border border-[var(--co-line-soft)] bg-white p-4">

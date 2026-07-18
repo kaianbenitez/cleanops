@@ -451,21 +451,6 @@ export const ghlSyncLog = pgTable("ghl_sync_log", {
   ...timestamps,
 });
 
-// ---------- gmail connections ----------
-export const gmailConnections = pgTable("gmail_connections", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  companyId: uuid("company_id").notNull().references(() => companies.id),
-  senderEmail: text("sender_email").notNull(),
-  senderName: text("sender_name"),
-  refreshToken: text("refresh_token").notNull(),
-  scopes: jsonb("scopes").notNull().default([]),
-  connectedAt: timestamp("connected_at", { withTimezone: true }).notNull().defaultNow(),
-  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
-  ...timestamps,
-}, (t) => ({
-  companyIdx: uniqueIndex("gmail_connections_company_idx").on(t.companyId),
-}));
-
 // ---------- webhook events (raw inbox) ----------
 export const webhookSourceEnum = ["ghl", "square"] as const;
 

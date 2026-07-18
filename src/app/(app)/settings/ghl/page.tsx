@@ -11,6 +11,7 @@ type TagMap = {
   client: string;
   lost: string;
   moved: string;
+  invoiceSent: string;
 };
 
 type WorkflowMap = {
@@ -23,6 +24,7 @@ type WorkflowMap = {
   client: string;
   lost: string;
   moved: string;
+  invoiceSent: string;
 };
 
 const DEFAULT_TAG_MAP: TagMap = {
@@ -33,6 +35,7 @@ const DEFAULT_TAG_MAP: TagMap = {
   client: "client",
   lost: "lost",
   moved: "moved",
+  invoiceSent: "invoice-sent",
 };
 
 const DEFAULT_WORKFLOW_MAP: WorkflowMap = {
@@ -45,6 +48,7 @@ const DEFAULT_WORKFLOW_MAP: WorkflowMap = {
   client: "",
   lost: "",
   moved: "",
+  invoiceSent: "",
 };
 
 const FIELD_LABELS: Array<{ key: keyof TagMap; label: string; hint: string }> = [
@@ -55,6 +59,7 @@ const FIELD_LABELS: Array<{ key: keyof TagMap; label: string; hint: string }> = 
   { key: "client", label: "Became a client", hint: "Applied when a quote converts into recurring work." },
   { key: "lost", label: "Lost", hint: "Applied when a prospect is marked lost." },
   { key: "moved", label: "Moved", hint: "Applied when a customer is marked moved." },
+  { key: "invoiceSent", label: "Invoice sent", hint: "Applied when an invoice is marked sent — trigger your invoice-email workflow off this." },
 ];
 
 const WORKFLOW_LABELS: Array<{ key: keyof WorkflowMap; label: string; hint: string }> = [
@@ -67,6 +72,7 @@ const WORKFLOW_LABELS: Array<{ key: keyof WorkflowMap; label: string; hint: stri
   { key: "client", label: "Became client", hint: "Workflow when recurring service starts." },
   { key: "lost", label: "Lost", hint: "Workflow for lost prospects." },
   { key: "moved", label: "Moved", hint: "Workflow for moved customers." },
+  { key: "invoiceSent", label: "Invoice sent", hint: "Workflow that emails the invoice to the customer." },
 ];
 
 export default function GhlSettingsPage() {
