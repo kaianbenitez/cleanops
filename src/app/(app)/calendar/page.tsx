@@ -456,6 +456,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         <aside className="space-y-5">
           <SidePanel eyebrow="Route preview" title={selectedEmployee ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}` : "Today's route"}>
             <RoutePreview
+              showHeader={false}
               title={selectedEmployee ? `${selectedEmployee.firstName}'s route` : "Today's route"}
               jobs={routeJobs.map((job) => ({
                 id: job.id,

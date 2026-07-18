@@ -80,7 +80,7 @@ export default function TechnicianRoutePreview({
       </div>
 
       <div className="border-b border-[var(--co-line-soft)] px-5 py-5">
-        <RoutePreview title={selectedRoute?.employeeName ?? fallbackTitle} jobs={jobs} />
+        <RoutePreview showHeader={false} showTopStats={false} title={selectedRoute?.employeeName ?? fallbackTitle} jobs={jobs} />
       </div>
 
       <div className="divide-y divide-[var(--co-line-soft)]">

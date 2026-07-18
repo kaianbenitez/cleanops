@@ -20,7 +20,17 @@ function minutesFromTime(value: string) {
   return hours * 60 + minutes;
 }
 
-export default function RoutePreview({ jobs, title }: { jobs: RouteJob[]; title: string }) {
+export default function RoutePreview({
+  jobs,
+  title,
+  showHeader = true,
+  showTopStats = true,
+}: {
+  jobs: RouteJob[];
+  title: string;
+  showHeader?: boolean;
+  showTopStats?: boolean;
+}) {
   const mapElement = useRef<HTMLDivElement>(null);
   const mapRef = useRef<GoogleMap | null>(null);
   const overlaysRef = useRef<Array<GoogleMarker | GooglePolyline>>([]);
@@ -112,31 +122,35 @@ export default function RoutePreview({ jobs, title }: { jobs: RouteJob[]; title:
         />
       ) : null}
 
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="eyebrow">Route preview</p>
-          <h2 className="text-lg font-semibold text-[var(--co-ink)]">{title}</h2>
-          <p className="mt-1 text-xs text-[var(--co-muted)]">Shows the exact stop order for the selected technician.</p>
+      {showHeader && (
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="eyebrow">Route preview</p>
+            <h2 className="text-lg font-semibold text-[var(--co-ink)]">{title}</h2>
+            <p className="mt-1 text-xs text-[var(--co-muted)]">Shows the exact stop order for the selected technician.</p>
+          </div>
+          <div className="rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 px-3 py-1.5 text-xs font-medium text-[var(--co-evergreen)]">
+            {totalStops} stops
+          </div>
         </div>
-        <div className="rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 px-3 py-1.5 text-xs font-medium text-[var(--co-evergreen)]">
-          {totalStops} stops
-        </div>
-      </div>
+      )}
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-3">
-        <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Stops</p>
-          <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{totalStops}</p>
+      {showTopStats && (
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Stops</p>
+            <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{totalStops}</p>
+          </div>
+          <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">First stop</p>
+            <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{firstStop ?? "—"}</p>
+          </div>
+          <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Last stop</p>
+            <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{lastStop ?? "—"}</p>
+          </div>
         </div>
-        <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">First stop</p>
-          <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{firstStop ?? "—"}</p>
-        </div>
-        <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Last stop</p>
-          <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{lastStop ?? "—"}</p>
-        </div>
-      </div>
+      )}
 
       <div className="mt-4 overflow-hidden rounded-[24px] border border-[var(--co-line-soft)] bg-[linear-gradient(180deg,#eef4ea,#f8faf6)]">
         {apiKey && !mapError ? (

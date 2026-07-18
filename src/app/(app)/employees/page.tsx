@@ -32,39 +32,6 @@ function addDays(dateString: string, days: number) {
   return isoDate(date);
 }
 
-function Panel({
-  eyebrow,
-  title,
-  description,
-  children,
-}: {
-  eyebrow: string;
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="co-card overflow-hidden">
-      <div className="border-b border-[var(--co-line-soft)] px-5 py-4">
-        <p className="eyebrow">{eyebrow}</p>
-        <h2 className="mt-1 text-lg font-semibold">{title}</h2>
-        {description ? <p className="mt-1 text-sm text-[var(--co-muted)]">{description}</p> : null}
-      </div>
-      <div className="px-5 py-5">{children}</div>
-    </section>
-  );
-}
-
-function StatCard({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return (
-    <div className="co-card p-5">
-      <p className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--co-muted)]">{label}</p>
-      <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{value}</p>
-      <p className="mt-2 text-xs text-[var(--co-muted)]">{detail}</p>
-    </div>
-  );
-}
-
 export default async function EmployeesPage() {
   const admin = await getCurrentUser();
   if (!admin) redirect("/login");
@@ -154,12 +121,6 @@ export default async function EmployeesPage() {
     };
   });
 
-  const activeCount = rows.filter((row) => row.isActive).length;
-  const availableCount = rows.filter((row) => row.isActive && row.status === "Available").length;
-  const scheduledCount = rows.filter((row) => row.isActive && row.status === "Scheduled").length;
-  const hoursThisWeek = rows.reduce((total, row) => total + row.hoursThisWeek, 0);
-  const mileagePending = rows.filter((row) => row.mileageMiles > 0).length;
-
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -178,17 +139,7 @@ export default async function EmployeesPage() {
         </div>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard label="Active employees" value={String(activeCount)} detail="Current team" />
-        <StatCard label="Available today" value={String(availableCount)} detail={`of ${activeCount} active employees`} />
-        <StatCard label="Scheduled today" value={String(scheduledCount)} detail="Jobs on the board" />
-        <StatCard label="Hours this week" value={hoursThisWeek.toFixed(1)} detail={`${periodStart} to ${periodEnd}`} />
-        <StatCard label="Mileage pending" value={String(mileagePending)} detail="Payroll entries" />
-      </section>
-
-      <Panel eyebrow="Overview" title="Employee directory" description="Availability, hours, and payroll signals in one place.">
-        <EmployeeDirectory rows={rows} />
-      </Panel>
+      <EmployeeDirectory rows={rows} />
     </div>
   );
 }

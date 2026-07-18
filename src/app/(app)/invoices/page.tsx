@@ -39,9 +39,9 @@ function queryHref(params: SearchParams, key: keyof SearchParams, value: string)
   return query ? `/invoices?${query}` : "/invoices";
 }
 
-function statsCard({ label, value, note }: { label: string; value: string; note: string }) {
+function statsCard({ label, value, note, key }: { label: string; value: string; note: string; key?: string }) {
   return (
-    <div className="co-card p-5">
+    <div key={key} className="co-card p-5">
       <p className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--co-muted)]">{label}</p>
       <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{value}</p>
       <p className="mt-2 text-xs text-[var(--co-muted)]">{note}</p>
@@ -114,7 +114,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
           { label: "Paid", value: String(counts.paid), note: "Collected and closed" },
           { label: "Pending", value: String(counts.sent), note: "Waiting on payment" },
           { label: "Overdue", value: String(counts.overdue), note: "Needs follow-up" },
-        ].map((item) => statsCard(item))}
+        ].map((item) => statsCard({ ...item, key: item.label }))}
       </section>
 
       {counts.overdue > 0 ? (

@@ -103,9 +103,10 @@ export default function EmployeeDirectory({ rows }: { rows: EmployeeDirectoryRow
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard label="Active employees" value={String(activeRows.length)} subtext="Current roster" />
         <StatCard label="Available today" value={String(availableRows.length)} subtext="Open for assignment" />
+        <StatCard label="Scheduled today" value={String(scheduledRows.length)} subtext="Jobs on the board" />
         <StatCard label="Hours this week" value={hoursTotal.toFixed(1)} subtext="All active staff" />
         <StatCard label="Mileage pending" value={String(activeRows.filter((row) => row.mileageMiles > 0).length)} subtext="Needs review" />
       </section>
@@ -146,12 +147,6 @@ export default function EmployeeDirectory({ rows }: { rows: EmployeeDirectoryRow
             </div>
 
             <div className="flex flex-wrap gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
-              <Link href="/employees/new" className="co-button-primary">
-                + Add employee
-              </Link>
-              <Link href="/payroll" className="co-button-secondary">
-                Review payroll
-              </Link>
               <span className="self-center text-xs text-[var(--co-muted)]">{filteredRows.length} shown</span>
             </div>
 
