@@ -253,9 +253,9 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
               </select>
               <select name="service" defaultValue={sp.service ?? ""} className="co-input w-full sm:w-auto">
                 <option value="">All service types</option>
-                <option value="standard">Standard</option>
-                <option value="deep">Deep</option>
-                <option value="move">Move</option>
+                <option value="supreme deep">Supreme Deep Cleaning</option>
+                <option value="first time">First Time Cleaning</option>
+                <option value="deep">Deep Cleaning</option>
               </select>
               <select name="payment" defaultValue={sp.payment ?? ""} className="co-input w-full sm:w-auto">
                 <option value="">All payment methods</option>

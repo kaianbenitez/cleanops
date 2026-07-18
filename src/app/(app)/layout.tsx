@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import AppNav from "./app-nav";
@@ -25,11 +26,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="hidden rounded-[14px] border border-[#dfe5dc] bg-white/80 px-3 py-2 text-right shadow-[0_1px_0_rgba(255,255,255,0.75)_inset] sm:block">
+              <Link
+                href="/account"
+                className="hidden rounded-[14px] border border-[#dfe5dc] bg-white/80 px-3 py-2 text-right shadow-[0_1px_0_rgba(255,255,255,0.75)_inset] transition hover:border-[#bdcbbf] sm:block"
+              >
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#80918a]">Signed in as</p>
                 <p className="mt-0.5 text-sm font-semibold text-[#1b2925]">{user.firstName}</p>
                 <p className="text-[11px] text-[#80918a]">{user.role}</p>
-              </div>
+              </Link>
               <form action="/api/auth/logout" method="post">
                 <button
                   type="submit"
