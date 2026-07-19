@@ -53,16 +53,19 @@ type UndoAction = {
 
 function timeLabel(value: string | null) {
   if (!value) return "—";
-  return new Date(value).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Time not set" : date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
 function dateLabel(value: string, timezone: string) {
+  const date = new Date(`${value}T12:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return "Date not set";
   return new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
     weekday: "short",
     month: "short",
     day: "numeric",
-  }).format(new Date(`${value}T12:00:00.000Z`));
+  }).format(date);
 }
 
 function jobAddress(job: Pick<JobCard, "addressLine1" | "city" | "state" | "zip">) {
@@ -87,18 +90,6 @@ function groupNotes(job: JobCard) {
     job.preferredDay ? `Prefers ${job.preferredDay}` : null,
     job.preferredTime ? `Prefers ${job.preferredTime}` : null,
     job.subdivision ? `Subdivision: ${job.subdivision}` : null,
-  ].filter((entry): entry is string => Boolean(entry));
-}
-
-function customerSnapshot(job: JobCard) {
-  return [
-    job.preferredCommunication ? `Prefers ${job.preferredCommunication}` : null,
-    job.preferredDay ? `Preferred day: ${job.preferredDay}` : null,
-    job.preferredTime ? `Preferred time: ${job.preferredTime}` : null,
-    job.subdivision ? `Subdivision: ${job.subdivision}` : null,
-    job.importantToCustomer ? `Important: ${job.importantToCustomer}` : null,
-    job.doNotClean ? `Do not clean: ${job.doNotClean}` : null,
-    job.petNotes ? `Pets: ${job.petNotes}` : null,
   ].filter((entry): entry is string => Boolean(entry));
 }
 
@@ -174,7 +165,7 @@ export default function MyDayClient({
   const [localTodayJobs, setLocalTodayJobs] = useState<JobCard[]>(todayJobs);
   const [localUpcomingJobs, setLocalUpcomingJobs] = useState<JobCard[]>(upcomingJobs);
   const [localCompletedJobs, setLocalCompletedJobs] = useState<JobCard[]>(completedJobs);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(0);
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mileageDraft, setMileageDraft] = useState(mileageMiles.toFixed(1));
@@ -182,6 +173,9 @@ export default function MyDayClient({
   const brandColor = /^#[0-9a-fA-F]{6}$/.test(companyBrandColor) ? companyBrandColor : "#14211f";
 
   useEffect(() => {
+    // Initialize the client-only clock after hydration, then keep it current.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setNow(Date.now());
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, []);
@@ -193,17 +187,24 @@ export default function MyDayClient({
   }, [undoAction]);
 
   useEffect(() => {
+    // This state mirrors fresh server data after an action or manual refresh.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalTodayJobs(todayJobs);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalUpcomingJobs(upcomingJobs);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalCompletedJobs(completedJobs);
   }, [todayJobs, upcomingJobs, completedJobs]);
 
   useEffect(() => {
+    // Keep the editable payroll field in sync after the server confirms a save.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMileageDraft(mileageMiles.toFixed(1));
   }, [mileageMiles]);
 
   useEffect(() => {
     if (!selectedJobId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedJobId(currentJob?.jobId ?? todayJobs[0]?.jobId ?? upcomingJobs[0]?.jobId ?? completedJobs[0]?.jobId ?? null);
       return;
     }
@@ -212,6 +213,7 @@ export default function MyDayClient({
       upcomingJobs.some((job) => job.jobId === selectedJobId) ||
       completedJobs.some((job) => job.jobId === selectedJobId);
     if (!present) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedJobId(currentJob?.jobId ?? todayJobs[0]?.jobId ?? upcomingJobs[0]?.jobId ?? completedJobs[0]?.jobId ?? null);
     }
   }, [completedJobs, currentJob?.jobId, selectedJobId, todayJobs, upcomingJobs]);
@@ -339,7 +341,7 @@ export default function MyDayClient({
   return (
     <div className="mx-auto max-w-[560px] space-y-4 pb-10">
       <section className="co-card overflow-hidden">
-        <div className="px-4 py-4 text-white sm:px-5 sm:py-5" style={{ background: `linear-gradient(135deg, ${brandColor}, #1d2d28)` }}>
+        <div className="px-4 py-4 text-white sm:px-5 sm:py-5" style={{ backgroundColor: brandColor }}>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-3">
@@ -481,7 +483,7 @@ export default function MyDayClient({
         {activeJob ? (
           <div className="space-y-4 p-4 sm:p-5">
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-[22px] border border-[var(--co-line-soft)] bg-[linear-gradient(180deg,#fbfcfa,#f6f8f2)] p-4">
+              <div className="rounded-[14px] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Contact</p>
                 <p className="mt-2 text-base font-semibold text-[var(--co-ink)]">
                   {activeJob.customerFirstName} {activeJob.customerLastName}
@@ -498,7 +500,7 @@ export default function MyDayClient({
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-[var(--co-line-soft)] bg-[linear-gradient(180deg,#fbfcfa,#f6f8f2)] p-4">
+              <div className="rounded-[14px] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Address</p>
                 <p className="mt-2 text-base font-semibold text-[var(--co-ink)]">{activeAddress || "Address not set"}</p>
                 <p className="mt-2 text-sm text-[var(--co-muted)]">{activeJob.type.replaceAll("_", " ")}</p>
@@ -534,7 +536,7 @@ export default function MyDayClient({
             ) : null}
 
             {activeJob ? (
-              <div className="rounded-[22px] border border-[var(--co-line-soft)] bg-[linear-gradient(180deg,#fbfcfa,#f6f8f2)] p-4">
+              <div className="rounded-[14px] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Customer profile</p>
                   <Link href={`/customers/${activeJob.customerId}`} className="text-xs font-medium text-[var(--co-evergreen)]">

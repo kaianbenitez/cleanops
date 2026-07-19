@@ -135,6 +135,8 @@ export default function NewQuotePage() {
   }, [dirtyCodeLevel, roomCounts, serviceLocationId, serviceType, travelZoneId]);
 
   useEffect(() => {
+    // Recalculate after the form inputs change; this is the quote preview's source of truth.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     calculate();
   }, [calculate]);
 

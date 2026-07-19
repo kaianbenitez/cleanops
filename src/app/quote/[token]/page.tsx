@@ -260,7 +260,6 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
   }, [data?.quoteTemplate?.afterPhotoUrl, data?.quoteTemplate?.beforePhotoUrl, data?.quoteTemplate?.photoSets]);
   const brandColor = /^#[0-9a-fA-F]{6}$/.test(data?.companyBrandColor ?? "") ? (data?.companyBrandColor ?? "#14211f") : "#14211f";
   const contactPhone = data?.quoteTemplate?.contactPhone || data?.companyPhone || "";
-  const reviewUrl = data?.companyReviewUrl || data?.quoteTemplate?.reviewUrl || "";
   const requiresDeposit = selectedType ? ["first_time", "deep"].includes(selectedType) : false;
   const selectedTotalCents = selectedBreakdown?.finalCents ?? data?.quote.totalCents ?? 0;
   const selectedAddOnTotalCents = selectedAddOns.reduce((sum, key) => sum + (ADD_ONS.find((item) => item.key === key)?.priceCents ?? 0), 0);
@@ -310,11 +309,6 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                     Text
                   </a>
                 </>
-              ) : null}
-              {data.companyReviewUrl ? (
-                <a href={data.companyReviewUrl} target="_blank" rel="noreferrer" className="rounded-full border border-[#d7dfd4] bg-white px-4 py-2 text-sm font-medium text-[#1b2925]">
-                  Google rating link
-                </a>
               ) : null}
             </div>
           </div>
@@ -447,17 +441,13 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
               </div>
 
               <div className="rounded-[28px] bg-white p-6 shadow-[0_12px_40px_rgba(33,52,43,.06)]">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#718179]">Trust links</p>
-                <h3 className="mt-2 text-2xl font-semibold text-[#1b2925]">Keep the proof short and clear</h3>
-                <p className="mt-3 text-sm leading-7 text-[#52625a]">Your review link still lives here, but the proposal stays clean and focused on the quote.</p>
-                <div className="mt-5 rounded-[26px] border border-[#e7ebe2] bg-[#f7f8f3] p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718179]">Review link</p>
-                  <p className="mt-2 text-lg font-semibold text-[#1b2925]">{reviewUrl ? "Configured" : "Add your Google review link"}</p>
-                  {reviewUrl ? (
-                    <a href={reviewUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex rounded-full border border-[#d7dfd4] bg-white px-4 py-2 text-sm font-medium text-[#1b2925]">
-                      Open review page
-                    </a>
-                  ) : null}
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#718179]">A little more confidence</p>
+                <h3 className="mt-2 text-2xl font-semibold text-[#1b2925]">Clear service, clear expectations</h3>
+                <p className="mt-3 text-sm leading-7 text-[#52625a]">We bring the process, care, and communication needed to make your scheduled visit feel simple.</p>
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-[#e7ebe2] bg-[#f7f8f3] p-4 text-sm text-[#52625a]">Thoughtful service</div>
+                  <div className="rounded-2xl border border-[#e7ebe2] bg-[#f7f8f3] p-4 text-sm text-[#52625a]">Reliable communication</div>
+                  <div className="rounded-2xl border border-[#e7ebe2] bg-[#f7f8f3] p-4 text-sm text-[#52625a]">Licensed and insured</div>
                 </div>
               </div>
             </section>
@@ -482,11 +472,13 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <div className="rounded-2xl border border-[#e7ebe2] bg-[#f8f8f4] p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718179]">Insurance certificate</p>
-                    <p className="mt-2 text-sm leading-6 text-[#52625a]">Upload your certificate here so customers can open it right from the proposal.</p>
+                    <p className="mt-2 text-sm leading-6 text-[#52625a]">Your certificate is available for review before you accept.</p>
+                    {data.quoteTemplate?.insuranceUrl ? <a href={data.quoteTemplate.insuranceUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-medium text-[#536d35]">View certificate</a> : <p className="mt-3 text-xs text-[#718179]">Certificate not configured</p>}
                   </div>
                   <div className="rounded-2xl border border-[#e7ebe2] bg-[#f8f8f4] p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718179]">W-9 available</p>
-                    <p className="mt-2 text-sm leading-6 text-[#52625a]">Keep the W-9 ready for bookkeeping or vendor setup requests.</p>
+                    <p className="mt-2 text-sm leading-6 text-[#52625a]">Business information is available when requested.</p>
+                    {data.quoteTemplate?.w9Url ? <a href={data.quoteTemplate.w9Url} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-medium text-[#536d35]">View W-9</a> : <p className="mt-3 text-xs text-[#718179]">W-9 not configured</p>}
                   </div>
                 </div>
               </div>
@@ -563,7 +555,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
 
               {isAccepted ? (
                 <div className="mt-6 rounded-2xl bg-[#edf3e9] p-4 text-center text-sm text-[#5c7436]">
-                  Accepted{data.quote.signatureName ? ` by ${data.quote.signatureName}` : ""}. We'll be in touch to confirm scheduling.
+                  Accepted{data.quote.signatureName ? ` by ${data.quote.signatureName}` : ""}. We&apos;ll be in touch to confirm scheduling.
                 </div>
               ) : isExpired ? (
                 <div className="mt-6 rounded-2xl bg-slate-100 p-4 text-center text-sm text-slate-500">This proposal is no longer available.</div>
@@ -588,7 +580,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
             </section>
 
             <section className="rounded-[28px] bg-[#14211f] p-6 text-white shadow-[0_18px_60px_rgba(33,52,43,.15)]">
-              <p className="text-sm font-semibold text-[#c8e86b]">You're in good hands</p>
+              <p className="text-sm font-semibold text-[#c8e86b]">You&apos;re in good hands</p>
               <p className="mt-3 text-sm leading-7 text-white/75">
                 Background-checked and trained pros, thoughtful communication, and a service standard built to make your home feel calm and cared for.
               </p>

@@ -430,7 +430,7 @@ export default async function ReportsPage() {
       })
       .from(invoices)
       .innerJoin(customers, eq(invoices.customerId, customers.id))
-      .where(and(eq(invoices.companyId, user.companyId), eq(invoices.status, "sent"), lt(invoices.createdAt, new Date(Date.now() - 14 * 24 * 60 * 60 * 1000))))
+      .where(and(eq(invoices.companyId, user.companyId), eq(invoices.status, "sent"), lt(invoices.createdAt, new Date(new Date().getTime() - 14 * 24 * 60 * 60 * 1000))))
       .orderBy(desc(invoices.createdAt))
       .limit(8),
     db
@@ -956,7 +956,7 @@ export default async function ReportsPage() {
                 <div className="rounded-[22px] border border-[var(--co-line-soft)] bg-white p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--co-muted)]">Today's schedule</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--co-muted)]">Today&apos;s schedule</p>
                       <h3 className="mt-1 text-lg font-semibold tracking-[-0.03em]">{formatDay(todayIso, company.timezone)}</h3>
                     </div>
                     <Pill tone="ink">{todayJobsRows.length} jobs</Pill>

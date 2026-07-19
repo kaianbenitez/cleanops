@@ -234,6 +234,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
   }, [jobId]);
 
   useEffect(() => {
+    // Load the server-backed job detail when the route changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load().catch((cause: unknown) => {
       setError(cause instanceof Error ? cause.message : "Job could not be loaded.");
       setLoaded(true);
