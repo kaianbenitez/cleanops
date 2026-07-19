@@ -5,6 +5,19 @@ import { db } from "@/db";
 import { companies, customers, ghlSyncLog, invoices, jobAssignments, jobs, quotes, timeEntries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import TechnicianRoutePreview, { type TechnicianRoute } from "./technician-route-preview";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+const CARD_CLASS =
+  "gap-0 rounded-[1.1rem] border border-[var(--co-line)] bg-[var(--co-surface)] p-0 shadow-[0_1px_0_rgba(20,33,31,0.03),0_8px_20px_rgba(20,33,31,0.03)] ring-0";
+const CARD_HEADER_CLASS = "gap-1 rounded-t-[1.1rem] border-b border-[var(--co-line-soft)] px-5 py-4";
+const CARD_TITLE_CLASS = "text-[1.125rem] font-semibold leading-[1.25] text-[var(--co-ink)]";
+const CARD_DESC_CLASS = "text-sm text-[var(--co-muted)]";
+const CARD_CONTENT_CLASS = "px-5 py-5";
 
 type SearchParams = { from?: string; to?: string };
 
@@ -65,14 +78,22 @@ function formatDay(date: Date) {
   return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
-function pillClass(status: string) {
+function statusBadgeClass(status: string) {
   return status === "completed"
-    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+    ? "co-badge-success"
     : status === "in_progress"
-      ? "border-amber-200 bg-amber-50 text-amber-700"
+      ? "co-badge-warning"
       : status === "cancelled"
-        ? "border-slate-200 bg-slate-50 text-slate-400"
-        : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-[var(--co-muted)]";
+        ? "co-badge-neutral"
+        : "co-badge-neutral";
+}
+
+function StatusBadge({ status }: { status: string }) {
+  return (
+    <Badge className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass(status)}`}>
+      {status.replaceAll("_", " ")}
+    </Badge>
+  );
 }
 
 function sectionCard({
@@ -87,14 +108,14 @@ function sectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="co-card overflow-hidden">
-      <div className="border-b border-[var(--co-line-soft)] px-5 py-4">
+    <Card className={CARD_CLASS}>
+      <CardHeader className={CARD_HEADER_CLASS}>
         <p className="eyebrow">{eyebrow}</p>
-        <h2 className="mt-1 text-lg font-semibold">{title}</h2>
-        {description ? <p className="mt-1 text-sm text-[var(--co-muted)]">{description}</p> : null}
-      </div>
-      <div className="px-5 py-5">{children}</div>
-    </section>
+        <CardTitle className={CARD_TITLE_CLASS}>{title}</CardTitle>
+        {description ? <CardDescription className={CARD_DESC_CLASS}>{description}</CardDescription> : null}
+      </CardHeader>
+      <CardContent className={CARD_CONTENT_CLASS}>{children}</CardContent>
+    </Card>
   );
 }
 
@@ -337,38 +358,67 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <p className="page-subtitle">Your operations board for leads, jobs, cash, routing, and follow-up work.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/jobs/new" className="co-button-primary">
+          <Button
+            render={<Link href="/jobs/new" />}
+            className="h-auto rounded-[0.65rem] bg-[var(--co-evergreen)] px-4 py-[0.65rem] text-[0.8rem] font-bold text-white shadow-[0_8px_18px_rgba(20,33,31,0.09)] hover:bg-[var(--co-evergreen-soft)]"
+          >
             + New job
-          </Link>
-          <Link href="/quotes/new" className="co-button-secondary">
+          </Button>
+          <Button
+            render={<Link href="/quotes/new" />}
+            variant="outline"
+            className="h-auto rounded-[0.65rem] border-[var(--co-input-border)] bg-white/95 px-4 py-[0.65rem] text-[0.8rem] font-bold text-[#34443e] hover:border-[var(--co-input-border-hover)] hover:bg-[#fafbf8]"
+          >
             + New quote
-          </Link>
+          </Button>
         </div>
       </header>
 
-      <section className="co-card flex flex-wrap items-center justify-between gap-3 p-4">
+      <Card className={`${CARD_CLASS} flex-row flex-wrap items-center justify-between gap-3 p-4`}>
         <div>
           <p className="eyebrow">Performance window</p>
           <p className="mt-1 text-sm text-[var(--co-muted)]">These dates apply to the performance metrics below.</p>
         </div>
-        <form className="flex flex-wrap items-center gap-2 text-sm">
-          <label className="flex items-center gap-2 text-xs font-semibold text-[var(--co-muted)]">
-            From
-            <input type="date" name="from" defaultValue={iso(rangeFrom)} className="co-input" aria-label="Performance start date" />
-          </label>
-          <span className="text-[var(--co-muted)]">to</span>
-          <label className="flex items-center gap-2 text-xs font-semibold text-[var(--co-muted)]">
-            Through
-            <input type="date" name="to" defaultValue={iso(rangeTo)} className="co-input" aria-label="Performance end date" />
-          </label>
-          <button className="co-button-secondary" type="submit">
+        <form className="flex flex-wrap items-end gap-2 text-sm">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="from" className="text-xs font-semibold text-[var(--co-muted)]">
+              From
+            </Label>
+            <Input
+              id="from"
+              type="date"
+              name="from"
+              defaultValue={iso(rangeFrom)}
+              aria-label="Performance start date"
+              className="h-[2.55rem] rounded-[0.65rem] border-[var(--co-input-border)] bg-[var(--co-surface)] px-[0.8rem] text-[var(--co-ink)]"
+            />
+          </div>
+          <span className="pb-2.5 text-[var(--co-muted)]">to</span>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="to" className="text-xs font-semibold text-[var(--co-muted)]">
+              Through
+            </Label>
+            <Input
+              id="to"
+              type="date"
+              name="to"
+              defaultValue={iso(rangeTo)}
+              aria-label="Performance end date"
+              className="h-[2.55rem] rounded-[0.65rem] border-[var(--co-input-border)] bg-[var(--co-surface)] px-[0.8rem] text-[var(--co-ink)]"
+            />
+          </div>
+          <Button
+            type="submit"
+            variant="outline"
+            className="h-[2.55rem] rounded-[0.65rem] border-[var(--co-input-border)] bg-white/95 px-4 text-[0.8rem] font-bold text-[#34443e] hover:border-[var(--co-input-border-hover)] hover:bg-[#fafbf8]"
+          >
             Apply dates
-          </button>
-          <Link href="/dashboard" className="text-xs font-medium text-[var(--co-evergreen)] hover:underline">
+          </Button>
+          <Link href="/dashboard" className="pb-2.5 text-xs font-medium text-[var(--co-evergreen)] hover:underline">
             Reset
           </Link>
         </form>
-      </section>
+      </Card>
 
       <section className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
         <div className="space-y-5">
@@ -392,7 +442,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                               <p className="text-xs font-semibold text-[var(--co-muted)]">{formatTime(job.scheduledStartTime)}</p>
                               <p className="mt-1 font-semibold text-[var(--co-ink)]">{job.customerFirstName} {job.customerLastName}</p>
                             </div>
-                            <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${pillClass(job.status)}`}>{job.status.replaceAll("_", " ")}</span>
+                            <StatusBadge status={job.status} />
                           </div>
                           <p className="mt-2 text-xs capitalize text-[var(--co-muted)]">{job.type.replaceAll("_", " ")} · {assignedLabel}</p>
                           <p className="mt-1 text-xs text-[var(--co-muted)]">
@@ -405,51 +455,51 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 </div>
 
                 <div className="hidden overflow-x-auto md:block">
-                  <table className="w-full min-w-[760px] text-left text-sm">
-                    <thead className="bg-[var(--co-surface-muted)] text-xs uppercase tracking-[0.08em] text-[var(--co-muted)]">
-                      <tr>
-                        <th className="px-4 py-3">Time</th>
-                        <th className="px-4 py-3">Customer</th>
-                        <th className="px-4 py-3">Cleaning type</th>
-                        <th className="px-4 py-3">Location</th>
-                        <th className="px-4 py-3">Assigned to</th>
-                        <th className="px-4 py-3">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--co-line-soft)]">
+                  <Table className="min-w-[760px] text-left text-sm">
+                    <TableHeader>
+                      <TableRow className="border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-xs uppercase tracking-[0.08em] text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]">
+                        <TableHead className="px-4 py-3 text-[var(--co-muted)]">Time</TableHead>
+                        <TableHead className="px-4 py-3 text-[var(--co-muted)]">Customer</TableHead>
+                        <TableHead className="px-4 py-3 text-[var(--co-muted)]">Cleaning type</TableHead>
+                        <TableHead className="px-4 py-3 text-[var(--co-muted)]">Location</TableHead>
+                        <TableHead className="px-4 py-3 text-[var(--co-muted)]">Assigned to</TableHead>
+                        <TableHead className="px-4 py-3 text-[var(--co-muted)]">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="divide-y divide-[var(--co-line-soft)]">
                       {todayRows.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="px-4 py-8 text-center text-sm text-[var(--co-muted)]">
+                        <TableRow className="border-[var(--co-line-soft)]">
+                          <TableCell colSpan={6} className="px-4 py-8 text-center text-sm text-[var(--co-muted)]">
                             No jobs scheduled today.
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ) : (
                         todayRows.map((job) => {
                           const assigned = assignmentsByJob.get(job.id) ?? [];
                           const assignedLabel = assigned.length ? assigned.map((person) => `${person.firstName} ${person.lastName}`).join(", ") : "Unassigned";
                           return (
-                            <tr key={job.id} className="hover:bg-[var(--co-surface-muted)]/30">
-                              <td className="px-4 py-4 text-[var(--co-muted)]">{formatTime(job.scheduledStartTime)}</td>
-                              <td className="px-4 py-4">
+                            <TableRow key={job.id} className="border-[var(--co-line-soft)] hover:bg-[var(--co-surface-muted)]/30">
+                              <TableCell className="px-4 py-4 text-[var(--co-muted)]">{formatTime(job.scheduledStartTime)}</TableCell>
+                              <TableCell className="px-4 py-4">
                                 <Link href={`/jobs/${job.id}`} className="font-medium text-[var(--co-ink)] hover:underline">
                                   {job.customerFirstName} {job.customerLastName}
                                 </Link>
-                              </td>
-                              <td className="px-4 py-4 text-[var(--co-muted)]">{job.type.replaceAll("_", " ")}</td>
-                              <td className="px-4 py-4 text-[var(--co-muted)]">
+                              </TableCell>
+                              <TableCell className="px-4 py-4 text-[var(--co-muted)]">{job.type.replaceAll("_", " ")}</TableCell>
+                              <TableCell className="whitespace-normal px-4 py-4 text-[var(--co-muted)]">
                                 {job.addressLine1 ?? "No address"}
                                 {job.city ? `, ${job.city}` : ""}
-                              </td>
-                              <td className="px-4 py-4 text-[var(--co-muted)]">{assignedLabel}</td>
-                              <td className="px-4 py-4">
-                                <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${pillClass(job.status)}`}>{job.status.replaceAll("_", " ")}</span>
-                              </td>
-                            </tr>
+                              </TableCell>
+                              <TableCell className="px-4 py-4 text-[var(--co-muted)]">{assignedLabel}</TableCell>
+                              <TableCell className="px-4 py-4">
+                                <StatusBadge status={job.status} />
+                              </TableCell>
+                            </TableRow>
                           );
                         })
                       )}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
                 <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-4 py-3 text-sm">
                   <span className="text-[var(--co-muted)]">Review the live calendar when you need to change the order or assign someone new.</span>
@@ -474,7 +524,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                     className="flex items-center gap-3 rounded-xl border border-[var(--co-line-soft)] px-3 py-3 hover:bg-[var(--co-surface-muted)]"
                     aria-label={`${item.label}: ${item.value}. ${item.action}`}
                   >
-                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${item.value > 0 ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`} aria-hidden="true">
+                    <span
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${item.value > 0 ? "co-badge-warning" : "co-badge-success"}`}
+                      aria-hidden="true"
+                    >
                       {item.value}
                     </span>
                     <span className="min-w-0 flex-1">
@@ -501,7 +554,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                     <p className="text-4xl font-semibold tracking-[-0.05em]">{formatMoney(weeklyRevenue)}</p>
                     <p className="mt-1 text-xs text-[var(--co-muted)]">{revenueRows.length} paid invoice{revenueRows.length === 1 ? "" : "s"}</p>
                   </div>
-                  <span className="rounded-full bg-[var(--co-surface-muted)] px-2.5 py-1 text-xs font-medium text-[var(--co-evergreen)]">Mon–Sun</span>
+                  <Badge className="co-badge-neutral rounded-full px-2.5 py-1 text-xs font-medium">Mon-Sun</Badge>
                 </div>
                 <ol className="mt-6 flex h-36 items-end gap-2" aria-label="Revenue received by day this week">
                   {revenueDays.map((day) => (
@@ -530,8 +583,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             children: (
               <>
                 <div className="flex items-center justify-between">
-                  <p className="text-2xl font-semibold text-rose-600">{formatMoney(overdueTotal)}</p>
-                  <span className="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700">{overdueRows.length} invoices</span>
+                  <p className="text-2xl font-semibold text-[var(--co-danger)]">{formatMoney(overdueTotal)}</p>
+                  <Badge className="co-badge-danger rounded-full px-2.5 py-1 text-xs font-medium">{overdueRows.length} invoices</Badge>
                 </div>
                 <div className="mt-4 space-y-3">
                   {overdueRows.slice(0, 3).map((invoice) => (
@@ -584,9 +637,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                         <p className="font-medium">{item.name}</p>
                         <p className="mt-0.5 text-xs text-[var(--co-muted)]">Reorder at {item.reorderAt}</p>
                       </div>
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.onHand <= item.reorderAt ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+                      <Badge className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.onHand <= item.reorderAt ? "co-badge-warning" : "co-badge-success"}`}>
                         {item.onHand} on hand
-                      </span>
+                      </Badge>
                     </div>
                   ))}
                   {inventory.length === 0 ? <p className="text-sm text-[var(--co-muted)]">Inventory has not been set up yet.</p> : null}

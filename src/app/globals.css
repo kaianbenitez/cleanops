@@ -197,6 +197,12 @@ body {
 
 button, a, input, select, textarea { transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
 button:active { transform: translateY(1px); }
+
+/* Status badges: text + tinted color together, never color alone (DESIGN.md). */
+.co-badge-success { background: color-mix(in srgb, var(--co-success) 12%, white); color: var(--co-success); border: 1px solid color-mix(in srgb, var(--co-success) 28%, white); }
+.co-badge-warning { background: color-mix(in srgb, var(--co-warning) 12%, white); color: var(--co-warning); border: 1px solid color-mix(in srgb, var(--co-warning) 28%, white); }
+.co-badge-danger { background: color-mix(in srgb, var(--co-danger) 12%, white); color: var(--co-danger); border: 1px solid color-mix(in srgb, var(--co-danger) 28%, white); }
+.co-badge-neutral { background: var(--co-surface-muted); color: var(--co-muted); border: 1px solid var(--co-line-soft); }
 :focus-visible { outline: 3px solid rgba(137, 166, 80, 0.42); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: no-preference) {
