@@ -22,3 +22,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
 3. Start the built app with `npx next start -p 3100`
 4. In another terminal, run `npm run smoke:routes -- http://localhost:3100`
 5. Confirm the Vercel deployment commit matches `git rev-parse HEAD`.
+
+## Supabase safety
+
+- Use `npm run supabase:status` to inspect the local CLI stack.
+- Local Supabase requires Docker Desktop.
+- The hosted database is managed through Drizzle migrations in this project.
+- Never run `npm run supabase:reset`, `db push`, or production migrations without explicit approval.
