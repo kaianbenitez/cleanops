@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-19T04:00:00.000Z",
+  "title": "Design System: CleanOps Operations Desk",
+  "extensions": {
+    "colorMeta": {
+      "evergreen": { "role": "primary", "displayName": "Operations Evergreen", "canonical": "oklch(20% 0.025 170)", "tonalRamp": ["#09100f", "#10201d", "#14211f", "#2a3d38", "#50645b", "#7f9388", "#b6c3ba", "#edf3e9"] },
+      "lime-accent": { "role": "primary", "displayName": "Lime Action", "canonical": "oklch(88% 0.17 115)", "tonalRamp": ["#263008", "#4b6011", "#718f20", "#98ba3f", "#c8e86b", "#d9ef9b", "#e8f5c3", "#f5fbe5"] },
+      "page-background": { "role": "neutral", "displayName": "Field Background", "canonical": "oklch(96% 0.01 125)", "tonalRamp": ["#18201b", "#2e392f", "#526056", "#7f8e82", "#aab6ac", "#cbd4cc", "#e2e8e2", "#f5f6f2"] },
+      "surface": { "role": "neutral", "displayName": "Surface White", "canonical": "oklch(100% 0 0)", "tonalRamp": ["#171b18", "#343a35", "#606760", "#8d938d", "#b9beb9", "#d5d8d5", "#e8e9e8", "#ffffff"] },
+      "ink": { "role": "neutral", "displayName": "Operational Ink", "canonical": "oklch(20% 0.025 165)", "tonalRamp": ["#101714", "#1b2925", "#394a44", "#64756e", "#899891", "#b0bbb5", "#d1d8d3", "#f2f5f3"] }
+      ,"input-border": { "role": "neutral", "displayName": "Input Border", "canonical": "#d9e1da", "tonalRamp": ["#18201b", "#344038", "#5b685f", "#839087", "#aab5ad", "#c4cec6", "#e2e8e2", "#f7faf7"] },
+      "input-focus": { "role": "primary", "displayName": "Input Focus", "canonical": "#78964a", "tonalRamp": ["#1c240e", "#37491d", "#516d2d", "#66853b", "#78964a", "#a5bb7b", "#cfddba", "#f1f6e9"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Page Title", "purpose": "Primary page headings and operational section anchors." },
+      "label": { "displayName": "Operational Label", "purpose": "Compact metadata markers and navigation grouping only." },
+      "compact-control": { "displayName": "Compact Control", "purpose": "Small button and table-control text used where density is necessary." }
+    },
+    "shadows": [
+      { "name": "card-rest", "value": "0 1px 0 rgba(20, 33, 31, 0.03), 0 12px 30px rgba(20, 33, 31, 0.035)", "purpose": "Subtle structure for reusable content cards." },
+      { "name": "primary-action", "value": "0 8px 18px rgba(20, 33, 31, 0.09)", "purpose": "Small tactile priority for primary actions." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "180ms ease", "purpose": "Short feedback transitions for controls and cards." },
+      { "name": "reduced-motion", "value": "0.01ms", "purpose": "Remove nonessential motion when requested by the user or device." }
+    ],
+    "breakpoints": [
+      { "name": "xl", "value": "1280px" },
+      { "name": "sm", "value": "640px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "High-confidence action used for create, save, assign, and publish flows.",
+      "html": "<button class=\"ds-btn-primary\">Save changes</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;min-height:40.8px;padding:10.4px 16px;border:1px solid rgba(255,255,255,.03);border-radius:10.4px;background:#14211f;color:#fff;font:600 15px/1.35 Geist,ui-sans-serif,system-ui,sans-serif;transition:background-color 180ms ease,transform 180ms ease,box-shadow 180ms ease;box-shadow:0 8px 18px rgba(20,33,31,.09)}.ds-btn-primary:hover{background:#2a3d38}.ds-btn-primary:active{transform:translateY(1px)}.ds-btn-primary:focus-visible{outline:3px solid rgba(137,166,80,.42);outline-offset:2px}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Quiet alternative for cancel, view, filter, and secondary actions.",
+      "html": "<button class=\"ds-btn-secondary\">View details</button>",
+      "css": ".ds-btn-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:40.8px;padding:10.4px 16px;border:1px solid #d9e1da;border-radius:10.4px;background:#fff;color:#1b2925;font:600 15px/1.35 Geist,ui-sans-serif,system-ui,sans-serif;transition:border-color 180ms ease,background-color 180ms ease}.ds-btn-secondary:hover{border-color:#bfcdbf;background:#fafbf8}.ds-btn-secondary:focus-visible{outline:3px solid rgba(137,166,80,.42);outline-offset:2px}"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Readable field for search, configuration, and operational data entry.",
+      "html": "<input class=\"ds-input\" placeholder=\"Search customers\" />",
+      "css": ".ds-input{width:100%;min-height:40.8px;padding:10.4px 12.8px;border:1px solid #d9e1da;border-radius:10.4px;background:#fff;color:#1b2925;font:400 14px/1.5 Geist,ui-sans-serif,system-ui,sans-serif}.ds-input::placeholder{color:#718179}.ds-input:hover{border-color:#bdcbbf}.ds-input:focus{border-color:#78964a;outline:none;box-shadow:0 0 0 3px rgba(137,166,80,.16)}"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Compact semantic status for jobs, invoices, payroll, and sync health.",
+      "html": "<span class=\"ds-chip\">Completed</span>",
+      "css": ".ds-chip{display:inline-flex;align-items:center;min-height:28px;padding:5px 10px;border:1px solid #d5e6c1;border-radius:999px;background:#edf7e7;color:#5c7436;font:600 12px/1.2 Geist,ui-sans-serif,system-ui,sans-serif}.ds-chip:focus-visible{outline:3px solid rgba(137,166,80,.42);outline-offset:2px}"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Primary white surface for dashboards, forms, tables, and focused panels.",
+      "html": "<section class=\"ds-card\"><h3>Today’s schedule</h3><p>Review the next jobs and assignments.</p></section>",
+      "css": ".ds-card{padding:20px;border:1px solid #e1e8df;border-radius:17.6px;background:#fff;color:#1b2925;box-shadow:0 1px 0 rgba(20,33,31,.03),0 12px 30px rgba(20,33,31,.035)}.ds-card h3{margin:0;font:600 18px/1.25 Geist,ui-sans-serif,system-ui,sans-serif;letter-spacing:-.015em}.ds-card p{margin:8px 0 0;color:#718179;font:400 14px/1.5 Geist,ui-sans-serif,system-ui,sans-serif}"
+    },
+    {
+      "name": "Navigation Link",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Evergreen workspace navigation with a quiet active state and lime marker.",
+      "html": "<a class=\"ds-nav-link ds-nav-link-active\" href=\"#\">Dashboard</a>",
+      "css": ".ds-nav-link{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:14px;color:#aab9b2;text-decoration:none;font:500 13px/1.35 Geist,ui-sans-serif,system-ui,sans-serif;transition:background-color 180ms ease,color 180ms ease}.ds-nav-link:hover{background:rgba(255,255,255,.05);color:#fff}.ds-nav-link-active{position:relative;background:rgba(255,255,255,.1);color:#fff}.ds-nav-link-active:before{content:\"\";position:absolute;left:4px;top:8px;bottom:8px;width:4px;border-radius:999px;background:#c8e86b}.ds-nav-link:focus-visible{outline:3px solid rgba(200,232,107,.55);outline-offset:2px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Control Room",
+    "overview": "CleanOps is designed as a calm control room for a busy cleaning company. It should help someone make the next correct decision quickly: assign the job, understand the customer, record time, send the quote, review payroll, or resolve an exception. The interface uses a dark evergreen shell and a restrained light workspace so the product feels grounded and operational rather than decorative.\n\nThe system is modern, efficient, and practical. It uses clear hierarchy, generous use of the available frame, compact data presentation where scanning matters, and direct language. Field users need one-handed mobile interactions and large, obvious actions; office users need wide tables, readable filters, and enough room to see the operation without artificial squeezing.",
+    "keyCharacteristics": ["Calm evergreen navigation with a bright lime action accent.", "White operational surfaces over a very light green-gray page field.", "Tight, readable typography with restrained display scale.", "Flat-by-default surfaces with subtle structural depth.", "Responsive layouts that expand into the available desktop frame and collapse into task-first mobile flows."],
+    "rules": [
+      { "name": "The Rare Lime Rule", "body": "Lime is the action signal, not a background color for whole pages. If every element is highlighted, nothing is actionable.", "section": "colors" },
+      { "name": "The Scan Before Read Rule", "body": "Use size, weight, spacing, and alignment to make the important value visible before the supporting explanation.", "section": "typography" },
+      { "name": "The Structural Depth Rule", "body": "Use borders and tonal layering first; use shadows only when an element needs to feel lifted or interactive.", "section": "elevation" }
+    ],
+    "dos": ["Do use the full available frame for calendars, reports, and operational tables; do not squeeze data into a narrow centered column.", "Do make the next action obvious for a cleaner on mobile, especially travel, arrival, clock-in, break, completion, and undo.", "Do use #14211f for navigation and primary actions, #c8e86b for rare action emphasis, and #f5f6f2 for the workspace field.", "Do keep touch targets generous and content readable on a phone.", "Do support reduced motion and preserve important content without animation.", "Do use clear empty, loading, error, and attention states with text, not color alone."],
+    "donts": ["Don't make CleanOps flashy, decorative, noisy, or like a generic AI-generated SaaS dashboard.", "Don't use excessive gradients, ornamental animation, over-rounded cards, crowded layouts, or unnecessary metrics.", "Don't make routine work take more taps than necessary.", "Don't use colored side-stripe borders greater than 1px as card decoration.", "Don't use gradient text, decorative grid backgrounds, repeating stripe backgrounds, or glassmorphism as defaults.", "Don't build identical grids of icon-plus-heading cards when a table, list, or direct layout communicates better.", "Don't use color as the only way to communicate job, payment, payroll, or sync status."]
+  }
+}

@@ -19,6 +19,11 @@
   --co-success: #5c7436;
   --co-warning: #a86d2f;
   --co-danger: #b96845;
+  --co-input-border: #d9e1da;
+  --co-input-placeholder: #9aaa9f;
+  --co-input-border-hover: #bdcbbf;
+  --co-input-focus: #78964a;
+  --co-focus-ring: rgba(137, 166, 80, 0.42);
   --background: oklch(1 0 0);
   --foreground: oklch(0.148 0.004 228.8);
   --card: oklch(1 0 0);
@@ -98,10 +103,7 @@
 }
 
 body {
-  background:
-    radial-gradient(circle at top left, rgba(200, 232, 107, 0.09), transparent 26%),
-    radial-gradient(circle at top right, rgba(20, 33, 31, 0.05), transparent 18%),
-    var(--co-bg);
+  background: var(--co-bg);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   overflow-x: hidden;
@@ -116,10 +118,8 @@ body {
 .co-card {
   border: 1px solid var(--co-line);
   border-radius: 1.1rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 1));
-  box-shadow:
-    0 1px 0 rgba(20, 33, 31, 0.03),
-    0 12px 30px rgba(20, 33, 31, 0.035);
+  background: var(--co-surface);
+  box-shadow: 0 1px 0 rgba(20, 33, 31, 0.03), 0 8px 20px rgba(20, 33, 31, 0.03);
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
 }
 
@@ -151,21 +151,21 @@ body {
 
 .co-input {
   background: var(--co-surface);
-  border: 1px solid #d9e1da;
+  border: 1px solid var(--co-input-border);
   border-radius: 0.65rem;
   color: var(--co-ink);
   min-height: 2.55rem;
   padding: 0.65rem 0.8rem;
 }
 
-.co-input::placeholder { color: #9aaa9f; }
-.co-input:hover { border-color: #bdcbbf; }
-.co-input:focus { border-color: #78964a; box-shadow: 0 0 0 3px rgba(137, 166, 80, 0.16); outline: none; }
+.co-input::placeholder { color: var(--co-input-placeholder); }
+.co-input:hover { border-color: var(--co-input-border-hover); }
+.co-input:focus { border-color: var(--co-input-focus); box-shadow: 0 0 0 3px rgba(137, 166, 80, 0.16); outline: none; }
 
 .co-button-primary {
   align-items: center;
-  background: linear-gradient(180deg, #18302a, #14211f);
-  border: 1px solid rgba(255, 255, 255, 0.03);
+  background: var(--co-evergreen);
+  border: 1px solid var(--co-evergreen);
   box-shadow: 0 8px 18px rgba(20, 33, 31, 0.09);
   border-radius: 0.65rem;
   color: white;
@@ -178,11 +178,11 @@ body {
   padding: 0.65rem 1rem;
 }
 
-.co-button-primary:hover { background: linear-gradient(180deg, #223731, #182723); }
+.co-button-primary:hover { background: var(--co-evergreen-soft); }
 .co-button-secondary {
   align-items: center;
   background: rgba(255, 255, 255, 0.95);
-  border: 1px solid #d9e1da;
+  border: 1px solid var(--co-input-border);
   border-radius: 0.65rem;
   color: #34443e;
   display: inline-flex;
@@ -193,7 +193,7 @@ body {
   padding: 0.65rem 1rem;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset;
 }
-.co-button-secondary:hover { border-color: #bfcdbf; background: #fafbf8; }
+.co-button-secondary:hover { border-color: var(--co-input-border-hover); background: #fafbf8; }
 
 button, a, input, select, textarea { transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
 button:active { transform: translateY(1px); }

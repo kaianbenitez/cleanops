@@ -150,7 +150,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       .where(and(eq(customers.companyId, admin.companyId), eq(customers.status, "client"))),
     db
       .select({
-        amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)`,
+        amountPaidCents: invoices.amountPaidCents,
+        paidAt: invoices.paidAt,
       })
       .from(invoices)
       .where(and(eq(invoices.companyId, admin.companyId), eq(invoices.status, "paid"), gte(invoices.paidAt, weekStart))),
@@ -263,11 +264,34 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     sync: failedSyncRows.length,
   };
 
+  const attentionItems = [
+    { label: "Unassigned jobs", value: attention.unassigned, href: "/jobs?unassigned=yes", action: "Assign now", detail: "Today's schedule" },
+    { label: "Jobs without hours", value: attention.missingHours, href: "/jobs?status=completed&missingHours=yes", action: "Review hours", detail: "Completed today" },
+    { label: "Awaiting invoicing", value: attention.awaitingInvoice, href: "/jobs?status=completed", action: "Create invoices", detail: "Completed today" },
+    { label: "Payment method missing", value: attention.paymentMethod, href: "/customers?payment=missing", action: "Open customers", detail: "Customer records" },
+    { label: "Incomplete house notes", value: attention.incompleteNotes, href: "/customers?attention=yes", action: "Complete notes", detail: "Customer records" },
+    { label: "Failed GHL / Square syncs", value: attention.sync, href: "/sync-issues", action: "View failures", detail: "Needs investigation" },
+  ];
+
   const sent = Number(quoteSentCount[0]?.count ?? 0);
   const accepted = Number(acceptedCount[0]?.count ?? 0);
   const conversion = sent ? Math.round((accepted / sent) * 100) : 0;
   const overdueTotal = overdueRows.reduce((sum, invoice) => sum + Math.max(invoice.totalCents - invoice.amountPaidCents, 0), 0);
-  const weeklyRevenue = Number(revenueRows[0]?.amount ?? 0);
+  const weeklyRevenue = revenueRows.reduce((sum, row) => sum + row.amountPaidCents, 0);
+  const revenueDays = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(weekStart);
+    date.setUTCDate(weekStart.getUTCDate() + index);
+    const key = iso(date);
+    const amount = revenueRows
+      .filter((row) => row.paidAt && iso(new Date(row.paidAt)) === key)
+      .reduce((sum, row) => sum + row.amountPaidCents, 0);
+    return {
+      key,
+      label: date.toLocaleDateString("en-US", { weekday: "short" }),
+      amount,
+    };
+  });
+  const maxRevenueDay = Math.max(...revenueDays.map((day) => day.amount), 1);
 
   const inventory = Array.isArray((companyRows[0]?.settings as { inventory?: unknown } | null)?.inventory)
     ? (
@@ -324,13 +348,19 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       <section className="co-card flex flex-wrap items-center justify-between gap-3 p-4">
         <div>
-          <p className="eyebrow">KPI window</p>
-          <p className="mt-1 text-sm text-[var(--co-muted)]">Filter the board by date range.</p>
+          <p className="eyebrow">Performance window</p>
+          <p className="mt-1 text-sm text-[var(--co-muted)]">These dates apply to the performance metrics below.</p>
         </div>
         <form className="flex flex-wrap items-center gap-2 text-sm">
-          <input type="date" name="from" defaultValue={iso(rangeFrom)} className="co-input" />
+          <label className="flex items-center gap-2 text-xs font-semibold text-[var(--co-muted)]">
+            From
+            <input type="date" name="from" defaultValue={iso(rangeFrom)} className="co-input" aria-label="Performance start date" />
+          </label>
           <span className="text-[var(--co-muted)]">to</span>
-          <input type="date" name="to" defaultValue={iso(rangeTo)} className="co-input" />
+          <label className="flex items-center gap-2 text-xs font-semibold text-[var(--co-muted)]">
+            Through
+            <input type="date" name="to" defaultValue={iso(rangeTo)} className="co-input" aria-label="Performance end date" />
+          </label>
           <button className="co-button-secondary" type="submit">
             Apply dates
           </button>
@@ -338,23 +368,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             Reset
           </Link>
         </form>
-      </section>
-
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-        {[
-          { label: "New leads", value: String(leadCount[0]?.count ?? 0), note: "in the selected range" },
-          { label: "Quotes sent", value: String(sent), note: "active selling opportunities" },
-          { label: "Quotes accepted", value: String(accepted), note: "won proposals" },
-          { label: "Conversion rate", value: `${conversion}%`, note: "accepted vs sent" },
-          { label: "New recurring", value: String(recurringCount[0]?.count ?? 0), note: "this month" },
-          { label: "Active clients", value: String(activeClientCount[0]?.count ?? 0), note: "current clients" },
-        ].map((item) => (
-          <div key={item.label} className="co-card p-5">
-            <p className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--co-muted)]">{item.label}</p>
-            <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{item.value}</p>
-            <p className="mt-2 text-xs text-[var(--co-muted)]">{item.note}</p>
-          </div>
-        ))}
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
@@ -365,7 +378,33 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             description: "Start here and move from scheduled jobs to completed, invoiced, and paid.",
             children: (
               <>
-                <div className="overflow-x-auto">
+                <div className="space-y-2 md:hidden">
+                  {todayRows.length === 0 ? (
+                    <p className="rounded-xl bg-[var(--co-surface-muted)] px-4 py-6 text-center text-sm text-[var(--co-muted)]">No jobs scheduled today.</p>
+                  ) : (
+                    todayRows.map((job) => {
+                      const assigned = assignmentsByJob.get(job.id) ?? [];
+                      const assignedLabel = assigned.length ? assigned.map((person) => `${person.firstName} ${person.lastName}`).join(", ") : "Unassigned";
+                      return (
+                        <Link key={job.id} href={`/jobs/${job.id}`} className="block rounded-xl border border-[var(--co-line-soft)] px-4 py-3 hover:bg-[var(--co-surface-muted)]">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-semibold text-[var(--co-muted)]">{formatTime(job.scheduledStartTime)}</p>
+                              <p className="mt-1 font-semibold text-[var(--co-ink)]">{job.customerFirstName} {job.customerLastName}</p>
+                            </div>
+                            <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${pillClass(job.status)}`}>{job.status.replaceAll("_", " ")}</span>
+                          </div>
+                          <p className="mt-2 text-xs capitalize text-[var(--co-muted)]">{job.type.replaceAll("_", " ")} · {assignedLabel}</p>
+                          <p className="mt-1 text-xs text-[var(--co-muted)]">
+                            {job.addressLine1 ?? "No address"}{job.city ? `, ${job.city}` : ""}{job.zip ? ` ${job.zip}` : ""}
+                          </p>
+                        </Link>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="hidden overflow-x-auto md:block">
                   <table className="w-full min-w-[760px] text-left text-sm">
                     <thead className="bg-[var(--co-surface-muted)] text-xs uppercase tracking-[0.08em] text-[var(--co-muted)]">
                       <tr>
@@ -425,27 +464,24 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           {sectionCard({
             eyebrow: "Attention required",
             title: "Keep the board clean",
-            description: "These are the handoff issues that need a person to move them forward.",
+            description: "Open an item to resolve the next operational blocker.",
             children: (
-              <div className="grid gap-2 sm:grid-cols-2">
-                {[
-                  ["Unassigned jobs", attention.unassigned, "/jobs?unassigned=yes"],
-                  ["Jobs without recorded hours", attention.missingHours, "/jobs?status=completed&missingHours=yes"],
-                  ["Awaiting invoicing", attention.awaitingInvoice, "/jobs?status=completed"],
-                  ["Payment method missing", attention.paymentMethod, "/customers?payment=missing"],
-                  ["Incomplete house notes", attention.incompleteNotes, "/customers?attention=yes"],
-                  ["Failed GHL / Square syncs", attention.sync, "/sync-issues"],
-                ].map(([label, value, href]) => (
+              <div className="space-y-2">
+                {attentionItems.map((item) => (
                   <Link
-                    key={String(label)}
-                    href={String(href)}
-                    className="flex items-center justify-between rounded-2xl border border-[var(--co-line-soft)] px-3 py-3 hover:bg-[var(--co-surface-muted)]"
+                    key={item.label}
+                    href={item.href}
+                    className="flex items-center gap-3 rounded-xl border border-[var(--co-line-soft)] px-3 py-3 hover:bg-[var(--co-surface-muted)]"
+                    aria-label={`${item.label}: ${item.value}. ${item.action}`}
                   >
-                    <span className="flex items-center gap-2 text-sm">
-                      <span className={`h-2.5 w-2.5 rounded-full ${Number(value) > 0 ? "bg-amber-500" : "bg-emerald-500"}`} />
-                      {label}
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${item.value > 0 ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`} aria-hidden="true">
+                      {item.value}
                     </span>
-                    <span className="font-semibold text-[var(--co-ink)]">{value}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-[var(--co-ink)]">{item.label}</span>
+                      <span className="mt-0.5 block text-xs text-[var(--co-muted)]">{item.detail}</span>
+                    </span>
+                    <span className="shrink-0 text-xs font-semibold text-[var(--co-evergreen)]">{item.value > 0 ? item.action : "Clear"}</span>
                   </Link>
                 ))}
               </div>
@@ -457,28 +493,29 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           {sectionCard({
             eyebrow: "Cash flow",
             title: "Weekly revenue",
-            description: "Payment received this week.",
+            description: `Payments received since ${formatDay(weekStart)}.`,
             children: (
               <>
-                <p className="text-4xl font-semibold tracking-[-0.05em]">{formatMoney(weeklyRevenue)}</p>
-                <div className="mt-6 flex h-32 items-end gap-2">
-                  {[
-                    { height: 24, active: false },
-                    { height: 31, active: false },
-                    { height: 38, active: false },
-                    { height: 48, active: false },
-                    { height: 44, active: false },
-                    { height: 63, active: false },
-                    { height: 80, active: true },
-                  ].map((bar, index) => (
-                    <span
-                      key={index}
-                      className={`flex-1 rounded-t-2xl ${bar.active ? "bg-[var(--co-evergreen)]" : "bg-[var(--co-surface-muted)]"}`}
-                      style={{ height: `${bar.height}%` }}
-                    />
-                  ))}
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-4xl font-semibold tracking-[-0.05em]">{formatMoney(weeklyRevenue)}</p>
+                    <p className="mt-1 text-xs text-[var(--co-muted)]">{revenueRows.length} paid invoice{revenueRows.length === 1 ? "" : "s"}</p>
+                  </div>
+                  <span className="rounded-full bg-[var(--co-surface-muted)] px-2.5 py-1 text-xs font-medium text-[var(--co-evergreen)]">Mon–Sun</span>
                 </div>
-                <p className="mt-3 text-xs text-[var(--co-muted)]">Selected date range applies to the KPI row above.</p>
+                <ol className="mt-6 flex h-36 items-end gap-2" aria-label="Revenue received by day this week">
+                  {revenueDays.map((day) => (
+                    <li key={day.key} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
+                      <span className="sr-only">{day.label}: {formatMoney(day.amount)}</span>
+                      <span
+                        className={`w-full rounded-t-lg ${day.amount > 0 ? "bg-[var(--co-evergreen)]" : "bg-[var(--co-surface-muted)]"}`}
+                        style={{ height: `${Math.max((day.amount / maxRevenueDay) * 100, day.amount > 0 ? 8 : 3)}%` }}
+                        title={`${day.label}: ${formatMoney(day.amount)}`}
+                      />
+                      <span className="text-[11px] font-medium text-[var(--co-muted)]">{day.label}</span>
+                    </li>
+                  ))}
+                </ol>
                 <Link href="/invoices" className="mt-4 block text-sm font-medium text-[var(--co-evergreen)] hover:underline">
                   View invoices
                 </Link>
@@ -568,24 +605,34 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <TechnicianRoutePreview routes={routeTechnicians} fallbackTitle="Today's route" />
 
         {sectionCard({
-          eyebrow: "Operational notes",
-          title: "What this board is ready for",
-          description: "This is the admin-facing beta surface; it is intentionally not the technician browser yet.",
+          eyebrow: "Performance",
+          title: "Business pulse",
+          description: `Selected performance window: ${formatDay(rangeFrom)} through ${formatDay(rangeTo)}.`,
           children: (
             <div className="space-y-4 text-sm text-[var(--co-muted)]">
-              <p>
-                The dashboard now has the right office rhythm: filterable KPIs, today's schedule, route preview, collections, attention flags, and inventory.
-              </p>
-              <p>
-                The next backend-sensitive step is the employee/browser flow for clock-in, mileage, and time editing. I have not started that yet because you asked to hold the employee questions until we are ready.
-              </p>
-              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Backend gaps to confirm later</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {[
+                  { label: "New leads", value: String(leadCount[0]?.count ?? 0), note: "selected window" },
+                  { label: "Quotes sent", value: String(sent), note: "selected window" },
+                  { label: "Quotes accepted", value: String(accepted), note: "selected window" },
+                  { label: "Conversion rate", value: `${conversion}%`, note: "accepted vs sent" },
+                  { label: "New recurring", value: String(recurringCount[0]?.count ?? 0), note: "this month" },
+                  { label: "Active clients", value: String(activeClientCount[0]?.count ?? 0), note: "current clients" },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-3">
+                    <p className="text-xs font-medium text-[var(--co-muted)]">{item.label}</p>
+                    <p className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-[var(--co-ink)]">{item.value}</p>
+                    <p className="mt-1 text-xs text-[var(--co-muted)]">{item.note}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-[var(--co-muted)]">Use the selected date window to compare quoting activity and customer growth. Daily operations above are always anchored to today.</p>
+              <div className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
+                <p className="text-xs font-semibold text-[var(--co-muted)]">Keep performance context visible</p>
                 <ul className="mt-3 space-y-2">
-                  <li>• GHL and Square sync edge cases</li>
-                  <li>• Declined payment method tracking</li>
-                  <li>• Stronger audit entries for every mutation</li>
-                  <li>• Employee browser requirements and data permissions</li>
+                  <li className="text-xs text-[var(--co-muted)]">Conversion rate uses accepted quotes divided by quotes sent.</li>
+                  <li className="text-xs text-[var(--co-muted)]">Revenue bars show paid invoices by day for the current week.</li>
+                  <li className="text-xs text-[var(--co-muted)]">Today’s schedule and attention counts are not changed by the performance filter.</li>
                 </ul>
               </div>
               <Link href="/settings" className="inline-flex font-medium text-[var(--co-evergreen)] hover:underline">

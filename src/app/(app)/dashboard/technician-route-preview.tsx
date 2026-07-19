@@ -49,7 +49,7 @@ export default function TechnicianRoutePreview({
           </span>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="mt-4">
           <label className="block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">
             Technician
             <select className="co-input mt-2 min-w-[220px]" value={selectedId} onChange={(event) => setSelectedId(event.target.value)}>
@@ -80,7 +80,7 @@ export default function TechnicianRoutePreview({
       </div>
 
       <div className="border-b border-[var(--co-line-soft)] px-5 py-5">
-        <RoutePreview showHeader={false} showTopStats={false} title={selectedRoute?.employeeName ?? fallbackTitle} jobs={jobs} />
+        <RoutePreview embedded showHeader={false} showTopStats={false} title={selectedRoute?.employeeName ?? fallbackTitle} jobs={jobs} />
       </div>
 
       <div className="divide-y divide-[var(--co-line-soft)]">

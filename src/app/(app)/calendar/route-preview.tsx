@@ -25,11 +25,13 @@ export default function RoutePreview({
   title,
   showHeader = true,
   showTopStats = true,
+  embedded = false,
 }: {
   jobs: RouteJob[];
   title: string;
   showHeader?: boolean;
   showTopStats?: boolean;
+  embedded?: boolean;
 }) {
   const mapElement = useRef<HTMLDivElement>(null);
   const mapRef = useRef<GoogleMap | null>(null);
@@ -114,7 +116,7 @@ export default function RoutePreview({
   const lastStop = orderedJobs.at(-1)?.time ?? null;
 
   return (
-    <div className="co-card overflow-hidden p-4">
+    <div className={embedded ? "overflow-hidden" : "co-card overflow-hidden p-4"}>
       {apiKey ? (
         <Script
           id="google-maps-calendar"
@@ -155,20 +157,13 @@ export default function RoutePreview({
         </div>
       )}
 
-      <div className="mt-4 overflow-hidden rounded-[24px] border border-[var(--co-line-soft)] bg-[linear-gradient(180deg,#eef4ea,#f8faf6)]">
+      <div className="mt-4 overflow-hidden rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]">
         {apiKey && !mapError ? (
           <div ref={mapElement} className="min-h-[210px] bg-[#e8eee6]" aria-label="Route map" />
         ) : (
           <div
             className="relative min-h-[210px] overflow-hidden p-4"
-            style={{
-              backgroundImage:
-                "linear-gradient(135deg, rgba(15,72,55,.04) 25%, transparent 25%), linear-gradient(225deg, rgba(15,72,55,.04) 25%, transparent 25%), linear-gradient(45deg, rgba(15,72,55,.04) 25%, transparent 25%), linear-gradient(315deg, rgba(15,72,55,.04) 25%, #f8faf6 25%)",
-              backgroundPosition: "18px 0, 18px 0, 0 0, 0 0",
-              backgroundSize: "36px 36px",
-            }}
           >
-            <div className="absolute inset-0 opacity-50" style={{ backgroundImage: "radial-gradient(circle at 20% 20%, rgba(15,72,55,.12), transparent 26%), radial-gradient(circle at 80% 35%, rgba(15,72,55,.08), transparent 22%), radial-gradient(circle at 50% 80%, rgba(15,72,55,.08), transparent 20%)" }} />
             {hasStops ? (
               <div className="relative space-y-2 p-2">
                 {orderedJobs.map((job, index) => (
@@ -195,7 +190,7 @@ export default function RoutePreview({
         )}
       </div>
 
-      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+      {!embedded ? <div className="mt-4 grid gap-2 sm:grid-cols-3">
         <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Stops</p>
           <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{orderedJobs.length}</p>
@@ -208,12 +203,12 @@ export default function RoutePreview({
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Source</p>
           <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{apiKey && !mapError ? "Google Maps" : "Static preview"}</p>
         </div>
-      </div>
+      </div> : null}
 
-      <div className="mt-3 flex items-center justify-between text-xs text-[var(--co-muted)]">
+      {!embedded ? <div className="mt-3 flex items-center justify-between text-xs text-[var(--co-muted)]">
         <span>{hasStops ? "Stops follow the selected technician's schedule order" : "Choose an employee filter to see a route"}</span>
         <span>{apiKey ? "Live geocoded route" : "Add a Maps key for live routing"}</span>
-      </div>
+      </div> : null}
     </div>
   );
 }
