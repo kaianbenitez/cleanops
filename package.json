@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check:env": "node scripts/check-env.mjs",
+    "smoke:routes": "node scripts/smoke-routes.mjs",
     "verify": "npm run check:env && npm run lint && npm run typecheck && npm run build",
     "smoke:auth": "node scripts/smoke-test.mjs",
     "db:generate": "drizzle-kit generate",
