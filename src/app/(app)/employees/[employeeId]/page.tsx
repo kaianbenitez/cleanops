@@ -99,6 +99,8 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [managementMessage, setManagementMessage] = useState<string | null>(null);
+  const [managementError, setManagementError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -144,6 +146,34 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
     await load();
   }
 
+  async function setPassword(password: string, confirmPassword: string) {
+    setManagementMessage(null);
+    setManagementError(null);
+    const response = await fetch(`/api/employees/${employeeId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password, confirmPassword }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setManagementError(data.error ?? "Could not change the password.");
+      return;
+    }
+    setManagementMessage("Password changed. Share the new password securely with the employee.");
+  }
+
+  async function deleteEmployee() {
+    setManagementMessage(null);
+    setManagementError(null);
+    const response = await fetch(`/api/employees/${employeeId}`, { method: "DELETE" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setManagementError(data.error ?? "This employee could not be permanently deleted.");
+      return;
+    }
+    window.location.href = "/employees";
+  }
+
   if (loading) {
     return <ProfileSkeleton />;
   }
@@ -173,7 +203,7 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
             onClick={() => save({ isActive: !employee.isActive })}
             className="co-button-secondary"
           >
-            {employee.isActive ? "Deactivate" : "Reactivate"}
+            {employee.isActive ? "Archive employee" : "Restore employee"}
           </button>
         </div>
       </div>
@@ -275,6 +305,15 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
               />
             )}
           </section>
+
+          <EmployeeAccountManagement
+            employeeName={fullName}
+            isActive={employee.isActive}
+            onSetPassword={setPassword}
+            onDelete={deleteEmployee}
+            message={managementMessage}
+            error={managementError}
+          />
         </div>
 
         <div className="space-y-5">
@@ -404,6 +443,98 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
         </div>
       </div>
     </div>
+  );
+}
+
+function EmployeeAccountManagement({
+  employeeName,
+  isActive,
+  onSetPassword,
+  onDelete,
+  message,
+  error,
+}: {
+  employeeName: string;
+  isActive: boolean;
+  onSetPassword: (password: string, confirmPassword: string) => Promise<void>;
+  onDelete: () => Promise<void>;
+  message: string | null;
+  error: string | null;
+}) {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function submitPassword(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    await onSetPassword(password, confirmPassword);
+    setSaving(false);
+    setPassword("");
+    setConfirmPassword("");
+  }
+
+  return (
+    <section className="rounded-2xl border border-[#e1e8df] bg-white p-6 shadow-[0_12px_30px_rgba(27,41,37,0.04)]">
+      <p className="eyebrow">Account access</p>
+      <h2 className="mt-2 text-lg font-semibold text-[#263631]">Manage {employeeName}</h2>
+      <p className="mt-1 text-sm leading-6 text-[#718179]">
+        Set a new sign-in password or archive this employee when they leave. Archived employees stay in historical payroll and job records.
+      </p>
+
+      <form onSubmit={submitPassword} className="mt-5 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <label className="block text-xs font-semibold text-[#65775e]">
+          New password
+          <input
+            aria-label="New employee password"
+            type="password"
+            minLength={8}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className="co-input mt-1.5 w-full text-sm"
+            placeholder="At least 8 characters"
+            required
+          />
+        </label>
+        <label className="block text-xs font-semibold text-[#65775e]">
+          Confirm password
+          <input
+            aria-label="Confirm employee password"
+            type="password"
+            minLength={8}
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            className="co-input mt-1.5 w-full text-sm"
+            placeholder="Repeat password"
+            required
+          />
+        </label>
+        <button type="submit" className="co-button-secondary" disabled={saving}>
+          {saving ? "Saving…" : "Change password"}
+        </button>
+      </form>
+
+      {message ? <p className="mt-3 text-xs font-semibold text-[#5c7436]">{message}</p> : null}
+      {error ? <p className="mt-3 text-xs font-semibold text-[#a35c5c]">{error}</p> : null}
+
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0ec] pt-5">
+        <div>
+          <p className="text-sm font-semibold text-[#263631]">{isActive ? "Archive employee" : "Employee is archived"}</p>
+          <p className="mt-1 text-xs text-[#718179]">{isActive ? "Stops this person from appearing in active assignment pickers." : "Restore them from the button above when needed."}</p>
+        </div>
+        <button
+          type="button"
+          className="rounded-xl border border-[#efcaca] px-3.5 py-2.5 text-xs font-semibold text-[#a35c5c] hover:bg-[#fff6f6]"
+          onClick={() => {
+            if (window.confirm(`Permanently delete ${employeeName}? This cannot be undone. Employees with job, payroll, or audit history must be archived instead.`)) {
+              void onDelete();
+            }
+          }}
+        >
+          Delete permanently
+        </button>
+      </div>
+    </section>
   );
 }
 

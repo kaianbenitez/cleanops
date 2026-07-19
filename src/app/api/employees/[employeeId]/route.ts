@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
 import { auditLog, customers, users, jobs, jobAssignments, timeEntries, payrollLines, payrollPeriods } from "@/db/schema";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { buildPayTiers, getPayTierBrackets } from "@/lib/payroll/calculate";
 
 const updateEmployeeSchema = z.object({
@@ -22,6 +23,14 @@ const updateEmployeeSchema = z.object({
   tierRatesCents: z.array(z.number().int().nonnegative()).min(1).optional(),
   gustoEmployeeId: z.string().trim().optional(),
   isActive: z.boolean().optional(),
+});
+
+const passwordSchema = z.object({
+  password: z.string().min(8, "Password must be at least 8 characters."),
+  confirmPassword: z.string().min(8, "Please confirm the password."),
+}).refine((value) => value.password === value.confirmPassword, {
+  message: "Passwords do not match.",
+  path: ["confirmPassword"],
 });
 
 /** GET /api/employees/[employeeId] — full profile plus lifetime stats (jobs
@@ -195,15 +204,116 @@ export async function PATCH(
   if (Object.keys(fields).length > 0) {
     await db.update(users).set(fields).where(eq(users.id, employeeId));
 
+    const action =
+      Object.keys(fields).length === 1 && fields.isActive === false
+        ? "employee.archived"
+        : Object.keys(fields).length === 1 && fields.isActive === true
+          ? "employee.restored"
+          : "employee.updated";
+
     await db.insert(auditLog).values({
       companyId: admin.companyId,
       userId: admin.id,
-      action: "employee.updated",
+      action,
       entityType: "employee",
       entityId: employeeId,
       before: JSON.parse(JSON.stringify(existing)),
       after: JSON.parse(JSON.stringify({ ...existing, ...fields })),
     });
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
+/** POST /api/employees/[employeeId]/password â€” lets an admin set a new
+ * password without ever returning or recording the password itself. */
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ employeeId: string }> }
+) {
+  const admin = await requireAdmin();
+  const { employeeId } = await params;
+  const parsed = passwordSchema.safeParse(await req.json());
+
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid password." }, { status: 400 });
+  }
+
+  const [employee] = await db
+    .select({ id: users.id, role: users.role, companyId: users.companyId })
+    .from(users)
+    .where(and(eq(users.id, employeeId), eq(users.companyId, admin.companyId)))
+    .limit(1);
+
+  if (!employee) return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+  if (employee.role !== "employee") {
+    return NextResponse.json({ error: "Only employee passwords can be changed here." }, { status: 400 });
+  }
+
+  const { error } = await createAdminClient().auth.admin.updateUserById(employeeId, {
+    password: parsed.data.password,
+  });
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  await db.insert(auditLog).values({
+    companyId: admin.companyId,
+    userId: admin.id,
+    action: "employee.password_changed",
+    entityType: "employee",
+    entityId: employeeId,
+    before: null,
+    after: { method: "admin_set_password" },
+  });
+
+  return NextResponse.json({ ok: true });
+}
+
+/** DELETE /api/employees/[employeeId] â€” permanently removes only an
+ * employee with no operational or audit history. Historical employees should
+ * be archived with PATCH { isActive: false } instead. */
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ employeeId: string }> }
+) {
+  const admin = await requireAdmin();
+  const { employeeId } = await params;
+
+  const [employee] = await db
+    .select({ id: users.id, role: users.role, companyId: users.companyId })
+    .from(users)
+    .where(and(eq(users.id, employeeId), eq(users.companyId, admin.companyId)))
+    .limit(1);
+
+  if (!employee) return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+  if (employee.role !== "employee") return NextResponse.json({ error: "Only employees can be deleted here." }, { status: 400 });
+  if (employee.id === admin.id) return NextResponse.json({ error: "You cannot delete your own account." }, { status: 400 });
+
+  const [assignmentCount, timeEntryCount, payrollLineCount, auditCount] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` }).from(jobAssignments).where(eq(jobAssignments.userId, employeeId)),
+    db.select({ count: sql<number>`count(*)` }).from(timeEntries).where(eq(timeEntries.userId, employeeId)),
+    db.select({ count: sql<number>`count(*)` }).from(payrollLines).where(eq(payrollLines.userId, employeeId)),
+    db.select({ count: sql<number>`count(*)` }).from(auditLog).where(eq(auditLog.userId, employeeId)),
+  ]);
+
+  const linkedRecords = {
+    jobAssignments: Number(assignmentCount[0]?.count ?? 0),
+    timeEntries: Number(timeEntryCount[0]?.count ?? 0),
+    payrollLines: Number(payrollLineCount[0]?.count ?? 0),
+    auditEntries: Number(auditCount[0]?.count ?? 0),
+  };
+
+  if (Object.values(linkedRecords).some((count) => count > 0)) {
+    return NextResponse.json(
+      { error: "This employee has history in CleanOps. Archive the employee instead of permanently deleting them.", linkedRecords },
+      { status: 409 }
+    );
+  }
+
+  await db.delete(users).where(eq(users.id, employeeId));
+  const { error } = await createAdminClient().auth.admin.deleteUser(employeeId);
+  if (error) {
+    return NextResponse.json({ error: `Profile deleted, but auth cleanup failed: ${error.message}` }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });
