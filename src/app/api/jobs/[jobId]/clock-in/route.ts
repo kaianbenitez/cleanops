@@ -3,6 +3,8 @@ import { requireUser } from "@/lib/auth/current-user";
 import { db } from "@/db";
 import { jobs, jobAssignments, timeEntries } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
+import { generatePayrollForPeriod } from "@/lib/payroll/calculate";
+import { refreshPayrollPeriodsForDates } from "@/lib/payroll/periods";
 
 export async function POST(
   _req: NextRequest,
@@ -21,6 +23,7 @@ export async function POST(
     return NextResponse.json({ error: "Not assigned to this job" }, { status: 403 });
   }
 
+  const now = new Date();
   const result = await db.transaction(async (tx) => {
     const [openEntry] = await tx
       .select({ id: timeEntries.id })
@@ -32,13 +35,22 @@ export async function POST(
     await tx.insert(timeEntries).values({
       jobId,
       userId: user.id,
-      clockIn: new Date(),
+      clockIn: now,
     });
     return true;
   });
 
   if (!result) {
     return NextResponse.json({ error: "You already have an open time entry for this job" }, { status: 400 });
+  }
+
+  // Keep the open period's line in sync (jobsCount/hours) the moment a real
+  // clock-in happens, same as the admin manual-entry path — otherwise payroll
+  // stays stale until an admin happens to reload the Payroll page.
+  const [job] = await db.select({ scheduledDate: jobs.scheduledDate }).from(jobs).where(eq(jobs.id, jobId)).limit(1);
+  if (job) {
+    const refreshedPeriods = await refreshPayrollPeriodsForDates(user.companyId, [job.scheduledDate, now]);
+    for (const periodId of refreshedPeriods) await generatePayrollForPeriod(periodId);
   }
 
   return NextResponse.json({ ok: true });

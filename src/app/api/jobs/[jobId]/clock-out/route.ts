@@ -4,6 +4,8 @@ import { db } from "@/db";
 import { jobs, jobAssignments, timeEntries } from "@/db/schema";
 import { and, eq, isNull, desc } from "drizzle-orm";
 import { syncToGhl } from "@/lib/ghl/sync";
+import { generatePayrollForPeriod } from "@/lib/payroll/calculate";
+import { refreshPayrollPeriodsForDates } from "@/lib/payroll/periods";
 
 export async function POST(
   _req: NextRequest,
@@ -35,7 +37,7 @@ export async function POST(
   );
 
   const [job] = await db
-    .select({ type: jobs.type, status: jobs.status, customerId: jobs.customerId })
+    .select({ type: jobs.type, status: jobs.status, customerId: jobs.customerId, scheduledDate: jobs.scheduledDate })
     .from(jobs)
     .where(eq(jobs.id, jobId))
     .limit(1);
@@ -65,6 +67,14 @@ export async function POST(
   // PLAN.md §6: "Job completed (first_clean)" -> tag first-clean-done.
   if (completion && job && job.status !== "completed" && job.type === "first_clean") {
     await syncToGhl(user.companyId, { type: "first_clean.completed", customerId: job.customerId });
+  }
+
+  // Keep the open period's line in sync the moment a real clock-out happens,
+  // same as the admin manual-entry path — otherwise payroll stays stale
+  // until an admin happens to reload the Payroll page.
+  if (job) {
+    const refreshedPeriods = await refreshPayrollPeriodsForDates(user.companyId, [job.scheduledDate, openEntry.clockIn, clockOut]);
+    for (const periodId of refreshedPeriods) await generatePayrollForPeriod(periodId);
   }
 
   return NextResponse.json({ ok: true, minutesWorked, jobCompleted: completion });
