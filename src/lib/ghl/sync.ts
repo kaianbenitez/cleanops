@@ -132,9 +132,15 @@ async function runSync(logId: string, companyId: string, event: GhlSyncEvent, at
     const [ghlContactId, tagMap, workflowMap] = await Promise.all([resolveGhlContactId(customer), getTagMap(companyId), getWorkflowMap(companyId)]);
     const results = await applyEvent(ghlContactId, event, tagMap, workflowMap);
 
+    // applyEvent's GHL calls never throw on a non-2xx response (client.ts returns
+    // { ok: false, ... } instead) — without this check, a rejected/failed GHL call
+    // (bad contact id, bad payload, GHL outage) would silently record as "ok" and
+    // the retry cron would never pick it up.
+    const hasFailure = results.some((result) => Boolean(result) && typeof result === "object" && (result as { ok?: boolean }).ok === false);
+
     await db
       .update(ghlSyncLog)
-      .set({ status: "ok", response: results, attempts: attemptNumber, lastAttemptAt: new Date() })
+      .set({ status: hasFailure ? "retrying" : "ok", response: results, attempts: attemptNumber, lastAttemptAt: new Date() })
       .where(eq(ghlSyncLog.id, logId));
   } catch (err) {
     await db

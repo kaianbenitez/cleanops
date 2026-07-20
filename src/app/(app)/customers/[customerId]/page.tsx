@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { use, useCallback, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AddressAutocomplete from "../address-autocomplete";
 
 type Customer = {
@@ -137,6 +137,19 @@ function Field({
       )}
     </label>
   );
+}
+
+function formatApiError(error: unknown): string {
+  if (!error) return "";
+  if (typeof error === "string") return error;
+  if (typeof error === "object" && error !== null) {
+    const { fieldErrors, formErrors } = error as { fieldErrors?: Record<string, string[]>; formErrors?: string[] };
+    if (fieldErrors || formErrors) {
+      const fieldMessages = Object.entries(fieldErrors ?? {}).map(([field, messages]) => `${field}: ${messages.join(", ")}`);
+      return [...(formErrors ?? []), ...fieldMessages].join(" · ") || "Could not save this profile.";
+    }
+  }
+  return "Could not save this profile.";
 }
 
 function money(cents: number) {
@@ -286,16 +299,23 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
     const body = await response.json().catch(() => ({}));
     setSaving(false);
     if (!response.ok) {
-      setError(body.error ?? "Could not save this profile.");
+      setError(formatApiError(body.error) ?? "Could not save this profile.");
       return;
     }
     setMessage("Profile saved.");
     await load();
   }
 
+  const addressSectionRef = useRef<HTMLElement>(null);
+
+  function jumpToAddressFields() {
+    addressSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   function addLocation() {
     setLocations((current) => [...current, { label: `Location ${current.length + 1}`, addressLine1: "" }]);
     setActiveLocationIndex(locations.length);
+    setTimeout(jumpToAddressFields, 50);
   }
 
   const primaryAddress = location
@@ -443,8 +463,8 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         <div className="co-card p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="eyebrow">Service location</p>
-              <h2 className="mt-1 text-lg font-semibold">{location?.label ?? "No location"}</h2>
+              <p className="eyebrow">Service address</p>
+              <h2 className="mt-1 text-lg font-semibold">{location?.label ?? "No address on file"}</h2>
               <p className="mt-1 text-sm text-[var(--co-muted)]">{location?.addressLine1 || "Address not recorded"}</p>
               <p className="text-sm text-[var(--co-muted)]">
                 {location?.city ?? ""}
@@ -452,16 +472,19 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               </p>
             </div>
             <span className="rounded-xl bg-[var(--co-surface-muted)] px-3 py-2 text-xs font-medium text-[var(--co-evergreen)]">
-              {locations.length} location{locations.length === 1 ? "" : "s"}
+              {locations.length} address{locations.length === 1 ? "" : "es"}
             </span>
           </div>
 
           {locations.length > 0 ? (
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               {locations.map((item, index) => (
                 <button
                   key={item.id || `location-${index}`}
-                  onClick={() => setActiveLocationIndex(index)}
+                  onClick={() => {
+                    setActiveLocationIndex(index);
+                    jumpToAddressFields();
+                  }}
                   className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
                     index === activeLocationIndex ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)] text-white" : "border-[var(--co-line)] bg-white text-[var(--co-muted)]"
                   }`}
@@ -470,12 +493,15 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                 </button>
               ))}
               <button className="rounded-full border border-dashed border-[var(--co-line)] px-3 py-1.5 text-xs text-[var(--co-muted)]" onClick={addLocation}>
-                + Location
+                + Address
+              </button>
+              <button onClick={jumpToAddressFields} className="ml-auto text-xs font-medium text-[var(--co-evergreen)] hover:underline">
+                Edit address details ↓
               </button>
             </div>
           ) : (
             <button className="co-button-secondary mt-4" onClick={addLocation}>
-              Add service location
+              Add service address
             </button>
           )}
 
@@ -646,11 +672,11 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         </Section>
       </section>
 
-      <section id="edit-location" className="co-card p-5">
+      <section id="edit-location" ref={addressSectionRef} className="co-card p-5 scroll-mt-6">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <p className="eyebrow">Profile details</p>
-            <h2 className="mt-1 text-lg font-semibold">Contact and access</h2>
+            <p className="eyebrow">Contact, address &amp; access</p>
+            <h2 className="mt-1 text-lg font-semibold">{location ? `Editing: ${location.label || "Service address"}` : "Contact details"}</h2>
           </div>
           <span className="text-xs text-[var(--co-muted)]">Sensitive details stay internal</span>
         </div>
@@ -661,9 +687,9 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
           <Field label="Email" value={customer.email ?? ""} onChange={(value) => updateCustomer("email", value)} type="email" />
           {location ? (
             <>
-              <Field label="Location label" value={location.label} onChange={(value) => updateLocation("label", value)} />
+              <Field label="Address label" value={location.label} onChange={(value) => updateLocation("label", value)} />
               <label className="block text-sm">
-                <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Address</span>
+                <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Street address</span>
                 <AddressAutocomplete value={location.addressLine1} onChange={(value) => updateLocation("addressLine1", value)} onAddressSelected={updateAddress} />
               </label>
               <Field label="City" value={location.city ?? ""} onChange={(value) => updateLocation("city", value)} />
@@ -673,7 +699,9 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <Field label="Garage code" value={location.garageCode ?? ""} onChange={(value) => updateLocation("garageCode", value)} />
               <Field label="Gate code" value={location.gateCode ?? ""} onChange={(value) => updateLocation("gateCode", value)} />
             </>
-          ) : null}
+          ) : (
+            <p className="text-sm text-[var(--co-muted)] md:col-span-2">No service address yet — click &quot;Add service address&quot; above to add one.</p>
+          )}
         </div>
         <button className="co-button-primary mt-5" onClick={save} disabled={saving}>
           {saving ? "Saving..." : "Save all profile changes"}

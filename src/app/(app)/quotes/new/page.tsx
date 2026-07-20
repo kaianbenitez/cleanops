@@ -96,6 +96,30 @@ export default function NewQuotePage() {
     [locations, serviceLocationId]
   );
 
+  const [autofilledFor, setAutofilledFor] = useState("");
+
+  // Prefill bedroom/full-bathroom counts from the customer's stored home profile
+  // when they're picked — still fully editable afterward (e.g. skip a room they
+  // don't want cleaned this visit).
+  useEffect(() => {
+    if (!customerId || roomTypes.length === 0 || customerId === autofilledFor) return;
+    fetch(`/api/customers/${customerId}`)
+      .then((response) => response.json())
+      .then((body) => {
+        const home = (body.customer?.homeDetails ?? {}) as Record<string, unknown>;
+        const bedroomRoom = roomTypes.find((room) => room.name.toLowerCase() === "bedroom");
+        const fullBathRoom = roomTypes.find((room) => room.name.toLowerCase() === "full bathroom");
+        setCounts((current) => {
+          const next = { ...current };
+          if (bedroomRoom && home.bedrooms) next[bedroomRoom.id] = Number(home.bedrooms) || 0;
+          if (fullBathRoom && home.fullBathrooms) next[fullBathRoom.id] = Number(home.fullBathrooms) || 0;
+          return next;
+        });
+        setAutofilledFor(customerId);
+      })
+      .catch(() => {});
+  }, [customerId, roomTypes, autofilledFor]);
+
   const roomCounts = useMemo(
     () =>
       roomTypes
@@ -212,22 +236,35 @@ export default function NewQuotePage() {
               </label>
 
               <label className="block text-sm">
-                <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Service location</span>
-                <select
-                  className="co-input w-full"
-                  value={serviceLocationId}
-                  onChange={(event) => {
-                    setServiceLocationId(event.target.value);
-                    setTravelZoneId("");
-                  }}
-                >
-                  <option value="">Select a pricing location</option>
-                  {locations.map((location) => (
-                    <option key={location.id} value={location.id}>
-                      {location.name} · {dollars(location.hourlyRateCents)}/hr
-                    </option>
-                  ))}
-                </select>
+                <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Pricing zone</span>
+                {locations.length === 0 ? (
+                  <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    No pricing zones configured yet. Add one in{" "}
+                    <a href="/settings/pricing" className="font-semibold underline">
+                      Settings → Pricing
+                    </a>{" "}
+                    before you can build a quote.
+                  </p>
+                ) : (
+                  <>
+                    <select
+                      className="co-input w-full"
+                      value={serviceLocationId}
+                      onChange={(event) => {
+                        setServiceLocationId(event.target.value);
+                        setTravelZoneId("");
+                      }}
+                    >
+                      <option value="">Select a pricing zone</option>
+                      {locations.map((location) => (
+                        <option key={location.id} value={location.id}>
+                          {location.name} · {dollars(location.hourlyRateCents)}/hr
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-[var(--co-muted)]">This sets the hourly rate and travel fees — it&apos;s the branch/area rate, not the customer&apos;s address.</p>
+                  </>
+                )}
               </label>
             </div>
 
@@ -252,6 +289,9 @@ export default function NewQuotePage() {
               </div>
               <span className="text-xs text-[var(--co-muted)]">{roomCounts.reduce((sum, room) => sum + room.count, 0)} rooms</span>
             </div>
+            {customerId && (
+              <p className="mt-2 text-xs text-[var(--co-muted)]">Bedroom and full bathroom counts are prefilled from this customer&apos;s home profile — adjust any count if this visit skips a room.</p>
+            )}
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {roomTypes.map((room) => (
                 <label key={room.id} className="block text-sm">

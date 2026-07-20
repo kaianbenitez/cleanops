@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { customers } from "@/db/schema";
+import { customers, customerLocations } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 /** GET /api/customers — minimal list for pickers (full Customers screen is a later phase). */
@@ -34,6 +34,7 @@ const createCustomerSchema = z.object({
   city: z.string().trim().max(100).optional(),
   state: z.string().trim().max(50).optional(),
   zip: z.string().trim().max(20).optional(),
+  county: z.string().trim().max(100).optional(),
   ghlContactId: z.string().trim().max(200).optional(),
 });
 
@@ -70,5 +71,23 @@ export async function POST(req: NextRequest) {
     ghlContactId: data.ghlContactId || null,
     status: "lead",
   }).returning();
+
+  // Mirror the address onto a real customer_locations row so quoting/scheduling
+  // has a service address to use immediately — otherwise an admin would have to
+  // enter the same address a second time on the customer profile.
+  if (data.addressLine1) {
+    await db.insert(customerLocations).values({
+      companyId: admin.companyId,
+      customerId: customer.id,
+      label: "Primary home",
+      addressLine1: data.addressLine1,
+      city: data.city || null,
+      state: data.state || null,
+      zip: data.zip || null,
+      county: data.county || null,
+      isPrimary: true,
+    });
+  }
+
   return NextResponse.json({ customer }, { status: 201 });
 }

@@ -33,6 +33,10 @@ export default function PricingSettingsPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [savedAt, setSavedAt] = useState<Record<string, boolean>>({});
+  const [newAreaName, setNewAreaName] = useState("");
+  const [newAreaRate, setNewAreaRate] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
 
   async function load() {
     setLoading(true);
@@ -49,6 +53,34 @@ export default function PricingSettingsPage() {
   function flashSaved(locationId: string) {
     setSavedAt((s) => ({ ...s, [locationId]: true }));
     setTimeout(() => setSavedAt((s) => ({ ...s, [locationId]: false })), 1500);
+  }
+
+  async function createServiceArea() {
+    if (!newAreaName.trim()) {
+      setCreateError("Name is required.");
+      return;
+    }
+    const rateCents = Math.round(parseFloat(newAreaRate || "0") * 100);
+    if (!rateCents || rateCents <= 0) {
+      setCreateError("Enter an hourly rate greater than $0.");
+      return;
+    }
+    setCreating(true);
+    setCreateError("");
+    const res = await fetch("/api/service-locations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newAreaName.trim(), hourlyRateCents: rateCents, minimums: {}, dirtyCodeTiers: [] }),
+    });
+    const body = await res.json().catch(() => ({}));
+    setCreating(false);
+    if (!res.ok) {
+      setCreateError(body.error ? JSON.stringify(body.error) : "Could not create this service area.");
+      return;
+    }
+    setNewAreaName("");
+    setNewAreaRate("");
+    await load();
   }
 
   async function saveLocation(locationId: string, fields: Record<string, unknown>) {
@@ -97,7 +129,7 @@ export default function PricingSettingsPage() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Settings / Quote engine</p>
-          <h1 className="page-title mt-2">Pricing &amp; service locations</h1>
+          <h1 className="page-title mt-2">Pricing &amp; service areas</h1>
           <p className="page-subtitle">Control the rates and travel rules used by every quote calculation.</p>
         </div>
         <Link href="/settings" className="co-button-secondary">
@@ -108,11 +140,58 @@ export default function PricingSettingsPage() {
         <span className="font-semibold text-[var(--co-ink)]">Keep this page operational.</span> Changes save when you leave a field, and affect new quotes immediately.
       </section>
       <section className="rounded-2xl border border-[var(--co-line)] bg-white p-4 text-sm text-[var(--co-muted)]">
-        <p className="font-semibold text-[var(--co-ink)]">Service areas are configurable per company.</p>
+        <p className="font-semibold text-[var(--co-ink)]">How this maps to a real business: one office, with fees for the cities around it.</p>
         <p className="mt-1">
-          Rename travel zones to match the towns, ZIP codes, or neighborhoods each business serves. CleanOps uses these zones to price travel and to block quotes
-          outside the service area when a customer falls beyond the configured coverage.
+          A <strong>service area</strong> below is your office/branch — most companies only need one. It sets the base hourly rate. If you serve a single
+          area, add just one. Only add a second if you genuinely run a separate branch with its own crew and rate (e.g. a second office in another city).
         </p>
+        <p className="mt-2">
+          <strong>Travel zones</strong> (inside each service area) are the nearby towns/ZIP codes you drive out to, each with its own flat travel fee added
+          on top of the hourly rate — e.g. your home city might be $0, a town 20 minutes out might add a $15 travel fee. A customer whose address falls
+          outside every configured travel zone will be blocked from getting a quote, so add every area you actually serve.
+        </p>
+      </section>
+
+      {locations.length === 0 && !loading && (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <p className="font-semibold">No service areas yet — quotes can&apos;t be created until you add one.</p>
+          <p className="mt-1">A service area sets the hourly rate and travel fees for a city or branch. Add your first one below.</p>
+        </section>
+      )}
+
+      <section className="co-card space-y-4 p-5 sm:p-6">
+        <div>
+          <p className="eyebrow">Add a service area</p>
+          <h2 className="mt-1 text-lg font-semibold">New pricing zone</h2>
+          <p className="mt-1 text-sm text-[var(--co-muted)]">e.g. the city or branch this covers. You can add travel zones and minimums after creating it.</p>
+        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="block text-sm">
+            <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Name</span>
+            <input
+              value={newAreaName}
+              onChange={(e) => setNewAreaName(e.target.value)}
+              placeholder="e.g. Bartlesville"
+              className="co-input w-56"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Hourly rate ($/hr)</span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={newAreaRate}
+              onChange={(e) => setNewAreaRate(e.target.value)}
+              placeholder="45.00"
+              className="co-input w-32"
+            />
+          </label>
+          <button onClick={createServiceArea} disabled={creating} className="co-button-primary">
+            {creating ? "Adding..." : "Add service area"}
+          </button>
+        </div>
+        {createError && <p className="text-sm text-rose-600">{createError}</p>}
       </section>
 
       {locations.map((loc) => (
@@ -152,7 +231,7 @@ function LocationCard({
     <section className="co-card space-y-6 p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--co-line-soft)] pb-4">
         <div>
-          <p className="eyebrow">Service location</p>
+          <p className="eyebrow">Pricing zone</p>
           <h2 className="mt-1 text-xl font-semibold text-[var(--co-ink)]">
           {location.name}
           {!location.isActive && <span className="ml-2 rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-500">Inactive</span>}

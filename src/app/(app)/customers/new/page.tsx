@@ -90,6 +90,7 @@ export default function NewCustomerPage() {
       city: form.city,
       state: form.state,
       zip: form.zip,
+      county: form.county,
       ghlContactId: form.ghlContactId,
     };
 
