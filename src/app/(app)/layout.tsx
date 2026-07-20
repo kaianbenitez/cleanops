@@ -14,7 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isAdmin = user.role === "admin";
 
   return (
-    <div className="min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,rgba(200,232,107,0.12),transparent_26%),radial-gradient(circle_at_top_right,rgba(20,33,31,0.05),transparent_18%),var(--co-bg)] text-[var(--co-ink)]">
+    <div className="min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,rgba(193,89,44,0.08),transparent_26%),radial-gradient(circle_at_top_right,rgba(28,25,23,0.05),transparent_18%),var(--co-bg)] text-[var(--co-ink)]">
       <AppNav isAdmin={isAdmin} />
 
       <div className="lg:pl-72">

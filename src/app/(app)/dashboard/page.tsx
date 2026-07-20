@@ -347,7 +347,16 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     day: "numeric",
   });
 
-  const query = (from: string, to: string) => `/dashboard?from=${from}&to=${to}`;
+  const attentionOpenCount = attentionItems.reduce((sum, item) => sum + (item.value > 0 ? 1 : 0), 0);
+
+  const statTiles = [
+    { label: "Weekly revenue", value: formatMoney(weeklyRevenue), note: `since ${formatDay(weekStart)}`, href: "/invoices", tone: "default" as const },
+    { label: "Overdue balance", value: formatMoney(overdueTotal), note: `${overdueRows.length} invoice${overdueRows.length === 1 ? "" : "s"}`, href: "/invoices?status=sent", tone: overdueRows.length > 0 ? ("danger" as const) : ("default" as const) },
+    { label: "New leads", value: String(leadCount[0]?.count ?? 0), note: "selected window", href: "/customers?status=lead", tone: "default" as const },
+    { label: "Quotes sent", value: String(sent), note: "selected window", href: "/quotes", tone: "default" as const },
+    { label: "Conversion rate", value: `${conversion}%`, note: `${accepted} accepted`, href: "/quotes?status=accepted", tone: "default" as const },
+    { label: "Active clients", value: String(activeClientCount[0]?.count ?? 0), note: `+${recurringCount[0]?.count ?? 0} recurring this month`, href: "/customers?status=client", tone: "default" as const },
+  ];
 
   return (
     <div className="space-y-6">
@@ -374,189 +383,171 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </div>
       </header>
 
-      <Card className={`${CARD_CLASS} flex-row flex-wrap items-center justify-between gap-3 p-4`}>
-        <div>
-          <p className="eyebrow">Performance window</p>
-          <p className="mt-1 text-sm text-[var(--co-muted)]">These dates apply to the performance metrics below.</p>
-        </div>
-        <form className="flex flex-wrap items-end gap-2 text-sm">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="from" className="text-xs font-semibold text-[var(--co-muted)]">
-              From
-            </Label>
-            <Input
-              id="from"
-              type="date"
-              name="from"
-              defaultValue={iso(rangeFrom)}
-              aria-label="Performance start date"
-              className="h-[2.55rem] rounded-[0.65rem] border-[var(--co-input-border)] bg-[var(--co-surface)] px-[0.8rem] text-[var(--co-ink)]"
-            />
-          </div>
-          <span className="pb-2.5 text-[var(--co-muted)]">to</span>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="to" className="text-xs font-semibold text-[var(--co-muted)]">
-              Through
-            </Label>
-            <Input
-              id="to"
-              type="date"
-              name="to"
-              defaultValue={iso(rangeTo)}
-              aria-label="Performance end date"
-              className="h-[2.55rem] rounded-[0.65rem] border-[var(--co-input-border)] bg-[var(--co-surface)] px-[0.8rem] text-[var(--co-ink)]"
-            />
-          </div>
-          <Button
-            type="submit"
-            variant="outline"
-            className="h-[2.55rem] rounded-[0.65rem] border-[var(--co-input-border)] bg-white/95 px-4 text-[0.8rem] font-bold text-[#34443e] hover:border-[var(--co-input-border-hover)] hover:bg-[#fafbf8]"
+      {/* Stat strip: business pulse metrics pulled out of a buried card and given
+          top-of-page prominence, like shadcn's dashboard-01 section-card row. */}
+      <section aria-label="Business pulse" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        {statTiles.map((tile) => (
+          <Link
+            key={tile.label}
+            href={tile.href}
+            className={`co-card block rounded-[0.9rem] border px-4 py-3.5 transition hover:-translate-y-[1px] ${
+              tile.tone === "danger" ? "border-[var(--co-line)]" : "border-[var(--co-line)]"
+            }`}
           >
-            Apply dates
-          </Button>
-          <Link href="/dashboard" className="pb-2.5 text-xs font-medium text-[var(--co-evergreen)] hover:underline">
-            Reset
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">{tile.label}</p>
+            <p className={`mt-1.5 text-2xl font-semibold tracking-[-0.04em] ${tile.tone === "danger" ? "text-[var(--co-danger)]" : "text-[var(--co-ink)]"}`}>
+              {tile.value}
+            </p>
+            <p className="mt-1 text-xs text-[var(--co-muted)]">{tile.note}</p>
           </Link>
-        </form>
-      </Card>
+        ))}
+      </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
-        <div className="space-y-5">
-          {sectionCard({
-            eyebrow: "Operations",
-            title: "Today's schedule",
-            description: "Start here and move from scheduled jobs to completed, invoiced, and paid.",
-            children: (
-              <>
-                <div className="space-y-2 md:hidden">
-                  {todayRows.length === 0 ? (
-                    <p className="rounded-xl bg-[var(--co-surface-muted)] px-4 py-6 text-center text-sm text-[var(--co-muted)]">No jobs scheduled today.</p>
-                  ) : (
-                    todayRows.map((job) => {
-                      const assigned = assignmentsByJob.get(job.id) ?? [];
-                      const assignedLabel = assigned.length ? assigned.map((person) => `${person.firstName} ${person.lastName}`).join(", ") : "Unassigned";
-                      return (
-                        <Link key={job.id} href={`/jobs/${job.id}`} className="block rounded-xl border border-[var(--co-line-soft)] px-4 py-3 hover:bg-[var(--co-surface-muted)]">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <p className="text-xs font-semibold text-[var(--co-muted)]">{formatTime(job.scheduledStartTime)}</p>
-                              <p className="mt-1 font-semibold text-[var(--co-ink)]">{job.customerFirstName} {job.customerLastName}</p>
-                            </div>
-                            <StatusBadge status={job.status} />
+      {/* Primary focus: today's operations. Full width, first in reading order,
+          because the founder asked schedule + attention items to outrank the revenue chart. */}
+      <section className="grid gap-5 xl:grid-cols-[1.55fr_1fr]">
+        {sectionCard({
+          eyebrow: "Operations",
+          title: "Today's schedule",
+          description: "Start here and move from scheduled jobs to completed, invoiced, and paid.",
+          children: (
+            <>
+              <div className="space-y-2 md:hidden">
+                {todayRows.length === 0 ? (
+                  <p className="rounded-xl bg-[var(--co-surface-muted)] px-4 py-6 text-center text-sm text-[var(--co-muted)]">No jobs scheduled today.</p>
+                ) : (
+                  todayRows.map((job) => {
+                    const assigned = assignmentsByJob.get(job.id) ?? [];
+                    const assignedLabel = assigned.length ? assigned.map((person) => `${person.firstName} ${person.lastName}`).join(", ") : "Unassigned";
+                    return (
+                      <Link key={job.id} href={`/jobs/${job.id}`} className="block rounded-xl border border-[var(--co-line-soft)] px-4 py-3 hover:bg-[var(--co-surface-muted)]">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-semibold text-[var(--co-muted)]">{formatTime(job.scheduledStartTime)}</p>
+                            <p className="mt-1 font-semibold text-[var(--co-ink)]">{job.customerFirstName} {job.customerLastName}</p>
                           </div>
-                          <p className="mt-2 text-xs capitalize text-[var(--co-muted)]">{job.type.replaceAll("_", " ")} · {assignedLabel}</p>
-                          <p className="mt-1 text-xs text-[var(--co-muted)]">
-                            {job.addressLine1 ?? "No address"}{job.city ? `, ${job.city}` : ""}{job.zip ? ` ${job.zip}` : ""}
-                          </p>
-                        </Link>
-                      );
-                    })
-                  )}
-                </div>
-
-                <div className="hidden overflow-x-auto md:block">
-                  <Table className="min-w-[760px] text-left text-sm">
-                    <TableHeader>
-                      <TableRow className="border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-xs uppercase tracking-[0.08em] text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]">
-                        <TableHead className="px-4 py-3 text-[var(--co-muted)]">Time</TableHead>
-                        <TableHead className="px-4 py-3 text-[var(--co-muted)]">Customer</TableHead>
-                        <TableHead className="px-4 py-3 text-[var(--co-muted)]">Cleaning type</TableHead>
-                        <TableHead className="px-4 py-3 text-[var(--co-muted)]">Location</TableHead>
-                        <TableHead className="px-4 py-3 text-[var(--co-muted)]">Assigned to</TableHead>
-                        <TableHead className="px-4 py-3 text-[var(--co-muted)]">Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody className="divide-y divide-[var(--co-line-soft)]">
-                      {todayRows.length === 0 ? (
-                        <TableRow className="border-[var(--co-line-soft)]">
-                          <TableCell colSpan={6} className="px-4 py-8 text-center text-sm text-[var(--co-muted)]">
-                            No jobs scheduled today.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        todayRows.map((job) => {
-                          const assigned = assignmentsByJob.get(job.id) ?? [];
-                          const assignedLabel = assigned.length ? assigned.map((person) => `${person.firstName} ${person.lastName}`).join(", ") : "Unassigned";
-                          return (
-                            <TableRow key={job.id} className="border-[var(--co-line-soft)] hover:bg-[var(--co-surface-muted)]/30">
-                              <TableCell className="px-4 py-4 text-[var(--co-muted)]">{formatTime(job.scheduledStartTime)}</TableCell>
-                              <TableCell className="px-4 py-4">
-                                <Link href={`/jobs/${job.id}`} className="font-medium text-[var(--co-ink)] hover:underline">
-                                  {job.customerFirstName} {job.customerLastName}
-                                </Link>
-                              </TableCell>
-                              <TableCell className="px-4 py-4 text-[var(--co-muted)]">{job.type.replaceAll("_", " ")}</TableCell>
-                              <TableCell className="whitespace-normal px-4 py-4 text-[var(--co-muted)]">
-                                {job.addressLine1 ?? "No address"}
-                                {job.city ? `, ${job.city}` : ""}
-                              </TableCell>
-                              <TableCell className="px-4 py-4 text-[var(--co-muted)]">{assignedLabel}</TableCell>
-                              <TableCell className="px-4 py-4">
-                                <StatusBadge status={job.status} />
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-                <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-4 py-3 text-sm">
-                  <span className="text-[var(--co-muted)]">Review the live calendar when you need to change the order or assign someone new.</span>
-                  <Link href="/calendar" className="font-medium text-[var(--co-evergreen)] hover:underline">
-                    Open calendar
-                  </Link>
-                </div>
-              </>
-            ),
-          })}
-
-          {sectionCard({
-            eyebrow: "Attention required",
-            title: "Keep the board clean",
-            description: "Open an item to resolve the next operational blocker.",
-            children: (
-              <div className="space-y-2">
-                {attentionItems.map((item) => (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    className="flex items-center gap-3 rounded-xl border border-[var(--co-line-soft)] px-3 py-3 hover:bg-[var(--co-surface-muted)]"
-                    aria-label={`${item.label}: ${item.value}. ${item.action}`}
-                  >
-                    <span
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${item.value > 0 ? "co-badge-warning" : "co-badge-success"}`}
-                      aria-hidden="true"
-                    >
-                      {item.value}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium text-[var(--co-ink)]">{item.label}</span>
-                      <span className="mt-0.5 block text-xs text-[var(--co-muted)]">{item.detail}</span>
-                    </span>
-                    <span className="shrink-0 text-xs font-semibold text-[var(--co-evergreen)]">{item.value > 0 ? item.action : "Clear"}</span>
-                  </Link>
-                ))}
+                          <StatusBadge status={job.status} />
+                        </div>
+                        <p className="mt-2 text-xs capitalize text-[var(--co-muted)]">{job.type.replaceAll("_", " ")} · {assignedLabel}</p>
+                        <p className="mt-1 text-xs text-[var(--co-muted)]">
+                          {job.addressLine1 ?? "No address"}{job.city ? `, ${job.city}` : ""}{job.zip ? ` ${job.zip}` : ""}
+                        </p>
+                      </Link>
+                    );
+                  })
+                )}
               </div>
-            ),
-          })}
-        </div>
+
+              <div className="hidden overflow-x-auto md:block">
+                <Table className="min-w-[760px] text-left text-sm">
+                  <TableHeader>
+                    <TableRow className="border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-xs uppercase tracking-[0.08em] text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]">
+                      <TableHead className="px-4 py-3 text-[var(--co-muted)]">Time</TableHead>
+                      <TableHead className="px-4 py-3 text-[var(--co-muted)]">Customer</TableHead>
+                      <TableHead className="px-4 py-3 text-[var(--co-muted)]">Cleaning type</TableHead>
+                      <TableHead className="px-4 py-3 text-[var(--co-muted)]">Location</TableHead>
+                      <TableHead className="px-4 py-3 text-[var(--co-muted)]">Assigned to</TableHead>
+                      <TableHead className="px-4 py-3 text-[var(--co-muted)]">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody className="divide-y divide-[var(--co-line-soft)]">
+                    {todayRows.length === 0 ? (
+                      <TableRow className="border-[var(--co-line-soft)]">
+                        <TableCell colSpan={6} className="px-4 py-8 text-center text-sm text-[var(--co-muted)]">
+                          No jobs scheduled today.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      todayRows.map((job) => {
+                        const assigned = assignmentsByJob.get(job.id) ?? [];
+                        const assignedLabel = assigned.length ? assigned.map((person) => `${person.firstName} ${person.lastName}`).join(", ") : "Unassigned";
+                        return (
+                          <TableRow key={job.id} className="border-[var(--co-line-soft)] hover:bg-[var(--co-surface-muted)]/30">
+                            <TableCell className="px-4 py-4 text-[var(--co-muted)]">{formatTime(job.scheduledStartTime)}</TableCell>
+                            <TableCell className="px-4 py-4">
+                              <Link href={`/jobs/${job.id}`} className="font-medium text-[var(--co-ink)] hover:underline">
+                                {job.customerFirstName} {job.customerLastName}
+                              </Link>
+                            </TableCell>
+                            <TableCell className="px-4 py-4 text-[var(--co-muted)]">{job.type.replaceAll("_", " ")}</TableCell>
+                            <TableCell className="whitespace-normal px-4 py-4 text-[var(--co-muted)]">
+                              {job.addressLine1 ?? "No address"}
+                              {job.city ? `, ${job.city}` : ""}
+                            </TableCell>
+                            <TableCell className="px-4 py-4 text-[var(--co-muted)]">{assignedLabel}</TableCell>
+                            <TableCell className="px-4 py-4">
+                              <StatusBadge status={job.status} />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-4 py-3 text-sm">
+                <span className="text-[var(--co-muted)]">Review the live calendar when you need to change the order or assign someone new.</span>
+                <Link href="/calendar" className="font-medium text-[var(--co-evergreen)] hover:underline">
+                  Open calendar
+                </Link>
+              </div>
+            </>
+          ),
+        })}
+
+        <Card className={CARD_CLASS}>
+          <CardHeader className={CARD_HEADER_CLASS}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="eyebrow">Attention required</p>
+                <CardTitle className={CARD_TITLE_CLASS}>Keep the board clean</CardTitle>
+              </div>
+              <Badge className={`rounded-full px-2.5 py-1 text-xs font-medium ${attentionOpenCount > 0 ? "co-badge-warning" : "co-badge-success"}`}>
+                {attentionOpenCount > 0 ? `${attentionOpenCount} open` : "All clear"}
+              </Badge>
+            </div>
+            <CardDescription className={CARD_DESC_CLASS}>Open an item to resolve the next operational blocker.</CardDescription>
+          </CardHeader>
+          <CardContent className={CARD_CONTENT_CLASS}>
+            <div className="space-y-2">
+              {attentionItems.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="flex items-center gap-3 rounded-xl border border-[var(--co-line-soft)] px-3 py-3 hover:bg-[var(--co-surface-muted)]"
+                  aria-label={`${item.label}: ${item.value}. ${item.action}`}
+                >
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${item.value > 0 ? "co-badge-warning" : "co-badge-success"}`}
+                    aria-hidden="true"
+                  >
+                    {item.value}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-[var(--co-ink)]">{item.label}</span>
+                    <span className="mt-0.5 block text-xs text-[var(--co-muted)]">{item.detail}</span>
+                  </span>
+                  <span className="shrink-0 text-xs font-semibold text-[var(--co-evergreen)]">{item.value > 0 ? item.action : "Clear"}</span>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Secondary: route planning and cash follow-up, side by side since both are
+          "plan ahead / follow up" tools rather than immediate today-actions. */}
+      <section className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
+        <TechnicianRoutePreview routes={routeTechnicians} fallbackTitle="Today's route" />
 
         <div className="space-y-5">
           {sectionCard({
             eyebrow: "Cash flow",
-            title: "Weekly revenue",
+            title: "Revenue this week",
             description: `Payments received since ${formatDay(weekStart)}.`,
             children: (
               <>
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <p className="text-4xl font-semibold tracking-[-0.05em]">{formatMoney(weeklyRevenue)}</p>
-                    <p className="mt-1 text-xs text-[var(--co-muted)]">{revenueRows.length} paid invoice{revenueRows.length === 1 ? "" : "s"}</p>
-                  </div>
-                  <Badge className="co-badge-neutral rounded-full px-2.5 py-1 text-xs font-medium">Mon-Sun</Badge>
-                </div>
-                <ol className="mt-6 flex h-36 items-end gap-2" aria-label="Revenue received by day this week">
+                <ol className="flex h-24 items-end gap-2" aria-label="Revenue received by day this week">
                   {revenueDays.map((day) => (
                     <li key={day.key} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
                       <span className="sr-only">{day.label}: {formatMoney(day.amount)}</span>
@@ -582,11 +573,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             description: "Open balances that need follow-up.",
             children: (
               <>
-                <div className="flex items-center justify-between">
-                  <p className="text-2xl font-semibold text-[var(--co-danger)]">{formatMoney(overdueTotal)}</p>
-                  <Badge className="co-badge-danger rounded-full px-2.5 py-1 text-xs font-medium">{overdueRows.length} invoices</Badge>
-                </div>
-                <div className="mt-4 space-y-3">
+                <div className="space-y-3">
                   {overdueRows.slice(0, 3).map((invoice) => (
                     <div key={invoice.id} className="rounded-2xl border border-[var(--co-line-soft)] px-3 py-3 text-sm">
                       <div className="flex items-center justify-between gap-4">
@@ -608,92 +595,111 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </>
             ),
           })}
-
-          {sectionCard({
-            eyebrow: "Supplies",
-            title: "Inventory snapshot",
-            description: "Fast visibility into stock you are close to running out of.",
-            children: (
-              <>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)]/35 p-4">
-                    <p className="text-xs text-[var(--co-muted)]">Inventory value</p>
-                    <p className="mt-2 text-sm font-medium">{formatMoney(inventoryValue)}</p>
-                  </div>
-                  <div className="rounded-2xl border border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)]/35 p-4">
-                    <p className="text-xs text-[var(--co-muted)]">Low stock</p>
-                    <p className="mt-2 text-sm font-medium">{lowStock} item{lowStock === 1 ? "" : "s"}</p>
-                  </div>
-                  <div className="rounded-2xl border border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)]/35 p-4">
-                    <p className="text-xs text-[var(--co-muted)]">Tracked items</p>
-                    <p className="mt-2 text-sm font-medium">{inventory.length} item{inventory.length === 1 ? "" : "s"}</p>
-                  </div>
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  {inventory.slice(0, 5).map((item) => (
-                    <div key={item.name} className="flex items-center justify-between rounded-2xl border border-[var(--co-line-soft)] px-3 py-3 text-sm">
-                      <div>
-                        <p className="font-medium">{item.name}</p>
-                        <p className="mt-0.5 text-xs text-[var(--co-muted)]">Reorder at {item.reorderAt}</p>
-                      </div>
-                      <Badge className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.onHand <= item.reorderAt ? "co-badge-warning" : "co-badge-success"}`}>
-                        {item.onHand} on hand
-                      </Badge>
-                    </div>
-                  ))}
-                  {inventory.length === 0 ? <p className="text-sm text-[var(--co-muted)]">Inventory has not been set up yet.</p> : null}
-                </div>
-
-                <Link href="/supplies" className="mt-4 block text-sm font-medium text-[var(--co-evergreen)] hover:underline">
-                  Open inventory
-                </Link>
-              </>
-            ),
-          })}
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-        <TechnicianRoutePreview routes={routeTechnicians} fallbackTitle="Today's route" />
-
+      {/* Tertiary: supplies + the performance-window filter/detail, lowest priority
+          since these are periodic checks, not daily-decision inputs. */}
+      <section className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
         {sectionCard({
-          eyebrow: "Performance",
-          title: "Business pulse",
-          description: `Selected performance window: ${formatDay(rangeFrom)} through ${formatDay(rangeTo)}.`,
+          eyebrow: "Supplies",
+          title: "Inventory snapshot",
+          description: "Fast visibility into stock you are close to running out of.",
           children: (
-            <div className="space-y-4 text-sm text-[var(--co-muted)]">
-              <div className="grid gap-2 sm:grid-cols-2">
-                {[
-                  { label: "New leads", value: String(leadCount[0]?.count ?? 0), note: "selected window" },
-                  { label: "Quotes sent", value: String(sent), note: "selected window" },
-                  { label: "Quotes accepted", value: String(accepted), note: "selected window" },
-                  { label: "Conversion rate", value: `${conversion}%`, note: "accepted vs sent" },
-                  { label: "New recurring", value: String(recurringCount[0]?.count ?? 0), note: "this month" },
-                  { label: "Active clients", value: String(activeClientCount[0]?.count ?? 0), note: "current clients" },
-                ].map((item) => (
-                  <div key={item.label} className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-3">
-                    <p className="text-xs font-medium text-[var(--co-muted)]">{item.label}</p>
-                    <p className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-[var(--co-ink)]">{item.value}</p>
-                    <p className="mt-1 text-xs text-[var(--co-muted)]">{item.note}</p>
+            <>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)]/35 p-4">
+                  <p className="text-xs text-[var(--co-muted)]">Inventory value</p>
+                  <p className="mt-2 text-sm font-medium">{formatMoney(inventoryValue)}</p>
+                </div>
+                <div className="rounded-2xl border border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)]/35 p-4">
+                  <p className="text-xs text-[var(--co-muted)]">Low stock</p>
+                  <p className="mt-2 text-sm font-medium">{lowStock} item{lowStock === 1 ? "" : "s"}</p>
+                </div>
+                <div className="rounded-2xl border border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)]/35 p-4">
+                  <p className="text-xs text-[var(--co-muted)]">Tracked items</p>
+                  <p className="mt-2 text-sm font-medium">{inventory.length} item{inventory.length === 1 ? "" : "s"}</p>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                {inventory.slice(0, 5).map((item) => (
+                  <div key={item.name} className="flex items-center justify-between rounded-2xl border border-[var(--co-line-soft)] px-3 py-3 text-sm">
+                    <div>
+                      <p className="font-medium">{item.name}</p>
+                      <p className="mt-0.5 text-xs text-[var(--co-muted)]">Reorder at {item.reorderAt}</p>
+                    </div>
+                    <Badge className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.onHand <= item.reorderAt ? "co-badge-warning" : "co-badge-success"}`}>
+                      {item.onHand} on hand
+                    </Badge>
                   </div>
                 ))}
+                {inventory.length === 0 ? <p className="text-sm text-[var(--co-muted)]">Inventory has not been set up yet.</p> : null}
               </div>
-              <p className="text-xs text-[var(--co-muted)]">Use the selected date window to compare quoting activity and customer growth. Daily operations above are always anchored to today.</p>
-              <div className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
-                <p className="text-xs font-semibold text-[var(--co-muted)]">Keep performance context visible</p>
-                <ul className="mt-3 space-y-2">
-                  <li className="text-xs text-[var(--co-muted)]">Conversion rate uses accepted quotes divided by quotes sent.</li>
-                  <li className="text-xs text-[var(--co-muted)]">Revenue bars show paid invoices by day for the current week.</li>
-                  <li className="text-xs text-[var(--co-muted)]">Today’s schedule and attention counts are not changed by the performance filter.</li>
-                </ul>
-              </div>
-              <Link href="/settings" className="inline-flex font-medium text-[var(--co-evergreen)] hover:underline">
-                Review settings
+
+              <Link href="/supplies" className="mt-4 block text-sm font-medium text-[var(--co-evergreen)] hover:underline">
+                Open inventory
               </Link>
-            </div>
+            </>
           ),
         })}
+
+        <Card className={CARD_CLASS}>
+          <CardHeader className={CARD_HEADER_CLASS}>
+            <p className="eyebrow">Performance window</p>
+            <CardTitle className={CARD_TITLE_CLASS}>Compare quoting activity and growth</CardTitle>
+            <CardDescription className={CARD_DESC_CLASS}>
+              Applies to the stat strip above. Today&apos;s schedule and attention counts always stay anchored to today.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className={CARD_CONTENT_CLASS}>
+            <form className="flex flex-wrap items-end gap-2 text-sm">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="from" className="text-xs font-semibold text-[var(--co-muted)]">
+                  From
+                </Label>
+                <Input
+                  id="from"
+                  type="date"
+                  name="from"
+                  defaultValue={iso(rangeFrom)}
+                  aria-label="Performance start date"
+                  className="h-[2.55rem] rounded-[0.65rem] border-[var(--co-input-border)] bg-[var(--co-surface)] px-[0.8rem] text-[var(--co-ink)]"
+                />
+              </div>
+              <span className="pb-2.5 text-[var(--co-muted)]">to</span>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="to" className="text-xs font-semibold text-[var(--co-muted)]">
+                  Through
+                </Label>
+                <Input
+                  id="to"
+                  type="date"
+                  name="to"
+                  defaultValue={iso(rangeTo)}
+                  aria-label="Performance end date"
+                  className="h-[2.55rem] rounded-[0.65rem] border-[var(--co-input-border)] bg-[var(--co-surface)] px-[0.8rem] text-[var(--co-ink)]"
+                />
+              </div>
+              <Button
+                type="submit"
+                variant="outline"
+                className="h-[2.55rem] rounded-[0.65rem] border-[var(--co-input-border)] bg-white/95 px-4 text-[0.8rem] font-bold text-[#34443e] hover:border-[var(--co-input-border-hover)] hover:bg-[#fafbf8]"
+              >
+                Apply dates
+              </Button>
+              <Link href="/dashboard" className="pb-2.5 text-xs font-medium text-[var(--co-evergreen)] hover:underline">
+                Reset
+              </Link>
+            </form>
+            <p className="mt-4 text-xs text-[var(--co-muted)]">
+              Selected window: {formatDay(rangeFrom)} through {formatDay(rangeTo)}. Conversion rate uses accepted quotes divided by quotes sent.
+            </p>
+            <Link href="/settings" className="mt-3 inline-flex text-sm font-medium text-[var(--co-evergreen)] hover:underline">
+              Review settings
+            </Link>
+          </CardContent>
+        </Card>
       </section>
     </div>
   );

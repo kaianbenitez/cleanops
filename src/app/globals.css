@@ -5,65 +5,69 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --co-bg: #f5f6f2;
+  /* Warm paper workspace + charcoal shell + clay accent. See DESIGN.md. */
+  --co-bg: #f7f3ec;
   --co-surface: #ffffff;
-  --co-surface-muted: #edf3e9;
-  --co-ink: #1b2925;
-  --co-muted: #718179;
-  --co-faint: #8a9b93;
-  --co-line: #e1e8df;
-  --co-line-soft: #edf0ec;
-  --co-evergreen: #14211f;
-  --co-evergreen-soft: #2a3d38;
-  --co-accent: #c8e86b;
-  --co-success: #5c7436;
-  --co-warning: #a86d2f;
-  --co-danger: #b96845;
-  --co-input-border: #d9e1da;
-  --co-input-placeholder: #9aaa9f;
-  --co-input-border-hover: #bdcbbf;
-  --co-input-focus: #78964a;
-  --co-focus-ring: rgba(137, 166, 80, 0.42);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.148 0.004 228.8);
+  --co-surface-muted: #f1ece2;
+  --co-ink: #221d1a;
+  --co-muted: #756b60;
+  --co-faint: #9a8f81;
+  --co-line: #e6ddd0;
+  --co-line-soft: #efe9de;
+  --co-evergreen: #1c1917;
+  --co-evergreen-soft: #2e2621;
+  --co-accent: #c1592c;
+  --co-accent-soft: #a84a22;
+  --co-accent-tint: #f3e2d6;
+  --co-on-dark-accent: #e8a06e;
+  --co-success: #4d7a3f;
+  --co-warning: #b8791f;
+  --co-danger: #b23b2e;
+  --co-input-border: #ddd2c0;
+  --co-input-placeholder: #a89b89;
+  --co-input-border-hover: #c9bba5;
+  --co-input-focus: #c1592c;
+  --co-focus-ring: rgba(193, 89, 44, 0.35);
+  --background: oklch(0.98 0.008 75);
+  --foreground: oklch(0.235 0.012 55);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.148 0.004 228.8);
+  --card-foreground: oklch(0.235 0.012 55);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.148 0.004 228.8);
-  --primary: oklch(0.527 0.154 150.069);
-  --primary-foreground: oklch(0.982 0.018 155.826);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.963 0.002 197.1);
-  --muted-foreground: oklch(0.56 0.021 213.5);
-  --accent: oklch(0.527 0.154 150.069);
-  --accent-foreground: oklch(0.982 0.018 155.826);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.925 0.005 214.3);
-  --input: oklch(0.925 0.005 214.3);
-  --ring: oklch(0.723 0.014 214.4);
-  --chart-1: oklch(0.865 0.127 207.078);
-  --chart-2: oklch(0.715 0.143 215.221);
-  --chart-3: oklch(0.609 0.126 221.723);
-  --chart-4: oklch(0.52 0.105 223.128);
-  --chart-5: oklch(0.45 0.085 224.283);
+  --popover-foreground: oklch(0.235 0.012 55);
+  --primary: oklch(0.523 0.135 40.5);
+  --primary-foreground: oklch(0.98 0.008 75);
+  --secondary: oklch(0.955 0.012 70);
+  --secondary-foreground: oklch(0.28 0.02 50);
+  --muted: oklch(0.955 0.012 70);
+  --muted-foreground: oklch(0.5 0.02 50);
+  --accent: oklch(0.523 0.135 40.5);
+  --accent-foreground: oklch(0.98 0.008 75);
+  --destructive: oklch(0.5 0.16 27);
+  --border: oklch(0.902 0.014 70);
+  --input: oklch(0.902 0.014 70);
+  --ring: oklch(0.6 0.1 45);
+  --chart-1: oklch(0.65 0.15 45);
+  --chart-2: oklch(0.58 0.13 55);
+  --chart-3: oklch(0.5 0.11 35);
+  --chart-4: oklch(0.42 0.09 60);
+  --chart-5: oklch(0.35 0.06 40);
   --radius: 0.625rem;
-  --sidebar: oklch(0.987 0.002 197.1);
-  --sidebar-foreground: oklch(0.148 0.004 228.8);
-  --sidebar-primary: oklch(0.627 0.194 149.214);
-  --sidebar-primary-foreground: oklch(0.982 0.018 155.826);
-  --sidebar-accent: oklch(0.963 0.002 197.1);
-  --sidebar-accent-foreground: oklch(0.218 0.008 223.9);
-  --sidebar-border: oklch(0.925 0.005 214.3);
-  --sidebar-ring: oklch(0.723 0.014 214.4);
+  --sidebar: oklch(0.2 0.012 50);
+  --sidebar-foreground: oklch(0.95 0.008 70);
+  --sidebar-primary: oklch(0.6 0.15 40);
+  --sidebar-primary-foreground: oklch(0.98 0.008 75);
+  --sidebar-accent: oklch(0.27 0.015 50);
+  --sidebar-accent-foreground: oklch(0.96 0.008 70);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: oklch(0.6 0.1 45);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-heading);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-heading: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -111,7 +115,7 @@ body {
 }
 
 ::selection {
-  background: rgba(200, 232, 107, 0.45);
+  background: rgba(193, 89, 44, 0.28);
   color: var(--co-evergreen);
 }
 
