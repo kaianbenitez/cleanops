@@ -73,7 +73,9 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
   const [quote, setQuote] = useState<QuoteDetails | null>(null);
   const [customerId, setCustomerId] = useState("");
   const [customerName, setCustomerName] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
   const [locationName, setLocationName] = useState("");
+  const [hourlyRateCents, setHourlyRateCents] = useState<number | null>(null);
   const [publicUrl, setPublicUrl] = useState("");
   const [copied, setCopied] = useState(false);
   const [convertDate, setConvertDate] = useState("");
@@ -88,7 +90,11 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
     setQuote({ ...body.quote, viewCount: body.viewCount, lastViewedAt: body.lastViewedAt });
     setCustomerId(body.customerId ?? "");
     setCustomerName(`${body.customerFirstName} ${body.customerLastName}`);
+    setCustomerAddress(
+      [body.customerAddressLine1, body.customerCity, body.customerState, body.customerZip].filter(Boolean).join(", ")
+    );
     setLocationName(body.locationName ?? "");
+    setHourlyRateCents(typeof body.hourlyRateCents === "number" ? body.hourlyRateCents : null);
     setLoaded(true);
   }, [quoteId]);
 
@@ -159,6 +165,12 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
   }
 
   const tiers = quote.allTierPricing ? Object.entries(quote.allTierPricing) : [];
+  const tierCentsRange = tiers.length
+    ? tiers.reduce(
+        (range, [, tier]) => [Math.min(range[0], tier.finalCents), Math.max(range[1], tier.finalCents)],
+        [Infinity, -Infinity]
+      )
+    : null;
   const publicLink = `/quote/${quote.publicToken}`;
 
   return (
@@ -215,26 +227,33 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
 
       <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
         <section className="space-y-5">
-          <PageCard eyebrow="Proposal options" title="Customer can choose one service" description="The selected tier controls the final price and conversion.">
+          <PageCard eyebrow="Proposal options" title="Customer can choose one service" description="Every tier is priced and sent — the customer picks which one to accept.">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm text-[var(--co-muted)]">Selected total</p>
-              <span className="text-2xl font-semibold">{dollars(quote.totalCents)}</span>
+              <p className="text-sm text-[var(--co-muted)]">{quote.acceptedServiceType ? "Accepted total" : "Priced range"}</p>
+              <span className="text-2xl font-semibold">
+                {quote.acceptedServiceType || quote.requestedServiceType
+                  ? dollars(quote.totalCents)
+                  : tierCentsRange
+                    ? `${dollars(tierCentsRange[0])} – ${dollars(tierCentsRange[1])}`
+                    : "—"}
+              </span>
             </div>
 
             <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {tiers.map(([type, tier], index) => (
-                <div key={type} className={`rounded-2xl border p-4 ${type === quote.acceptedServiceType ? "border-emerald-300 bg-emerald-50" : "border-[var(--co-line)] bg-white"}`}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-semibold">{LABELS[type] ?? type}</p>
-                      <p className="mt-1 text-xs text-[var(--co-muted)]">Prepared from the home profile</p>
-                    </div>
-                    {index === 1 ? <span className="rounded-full bg-[var(--co-evergreen)] px-2 py-1 text-[10px] font-bold text-white">Most popular</span> : null}
+              {tiers.map(([type, tier]) => {
+                const estimatedHours = hourlyRateCents ? tier.finalCents / hourlyRateCents : null;
+                return (
+                  <div key={type} className={`rounded-2xl border p-4 ${type === quote.acceptedServiceType ? "border-emerald-300 bg-emerald-50" : "border-[var(--co-line)] bg-white"}`}>
+                    <p className="font-semibold">{LABELS[type] ?? type}</p>
+                    <p className="mt-4 text-2xl font-semibold">{dollars(tier.finalCents)}</p>
+                    <p className="mt-1 text-xs text-[var(--co-muted)]">
+                      Travel {dollars(tier.travelFeeCents)}
+                      {tier.minimumApplied ? " · minimum applied" : ""}
+                      {estimatedHours !== null ? ` · ${estimatedHours.toFixed(1)} est. hrs` : ""}
+                    </p>
                   </div>
-                  <p className="mt-4 text-2xl font-semibold">{dollars(tier.finalCents)}</p>
-                  <p className="mt-1 text-xs text-[var(--co-muted)]">Travel {dollars(tier.travelFeeCents)}{tier.minimumApplied ? " · minimum applied" : ""}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {quote.signatureName ? (
@@ -319,6 +338,32 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
                 <p className="mt-2 text-sm font-medium">{quote.lastViewedAt ? new Date(quote.lastViewedAt).toLocaleString() : "Not viewed yet"}</p>
               </div>
             </div>
+          </PageCard>
+
+          <PageCard eyebrow="Location" title="Where this job is" description={customerAddress || undefined}>
+            {customerAddress ? (
+              <>
+                <div className="overflow-hidden rounded-2xl border border-[var(--co-line-soft)]">
+                  <iframe
+                    title="Customer location map"
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(customerAddress)}&output=embed`}
+                    className="h-56 w-full border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+                <a
+                  href={`https://maps.google.com/?q=${encodeURIComponent(customerAddress)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="co-button-secondary mt-3 w-full justify-center"
+                >
+                  Open in Google Maps
+                </a>
+              </>
+            ) : (
+              <p className="text-sm text-[var(--co-muted)]">Add an address to this customer&apos;s profile to see it on a map here.</p>
+            )}
           </PageCard>
         </aside>
       </div>

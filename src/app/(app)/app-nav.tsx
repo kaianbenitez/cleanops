@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard,
   LineChart,
@@ -16,6 +17,11 @@ import {
   Clock,
   RefreshCw,
   Settings,
+  HelpCircle,
+  Menu,
+  CircleUserRound,
+  ChevronDown,
+  LogOut,
   type LucideIcon,
 } from "lucide-react";
 
@@ -46,6 +52,7 @@ const iconByHref: Record<string, LucideIcon> = {
   "/my-day": Clock,
   "/sync-issues": RefreshCw,
   "/settings": Settings,
+  "/help-center": HelpCircle,
 };
 
 function isActive(pathname: string, href: string) {
@@ -57,72 +64,133 @@ function NavIcon({ href }: { href: string }) {
   return <Icon aria-hidden="true" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0 opacity-90" />;
 }
 
-export default function AppNav({ isAdmin }: { isAdmin: boolean }) {
+export default function AppNav({ isAdmin, userName, userEmail }: { isAdmin: boolean; userName: string; userEmail: string }) {
   const pathname = usePathname();
   const visibleLinks = isAdmin ? links : [["/my-day", "My day"] as const];
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    function handleClick(event: MouseEvent) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) setProfileMenuOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [profileMenuOpen]);
 
   return (
     <>
-      <div className="sticky top-0 z-30 border-b border-[#3a322b] bg-[#1c1917]/95 px-3 py-3 text-[#ece6de] backdrop-blur xl:hidden">
-        <div className="flex items-center gap-3 overflow-x-auto">
-          <Link href={isAdmin ? "/dashboard" : "/my-day"} className="flex shrink-0 items-center gap-2 rounded-[14px] border border-white/10 bg-white/5 px-3 py-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-[12px] bg-[#c1592c] text-[11px] font-black tracking-tight text-white">CO</span>
-            <span className="text-sm font-semibold">CleanOps</span>
+      <div className="sticky top-0 z-30 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] text-[var(--co-ink)] backdrop-blur xl:hidden">
+        <div className="flex h-16 items-center justify-between px-4">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-label="Menu"
+            aria-expanded={menuOpen}
+            className="rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]"
+          >
+            <Menu aria-hidden="true" strokeWidth={2} className="h-5 w-5 text-[var(--co-ink)]" />
+          </button>
+
+          <Link href={isAdmin ? "/dashboard" : "/my-day"} className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-[10px] bg-[var(--co-evergreen)] text-[10px] font-black tracking-tight text-white">CO</span>
+            <span className="text-base font-bold text-[var(--co-evergreen)]">CleanOps</span>
           </Link>
 
-          {visibleLinks.map(([href, label]) => {
-            const active = isActive(pathname, href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`flex shrink-0 items-center gap-2 rounded-[14px] border px-3 py-2 text-xs font-medium transition ${
-                  active ? "border-white/10 bg-white/10 text-white" : "border-transparent bg-transparent text-[#b3a99c] hover:border-white/10 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                <NavIcon href={href} />
-                {label}
-              </Link>
-            );
-          })}
-
-          {isAdmin ? (
-            <>
-              <Link
-                href="/sync-issues"
-                className={`flex shrink-0 items-center gap-2 rounded-[14px] border px-3 py-2 text-xs font-medium transition ${
-                  pathname.startsWith("/sync-issues") ? "border-white/10 bg-white/10 text-white" : "border-transparent text-[#b3a99c] hover:border-white/10 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                <NavIcon href="/sync-issues" />
-                Sync issues
-              </Link>
-              <Link
-                href="/settings"
-                className={`flex shrink-0 items-center gap-2 rounded-[14px] border px-3 py-2 text-xs font-medium transition ${
-                  pathname.startsWith("/settings") ? "border-white/10 bg-white/10 text-white" : "border-transparent text-[#b3a99c] hover:border-white/10 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                <NavIcon href="/settings" />
-                Settings
-              </Link>
-            </>
-          ) : null}
+          <Link href="/account" aria-label="Account" className="rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]">
+            <CircleUserRound aria-hidden="true" strokeWidth={2} className="h-5 w-5 text-[var(--co-muted)]" />
+          </Link>
         </div>
+
+        {menuOpen ? (
+          <div className="flex flex-wrap items-center gap-2 border-t border-[var(--co-line-soft)] px-4 py-3">
+            {visibleLinks.map(([href, label]) => {
+              const active = isActive(pathname, href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setMenuOpen(false)}
+                  className={`flex shrink-0 items-center gap-2 rounded-[14px] border px-3 py-2 text-xs font-medium transition ${
+                    active
+                      ? "border-[var(--co-accent-tint)] bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
+                      : "border-transparent bg-transparent text-[var(--co-muted)] hover:border-[var(--co-line-soft)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+                  }`}
+                >
+                  <NavIcon href={href} />
+                  {label}
+                </Link>
+              );
+            })}
+
+            {isAdmin ? (
+              <>
+                <Link
+                  href="/sync-issues"
+                  onClick={() => setMenuOpen(false)}
+                  className={`flex shrink-0 items-center gap-2 rounded-[14px] border px-3 py-2 text-xs font-medium transition ${
+                    pathname.startsWith("/sync-issues")
+                      ? "border-[var(--co-accent-tint)] bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
+                      : "border-transparent text-[var(--co-muted)] hover:border-[var(--co-line-soft)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+                  }`}
+                >
+                  <NavIcon href="/sync-issues" />
+                  Sync issues
+                </Link>
+                <Link
+                  href="/settings"
+                  onClick={() => setMenuOpen(false)}
+                  className={`flex shrink-0 items-center gap-2 rounded-[14px] border px-3 py-2 text-xs font-medium transition ${
+                    pathname.startsWith("/settings")
+                      ? "border-[var(--co-accent-tint)] bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
+                      : "border-transparent text-[var(--co-muted)] hover:border-[var(--co-line-soft)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+                  }`}
+                >
+                  <NavIcon href="/settings" />
+                  Settings
+                </Link>
+              </>
+            ) : null}
+
+            <Link
+              href="/help-center"
+              onClick={() => setMenuOpen(false)}
+              className={`flex shrink-0 items-center gap-2 rounded-[14px] border px-3 py-2 text-xs font-medium transition ${
+                pathname.startsWith("/help-center")
+                  ? "border-[var(--co-accent-tint)] bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
+                  : "border-transparent text-[var(--co-muted)] hover:border-[var(--co-line-soft)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+              }`}
+            >
+              <NavIcon href="/help-center" />
+              Support
+            </Link>
+
+            <form action="/api/auth/logout" method="post" className="ml-auto">
+              <button
+                type="submit"
+                className="rounded-[14px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-2 text-xs font-semibold text-[var(--co-muted)] transition hover:border-[var(--co-line)] hover:text-[var(--co-ink)]"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
+        ) : null}
       </div>
 
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col border-r border-white/10 bg-[linear-gradient(180deg,#1c1917_0%,#151210_100%)] px-4 py-5 text-[#ece6de] xl:flex">
-        <Link href={isAdmin ? "/dashboard" : "/my-day"} className="mb-8 flex items-center gap-3 rounded-[18px] border border-white/10 bg-white/5 px-3 py-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[#c1592c] text-sm font-black tracking-tight text-white">CO</span>
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[260px] flex-col border-r border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-4 py-5 text-[var(--co-ink)] xl:flex">
+        <Link href={isAdmin ? "/dashboard" : "/my-day"} className="mb-8 flex items-center gap-3 rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[var(--co-evergreen)] text-sm font-black tracking-tight text-white">CO</span>
           <span>
             <span className="block text-[15px] font-semibold tracking-tight">CleanOps</span>
-            <span className="block text-[11px] text-[#a89d8e]">operations desk</span>
+            <span className="block text-[11px] text-[var(--co-faint)]">operations desk</span>
           </span>
         </Link>
 
         <nav className="space-y-6">
           <div>
-            <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8a8074]">Workspace</p>
+            <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--co-faint)]">Workspace</p>
             <div className="space-y-1">
               {visibleLinks.map(([href, label]) => {
                 const active = isActive(pathname, href);
@@ -133,11 +201,11 @@ export default function AppNav({ isAdmin }: { isAdmin: boolean }) {
                     aria-current={active ? "page" : undefined}
                     className={`group relative flex items-center gap-3 rounded-[14px] px-3 py-[0.6875rem] text-[13px] transition ${
                       active
-                        ? "bg-white/10 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-                        : "text-[#b3a99c] hover:bg-white/5 hover:text-white"
+                        ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)] font-medium"
+                        : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
                     }`}
                   >
-                    {active ? <span className="absolute inset-y-2 left-1 w-1 rounded-full bg-[#c1592c]" /> : null}
+                    {active ? <span className="absolute inset-y-2 left-1 w-1 rounded-full bg-[var(--co-evergreen)]" /> : null}
                     <span className="ml-1">
                       <NavIcon href={href} />
                     </span>
@@ -149,36 +217,83 @@ export default function AppNav({ isAdmin }: { isAdmin: boolean }) {
           </div>
         </nav>
 
-        {isAdmin ? (
-          <div className="mt-auto space-y-3">
-            <div className="rounded-[18px] border border-white/10 bg-white/5 p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8a8074]">Control room</p>
-              <p className="mt-2 text-sm font-semibold text-white">Fast access to syncs and system settings.</p>
-              <p className="mt-1 text-xs leading-5 text-[#b3a99c]">Keep integrations visible so nothing drifts quietly in the background.</p>
+        <div className="mt-auto space-y-3">
+          {isAdmin ? (
+            <div className="rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--co-faint)]">Control room</p>
+              <p className="mt-2 text-sm font-semibold text-[var(--co-ink)]">Fast access to syncs and system settings.</p>
+              <p className="mt-1 text-xs leading-5 text-[var(--co-muted)]">Keep integrations visible so nothing drifts quietly in the background.</p>
             </div>
+          ) : null}
 
-            <div className="space-y-1">
-              <Link
-                href="/sync-issues"
-                className={`flex items-center gap-3 rounded-[14px] px-3 py-[0.6875rem] text-[13px] transition ${
-                  pathname.startsWith("/sync-issues") ? "bg-white/10 text-white" : "text-[#b3a99c] hover:bg-white/5 hover:text-white"
-                }`}
+          <div ref={profileMenuRef} className="relative">
+            {profileMenuOpen ? (
+              <div
+                role="menu"
+                className="absolute inset-x-0 bottom-full mb-2 overflow-hidden rounded-[18px] border border-[var(--co-line-soft)] bg-white py-1 shadow-[0_10px_32px_rgba(18,24,19,0.12)]"
               >
-                <NavIcon href="/sync-issues" />
-                Sync issues
-              </Link>
-              <Link
-                href="/settings"
-                className={`flex items-center gap-3 rounded-[14px] px-3 py-[0.6875rem] text-[13px] transition ${
-                  pathname.startsWith("/settings") ? "bg-white/10 text-white" : "text-[#b3a99c] hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                <NavIcon href="/settings" />
-                Settings
-              </Link>
-            </div>
+                {isAdmin ? (
+                  <Link
+                    href="/sync-issues"
+                    role="menuitem"
+                    onClick={() => setProfileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-[13px] text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+                  >
+                    <NavIcon href="/sync-issues" />
+                    Sync issues
+                  </Link>
+                ) : null}
+                {isAdmin ? (
+                  <Link
+                    href="/settings"
+                    role="menuitem"
+                    onClick={() => setProfileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-[13px] text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+                  >
+                    <NavIcon href="/settings" />
+                    Settings
+                  </Link>
+                ) : null}
+                <Link
+                  href="/help-center"
+                  role="menuitem"
+                  onClick={() => setProfileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2.5 text-[13px] text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+                >
+                  <NavIcon href="/help-center" />
+                  Support
+                </Link>
+                <form action="/api/auth/logout" method="post">
+                  <button
+                    type="submit"
+                    role="menuitem"
+                    className="flex w-full items-center gap-3 border-t border-[var(--co-line-soft)] px-4 py-2.5 text-left text-[13px] text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+                  >
+                    <LogOut aria-hidden="true" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0 opacity-90" />
+                    Sign out
+                  </button>
+                </form>
+              </div>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => setProfileMenuOpen((current) => !current)}
+              aria-haspopup="menu"
+              aria-expanded={profileMenuOpen}
+              className="flex w-full items-center gap-3 rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-2.5 text-left transition hover:border-[var(--co-line)]"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--co-accent-tint)] text-sm font-bold text-[var(--co-evergreen)]">
+                {userName.slice(0, 1).toUpperCase()}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-semibold text-[var(--co-ink)]">{userName}</span>
+                <span className="block truncate text-[11px] text-[var(--co-faint)]">{userEmail}</span>
+              </span>
+              <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--co-faint)] transition-transform ${profileMenuOpen ? "rotate-180" : ""}`} aria-hidden />
+            </button>
           </div>
-        ) : null}
+        </div>
       </aside>
     </>
   );

@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Bell, MessageCircle, LogOut } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import AppNav from "./app-nav";
 import AppSurfaceMotion from "./app-surface-motion";
+import CreateMenu from "./create-menu";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -14,34 +16,56 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isAdmin = user.role === "admin";
 
   return (
-    <div className="min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,rgba(193,89,44,0.08),transparent_26%),radial-gradient(circle_at_top_right,rgba(28,25,23,0.05),transparent_18%),var(--co-bg)] text-[var(--co-ink)]">
-      <AppNav isAdmin={isAdmin} />
+    <div className="min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,rgba(0,108,73,0.06),transparent_26%),radial-gradient(circle_at_top_right,rgba(0,108,73,0.04),transparent_18%),var(--co-bg)] text-[var(--co-ink)]">
+      <AppNav isAdmin={isAdmin} userName={`${user.firstName} ${user.lastName}`} userEmail={user.email} />
 
-      <div className="lg:pl-72">
-        <header className="sticky top-0 z-20 border-b border-white/60 bg-[rgba(245,246,242,0.84)]/90 backdrop-blur-xl">
+      <div className="lg:pl-[260px]">
+        <header className="sticky top-0 z-20 hidden border-b border-[var(--co-line-soft)] bg-[var(--co-surface)]/90 backdrop-blur-xl xl:block">
           <div className="mx-auto flex h-[72px] w-full max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 xl:px-10">
             <div className="min-w-0">
               <p className="eyebrow">{isAdmin ? "Operations desk" : "Field view"}</p>
-              <p className="mt-1 text-sm font-medium text-[#34443e]">Keep the day moving</p>
+              <p className="mt-1 text-sm font-medium text-[var(--co-muted)]">Keep the day moving</p>
             </div>
 
             <div className="flex items-center gap-3">
-              <Link
-                href="/account"
-                className="hidden rounded-[14px] border border-[#dfe5dc] bg-white/80 px-3 py-2 text-right shadow-[0_1px_0_rgba(255,255,255,0.75)_inset] transition hover:border-[#bdcbbf] sm:block"
-              >
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#80918a]">Signed in as</p>
-                <p className="mt-0.5 text-sm font-semibold text-[#1b2925]">{user.firstName}</p>
-                <p className="text-[11px] text-[#80918a]">{user.role}</p>
-              </Link>
-              <form action="/api/auth/logout" method="post">
+              {isAdmin ? <CreateMenu /> : null}
+              <div className="flex items-center gap-1.5">
                 <button
-                  type="submit"
-                  className="rounded-xl border border-[#d9e1da] bg-white px-4 py-2.5 text-xs font-semibold text-[#52645c] transition hover:border-[#bdcbbf] hover:text-[#1b2925]"
+                  type="button"
+                  aria-label="Notifications"
+                  title="Notifications"
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
                 >
-                  Sign out
+                  <Bell className="h-[18px] w-[18px]" aria-hidden />
                 </button>
-              </form>
+                <Link
+                  href="/help-center"
+                  aria-label="Support"
+                  title="Support"
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+                >
+                  <MessageCircle className="h-[18px] w-[18px]" aria-hidden />
+                </Link>
+                <Link href="/account" className="hidden items-center gap-2 rounded-full py-1 pl-3 pr-1 transition hover:bg-[var(--co-surface-muted)] sm:flex">
+                  <span className="text-right leading-tight">
+                    <span className="block text-sm font-semibold text-[var(--co-ink)]">{user.firstName}</span>
+                    <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--co-faint)]">{user.role}</span>
+                  </span>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--co-accent-tint)] text-sm font-bold text-[var(--co-evergreen)]">
+                    {user.firstName.slice(0, 1).toUpperCase()}
+                  </span>
+                </Link>
+                <form action="/api/auth/logout" method="post">
+                  <button
+                    type="submit"
+                    aria-label="Sign out"
+                    title="Sign out"
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+                  >
+                    <LogOut className="h-[18px] w-[18px]" aria-hidden />
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
         </header>

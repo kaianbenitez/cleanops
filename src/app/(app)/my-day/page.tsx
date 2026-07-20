@@ -1,7 +1,7 @@
 import { and, desc, eq, gt, gte, isNull, isNotNull, lt } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { companies, customerLocations, customers, jobs, jobAssignments, payrollLines, payrollPeriods, timeEntries } from "@/db/schema";
+import { companies, customerLocations, customers, jobs, jobAssignments, timeEntries } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { payrollWeekRangeForDate } from "@/lib/payroll/periods";
 import MyDayClient from "./my-day-client";
@@ -98,7 +98,6 @@ export default async function MyDayPage() {
     brandColor?: string | null;
   } | null;
   const officePhone = branding?.phone ?? null;
-  const companyMileageRateCents = Number((company.settings as { mileageRateCents?: number } | null)?.mileageRateCents ?? 35);
 
   const today = todayInTimezone(company.timezone);
   const todayIso = `${today.year}-${today.month}-${today.day}`;
@@ -338,28 +337,8 @@ export default async function MyDayPage() {
     .orderBy(desc(timeEntries.clockIn))
     .then((rows) => rows.reduce((sum, row) => sum + Number(row.minutesWorked ?? 0), 0));
 
-  const payrollLine = await db
-    .select({
-      mileageMiles: payrollLines.mileageMiles,
-      mileageRateCents: payrollLines.mileageRateCents,
-    })
-    .from(payrollPeriods)
-    .innerJoin(payrollLines, eq(payrollLines.payrollPeriodId, payrollPeriods.id))
-    .where(
-      and(
-        eq(payrollPeriods.companyId, user.companyId),
-        eq(payrollPeriods.startDate, period.startDate),
-        eq(payrollPeriods.endDate, period.endDate),
-        eq(payrollLines.userId, user.id)
-      )
-    )
-    .limit(1)
-    .then((rows) => rows[0] ?? null);
-
   const hoursThisPeriod = Math.round((weeklyMinutes / 60) * 100) / 100;
   const currentPeriodLabel = `${period.startDate} to ${period.endDate}`;
-  const mileageMiles = payrollLine ? Number(payrollLine.mileageMiles) : 0;
-  const mileageRateCents = payrollLine?.mileageRateCents ?? companyMileageRateCents;
 
   const currentJobData: JobCard | null = openEntry
     ? {
@@ -433,21 +412,17 @@ export default async function MyDayPage() {
     <MyDayClient
       employeeName={`${user.firstName} ${user.lastName}`}
       employeeTitle={user.title ?? "Employee"}
-      employeeId={user.id}
       companyName={company.name}
       companyLogoUrl={branding?.logoUrl ?? null}
-      companyBrandColor={branding?.brandColor ?? "#14211f"}
       officePhone={officePhone}
       companyTimezone={company.timezone}
-      mileageMiles={mileageMiles}
-      mileageRateCents={mileageRateCents}
       weeklyHours={hoursThisPeriod}
-      weeklyMinutes={weeklyMinutes}
       currentJob={currentJobData}
       openEntry={openEntry ? { ...openEntry, clockIn: openEntry.clockIn.toISOString(), clockOut: openEntry.clockOut ? openEntry.clockOut.toISOString() : null } : null}
       todayJobs={todayJobs.map((job) => ({ ...job }))}
       upcomingJobs={upcomingJobs.map((job) => ({ ...job }))}
       completedJobs={completedJobs.map((job) => ({ ...job }))}
+      currentYear={new Date().getFullYear()}
       dayLabel={formatDayLabel(todayIso, company.timezone)}
     />
   );

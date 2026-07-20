@@ -23,6 +23,7 @@ export async function GET(
       companyName: companies.name,
       companySettings: companies.settings,
       locationName: serviceLocations.name,
+      hourlyRateCents: serviceLocations.hourlyRateCents,
       travelZoneName: travelZones.name,
     })
     .from(quotes)
@@ -99,6 +100,7 @@ export async function GET(
     companyBrandColor: settings.branding?.brandColor ?? null,
     companyReviewUrl: settings.quoteTemplate?.reviewUrl ?? settings.branding?.reviewUrl ?? null,
     locationName: row.locationName,
+    hourlyRateCents: row.hourlyRateCents,
     travelZoneName: row.travelZoneName,
     allTierPricing: tiersWithNames,
     quoteTemplate: settings.quoteTemplate ?? null,

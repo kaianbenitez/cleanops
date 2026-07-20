@@ -166,7 +166,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
                     </td>
                     <td className="px-5 py-4 text-[var(--co-muted)]">{quote.requestedServiceType?.replaceAll("_", " ") ?? "Not selected"}</td>
                     <td className="px-5 py-4 text-[var(--co-muted)]">{quote.acceptedServiceType?.replaceAll("_", " ") ?? "—"}</td>
-                    <td className="px-5 py-4 font-semibold">{dollars(quote.totalCents)}</td>
+                    <td className="px-5 py-4 font-semibold">{quote.acceptedServiceType || quote.requestedServiceType ? dollars(quote.totalCents) : "—"}</td>
                     <td className="px-5 py-4">
                       <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[quote.status] ?? "border-slate-200 bg-slate-50"}`}>
                         {STATUS_LABELS[quote.status] ?? quote.status}

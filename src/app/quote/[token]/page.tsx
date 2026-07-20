@@ -1,12 +1,15 @@
-﻿"use client";
+"use client";
 
 import { use, useEffect, useMemo, useState } from "react";
+import { Sparkles, Droplet, Star, PanelsTopLeft, Flame, Refrigerator, Ruler, LayoutGrid, Shirt, type LucideIcon } from "lucide-react";
+import { ADD_ONS, type AddOnKey } from "@/lib/pricing/add-ons";
 
 type TierBreakdown = {
   roomLines: Array<{ roomTypeName: string; count: number; subtotalCents: number }>;
   roomSubtotalCents: number;
   travelFeeCents: number;
   finalCents: number;
+  discountPercent: number;
 };
 
 type PublicQuote = {
@@ -29,6 +32,7 @@ type PublicQuote = {
   companyBrandColor: string | null;
   companyReviewUrl: string | null;
   locationName: string | null;
+  hourlyRateCents: number | null;
   travelZoneName: string | null;
   allTierPricing: Record<string, TierBreakdown> | null;
   quoteTemplate: {
@@ -51,10 +55,13 @@ type PublicQuote = {
   } | null;
 };
 
+const MAIN_TYPES = ["supreme_deep", "deep", "first_time"] as const;
+const RECURRING_TYPES = ["weekly", "biweekly", "four_weeks"] as const;
+
 const SERVICE_LABELS: Record<string, string> = {
-  supreme_deep: "Supreme Deep",
-  deep: "Deep Clean",
-  first_time: "First Time",
+  supreme_deep: "Supreme Deep Cleaning",
+  deep: "Deep Cleaning",
+  first_time: "First Time Cleaning",
   weekly: "Weekly",
   biweekly: "Bi-Weekly",
   four_weeks: "Every 4 Weeks",
@@ -62,40 +69,35 @@ const SERVICE_LABELS: Record<string, string> = {
 };
 
 const SERVICE_DESCRIPTIONS: Record<string, string> = {
-  supreme_deep: "Hand wipe + steam mop + fridge + oven.",
-  deep: "Hand wipe only.",
-  first_time: "Dusting only.",
+  supreme_deep: "Our most detailed clean, top to bottom.",
+  deep: "A thorough clean with extra attention to detail.",
+  first_time: "The right starting point before recurring service.",
   weekly: "Maintenance clean.",
   biweekly: "Every 2 weeks.",
   four_weeks: "Every 4 weeks.",
   move_in_out: "Move-in / move-out.",
 };
 
-const SERVICE_SCOPE_PARAGRAPHS: Record<string, string> = {
-  supreme_deep:
-    "Our most detailed option for a true refresh. We handle the full hand-wipe detail work, then finish with steam mopping plus fridge and oven cleaning.",
-  deep:
-    "A thorough, detail-focused clean that keeps the home looking polished and cared for with extra attention where it matters most.",
-  first_time:
-    "The best starting point for a home that needs a reset before regular service begins. We focus on dusting and a strong overall refresh.",
-  weekly:
-    "A dependable maintenance visit that helps the home stay consistently clean, fresh, and ready for the week ahead.",
-  biweekly:
-    "A popular balance of coverage and value for busy households that want things kept in great shape between visits.",
-  four_weeks:
-    "A monthly upkeep clean that brings the home back to a fresh baseline and keeps buildup from getting ahead of you.",
-  move_in_out:
-    "A transition clean designed to help a home feel ready for its next chapter, whether you are moving in or moving out.",
+const SERVICE_ICONS: Record<string, typeof Sparkles> = {
+  supreme_deep: Sparkles,
+  deep: Droplet,
+  first_time: Star,
 };
 
-const ADD_ONS = [
-  { key: "inside_windows", label: "Inside windows", priceCents: 4500 },
-  { key: "oven_interior", label: "Oven interior", priceCents: 3500 },
-  { key: "fridge_interior", label: "Fridge interior", priceCents: 3500 },
-  { key: "baseboards", label: "Baseboards", priceCents: 2500 },
-  { key: "cabinet_fronts", label: "Cabinet fronts", priceCents: 3000 },
-  { key: "laundry", label: "Laundry / folding", priceCents: 5000 },
-] as const;
+const SERVICE_BULLETS: Record<string, string[]> = {
+  supreme_deep: ["Hand wipe fixtures & vents", "Steam mop all hard floors", "Interior fridge & oven detail", "Full kitchen sanitizing"],
+  deep: ["Hand wipe fixtures & surfaces", "Spot clean doors & handles", "Vacuum & mop all floors", "Detailed bathroom clean"],
+  first_time: ["General dusting throughout", "Vacuum & mop all floors", "Wipe down kitchen counters", "Fresh baseline for recurring service"],
+};
+
+const ADD_ON_STYLES: Record<AddOnKey, { icon: LucideIcon; color: string }> = {
+  inside_windows: { icon: PanelsTopLeft, color: "var(--chart-1)" },
+  oven_interior: { icon: Flame, color: "var(--chart-4)" },
+  fridge_interior: { icon: Refrigerator, color: "var(--chart-3)" },
+  baseboards: { icon: Ruler, color: "var(--chart-2)" },
+  cabinet_fronts: { icon: LayoutGrid, color: "var(--co-evergreen-soft)" },
+  laundry: { icon: Shirt, color: "var(--co-warning)" },
+};
 
 const DEFAULT_INTRO =
   "Thank you for considering our cleaning service. We prepared the options below around the home details you provided. Choose the service that feels right, and your total will update as you compare.";
@@ -123,9 +125,9 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[28px] bg-white p-6 shadow-[0_12px_40px_rgba(33,52,43,.06)] sm:p-8">
-      <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#756b60]">{eyebrow}</p>
-      <h2 className="mt-2 text-2xl font-semibold text-[#221d1a]">{title}</h2>
+    <section className="rounded-[28px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-6 shadow-[0_12px_40px_rgba(15,23,42,0.05)] sm:p-8">
+      <p className="eyebrow">{eyebrow}</p>
+      <h2 className="mt-2 text-2xl font-semibold text-[var(--co-ink)]">{title}</h2>
       <div className="mt-5">{children}</div>
     </section>
   );
@@ -133,9 +135,9 @@ function Section({
 
 function Stat({ label, value, suffix }: { label: string; value: string | number; suffix?: string }) {
   return (
-    <div className="rounded-2xl bg-[#f1ece2] p-4">
-      <p className="text-xs uppercase tracking-[0.12em] text-[#756b60]">{label}</p>
-      <p className="mt-2 font-medium text-[#221d1a]">
+    <div className="min-w-0 rounded-2xl bg-[var(--co-surface-muted)] p-4">
+      <p className="eyebrow">{label}</p>
+      <p className="mt-2 break-words font-medium text-[var(--co-ink)]">
         {value}
         {suffix ?? ""}
       </p>
@@ -158,15 +160,13 @@ function PhotoSetCard({
   const hasAfter = Boolean(afterUrl.trim());
   const hasAny = hasBefore || hasAfter;
   return (
-    <div className="overflow-hidden rounded-[28px] bg-white shadow-[0_12px_40px_rgba(33,52,43,.06)]">
-      <div className="flex items-center justify-between border-b border-[#efe9de] px-5 py-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#756b60]">Before / after</p>
-          <p className="mt-1 text-base font-semibold text-[#221d1a]">{title}</p>
+    <div className="overflow-hidden rounded-[28px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] shadow-[0_12px_40px_rgba(15,23,42,0.05)]">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
+        <div className="min-w-0">
+          <p className="eyebrow">Before / after</p>
+          <p className="mt-1 break-words text-base font-semibold text-[var(--co-ink)]">{title}</p>
         </div>
-        <span className="rounded-full bg-[#f1ece2] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#4d7a3f]">
-          {hasAny ? "Ready" : "Add photos"}
-        </span>
+        <span className="co-badge-success shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">{hasAny ? "Ready" : "Add photos"}</span>
       </div>
       {hasAny ? (
         <div className="grid grid-cols-2 gap-0">
@@ -174,7 +174,7 @@ function PhotoSetCard({
           <PhotoPanel title="After" url={afterUrl} fallback="Add an after photo" />
         </div>
       ) : (
-        <div className="p-5 text-sm text-[#756b60]">{fallback ?? "Add before and after photos to show the difference clearly."}</div>
+        <div className="p-5 text-sm text-[var(--co-muted)]">{fallback ?? "Add before and after photos to show the difference clearly."}</div>
       )}
     </div>
   );
@@ -184,6 +184,8 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
   const { token } = use(params);
   const [data, setData] = useState<PublicQuote | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [recurringInterest, setRecurringInterest] = useState(false);
+  const [recurringFrequency, setRecurringFrequency] = useState<string | null>(null);
   const [signatureName, setSignatureName] = useState("");
   const [accepting, setAccepting] = useState(false);
   const [accepted, setAccepted] = useState(false);
@@ -202,7 +204,13 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
       })
       .then((body: PublicQuote) => {
         setData(body);
-        setSelectedType(body.quote.acceptedServiceType ?? body.quote.requestedServiceType);
+        const initialType = body.quote.acceptedServiceType ?? body.quote.requestedServiceType;
+        if (initialType && (RECURRING_TYPES as readonly string[]).includes(initialType)) {
+          setRecurringInterest(true);
+          setRecurringFrequency(initialType);
+        } else {
+          setSelectedType(initialType);
+        }
       })
       .catch(() => setNotFound(true))
       .finally(() => window.clearTimeout(timeout));
@@ -234,11 +242,27 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
     setAccepting(false);
   }
 
+  function toggleRecurring(checked: boolean) {
+    setRecurringInterest(checked);
+    if (!checked) setRecurringFrequency(null);
+  }
+
   const isExpired = data ? data.quote.status === "declined" || data.quote.status === "expired" : false;
   const isAccepted = accepted || data?.quote.status === "accepted";
+  const locked = isAccepted || isExpired;
   const intro = data?.quoteTemplate?.introLetter || DEFAULT_INTRO;
-  const quoteTiers = useMemo(() => (data?.allTierPricing ? Object.entries(data.allTierPricing) : []), [data]);
+  const mainTiers = useMemo(
+    () => MAIN_TYPES.filter((type) => data?.allTierPricing?.[type]).map((type) => [type, data!.allTierPricing![type]] as const),
+    [data]
+  );
+  const recurringTiers = useMemo(
+    () => RECURRING_TYPES.filter((type) => data?.allTierPricing?.[type]).map((type) => [type, data!.allTierPricing![type]] as const),
+    [data]
+  );
   const selectedBreakdown = selectedType ? data?.allTierPricing?.[selectedType] : null;
+  const recurringBreakdown = recurringFrequency ? data?.allTierPricing?.[recurringFrequency] : null;
+  const recurringCompareCents = selectedBreakdown?.finalCents ?? Math.min(...mainTiers.map(([, tier]) => tier.finalCents), Infinity);
+  const recurringSavingsCents = recurringBreakdown && Number.isFinite(recurringCompareCents) ? recurringCompareCents - recurringBreakdown.finalCents : 0;
   const photoSets = useMemo(() => {
     const templateSets = data?.quoteTemplate?.photoSets ?? [];
     if (templateSets.length > 0) {
@@ -261,7 +285,6 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
 
     return [];
   }, [data?.quoteTemplate?.afterPhotoUrl, data?.quoteTemplate?.beforePhotoUrl, data?.quoteTemplate?.photoSets]);
-  const brandColor = /^#[0-9a-fA-F]{6}$/.test(data?.companyBrandColor ?? "") ? (data?.companyBrandColor ?? "#1c1917") : "#1c1917";
   const contactPhone = data?.quoteTemplate?.contactPhone || data?.companyPhone || "";
   const requiresDeposit = selectedType ? ["first_time", "deep"].includes(selectedType) : false;
   const selectedTotalCents = selectedBreakdown?.finalCents ?? data?.quote.totalCents ?? 0;
@@ -271,44 +294,42 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
   const remainingCents = requiresDeposit ? Math.max(0, quotedTotalCents - depositCents) : 0;
 
   if (notFound) {
-    return <div className="flex min-h-screen items-center justify-center bg-[#f7f3ec] p-6 text-center text-sm text-[#756b60]">This proposal link is invalid or has expired.</div>;
+    return <div className="flex min-h-screen items-center justify-center bg-[var(--co-bg)] p-6 text-center text-sm text-[var(--co-muted)]">This proposal link is invalid or has expired.</div>;
   }
 
   if (!data) {
-    return <div className="flex min-h-screen items-center justify-center bg-[#f7f3ec] p-6 text-sm text-[#756b60]">Loading your proposal...</div>;
+    return <div className="flex min-h-screen items-center justify-center bg-[var(--co-bg)] p-6 text-sm text-[var(--co-muted)]">Loading your proposal...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f3ec] px-4 py-6 text-[#221d1a] sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[var(--co-bg)] px-4 py-6 text-[var(--co-ink)] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <header className="mb-6 rounded-[32px] bg-white p-5 shadow-[0_12px_40px_rgba(33,52,43,.06)] sm:p-6">
+        <header className="mb-6 rounded-[32px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-5 shadow-[0_12px_40px_rgba(15,23,42,0.05)] sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl" style={{ background: brandColor }}>
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[var(--co-evergreen)]">
                 {data.companyLogoUrl ? (
                   <img src={data.companyLogoUrl} alt={`${data.companyName} logo`} className="h-full w-full object-contain p-1.5" />
                 ) : (
-                  <span className="font-bold text-[#e8a06e]">CO</span>
+                  <span className="font-bold text-white">CO</span>
                 )}
               </div>
-              <div>
-                <p className="text-2xl font-semibold tracking-tight">{data.companyName}</p>
-                <p className="text-sm text-[#756b60]">
+              <div className="min-w-0">
+                <p className="break-words text-2xl font-semibold tracking-tight text-[var(--co-ink)]">{data.companyName}</p>
+                <p className="break-words text-sm text-[var(--co-muted)]">
                   Proposal for {data.customerFirstName} {data.customerLastName}
                 </p>
-                <p className="mt-2 text-xs text-[#756b60]">{data.locationName || "Your home"} · Proposal {data.quote.id.slice(0, 8).toUpperCase()}</p>
+                <p className="mt-2 break-words text-xs text-[var(--co-faint)]">{data.locationName || "Your home"} · Proposal {data.quote.id.slice(0, 8).toUpperCase()}</p>
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex shrink-0 flex-wrap gap-2">
               {data.companyPhone ? (
                 <>
-                  <a href={`tel:${data.companyPhone}`} className="inline-flex items-center gap-2 rounded-full border border-[#ddd2c0] bg-white px-4 py-2 text-sm font-medium text-[#221d1a]">
-                    <span aria-hidden="true">☎</span>
+                  <a href={`tel:${data.companyPhone}`} className="co-button-secondary">
                     Call
                   </a>
-                  <a href={`sms:${data.companyPhone}`} className="inline-flex items-center gap-2 rounded-full border border-[#ddd2c0] bg-white px-4 py-2 text-sm font-medium text-[#221d1a]">
-                    <span aria-hidden="true">✉</span>
+                  <a href={`sms:${data.companyPhone}`} className="co-button-secondary">
                     Text
                   </a>
                 </>
@@ -320,139 +341,198 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
         <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
           <main className="space-y-6">
             <Section eyebrow="Your cleaning proposal" title="Choose the service that fits your home">
-              <p className="max-w-2xl whitespace-pre-line text-base leading-7 text-[#5b5044]">{intro}</p>
+              <p className="max-w-2xl whitespace-pre-line text-base leading-7 text-[var(--co-muted)]">{intro}</p>
               {data.quoteTemplate?.preferredDatePrompt ? (
-                <div className="mt-5 rounded-2xl border border-[#e8d9c5] bg-[#f7efe3] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8a6a3e]">Preferred date</p>
-                  <p className="mt-2 text-sm leading-6 text-[#5b5044]">{data.quoteTemplate.preferredDatePrompt}</p>
+                <div className="mt-5 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-accent-tint)] p-4">
+                  <p className="eyebrow">Preferred date</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--co-muted)]">{data.quoteTemplate.preferredDatePrompt}</p>
                 </div>
               ) : null}
 
               <div className="mt-8 grid gap-3 sm:grid-cols-3">
                 <Stat label="Service area" value={data.customerCity || data.locationName || "Your home"} />
-                <Stat label="Options" value={data.allTierPricing ? Object.keys(data.allTierPricing).length : 0} suffix=" service tiers" />
+                <Stat label="Options" value={mainTiers.length + recurringTiers.length} suffix=" service tiers" />
                 <Stat label="Your choice" value="Updates in real time" />
               </div>
             </Section>
 
             <Section eyebrow="Compare your options" title="One simple choice, one clear total">
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {quoteTiers.map(([type, tier], index) => {
+                {mainTiers.map(([type, tier], index) => {
                   const selected = selectedType === type;
+                  const Icon = SERVICE_ICONS[type];
+                  const estimatedHours = data.hourlyRateCents ? tier.finalCents / data.hourlyRateCents : null;
                   return (
                     <button
                       key={type}
-                      disabled={isAccepted || isExpired}
+                      disabled={locked}
                       onClick={() => setSelectedType(type)}
-                      className={`relative rounded-2xl border p-5 text-left transition-transform hover:-translate-y-0.5 ${
-                        selected ? "border-[#4d7a3f] bg-[#f3e2d6] ring-2 ring-[#e8a06e]" : "border-[#e6ddd0] bg-white"
-                      } ${isAccepted || isExpired ? "cursor-default opacity-75" : ""}`}
+                      className={`relative flex min-w-0 flex-col rounded-2xl border p-5 text-left transition-transform hover:-translate-y-0.5 ${
+                        selected ? "border-[var(--co-evergreen)] bg-[var(--co-accent-tint)] ring-2 ring-[var(--co-evergreen)]" : "border-[var(--co-line-soft)] bg-[var(--co-surface)]"
+                      } ${locked ? "cursor-default opacity-75" : ""}`}
                     >
                       {index === 1 ? (
-                        <span className="absolute -top-3 left-4 rounded-full bg-[#1c1917] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-white">
+                        <span className="absolute -top-3 left-4 rounded-full bg-[var(--co-evergreen)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-white">
                           Most popular
                         </span>
                       ) : null}
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold">{SERVICE_LABELS[type] ?? type}</p>
-                          <p className="mt-2 min-h-10 text-xs leading-5 text-[#756b60]">{SERVICE_DESCRIPTIONS[type] || "A service option prepared for your home."}</p>
-                        </div>
-                        <span className={`flex h-6 w-6 items-center justify-center rounded-md border text-sm ${selected ? "border-[#1c1917] bg-[#1c1917] text-[#e8a06e]" : "border-[#c9bba5] text-transparent"}`}>
-                          ✓
-                        </span>
+                      <span
+                        className={`absolute top-5 right-5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-sm ${selected ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)] text-white" : "border-[var(--co-line)] text-transparent"}`}
+                      >
+                        ✓
+                      </span>
+
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--co-evergreen)] text-white">
+                        <Icon className="h-4 w-4" aria-hidden />
+                      </span>
+                      <div className="mt-3 min-w-0 pr-8">
+                        <p className="font-semibold text-[var(--co-ink)]">{SERVICE_LABELS[type] ?? type}</p>
+                        <p className="mt-1 text-xs leading-5 text-[var(--co-muted)]">{SERVICE_DESCRIPTIONS[type]}</p>
                       </div>
-                      <p className="mt-4 text-sm leading-6 text-[#5b5044]">
-                        {SERVICE_SCOPE_PARAGRAPHS[type] ||
-                          "A thoughtful option built around the home’s needs, with add-ons available if you want to go a little further."}
+
+                      <ul className="mt-4 space-y-1.5">
+                        {SERVICE_BULLETS[type]?.map((bullet) => (
+                          <li key={bullet} className="flex items-start gap-2 text-xs leading-5 text-[var(--co-muted)]">
+                            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[var(--co-evergreen)]" aria-hidden />
+                            <span className="min-w-0 break-words">{bullet}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <p className="mt-5 text-2xl font-semibold text-[var(--co-ink)]">{dollars(tier.finalCents)}</p>
+                      <p className="mt-1 text-xs text-[var(--co-muted)]">
+                        Per scheduled visit{estimatedHours !== null ? ` · ${estimatedHours.toFixed(1)} est. hrs` : ""}
                       </p>
-                      <p className="mt-5 text-2xl font-semibold">{dollars(tier.finalCents)}</p>
-                      <p className="mt-1 text-xs text-[#756b60]">Per scheduled visit</p>
                     </button>
                   );
                 })}
               </div>
+
+              {recurringTiers.length > 0 ? (
+                <div className="mt-5 rounded-2xl border border-[var(--co-evergreen)] bg-[var(--co-accent-tint)] p-5">
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={recurringInterest}
+                      disabled={locked}
+                      onChange={(event) => toggleRecurring(event.target.checked)}
+                      className="mt-1 h-4 w-4 shrink-0 accent-[var(--co-evergreen)]"
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-[var(--co-ink)]">✨ Also sign up for recurring cleaning and save</span>
+                      <span className="mt-1 block text-xs leading-5 text-[var(--co-muted)]">
+                        Optional — keep your {selectedType ? SERVICE_LABELS[selectedType]?.toLowerCase() : "selected"} visit above, and add ongoing Weekly, Bi-Weekly, or Every 4
+                        Weeks service at our best per-visit rate. Cancel anytime.
+                      </span>
+                    </span>
+                  </label>
+
+                  {recurringInterest ? (
+                    <div className="mt-4">
+                      <div role="radiogroup" aria-label="Recurring frequency" className="grid gap-2 sm:grid-cols-3">
+                        {recurringTiers.map(([type, tier]) => {
+                          const selected = recurringFrequency === type;
+                          return (
+                            <button
+                              key={type}
+                              type="button"
+                              role="radio"
+                              aria-checked={selected}
+                              disabled={locked}
+                              onClick={() => setRecurringFrequency(type)}
+                              className={`min-w-0 rounded-xl border px-3 py-2.5 text-left transition ${
+                                selected ? "border-[var(--co-evergreen)] bg-[var(--co-surface)] ring-1 ring-[var(--co-evergreen)]" : "border-[var(--co-line-soft)] bg-[var(--co-surface)]"
+                              } ${locked ? "cursor-default opacity-75" : ""}`}
+                            >
+                              <span className="block break-words text-sm font-semibold text-[var(--co-ink)]">{SERVICE_LABELS[type]}</span>
+                              <span className="block text-xs text-[var(--co-muted)]">{dollars(tier.finalCents)}/visit</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {recurringBreakdown && recurringSavingsCents > 0 ? (
+                        <p className="mt-3 text-sm font-medium text-[var(--co-evergreen)]">
+                          That&apos;s {dollars(recurringSavingsCents)} less per visit than {selectedType ? SERVICE_LABELS[selectedType] : "a one-time clean"}.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </Section>
 
-            <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-              <div className="rounded-[28px] bg-white p-6 shadow-[0_12px_40px_rgba(33,52,43,.06)]">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#756b60]">Add-on services</p>
-                <h3 className="mt-2 text-2xl font-semibold text-[#221d1a]">Add extras without reopening the whole quote</h3>
-                <p className="mt-3 max-w-2xl text-base leading-7 text-[#5b5044]">
-                  Choose any extras below and the total updates right away. Selected items will stay on the accepted quote.
-                </p>
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {ADD_ONS.map((item) => {
-                    const checked = selectedAddOns.includes(item.key);
-                    return (
-                      <button
-                        key={item.key}
-                        type="button"
-                        onClick={() =>
-                          setSelectedAddOns((current) => (checked ? current.filter((key) => key !== item.key) : [...current, item.key]))
-                        }
-                        className={`flex h-full flex-col gap-3 rounded-2xl border px-4 py-4 text-left transition ${
-                          checked ? "border-[#4d7a3f] bg-[#f3e2d6]" : "border-[#e6ddd0] bg-[#faf7f2]"
-                        }`}
-                      >
-                        <div className="flex w-full items-start gap-3">
-                          <span
-                            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border text-[11px] ${
-                              checked ? "border-[#1c1917] bg-[#1c1917] text-[#e8a06e]" : "border-[#c9bba5] text-transparent"
-                            }`}
-                          >
-                            ✓
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium leading-6 text-[#221d1a]">{item.label}</p>
-                            <p className="mt-1 text-xs text-[#756b60]">Tap to add or remove this extra.</p>
+            <section className="min-w-0 rounded-[28px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-6 shadow-[0_12px_40px_rgba(15,23,42,0.05)]">
+              <p className="eyebrow">Add-on services</p>
+              <h3 className="mt-2 text-2xl font-semibold text-[var(--co-ink)]">Add extras without reopening the whole quote</h3>
+              <p className="mt-3 max-w-2xl text-base leading-7 text-[var(--co-muted)]">
+                Choose any extras below and the total updates right away. Selected items will stay on the accepted quote.
+              </p>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {ADD_ONS.map((item) => {
+                  const checked = selectedAddOns.includes(item.key);
+                  const style = ADD_ON_STYLES[item.key];
+                  const Icon = style.icon;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      disabled={locked}
+                      onClick={() =>
+                        setSelectedAddOns((current) => (checked ? current.filter((key) => key !== item.key) : [...current, item.key]))
+                      }
+                      className={`flex h-full min-w-0 flex-col gap-3 rounded-2xl border px-4 py-4 text-left transition ${
+                        checked ? "border-[var(--co-evergreen)] bg-[var(--co-accent-tint)]" : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]"
+                      } ${locked ? "cursor-default opacity-75" : ""}`}
+                    >
+                      <div className="flex w-full min-w-0 items-start gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: style.color }}>
+                          <Icon className="h-4 w-4" aria-hidden />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="min-w-0 text-sm font-medium leading-6 text-[var(--co-ink)]">{item.label}</p>
+                            <span
+                              className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border text-[11px] ${
+                                checked ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)] text-white" : "border-[var(--co-line)] text-transparent"
+                              }`}
+                            >
+                              ✓
+                            </span>
                           </div>
+                          <p className="mt-1 text-xs text-[var(--co-muted)]">Tap to add or remove this extra.</p>
                         </div>
-                        <div className="flex items-center justify-between gap-3 border-t border-[#e6ddd0] pt-3">
-                          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#756b60]">Add-on price</span>
-                          <span className={`rounded-full border px-3 py-1 text-sm font-semibold whitespace-nowrap ${checked ? "border-[#4d7a3f] bg-white text-[#a84a22]" : "border-[#ddd2c0] bg-white text-[#a84a22]"}`}>
-                            +{dollars(item.priceCents)}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-                {selectedAddOnTotalCents ? (
-                  <div className="mt-5 rounded-2xl border border-[#e8d9c5] bg-[#f7efe3] p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#8a6a3e]">Add-ons selected</p>
-                    <div className="mt-3 space-y-2 text-sm text-[#5b5044]">
-                      {ADD_ONS.filter((item) => selectedAddOns.includes(item.key)).map((item) => (
-                        <div key={item.key} className="flex items-center justify-between gap-3">
-                          <span>{item.label}</span>
-                          <span className="font-medium text-[#221d1a]">+{dollars(item.priceCents)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-                {contactPhone ? (
-                  <div className="mt-6 flex flex-wrap gap-2">
-                    <a href={`tel:${contactPhone}`} className="co-button-secondary">
-                      Call {contactPhone}
-                    </a>
-                    <a href={`sms:${contactPhone}`} className="co-button-secondary">
-                      Text us
-                    </a>
-                  </div>
-                ) : null}
+                      </div>
+                      <div className="flex items-center justify-between gap-3 border-t border-[var(--co-line-soft)] pt-3">
+                        <span className="eyebrow">Add-on price</span>
+                        <span className="co-badge-success shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-sm font-semibold">+{dollars(item.priceCents)}</span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-
-              <div className="rounded-[28px] bg-white p-6 shadow-[0_12px_40px_rgba(33,52,43,.06)]">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#756b60]">A little more confidence</p>
-                <h3 className="mt-2 text-2xl font-semibold text-[#221d1a]">Clear service, clear expectations</h3>
-                <p className="mt-3 text-sm leading-7 text-[#5b5044]">We bring the process, care, and communication needed to make your scheduled visit feel simple.</p>
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-[#e6ddd0] bg-[#f1ece2] p-4 text-sm text-[#5b5044]">Thoughtful service</div>
-                  <div className="rounded-2xl border border-[#e6ddd0] bg-[#f1ece2] p-4 text-sm text-[#5b5044]">Reliable communication</div>
-                  <div className="rounded-2xl border border-[#e6ddd0] bg-[#f1ece2] p-4 text-sm text-[#5b5044]">Licensed and insured</div>
+              {selectedAddOnTotalCents ? (
+                <div className="mt-5 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-accent-tint)] p-4">
+                  <p className="eyebrow">Add-ons selected</p>
+                  <div className="mt-3 space-y-2 text-sm text-[var(--co-muted)]">
+                    {ADD_ONS.filter((item) => selectedAddOns.includes(item.key)).map((item) => (
+                      <div key={item.key} className="flex min-w-0 items-center justify-between gap-3">
+                        <span className="min-w-0">{item.label}</span>
+                        <span className="shrink-0 font-medium text-[var(--co-ink)]">+{dollars(item.priceCents)}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : null}
+              {contactPhone ? (
+                <div className="mt-6 flex flex-wrap gap-2">
+                  <a href={`tel:${contactPhone}`} className="co-button-secondary">
+                    Call {contactPhone}
+                  </a>
+                  <a href={`sms:${contactPhone}`} className="co-button-secondary">
+                    Text us
+                  </a>
+                </div>
+              ) : null}
             </section>
 
             <section className="grid gap-6 md:grid-cols-3">
@@ -470,133 +550,144 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
             </section>
 
             <section className="grid gap-6 md:grid-cols-2">
-              <div className="rounded-[28px] bg-white p-6 shadow-[0_12px_40px_rgba(33,52,43,.06)]">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#756b60]">Insurance & W-9</p>
+              <div className="min-w-0 rounded-[28px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-6 shadow-[0_12px_40px_rgba(15,23,42,0.05)]">
+                <p className="eyebrow">Insurance & W-9</p>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-[#e6ddd0] bg-[#f1ece2] p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#756b60]">Insurance certificate</p>
-                    <p className="mt-2 text-sm leading-6 text-[#5b5044]">Your certificate is available for review before you accept.</p>
-                    {data.quoteTemplate?.insuranceUrl ? <a href={data.quoteTemplate.insuranceUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-medium text-[#a84a22]">View certificate</a> : <p className="mt-3 text-xs text-[#756b60]">Certificate not configured</p>}
+                  <div className="min-w-0 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
+                    <p className="eyebrow">Insurance certificate</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--co-muted)]">Your certificate is available for review before you accept.</p>
+                    {data.quoteTemplate?.insuranceUrl ? (
+                      <a href={data.quoteTemplate.insuranceUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-medium text-[var(--co-evergreen)]">
+                        View certificate
+                      </a>
+                    ) : (
+                      <p className="mt-3 text-xs text-[var(--co-muted)]">Certificate not configured</p>
+                    )}
                   </div>
-                  <div className="rounded-2xl border border-[#e6ddd0] bg-[#f1ece2] p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#756b60]">W-9 available</p>
-                    <p className="mt-2 text-sm leading-6 text-[#5b5044]">Business information is available when requested.</p>
-                    {data.quoteTemplate?.w9Url ? <a href={data.quoteTemplate.w9Url} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-medium text-[#a84a22]">View W-9</a> : <p className="mt-3 text-xs text-[#756b60]">W-9 not configured</p>}
+                  <div className="min-w-0 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
+                    <p className="eyebrow">W-9 available</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--co-muted)]">Business information is available when requested.</p>
+                    {data.quoteTemplate?.w9Url ? (
+                      <a href={data.quoteTemplate.w9Url} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-medium text-[var(--co-evergreen)]">
+                        View W-9
+                      </a>
+                    ) : (
+                      <p className="mt-3 text-xs text-[var(--co-muted)]">W-9 not configured</p>
+                    )}
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-[28px] bg-white p-6 shadow-[0_12px_40px_rgba(33,52,43,.06)]">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#756b60]">Common questions</p>
+              <div className="min-w-0 rounded-[28px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-6 shadow-[0_12px_40px_rgba(15,23,42,0.05)]">
+                <p className="eyebrow">Common questions</p>
                 <div className="mt-5 space-y-3">
                   {FAQS.map((faq) => {
                     const open = openFaq === faq.q;
                     return (
-                      <button key={faq.q} onClick={() => setOpenFaq(open ? null : faq.q)} className="block w-full rounded-2xl border border-[#e6ddd0] px-4 py-3 text-left">
-                        <div className="flex items-center justify-between gap-4">
-                          <span className="text-sm font-medium text-[#221d1a]">{faq.q}</span>
-                          <span className="text-lg text-[#756b60]">{open ? "-" : "+"}</span>
+                      <button key={faq.q} onClick={() => setOpenFaq(open ? null : faq.q)} className="block w-full min-w-0 rounded-2xl border border-[var(--co-line-soft)] px-4 py-3 text-left">
+                        <div className="flex min-w-0 items-center justify-between gap-4">
+                          <span className="min-w-0 break-words text-sm font-medium text-[var(--co-ink)]">{faq.q}</span>
+                          <span className="shrink-0 text-lg text-[var(--co-muted)]">{open ? "-" : "+"}</span>
                         </div>
-                        {open ? <p className="mt-3 text-sm leading-6 text-[#5b5044]">{faq.a}</p> : null}
+                        {open ? <p className="mt-3 text-sm leading-6 text-[var(--co-muted)]">{faq.a}</p> : null}
                       </button>
                     );
                   })}
                 </div>
               </div>
             </section>
-
           </main>
 
           <aside className="space-y-5 lg:sticky lg:top-6 lg:self-start">
-            <section className="rounded-[32px] bg-white p-6 shadow-[0_18px_60px_rgba(33,52,43,.1)]">
-              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#756b60]">Your total</p>
-              <p className="mt-2 text-4xl font-semibold">{dollars(quotedTotalCents)}</p>
-              <p className="mt-1 text-sm text-[#756b60]">{selectedType ? SERVICE_LABELS[selectedType] : "Select an option"}</p>
-              <p className="mt-2 text-sm font-medium text-[#a84a22]">{data.customerCity || data.locationName || "Your service area"}</p>
-              <p className="mt-1 text-xs text-[#756b60]">This proposal is tailored to the home and location on file.</p>
+            <section className="rounded-[32px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)]">
+              <p className="eyebrow">Your total</p>
+              <p className="mt-2 text-4xl font-semibold text-[var(--co-ink)]">{dollars(quotedTotalCents)}</p>
+              <p className="mt-1 break-words text-sm text-[var(--co-muted)]">{selectedType ? SERVICE_LABELS[selectedType] : "Select an option"}</p>
+              <p className="mt-2 break-words text-sm font-medium text-[var(--co-evergreen)]">{data.customerCity || data.locationName || "Your service area"}</p>
+              <p className="mt-1 text-xs text-[var(--co-muted)]">This proposal is tailored to the home and location on file.</p>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl bg-[#f1ece2] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#756b60]">Service area</p>
-                  <p className="mt-2 text-sm font-medium">{data.customerCity || data.locationName || "Your home"}</p>
+                <div className="min-w-0 rounded-2xl bg-[var(--co-surface-muted)] p-4">
+                  <p className="eyebrow">Service area</p>
+                  <p className="mt-2 break-words text-sm font-medium text-[var(--co-ink)]">{data.customerCity || data.locationName || "Your home"}</p>
                 </div>
-                <div className="rounded-2xl bg-[#f1ece2] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#756b60]">Travel zone</p>
-                  <p className="mt-2 text-sm font-medium">{data.travelZoneName || "Included"}</p>
+                <div className="min-w-0 rounded-2xl bg-[var(--co-surface-muted)] p-4">
+                  <p className="eyebrow">Travel zone</p>
+                  <p className="mt-2 break-words text-sm font-medium text-[var(--co-ink)]">{data.travelZoneName || "Included"}</p>
                 </div>
               </div>
 
               {selectedBreakdown ? (
-                <div className="mt-6 rounded-2xl border border-[#e6ddd0] bg-[#faf7f2] p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#756b60]">Selected option</p>
-                    <span className="text-xs text-[#756b60]">{dollars(quotedTotalCents)} final</span>
+                <div className="mt-6 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
+                  <div className="flex min-w-0 items-center justify-between gap-3">
+                    <p className="eyebrow">Selected option</p>
+                    <span className="shrink-0 text-xs text-[var(--co-muted)]">{dollars(quotedTotalCents)} final</span>
                   </div>
-                  <p className="mt-2 text-sm font-medium text-[#221d1a]">{SERVICE_LABELS[selectedType ?? ""] ?? "Service option"}</p>
-                  <p className="mt-2 text-sm leading-6 text-[#5b5044]">
+                  <p className="mt-2 break-words text-sm font-medium text-[var(--co-ink)]">{SERVICE_LABELS[selectedType ?? ""] ?? "Service option"}</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--co-muted)]">
                     Total includes the service scope, travel where applicable, and any selected add-ons.
                   </p>
                 </div>
               ) : null}
 
               {requiresDeposit ? (
-                <div className="mt-4 rounded-2xl border border-[#e8d9c5] bg-[#f7efe3] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#8a6a3e]">Deposit required</p>
-                  <p className="mt-2 text-sm leading-6 text-[#5b5044]">First-time and deep clean appointments require a 50% deposit to reserve the booking.</p>
+                <div className="mt-4 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-accent-tint)] p-4">
+                  <p className="eyebrow">Deposit required</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--co-muted)]">First-time and deep clean appointments require a 50% deposit to reserve the booking.</p>
                   <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                    <div className="rounded-2xl bg-white p-3">
-                      <p className="text-xs uppercase tracking-[0.1em] text-[#756b60]">Due today</p>
-                      <p className="mt-1 font-semibold text-[#221d1a]">{dollars(depositCents)}</p>
+                    <div className="min-w-0 rounded-2xl bg-[var(--co-surface)] p-3">
+                      <p className="eyebrow">Due today</p>
+                      <p className="mt-1 font-semibold text-[var(--co-ink)]">{dollars(depositCents)}</p>
                     </div>
-                    <div className="rounded-2xl bg-white p-3">
-                      <p className="text-xs uppercase tracking-[0.1em] text-[#756b60]">After deposit</p>
-                      <p className="mt-1 font-semibold text-[#221d1a]">{dollars(remainingCents)}</p>
+                    <div className="min-w-0 rounded-2xl bg-[var(--co-surface)] p-3">
+                      <p className="eyebrow">After deposit</p>
+                      <p className="mt-1 font-semibold text-[var(--co-ink)]">{dollars(remainingCents)}</p>
                     </div>
                   </div>
                 </div>
               ) : null}
 
               {isAccepted ? (
-                <div className="mt-6 rounded-2xl bg-[#f1ece2] p-4 text-center text-sm text-[#4d7a3f]">
+                <div className="mt-6 rounded-2xl bg-[var(--co-accent-tint)] p-4 text-center text-sm text-[var(--co-evergreen)]">
                   Accepted{data.quote.signatureName ? ` by ${data.quote.signatureName}` : ""}. We&apos;ll be in touch to confirm scheduling.
                 </div>
               ) : isExpired ? (
-                <div className="mt-6 rounded-2xl bg-slate-100 p-4 text-center text-sm text-slate-500">This proposal is no longer available.</div>
+                <div className="mt-6 rounded-2xl bg-[var(--co-surface-muted)] p-4 text-center text-sm text-[var(--co-muted)]">This proposal is no longer available.</div>
               ) : (
-                <div className="mt-6 border-t border-[#efe9de] pt-5">
-                  <label className="block text-sm font-medium">
+                <div className="mt-6 border-t border-[var(--co-line-soft)] pt-5">
+                  <label className="block text-sm font-medium text-[var(--co-ink)]">
                     Type your full name to sign
                     <input
                       value={signatureName}
                       onChange={(event) => setSignatureName(event.target.value)}
                       placeholder="Full name"
-                      className="mt-2 w-full rounded-xl border border-[#ddd2c0] px-3 py-3 outline-none focus:border-[#c1592c]"
+                      className="co-input mt-2 w-full"
                     />
                   </label>
-                  {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
-                  <button onClick={accept} disabled={accepting} className="mt-4 w-full rounded-xl bg-[#1c1917] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">
+                  {error ? <p className="mt-3 text-sm text-[var(--co-danger)]">{error}</p> : null}
+                  <button onClick={accept} disabled={accepting} className="co-button-primary mt-4 w-full">
                     {accepting ? "Accepting..." : requiresDeposit ? "Accept and reserve →" : "Accept proposal →"}
                   </button>
-                  <p className="mt-3 text-center text-xs text-[#756b60]">By accepting, you agree to the service policies shown by the team.</p>
+                  <p className="mt-3 text-center text-xs text-[var(--co-muted)]">By accepting, you agree to the service policies shown by the team.</p>
                 </div>
               )}
             </section>
 
-            <section className="rounded-[28px] bg-[#1c1917] p-6 text-white shadow-[0_18px_60px_rgba(33,52,43,.15)]">
-              <p className="text-sm font-semibold text-[#e8a06e]">You&apos;re in good hands</p>
-              <p className="mt-3 text-sm leading-7 text-white/75">
+            <section className="rounded-[28px] bg-[var(--co-evergreen)] p-6 text-white shadow-[0_18px_60px_rgba(0,108,73,0.2)]">
+              <p className="text-sm font-semibold text-white">You&apos;re in good hands</p>
+              <p className="mt-3 text-sm leading-7 text-white/80">
                 Background-checked and trained pros, thoughtful communication, and a service standard built to make your home feel calm and cared for.
               </p>
-              <div className="mt-6 grid gap-3 text-sm text-white/80">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">• 100% satisfaction-minded service</div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">• Eco-friendly products available</div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">• Fully licensed & insured</div>
+              <div className="mt-6 grid gap-3 text-sm text-white/90">
+                <div className="min-w-0 break-words rounded-2xl border border-white/15 bg-white/10 p-4">• 100% satisfaction-minded service</div>
+                <div className="min-w-0 break-words rounded-2xl border border-white/15 bg-white/10 p-4">• Eco-friendly products available</div>
+                <div className="min-w-0 break-words rounded-2xl border border-white/15 bg-white/10 p-4">• Fully licensed & insured</div>
               </div>
             </section>
           </aside>
         </div>
 
-        <footer className="py-8 text-center text-xs text-[#756b60]">
+        <footer className="py-8 text-center text-xs text-[var(--co-muted)]">
           Prepared by {data.quoteTemplate?.ownerName || data.companyName}
           {data.quoteTemplate?.ownerTitle ? ` · ${data.quoteTemplate.ownerTitle}` : ""}
         </footer>
@@ -608,15 +699,14 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
 function PhotoPanel({ title, url, fallback }: { title: string; url: string; fallback: string }) {
   const hasUrl = Boolean(url.trim());
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#e6ddd0] bg-[#faf7f2]">
-      <div className="h-36 overflow-hidden bg-[linear-gradient(135deg,#efe0cd,#faf7f2)]">
+    <div className="min-w-0 overflow-hidden border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]">
+      <div className="h-36 overflow-hidden bg-[var(--co-surface-muted)]">
         {hasUrl ? <img src={url} alt={title} className="h-full w-full object-cover" /> : null}
       </div>
-      <div className="px-3 py-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#756b60]">{title}</p>
-        <p className="mt-1 text-sm text-[#5b5044]">{hasUrl ? "Linked" : fallback}</p>
+      <div className="min-w-0 px-3 py-2">
+        <p className="eyebrow">{title}</p>
+        <p className="mt-1 break-words text-sm text-[var(--co-muted)]">{hasUrl ? "Linked" : fallback}</p>
       </div>
     </div>
   );
 }
-

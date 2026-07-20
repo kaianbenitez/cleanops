@@ -11,7 +11,7 @@ import { resolveCustomerServiceArea } from "@/lib/service-area";
 const createQuoteSchema = z.object({
   customerId: z.string().uuid(),
   serviceLocationId: z.string().uuid(),
-  requestedServiceType: z.enum(SERVICE_TYPES), // admin's suggested default tier
+  requestedServiceType: z.enum(SERVICE_TYPES).nullable().optional(), // admin's suggested default tier — optional, every tier is priced and sent regardless
   roomCounts: z.array(z.object({ roomTypeId: z.string().uuid(), count: z.number().int().nonnegative() })),
   travelZoneId: z.string().uuid().nullable(),
   dirtyCodeLevel: z.number().int().nullable(),
@@ -98,12 +98,12 @@ export async function POST(req: NextRequest) {
       status: "draft",
       publicToken,
       serviceLocationId: data.serviceLocationId,
-      requestedServiceType: data.requestedServiceType,
+      requestedServiceType: data.requestedServiceType ?? null,
       travelZoneId: data.travelZoneId,
       dirtyCodeLevel: data.dirtyCodeLevel,
       roomCounts: data.roomCounts,
       allTierPricing,
-      totalCents: allTierPricing[data.requestedServiceType].finalCents,
+      totalCents: data.requestedServiceType ? allTierPricing[data.requestedServiceType].finalCents : 0,
       notesToCustomer: data.notesToCustomer,
       validUntil: data.validUntil,
     })

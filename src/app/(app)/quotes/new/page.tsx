@@ -2,6 +2,30 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Search,
+  MapPin,
+  Bed,
+  Bath,
+  Droplet,
+  Sofa,
+  UtensilsCrossed,
+  ChefHat,
+  Briefcase,
+  Car,
+  Shirt,
+  Building2,
+  DoorOpen,
+  Minus,
+  Plus,
+  Percent,
+  Route,
+  MessageSquareText,
+  Sparkles,
+  Check,
+  type LucideIcon,
+} from "lucide-react";
+import { ADD_ONS, detectRequestedAddOns, type AddOnKey } from "@/lib/pricing/add-ons";
 
 type Customer = {
   id: string;
@@ -37,25 +61,44 @@ type Breakdown = {
 };
 
 const SERVICE_TYPES: Array<{ value: ServiceType; label: string; description: string }> = [
-  { value: "supreme_deep", label: "Supreme Deep", description: "The most detailed clean for a reset or special occasion." },
-  { value: "deep", label: "Deep Clean", description: "A thorough clean with extra attention to buildup and detail." },
-  { value: "first_time", label: "First Time", description: "A strong starting point before recurring maintenance." },
-  { value: "weekly", label: "Weekly", description: "Reliable maintenance for a consistently cared-for home." },
-  { value: "biweekly", label: "Bi-Weekly", description: "Our most popular recurring rhythm for busy homes." },
-  { value: "four_weeks", label: "Every 4 Weeks", description: "A monthly maintenance option with more time between visits." },
-  { value: "move_in_out", label: "Move In / Out", description: "A reset clean for a transition between homes." },
+  { value: "supreme_deep", label: "Supreme Deep", description: "Hand wipe + steam mop + fridge + oven." },
+  { value: "deep", label: "Deep Clean", description: "Hand wipe only." },
+  { value: "first_time", label: "First Time", description: "Dusting only." },
+  { value: "weekly", label: "Weekly", description: "Maintenance clean." },
+  { value: "biweekly", label: "Bi-Weekly", description: "Every 2 weeks." },
+  { value: "four_weeks", label: "Every 4 Weeks", description: "Every 4 weeks." },
+  { value: "move_in_out", label: "Move In / Out", description: "Move-in / move-out." },
 ];
+
+// serviceType here only picks which tier's room-line breakdown the calculate
+// endpoint echoes back — it's never surfaced as a "selected" tier and never sent
+// to the create endpoint. Every tier is priced (allTiers) and every tier is sent.
+const BREAKDOWN_PREVIEW_TYPE: ServiceType = "first_time";
+
+function roomTypeIcon(name: string): LucideIcon {
+  const n = name.toLowerCase();
+  if (n.includes("half bath")) return Droplet;
+  if (n.includes("bath")) return Bath;
+  if (n.includes("bed")) return Bed;
+  if (n.includes("living")) return Sofa;
+  if (n.includes("dining")) return UtensilsCrossed;
+  if (n.includes("kitchen")) return ChefHat;
+  if (n.includes("office")) return Briefcase;
+  if (n.includes("garage")) return Car;
+  if (n.includes("laundry")) return Shirt;
+  if (n.includes("stor") || n.includes("floor")) return Building2;
+  return DoorOpen;
+}
 
 function dollars(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-function SelectedStatus({ text }: { text: string }) {
-  return (
-    <span className="rounded-full bg-[var(--co-surface-muted)] px-3 py-1 text-xs font-medium text-[var(--co-evergreen)]">
-      {text}
-    </span>
-  );
+// Quotes are valid for 6 months by default — company policy.
+function defaultValidUntil() {
+  const date = new Date();
+  date.setMonth(date.getMonth() + 6);
+  return date.toISOString().slice(0, 10);
 }
 
 export default function NewQuotePage() {
@@ -65,7 +108,6 @@ export default function NewQuotePage() {
   const [locations, setLocations] = useState<ServiceLocation[]>([]);
   const [customerId, setCustomerId] = useState("");
   const [serviceLocationId, setServiceLocationId] = useState("");
-  const [serviceType, setServiceType] = useState<ServiceType>("first_time");
   const [travelZoneId, setTravelZoneId] = useState("");
   const [dirtyCodeLevel, setDirtyCodeLevel] = useState<number | "">("");
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -74,7 +116,11 @@ export default function NewQuotePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [notes, setNotes] = useState("");
-  const [validUntil, setValidUntil] = useState("");
+  const [validUntil, setValidUntil] = useState(defaultValidUntil);
+  const [customerNotes, setCustomerNotes] = useState("");
+  const [detectedAddOns, setDetectedAddOns] = useState<AddOnKey[]>([]);
+  const [selectedAddOns, setSelectedAddOns] = useState<AddOnKey[]>([]);
+  const [addOnsAddedToNotes, setAddOnsAddedToNotes] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -98,9 +144,19 @@ export default function NewQuotePage() {
 
   const [autofilledFor, setAutofilledFor] = useState("");
 
-  // Prefill bedroom/full-bathroom counts from the customer's stored home profile
-  // when they're picked — still fully editable afterward (e.g. skip a room they
-  // don't want cleaned this visit).
+  useEffect(() => {
+    if (customerId) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCustomerNotes("");
+    setDetectedAddOns([]);
+    setSelectedAddOns([]);
+    setAddOnsAddedToNotes(false);
+  }, [customerId]);
+
+  // Prefill bedroom/full-bathroom counts from the customer's stored home profile,
+  // and flag any add-ons they mentioned in their notes (e.g. a GHL intake form
+  // submission) — still fully editable afterward (e.g. skip a room they don't
+  // want cleaned this visit, or un-flag an add-on that isn't actually wanted).
   useEffect(() => {
     if (!customerId || roomTypes.length === 0 || customerId === autofilledFor) return;
     fetch(`/api/customers/${customerId}`)
@@ -115,6 +171,16 @@ export default function NewQuotePage() {
           if (fullBathRoom && home.fullBathrooms) next[fullBathRoom.id] = Number(home.fullBathrooms) || 0;
           return next;
         });
+
+        const noteText = [body.customer?.notes, body.customer?.operationalNotes, body.customer?.importantToCustomer]
+          .filter((value): value is string => Boolean(value))
+          .join(" · ");
+        setCustomerNotes(noteText);
+        const detected = detectRequestedAddOns(noteText);
+        setDetectedAddOns(detected);
+        setSelectedAddOns(detected);
+        setAddOnsAddedToNotes(false);
+
         setAutofilledFor(customerId);
       })
       .catch(() => {});
@@ -127,6 +193,7 @@ export default function NewQuotePage() {
         .filter((room) => room.count > 0),
     [counts, roomTypes]
   );
+  const totalRoomCount = roomCounts.reduce((sum, room) => sum + room.count, 0);
 
   const calculate = useCallback(async () => {
     if (!serviceLocationId || roomCounts.length === 0) {
@@ -140,7 +207,7 @@ export default function NewQuotePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         serviceLocationId,
-        serviceType,
+        serviceType: BREAKDOWN_PREVIEW_TYPE,
         roomCounts,
         travelZoneId: travelZoneId || null,
         dirtyCodeLevel: dirtyCodeLevel === "" ? null : dirtyCodeLevel,
@@ -156,7 +223,7 @@ export default function NewQuotePage() {
       setAllTiers(null);
     }
     setCalculating(false);
-  }, [dirtyCodeLevel, roomCounts, serviceLocationId, serviceType, travelZoneId]);
+  }, [dirtyCodeLevel, roomCounts, serviceLocationId, travelZoneId]);
 
   useEffect(() => {
     // Recalculate after the form inputs change; this is the quote preview's source of truth.
@@ -164,15 +231,26 @@ export default function NewQuotePage() {
     calculate();
   }, [calculate]);
 
-  const selectedBreakdown = allTiers?.[serviceType];
-
   function setCount(id: string, count: number) {
     setCounts((current) => ({ ...current, [id]: Math.max(0, count) }));
   }
 
+  function toggleAddOn(key: AddOnKey) {
+    setSelectedAddOns((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
+    setAddOnsAddedToNotes(false);
+  }
+
+  function addSelectedAddOnsToNotes() {
+    if (selectedAddOns.length === 0) return;
+    const labels = ADD_ONS.filter((addOn) => selectedAddOns.includes(addOn.key)).map((addOn) => addOn.label);
+    const line = `Requested add-ons: ${labels.join(", ")}.`;
+    setNotes((current) => (current ? `${current}\n${line}` : line));
+    setAddOnsAddedToNotes(true);
+  }
+
   async function saveQuote() {
     setError("");
-    if (!customerId || !serviceLocationId || !roomCounts.length || !selectedBreakdown) {
+    if (!customerId || !serviceLocationId || !roomCounts.length || !allTiers) {
       setError("Customer, location, and at least one room are required.");
       return;
     }
@@ -184,7 +262,6 @@ export default function NewQuotePage() {
       body: JSON.stringify({
         customerId,
         serviceLocationId,
-        requestedServiceType: serviceType,
         roomCounts,
         travelZoneId: travelZoneId || null,
         dirtyCodeLevel: dirtyCodeLevel === "" ? null : dirtyCodeLevel,
@@ -208,8 +285,8 @@ export default function NewQuotePage() {
     <div className="space-y-6">
       <header>
         <p className="eyebrow">Sales / New proposal</p>
-        <h1 className="page-title mt-2">New quote</h1>
-        <p className="page-subtitle">Build the home profile once, then compare every service option before sending.</p>
+        <h1 className="page-title mt-2">Build thoughtful proposal</h1>
+        <p className="page-subtitle">Define customer details and property characteristics to generate an accurate estimate.</p>
       </header>
 
       <div className="grid gap-5 xl:grid-cols-[0.82fr_1.18fr]">
@@ -219,7 +296,10 @@ export default function NewQuotePage() {
             <h2 className="mt-1 text-lg font-semibold">Who is this for?</h2>
             <div className="mt-4 space-y-3">
               <label className="block text-sm">
-                <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Customer</span>
+                <span className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-[var(--co-muted)]">
+                  <Search className="h-3.5 w-3.5" aria-hidden />
+                  Customer
+                </span>
                 <select
                   className="co-input w-full"
                   value={customerId}
@@ -236,7 +316,10 @@ export default function NewQuotePage() {
               </label>
 
               <label className="block text-sm">
-                <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Pricing zone</span>
+                <span className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-[var(--co-muted)]">
+                  <MapPin className="h-3.5 w-3.5" aria-hidden />
+                  Pricing zone
+                </span>
                 {locations.length === 0 ? (
                   <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                     No pricing zones configured yet. Add one in{" "}
@@ -287,49 +370,122 @@ export default function NewQuotePage() {
                 <p className="eyebrow">Home profile</p>
                 <h2 className="mt-1 text-lg font-semibold">Rooms and conditions</h2>
               </div>
-              <span className="text-xs text-[var(--co-muted)]">{roomCounts.reduce((sum, room) => sum + room.count, 0)} rooms</span>
+              <span className="text-xs text-[var(--co-muted)]">{totalRoomCount} rooms</span>
             </div>
             {customerId && (
-              <p className="mt-2 text-xs text-[var(--co-muted)]">Bedroom and full bathroom counts are prefilled from this customer&apos;s home profile — adjust any count if this visit skips a room.</p>
+              <p className="mt-2 text-xs text-[var(--co-muted)]">
+                Bedroom and full bathroom counts auto-populate from this customer&apos;s saved home profile — adjust any count if this visit skips a room.
+              </p>
             )}
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {roomTypes.map((room) => (
-                <label key={room.id} className="block text-sm">
-                  <span className="mb-1 block text-xs text-[var(--co-muted)]">{room.name}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={counts[room.id] ?? 0}
-                    onChange={(event) => setCount(room.id, Number(event.target.value || 0))}
-                    className="co-input w-full"
-                  />
-                </label>
-              ))}
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              {roomTypes.map((room) => {
+                const Icon = roomTypeIcon(room.name);
+                const count = counts[room.id] ?? 0;
+                return (
+                  <div
+                    key={room.id}
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-2.5"
+                  >
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <Icon className="h-4 w-4 shrink-0 text-[var(--co-evergreen)]" aria-hidden />
+                      <span className="truncate text-sm font-medium text-[var(--co-ink)]">{room.name}</span>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCount(room.id, count - 1)}
+                        aria-label={`Decrease ${room.name}`}
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--co-line)] text-[var(--co-muted)] hover:bg-white"
+                      >
+                        <Minus className="h-3.5 w-3.5" aria-hidden />
+                      </button>
+                      <span className="w-4 text-center text-sm font-semibold tabular-nums text-[var(--co-ink)]">{count}</span>
+                      <button
+                        type="button"
+                        onClick={() => setCount(room.id, count + 1)}
+                        aria-label={`Increase ${room.name}`}
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--co-evergreen)] text-white hover:bg-[var(--co-evergreen-soft)]"
+                      >
+                        <Plus className="h-3.5 w-3.5" aria-hidden />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              {roomTypes.length === 0 ? <p className="text-sm text-[var(--co-muted)]">No room types configured yet.</p> : null}
             </div>
           </section>
 
+          {customerId ? (
+            <section className="co-card p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="eyebrow">Add-on requests</p>
+                  <h2 className="mt-1 text-lg font-semibold">Anything requested via their form?</h2>
+                </div>
+                {detectedAddOns.length > 0 ? (
+                  <span className="flex items-center gap-1 rounded-full bg-[var(--co-accent-tint)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-evergreen)]">
+                    <Sparkles className="h-3 w-3" aria-hidden />
+                    {detectedAddOns.length} flagged
+                  </span>
+                ) : null}
+              </div>
+
+              {customerNotes ? (
+                <div className="mt-3 flex items-start gap-2 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-3 text-sm text-[var(--co-muted)]">
+                  <MessageSquareText className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-evergreen)]" aria-hidden />
+                  <p className="italic">&ldquo;{customerNotes}&rdquo;</p>
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-[var(--co-muted)]">No notes on file for this customer — nothing to flag automatically, but you can still check off add-ons below.</p>
+              )}
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {ADD_ONS.map((addOn) => {
+                  const selected = selectedAddOns.includes(addOn.key);
+                  const wasDetected = detectedAddOns.includes(addOn.key);
+                  return (
+                    <button
+                      key={addOn.key}
+                      type="button"
+                      onClick={() => toggleAddOn(addOn.key)}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                        selected ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)] text-white" : "border-[var(--co-line)] bg-white text-[var(--co-muted)]"
+                      }`}
+                    >
+                      {selected ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}
+                      {addOn.label} · +{dollars(addOn.priceCents)}
+                      {wasDetected ? <span className={`text-[10px] ${selected ? "text-white/80" : "text-[var(--co-evergreen)]"}`}>(flagged)</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <p className="text-xs text-[var(--co-muted)]">
+                  Add-ons aren&apos;t priced into this quote yet — the customer confirms and prices them when they accept. This just makes sure their request isn&apos;t missed.
+                </p>
+                <button
+                  type="button"
+                  onClick={addSelectedAddOnsToNotes}
+                  disabled={selectedAddOns.length === 0}
+                  className="co-button-secondary shrink-0 px-3 py-2 text-xs disabled:opacity-50"
+                >
+                  {addOnsAddedToNotes ? "Added to notes ✓" : "Add to proposal notes"}
+                </button>
+              </div>
+            </section>
+          ) : null}
+
           <section className="co-card p-5">
             <p className="eyebrow">Pricing context</p>
-            <h2 className="mt-1 text-lg font-semibold">Service options</h2>
+            <h2 className="mt-1 text-lg font-semibold">Dirt level and travel</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
-                <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Travel zone</span>
-                <select
-                  className="co-input w-full"
-                  value={travelZoneId}
-                  onChange={(event) => setTravelZoneId(event.target.value)}
-                >
-                  <option value="">No travel fee</option>
-                  {selectedLocation?.travelZones.map((zone) => (
-                    <option key={zone.id} value={zone.id}>
-                      {zone.name} · +{dollars(zone.feeCents)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="block text-sm">
-                <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Dirty code</span>
+                <span className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-[var(--co-muted)]">
+                  <Percent className="h-3.5 w-3.5" aria-hidden />
+                  Dirt level
+                </span>
                 <select
                   className="co-input w-full"
                   value={dirtyCodeLevel}
@@ -339,6 +495,25 @@ export default function NewQuotePage() {
                   {selectedLocation?.dirtyCodeTiers.map((tier) => (
                     <option key={tier.level} value={tier.level}>
                       Level {tier.level} · {(tier.discountPercent * 100).toFixed(0)}%
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block text-sm">
+                <span className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-[var(--co-muted)]">
+                  <Route className="h-3.5 w-3.5" aria-hidden />
+                  Travel zone
+                </span>
+                <select
+                  className="co-input w-full"
+                  value={travelZoneId}
+                  onChange={(event) => setTravelZoneId(event.target.value)}
+                >
+                  <option value="">No travel fee</option>
+                  {selectedLocation?.travelZones.map((zone) => (
+                    <option key={zone.id} value={zone.id}>
+                      {zone.name} · +{dollars(zone.feeCents)}
                     </option>
                   ))}
                 </select>
@@ -371,10 +546,11 @@ export default function NewQuotePage() {
             <div>
               <p className="eyebrow">Live calculation</p>
               <h2 className="mt-1 text-xl font-semibold">Compare service tiers</h2>
+              <p className="mt-1 text-sm text-[var(--co-muted)]">Every tier is priced and sent — the customer picks which one to accept.</p>
             </div>
-            <SelectedStatus
-              text={calculating ? "Calculating..." : selectedBreakdown ? `${dollars(selectedBreakdown.finalCents)} selected` : "Waiting for rooms"}
-            />
+            <span className="rounded-full bg-[var(--co-surface-muted)] px-3 py-1 text-xs font-medium text-[var(--co-evergreen)]">
+              {calculating ? "Calculating..." : allTiers ? `${Object.keys(allTiers).length} tiers priced` : "Waiting for rooms"}
+            </span>
           </div>
 
           {!allTiers ? (
@@ -385,65 +561,43 @@ export default function NewQuotePage() {
             <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {SERVICE_TYPES.map((service, index) => {
                 const tier = allTiers[service.value];
-                const selected = service.value === serviceType;
                 return (
-                  <button
-                    key={service.value}
-                    onClick={() => setServiceType(service.value)}
-                    className={`relative rounded-2xl border p-4 text-left transition-transform hover:-translate-y-0.5 ${
-                      selected ? "border-[var(--co-evergreen)] bg-[var(--co-surface-muted)] ring-2 ring-[var(--co-accent)]" : "border-[var(--co-line)] bg-white"
-                    }`}
-                  >
+                  <div key={service.value} className="relative rounded-2xl border border-[var(--co-line)] bg-white p-4">
                     {index === 4 ? (
                       <span className="absolute -top-3 right-3 rounded-full bg-[var(--co-evergreen)] px-2 py-1 text-[10px] font-bold text-white">
                         Most popular
                       </span>
                     ) : null}
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-semibold">{service.label}</h3>
-                      <span
-                        className={`flex h-5 w-5 items-center justify-center rounded-full border text-xs ${
-                          selected ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)] text-white" : "border-[var(--co-line)]"
-                        }`}
-                      >
-                        {selected ? "✓" : ""}
-                      </span>
-                    </div>
-                    <p className="mt-2 min-h-12 text-xs leading-5 text-[var(--co-muted)]">{service.description}</p>
+                    <h3 className="font-semibold">{service.label}</h3>
+                    <p className="mt-2 min-h-8 text-xs leading-5 text-[var(--co-muted)]">{service.description}</p>
                     <p className="mt-4 text-2xl font-semibold text-[var(--co-ink)]">{dollars(tier?.finalCents ?? 0)}</p>
                     <p className="mt-1 text-xs text-[var(--co-muted)]">
                       {tier?.roomSubtotalCents
                         ? `${tier.roomLines.reduce((sum, line) => sum + line.weightHours * line.count, 0).toFixed(1)} estimated hrs`
                         : "Calculated from profile"}
                     </p>
-                  </button>
+                  </div>
                 );
               })}
             </div>
           )}
 
-          {selectedBreakdown ? (
-            <div className="mt-5 border-t border-[var(--co-line-soft)] pt-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-[var(--co-muted)]">Selected option</span>
-                <span className="font-medium">{SERVICE_TYPES.find((service) => service.value === serviceType)?.label}</span>
-              </div>
-              <div className="mt-2 flex justify-between text-lg font-semibold">
-                <span>Total</span>
-                <span>{dollars(selectedBreakdown.finalCents)}</span>
-              </div>
-            </div>
-          ) : null}
-
           {error ? <p className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
 
-          <button
-            onClick={saveQuote}
-            disabled={submitting || !selectedBreakdown}
-            className="co-button-primary mt-5 w-full py-3"
-          >
-            {submitting ? "Saving quote..." : "Save quote →"}
-          </button>
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--co-line-soft)] pt-4 text-sm">
+            <div className="text-[var(--co-muted)]">
+              <span className="font-medium text-[var(--co-ink)]">{selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : "No customer selected"}</span>
+              {totalRoomCount > 0 ? ` · ${totalRoomCount} rooms` : ""}
+              {selectedLocation ? ` · ${selectedLocation.name}` : ""}
+            </div>
+            <button
+              onClick={saveQuote}
+              disabled={submitting || !allTiers}
+              className="co-button-primary py-3"
+            >
+              {submitting ? "Saving quote..." : "Save quote →"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
