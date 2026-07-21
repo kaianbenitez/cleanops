@@ -8,8 +8,8 @@ type Employee = { id: string; firstName: string; lastName: string };
 const VIEWS = [
   { value: "week", label: "Week" },
   { value: "day", label: "Day" },
+  { value: "staff", label: "Staff" },
   { value: "list", label: "List" },
-  { value: "employee", label: "Employee" },
 ] as const;
 
 const TYPES = [
