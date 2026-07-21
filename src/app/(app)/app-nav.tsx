@@ -80,6 +80,26 @@ export default function AppNav({ isAdmin, userName, userEmail }: { isAdmin: bool
     return () => document.removeEventListener("mousedown", handleClick);
   }, [profileMenuOpen]);
 
+  const [menuClosedForPathname, setMenuClosedForPathname] = useState(pathname);
+  if (pathname !== menuClosedForPathname) {
+    setMenuClosedForPathname(pathname);
+    setMenuOpen(false);
+  }
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("keydown", handleKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [menuOpen]);
+
   return (
     <>
       <div className="sticky top-0 z-30 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] text-[var(--co-ink)] backdrop-blur xl:hidden">
@@ -104,79 +124,113 @@ export default function AppNav({ isAdmin, userName, userEmail }: { isAdmin: bool
           </Link>
         </div>
 
-        {menuOpen ? (
-          <div className="flex flex-wrap items-center gap-2 border-t border-[var(--co-line-soft)] px-4 py-3">
-            {visibleLinks.map(([href, label]) => {
-              const active = isActive(pathname, href);
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={() => setMenuOpen(false)}
-                  className={`flex shrink-0 items-center gap-2 rounded-[14px] border px-3 py-2 text-xs font-medium transition ${
-                    active
-                      ? "border-[var(--co-accent-tint)] bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
-                      : "border-transparent bg-transparent text-[var(--co-muted)] hover:border-[var(--co-line-soft)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
-                  }`}
-                >
-                  <NavIcon href={href} />
-                  {label}
-                </Link>
-              );
-            })}
+      </div>
 
-            {isAdmin ? (
-              <>
-                <Link
-                  href="/sync-issues"
-                  onClick={() => setMenuOpen(false)}
-                  className={`flex shrink-0 items-center gap-2 rounded-[14px] border px-3 py-2 text-xs font-medium transition ${
-                    pathname.startsWith("/sync-issues")
-                      ? "border-[var(--co-accent-tint)] bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
-                      : "border-transparent text-[var(--co-muted)] hover:border-[var(--co-line-soft)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
-                  }`}
-                >
-                  <NavIcon href="/sync-issues" />
-                  Sync issues
-                </Link>
-                <Link
-                  href="/settings"
-                  onClick={() => setMenuOpen(false)}
-                  className={`flex shrink-0 items-center gap-2 rounded-[14px] border px-3 py-2 text-xs font-medium transition ${
-                    pathname.startsWith("/settings")
-                      ? "border-[var(--co-accent-tint)] bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
-                      : "border-transparent text-[var(--co-muted)] hover:border-[var(--co-line-soft)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
-                  }`}
-                >
-                  <NavIcon href="/settings" />
-                  Settings
-                </Link>
-              </>
-            ) : null}
+      <div
+        aria-hidden={!menuOpen}
+        onClick={() => setMenuOpen(false)}
+        className={`fixed inset-0 z-40 bg-black/40 transition-opacity xl:hidden ${
+          menuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      />
 
-            <Link
-              href="/help-center"
-              onClick={() => setMenuOpen(false)}
-              className={`flex shrink-0 items-center gap-2 rounded-[14px] border px-3 py-2 text-xs font-medium transition ${
-                pathname.startsWith("/help-center")
-                  ? "border-[var(--co-accent-tint)] bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
-                  : "border-transparent text-[var(--co-muted)] hover:border-[var(--co-line-soft)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
-              }`}
-            >
-              <NavIcon href="/help-center" />
-              Support
-            </Link>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation menu"
+        className={`fixed inset-y-0 left-0 z-50 flex w-[280px] max-w-[82vw] flex-col border-r border-[var(--co-line-soft)] bg-[var(--co-surface)] text-[var(--co-ink)] shadow-[0_0_40px_rgba(18,24,19,0.18)] transition-transform duration-300 ease-out xl:hidden ${
+          menuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--co-line-soft)] px-4 py-4">
+          <Link href={isAdmin ? "/dashboard" : "/my-day"} onClick={() => setMenuOpen(false)} className="flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[var(--co-evergreen)] text-[10px] font-black tracking-tight text-white">CO</span>
+            <span className="text-base font-bold text-[var(--co-evergreen)]">CleanOps</span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Close menu"
+            className="rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]"
+          >
+            <Menu aria-hidden="true" strokeWidth={2} className="h-5 w-5 text-[var(--co-ink)]" />
+          </button>
+        </div>
 
-            <form action="/api/auth/logout" method="post" className="ml-auto">
-              <button
-                type="submit"
-                className="rounded-[14px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-2 text-xs font-semibold text-[var(--co-muted)] transition hover:border-[var(--co-line)] hover:text-[var(--co-ink)]"
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+          {visibleLinks.map(([href, label]) => {
+            const active = isActive(pathname, href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMenuOpen(false)}
+                className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
+                  active
+                    ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
+                    : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+                }`}
               >
-                Sign out
-              </button>
-            </form>
-          </div>
-        ) : null}
+                <NavIcon href={href} />
+                {label}
+              </Link>
+            );
+          })}
+
+          {isAdmin ? (
+            <>
+              <Link
+                href="/sync-issues"
+                onClick={() => setMenuOpen(false)}
+                className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
+                  pathname.startsWith("/sync-issues")
+                    ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
+                    : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+                }`}
+              >
+                <NavIcon href="/sync-issues" />
+                Sync issues
+              </Link>
+              <Link
+                href="/settings"
+                onClick={() => setMenuOpen(false)}
+                className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
+                  pathname.startsWith("/settings")
+                    ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
+                    : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+                }`}
+              >
+                <NavIcon href="/settings" />
+                Settings
+              </Link>
+            </>
+          ) : null}
+
+          <Link
+            href="/help-center"
+            onClick={() => setMenuOpen(false)}
+            className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
+              pathname.startsWith("/help-center")
+                ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
+                : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+            }`}
+          >
+            <NavIcon href="/help-center" />
+            Support
+          </Link>
+        </nav>
+
+        <div className="border-t border-[var(--co-line-soft)] p-3">
+          <form action="/api/auth/logout" method="post">
+            <button
+              type="submit"
+              className="flex w-full items-center gap-3 rounded-[14px] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-3 py-2.5 text-left text-sm font-semibold text-[var(--co-muted)] transition hover:border-[var(--co-line)] hover:text-[var(--co-ink)]"
+            >
+              <LogOut aria-hidden="true" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0 opacity-90" />
+              Sign out
+            </button>
+          </form>
+        </div>
       </div>
 
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[260px] flex-col border-r border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-4 py-5 text-[var(--co-ink)] xl:flex">

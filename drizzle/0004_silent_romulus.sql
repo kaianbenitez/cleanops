@@ -1,0 +1,1 @@
+ALTER TABLE "quotes" ADD COLUMN "accepted_add_ons" jsonb DEFAULT '[]'::jsonb NOT NULL;

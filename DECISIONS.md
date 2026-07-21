@@ -437,3 +437,150 @@ to `status: "paid"` with a real `paidAt` timestamp. Separately verified the reco
 on a second invoice (instant paid, no Square involved). Confirmed both render correctly on
 `/invoices` and that the dashboard's new overdue tile shows 0 (correct — both test invoices are
 already paid, not overdue-sent).
+
+## 2026-07-22 — Calendar: scheduling UX overhaul (not a numbered PLAN.md phase — direct request)
+
+Note for whoever picks this up next (Codex is working the Employee Directory/page in parallel
+this same window): this entry — and this file in general — is the shared log both of us should
+read/append to, so neither side has to re-derive what the other already changed. Everything
+below is scoped to `src/app/(app)/calendar/**` and `src/app/api/jobs/[jobId]/route.ts` only; it
+does not touch `/employees/**` or anything employee-directory-related.
+
+**Why**: Week view's job cards used fixed full-width absolute positioning regardless of
+concurrent bookings — at the business's real scale (10-15 employees, 15-25 jobs/day),
+overlapping jobs silently stacked and hid each other. The user asked for drag-and-drop
+rescheduling across every calendar view and a broader look at whether the 5 existing views
+(Week/Day/Staff/List/Employee) were the right set, rather than a narrow bugfix.
+
+**Decisions locked in with the user** (via plan review): retire the Employee view (a static,
+non-interactive per-employee card list) since Staff view now strictly supersedes it (same
+employee-filter capability, plus a real timeline, plus drag). List view gets inline quick-edit,
+not drag — a flat filterable table has no timeline/lane geometry, so "dragging" a row would be
+ambiguous about whether it changes date, time, or both.
+
+**Shared building blocks** (new, reused by every board below):
+- `src/app/(app)/calendar/drag-commit.ts` — plain async `commitJobPatch(jobId, patch, handlers)`,
+  no React hooks, wraps the PATCH-with-optimistic-update-and-rollback flow every board uses.
+  Deliberately kept hook-free and out of `shared.ts` (which the server-rendered `page.tsx` also
+  imports) so adding client-only logic here can never taint that server/client import boundary.
+- `src/app/(app)/calendar/shared.ts` — added `assignDayLanes()`: clusters a day's jobs by
+  time-overlap (sweep-merge) then greedily assigns lane numbers within each cluster (classic
+  interval-partitioning). Non-overlapping jobs still render full-width; only genuine overlaps
+  split into side-by-side slivers. This is the actual fix for the original defect.
+- `src/app/api/jobs/[jobId]/route.ts` — wrapped the `db.update(jobs)` PATCH in try/catch; a
+  Postgres unique-violation (code `23505`, the `jobs_series_date_idx` constraint on
+  `(recurringSeriesId, scheduledDate)`) now returns a clean 409 instead of an unhandled 500.
+  This became reachable once cross-day drag could put a recurring job's date in collision with
+  another instance of its own series.
+- Every new client board (`week-board.tsx`, `day-board.tsx`, `list-board.tsx`, and the earlier
+  `staff-board.tsx`) reuses the same local-state resync pattern:
+  `if (initialJobs !== syncedJobs) { setSyncedJobs(initialJobs); setJobs(initialJobs); }` called
+  directly in the render body, **not** inside `useEffect` — this repo's ESLint config
+  (`react-hooks/set-state-in-effect`) forbids synchronous `setState` inside an effect body.
+
+**Per-view changes**:
+- **Staff view** (built earlier, unchanged this round): per-technician timeline, native HTML5
+  drag to reschedule/reassign, synthetic "Unassigned" row, dashed-outline conflict indicator for
+  same-person double-booking.
+- **Week view** (`week-board.tsx`, new, replaces static markup in `page.tsx`): lane-based layout
+  fixes the overlap defect; full drag added — vertical drag within a day column changes time
+  only, drag to a different day column changes date + time; day columns grow past a fixed `1fr`
+  when a cluster needs more lanes (min ~95px/lane) with horizontal scroll picking up the rest;
+  client-side pre-check blocks dropping a recurring job onto a date its own series already
+  occupies (server 409 above is the authoritative backstop for cases outside the loaded week).
+- **Day view** (`day-board.tsx`, new): single-day worklist plus a slim 7am-7pm vertical
+  time-rail as a precise drag-to-retime target (same axis math as Staff view, transposed
+  vertical); reassignment via a plain `<select>` per row instead of drag (a flat list has no
+  lane geometry to reassign onto).
+- **List view** (`list-board.tsx`, new): inline quick-edit, no drag — `<input type="date">` /
+  `<input type="time">` for scheduling, `<select>` for reassignment and status, committing on
+  blur/change. Extended `JobPatch` (`drag-commit.ts`) with an optional `status` field since this
+  is the first surface that edits status inline. Each editable cell is keyed on its own
+  underlying value (e.g. `key={`date-${job.scheduledDate}`}`), not just the job id — necessary
+  because these are uncontrolled inputs (`defaultValue`), and without a value-keyed remount they
+  wouldn't visually revert after a rejected edit's `router.refresh()` brings back the server's
+  authoritative value.
+- **Employee view**: removed (`filter-bar.tsx`'s `VIEWS` array entry + `page.tsx`'s render
+  branch deleted).
+
+Locked/terminal-status jobs (`completed`, `cancelled`, `no_show`) are correctly non-draggable
+and non-reassignable everywhere — confirmed by hitting this deliberately during testing (a
+"why didn't my drag do anything" turned out to be a `status: completed` job, not a bug).
+
+**Verified live in the browser** (dev server, logged in as `admin@example.com`), each round-trip
+through the real API and reverted back to original seed values afterward: Week view lane-split
+correctly under a forced overlap and correctly reverted to full-width once the overlap was
+removed; Week view cross-day drag (Tue 09:15 -> Wed 15:00, both date and time); Day view
+time-rail drag (09:15 -> 11:00) and reassignment dropdown (Shannon McHenry -> QA Tester); List
+view inline date/time/status edits, each persisting after refresh. `npm run verify` stayed at 0
+errors after every phase.
+
+**Not yet built** (next up): an Undo toast after each drag/edit commit, and a shared
+job-detail slide-over panel (click a job in any view to see/edit details instead of navigating
+to `/jobs/[jobId]`). The slide-over's notes field will eventually want a true occurrence-only
+`jobs.jobNotes` column (distinct from customer-level notes and from `completionNotes`, which is
+post-clean only) — flagged as a separate, smaller follow-up schema change, not yet scoped in
+detail or approved.
+
+### Follow-up, same day — Phase 4: Undo toast + job detail slide-over
+
+Built the two items flagged above as "not yet built."
+
+**Undo toast** (`undo-toast.tsx`, new): `useUndoToast()` hook + `<UndoToast>` presentational
+component, shared by all four boards (`staff-board.tsx`, `week-board.tsx`, `day-board.tsx`,
+`list-board.tsx`). After any successful `commitJobPatch`, the board captures the job's
+pre-change values in a closure and calls `showUndo(message, undoFn)`; the toast auto-dismisses
+after 6s via a `useEffect` timer with cleanup (`setTimeout` + `clearTimeout` — this is the
+legitimate, lint-clean use of an effect, unlike a synchronous prop-mirroring `setState`).
+Clicking Undo re-runs `commitJobPatch` with the captured previous values. `list-board.tsx`'s four
+separate commit actions (date/time/assignee/status) share one `commit()` helper that now takes
+an optional `undo: { message, patch, apply }` descriptor, rather than repeating the
+optimistic/undo wiring four times.
+
+**Job detail slide-over** (`job-detail-panel.tsx`, new): every job block/row in every view now
+opens this panel on a plain left-click instead of navigating to `/jobs/[jobId]` — added
+`isPlainClick()` to `shared.ts` (checks `!defaultPrevented && button === 0 && no modifier keys`)
+so ctrl/cmd/shift/middle-click still fall through to normal link navigation (open in new tab
+etc.), only a bare click opens the panel. The panel fetches the job fresh via the existing
+`GET /api/jobs/[jobId]` route keyed on `jobId` (not fed from a board's local, partially-shaped
+job object — each board's job type only carries the fields that board's own display needs, and
+harmonizing four different shapes was more complex than one extra fetch), and shows
+customer/type/status/location, editable date/time/assignee/status, job value, a "Cancel job"
+shortcut, and a link to the full `/jobs/[jobId]` page for anything out of scope (time entries,
+multi-crew assignment, invoicing, completion notes). All edits commit through `commitJobPatch`,
+consistent with every other view.
+
+**Notes field deliberately NOT included** in the panel, per the gap flagged above: the only
+existing "notes" field on a job is `completionNotes`, which is explicitly post-clean-only
+(confirmed by reading `/jobs/[jobId]/page.tsx`'s own "Close-out memo" labeling) — reusing it for
+a general/occurrence note would be semantically wrong and would corrupt what My Day already shows
+post-completion. A true occurrence-only `jobs.jobNotes` column is still a separate, unscoped
+follow-up.
+
+**Reschedule/status stay always-editable, not locked-status-gated, in the panel** — deliberately
+different from the drag interactions (which do refuse to drag `completed`/`cancelled`/`no_show`
+jobs). This matches the existing, established precedent in `/jobs/[jobId]/page.tsx`, where the
+date/time inputs and status `<select>` have no disabled/locked condition at all — a typed/clicked
+edit in a detail view is a deliberate action, not an accidental drag mid-dispatch, so the two
+surfaces are allowed to have different guard rails on purpose.
+
+**One ESLint fight worth recording**: the panel's initial draft fetched job detail directly
+inside a `useEffect` body (`fetch(...).then(setJob)...`), which the `react-hooks/set-state-in-effect`
+rule rejected — but only for the early-return branch (`if (!jobId) { setJob(null); return; }`),
+not for the `setLoading(true)`/`setError(null)` calls sitting right above the fetch. The rule's
+static check only flags `setState` calls written directly at the effect's top level; wrapping the
+whole fetch sequence in a separately-defined `async function loadJob(...)` and having the effect
+merely *call* that function (matching the exact pattern already used in
+`/jobs/[jobId]/page.tsx`'s `load()`) satisfies the linter even though the called function still
+calls `setState` synchronously up to its first `await`. Worth remembering for any future
+fetch-on-mount code in this repo: wrap in a named function, don't inline the `setState` calls
+directly in the effect body.
+
+**Verified live in the browser**, all round-tripped through the real API and reverted after:
+clicking a job opened the correct panel in Week, Staff, List, and Day views; editing the
+assignee dropdown inside the panel persisted and updated the underlying board's card color;
+Undo toast confirmed end-to-end — dragged a job to a new time in Week view, located the "Undo"
+button (it renders ~200-300ms after the drag, once the PATCH resolves — a naive single fixed-delay
+check missed it a couple of times before polling caught it reliably), clicked it, and confirmed
+via direct API read that the job reverted to its exact pre-drag time. `npm run verify` is clean
+at 0 errors. This completes all 5 phases of the calendar scheduling UX overhaul.

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { auditLog, customers, users, jobs, jobAssignments, timeEntries, payrollLines, payrollPeriods } from "@/db/schema";
+import { auditLog, customers, users, jobs, jobAssignments, timeEntries, payrollLines, payrollPeriods, serviceLocations } from "@/db/schema";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildPayTiers, getPayTierBrackets } from "@/lib/payroll/calculate";
@@ -23,6 +23,7 @@ const updateEmployeeSchema = z.object({
   tierRatesCents: z.array(z.number().int().nonnegative()).min(1).optional(),
   gustoEmployeeId: z.string().trim().optional(),
   isActive: z.boolean().optional(),
+  serviceLocationId: z.string().uuid().optional().nullable(),
 });
 
 const passwordSchema = z.object({
@@ -42,21 +43,34 @@ export async function GET(
   const admin = await requireAdmin();
   const { employeeId } = await params;
 
-  const [employee] = await db
-    .select()
+  const [employeeRow] = await db
+    .select({ employee: users, serviceLocationName: serviceLocations.name })
     .from(users)
+    .leftJoin(serviceLocations, eq(users.serviceLocationId, serviceLocations.id))
     .where(and(eq(users.id, employeeId), eq(users.companyId, admin.companyId)))
     .limit(1);
 
-  if (!employee) {
+  if (!employeeRow) {
     return NextResponse.json({ error: "Employee not found" }, { status: 404 });
   }
+
+  const employee = { ...employeeRow.employee, serviceLocationName: employeeRow.serviceLocationName };
 
   const [jobsCompletedResult] = await db
     .select({ count: sql<number>`count(*)` })
     .from(jobAssignments)
     .innerJoin(jobs, eq(jobAssignments.jobId, jobs.id))
     .where(and(eq(jobAssignments.userId, employeeId), eq(jobs.status, "completed")));
+
+  const completionRows = await db
+    .select({ status: jobs.status, count: sql<number>`count(*)` })
+    .from(jobAssignments)
+    .innerJoin(jobs, eq(jobAssignments.jobId, jobs.id))
+    .where(and(eq(jobAssignments.userId, employeeId), inArray(jobs.status, ["completed", "cancelled", "no_show"])))
+    .groupBy(jobs.status);
+  const completionCounts = Object.fromEntries(completionRows.map((row) => [row.status, Number(row.count)]));
+  const completionTotal = (completionCounts.completed ?? 0) + (completionCounts.cancelled ?? 0) + (completionCounts.no_show ?? 0);
+  const completionRate = completionTotal > 0 ? (completionCounts.completed ?? 0) / completionTotal : null;
 
   let hoursWorked = 0;
   if (employee.payType === "commission_jth") {
@@ -150,17 +164,61 @@ export async function GET(
 
   const payTierBrackets = await getPayTierBrackets(admin.companyId);
 
+  const companyCompletedCounts = await db
+    .select({ userId: jobAssignments.userId, count: sql<number>`count(*)` })
+    .from(jobAssignments)
+    .innerJoin(jobs, eq(jobAssignments.jobId, jobs.id))
+    .innerJoin(users, eq(jobAssignments.userId, users.id))
+    .where(and(eq(users.companyId, admin.companyId), eq(users.isActive, true), eq(jobs.status, "completed")))
+    .groupBy(jobAssignments.userId)
+    .orderBy(desc(sql`count(*)`));
+  const teamSize = companyCompletedCounts.length;
+  const rankIndex = companyCompletedCounts.findIndex((row) => row.userId === employeeId);
+  const teamRank = rankIndex === -1 ? null : rankIndex + 1;
+
+  const weekStart = new Date();
+  const day = weekStart.getUTCDay();
+  weekStart.setUTCDate(weekStart.getUTCDate() + (day === 0 ? -6 : 1 - day));
+  weekStart.setUTCHours(0, 0, 0, 0);
+  const weekStartISO = weekStart.toISOString().slice(0, 10);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+  const weekEndISO = weekEnd.toISOString().slice(0, 10);
+
+  const weekJobs = await db
+    .select({ scheduledDate: jobs.scheduledDate, count: sql<number>`count(*)` })
+    .from(jobAssignments)
+    .innerJoin(jobs, eq(jobAssignments.jobId, jobs.id))
+    .where(and(
+      eq(jobAssignments.userId, employeeId),
+      inArray(jobs.status, ["scheduled", "in_progress", "completed"]),
+      sql`${jobs.scheduledDate} >= ${weekStartISO}::date`,
+      sql`${jobs.scheduledDate} <= ${weekEndISO}::date`,
+    ))
+    .groupBy(jobs.scheduledDate);
+  const jobCountByDate = new Map(weekJobs.map((row) => [row.scheduledDate, Number(row.count)]));
+  const weeklySchedule = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(weekStart);
+    date.setUTCDate(date.getUTCDate() + i);
+    const iso = date.toISOString().slice(0, 10);
+    return { date: iso, jobCount: jobCountByDate.get(iso) ?? 0 };
+  });
+
   return NextResponse.json({
     employee,
     stats: {
       jobsCompleted: jobsCompletedResult?.count ?? 0,
       hoursWorked: Math.round(hoursWorked * 100) / 100,
       thisMonthPayCents: thisMonthPay?.total ?? 0,
+      completionRate,
+      teamRank,
+      teamSize,
     },
     upcomingJobs,
     recentJobs,
     recentTimeEntries,
     payTierBrackets,
+    weeklySchedule,
   });
 }
 
@@ -190,6 +248,18 @@ export async function PATCH(
 
   const { tierRatesCents, ...rest } = parsed.data;
   const fields: Record<string, unknown> = { ...rest };
+
+  if (fields.serviceLocationId) {
+    const [location] = await db
+      .select({ id: serviceLocations.id })
+      .from(serviceLocations)
+      .where(and(eq(serviceLocations.id, fields.serviceLocationId as string), eq(serviceLocations.companyId, admin.companyId)))
+      .limit(1);
+    if (!location) {
+      return NextResponse.json({ error: "That service location was not found for this company." }, { status: 400 });
+    }
+  }
+
   if (tierRatesCents) {
     const brackets = await getPayTierBrackets(admin.companyId);
     if (tierRatesCents.length !== brackets.length) {

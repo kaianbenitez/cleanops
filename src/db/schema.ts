@@ -64,10 +64,34 @@ export const users = pgTable("users", {
   // source spreadsheet showed different tier numbers. Verify before relying
   // on this for a real payroll run.
   payTiers: jsonb("pay_tiers"),
+  // Which service location (e.g. Bartlesville vs. Tulsa) this person primarily
+  // works out of. Cleaning techs generally stick to one area rather than
+  // cross-driving between them. Nullable — not every employee has this set.
+  serviceLocationId: uuid("service_location_id").references(() => serviceLocations.id),
   isActive: boolean("is_active").notNull().default(true),
   ...timestamps,
 }, (t) => ({
   companyIdx: index("users_company_idx").on(t.companyId),
+}));
+
+// ---------- employee PTO ----------
+export const ptoPeriodEnum = ["full", "morning", "afternoon"] as const;
+
+/** Admin-managed availability exceptions. Interior dates in a range are full
+ * days; start/end periods support half-day PTO at either boundary. */
+export const employeePto = pgTable("employee_pto", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull().references(() => companies.id),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  startPeriod: text("start_period", { enum: ptoPeriodEnum }).notNull().default("full"),
+  endPeriod: text("end_period", { enum: ptoPeriodEnum }).notNull().default("full"),
+  note: text("note"),
+  ...timestamps,
+}, (t) => ({
+  userDateIdx: index("employee_pto_user_date_idx").on(t.userId, t.startDate, t.endDate),
+  companyDateIdx: index("employee_pto_company_date_idx").on(t.companyId, t.startDate, t.endDate),
 }));
 
 // ---------- customers ----------
@@ -261,6 +285,7 @@ export const quotes = pgTable("quotes", {
   signatureName: text("signature_name"), // typed-name e-signature, set on accept
   signatureAt: timestamp("signature_at", { withTimezone: true }),
 
+  acceptedAddOns: jsonb("accepted_add_ons").notNull().default([]), // AddOnKey[] the customer picked on accept — see lib/pricing/add-ons.ts
   totalCents: integer("total_cents").notNull().default(0),
   notesToCustomer: text("notes_to_customer"),
   validUntil: date("valid_until"),
@@ -484,6 +509,12 @@ export const companiesRelations = relations(companies, ({ many }) => ({
   customerLocations: many(customerLocations),
   services: many(services),
   jobs: many(jobs),
+  employeePto: many(employeePto),
+}));
+
+export const employeePtoRelations = relations(employeePto, ({ one }) => ({
+  company: one(companies, { fields: [employeePto.companyId], references: [companies.id] }),
+  user: one(users, { fields: [employeePto.userId], references: [users.id] }),
 }));
 
 export const customersRelations = relations(customers, ({ one, many }) => ({

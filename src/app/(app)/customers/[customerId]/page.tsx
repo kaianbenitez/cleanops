@@ -28,6 +28,8 @@ type Customer = {
   tags?: unknown;
 };
 
+type RoomType = { id: string; name: string; sortOrder: number };
+
 type Location = {
   id?: string;
   label: string;
@@ -206,6 +208,7 @@ function PhotoTile({ title }: { title: string }) {
 export default function CustomerProfilePage({ params }: { params: Promise<{ customerId: string }> }) {
   const { customerId } = use(params);
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [jobs, setJobs] = useState<CustomerJob[]>([]);
   const [invoices, setInvoices] = useState<CustomerInvoice[]>([]);
@@ -239,8 +242,16 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
     });
   }, [load]);
 
+  useEffect(() => {
+    fetch("/api/room-types")
+      .then((response) => response.json())
+      .then((body) => setRoomTypes(body.roomTypes ?? []))
+      .catch(() => {});
+  }, []);
+
   const location = locations[activeLocationIndex] ?? null;
   const home = customer?.homeDetails ?? {};
+  const roomCounts = (home.roomCounts as Record<string, number>) ?? {};
   const upcomingJobs = useMemo(
     () =>
       jobs
@@ -261,6 +272,19 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
 
   const updateCustomer = (key: keyof Customer, value: string | boolean) => setCustomer((current) => (current ? { ...current, [key]: value } : current));
   const updateHome = (key: string, value: string) => setCustomer((current) => (current ? { ...current, homeDetails: { ...(current.homeDetails ?? {}), [key]: value } } : current));
+  const updateRoomCount = (roomTypeId: string, value: string) =>
+    setCustomer((current) => {
+      if (!current) return current;
+      const home = current.homeDetails ?? {};
+      const roomCounts = { ...((home.roomCounts as Record<string, number>) ?? {}) };
+      const count = Number(value);
+      if (value.trim() === "" || Number.isNaN(count)) {
+        delete roomCounts[roomTypeId];
+      } else {
+        roomCounts[roomTypeId] = count;
+      }
+      return { ...current, homeDetails: { ...home, roomCounts } };
+    });
   const updateLocation = (key: keyof Location, value: string) => setLocations((current) => current.map((item, index) => (index === activeLocationIndex ? { ...item, [key]: value } : item)));
   const updateAddress = (parts: { addressLine1: string; city: string; state: string; zip: string; county: string; googlePlaceId: string }) =>
     setLocations((current) => current.map((item, index) => (index === activeLocationIndex ? { ...item, ...parts } : item)));
@@ -625,11 +649,27 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
             <Field label="Preferred communication" value={customer.preferredCommunication ?? ""} onChange={(value) => updateCustomer("preferredCommunication", value)} />
             <Field label="Preferred day" value={customer.preferredDay ?? ""} onChange={(value) => updateCustomer("preferredDay", value)} />
             <Field label="Preferred time" value={customer.preferredTime ?? ""} onChange={(value) => updateCustomer("preferredTime", value)} />
-            <Field label="Bedrooms" value={String(home.bedrooms ?? "")} onChange={(value) => updateHome("bedrooms", value)} />
-            <Field label="Bathrooms" value={String(home.fullBathrooms ?? "")} onChange={(value) => updateHome("fullBathrooms", value)} />
             <Field label="Dirt level" value={String(home.dirtLevel ?? "")} onChange={(value) => updateHome("dirtLevel", value)} />
             <Field label="Clutter code" value={String(home.clutterCode ?? "")} onChange={(value) => updateHome("clutterCode", value)} />
             <Field label="Pets" value={String(home.dogs ?? "")} onChange={(value) => updateHome("dogs", value)} />
+          </div>
+
+          {/* Feeds quote autofill directly (see quotes/new's customer-fetch effect) — every
+              room type the company has configured, not just bedrooms/bathrooms, so a repeat
+              quote doesn't require re-entering the whole house from scratch. */}
+          <div className="mt-5 border-t border-[var(--co-line-soft)] pt-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Room counts (used to autofill quotes)</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {roomTypes.map((roomType) => (
+                <Field
+                  key={roomType.id}
+                  label={roomType.name}
+                  type="number"
+                  value={String(roomCounts[roomType.id] ?? "")}
+                  onChange={(value) => updateRoomCount(roomType.id, value)}
+                />
+              ))}
+            </div>
           </div>
         </Section>
       </section>

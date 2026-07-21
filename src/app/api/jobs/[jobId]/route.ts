@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { auditLog, jobs, jobAssignments, customers, timeEntries, users } from "@/db/schema";
 import { and, eq, inArray, desc } from "drizzle-orm";
 import { syncToGhl } from "@/lib/ghl/sync";
+import { findPtoConflicts, ptoConflictMessage } from "@/lib/scheduling/pto";
 
 const updateJobSchema = z.object({
   scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -121,7 +122,12 @@ export async function PATCH(
   }
 
   const { employeeIds, ...jobFields } = parsed.data;
-  const beforeAssignments = employeeIds ? await db.select({ userId: jobAssignments.userId, role: jobAssignments.role }).from(jobAssignments).where(eq(jobAssignments.jobId, jobId)) : [];
+  const currentAssignments = await db
+    .select({ userId: jobAssignments.userId, role: jobAssignments.role })
+    .from(jobAssignments)
+    .where(eq(jobAssignments.jobId, jobId));
+  const beforeAssignments = employeeIds ? currentAssignments : [];
+  const effectiveEmployeeIds = employeeIds ?? currentAssignments.map((assignment) => assignment.userId);
 
   if (employeeIds && employeeIds.length > 0) {
     const validUsers = await db
@@ -133,8 +139,27 @@ export async function PATCH(
     }
   }
 
+  if (effectiveEmployeeIds.length > 0 && (employeeIds || jobFields.scheduledDate || jobFields.scheduledStartTime)) {
+    const conflicts = await findPtoConflicts({
+      companyId: admin.companyId,
+      employeeIds: effectiveEmployeeIds,
+      scheduledDate: jobFields.scheduledDate ?? existing.scheduledDate,
+      scheduledStartTime: jobFields.scheduledStartTime ?? existing.scheduledStartTime,
+    });
+    if (conflicts.length > 0) {
+      return NextResponse.json({ error: ptoConflictMessage(conflicts), conflicts }, { status: 409 });
+    }
+  }
+
   if (Object.keys(jobFields).length > 0) {
-    await db.update(jobs).set(jobFields).where(eq(jobs.id, jobId));
+    try {
+      await db.update(jobs).set(jobFields).where(eq(jobs.id, jobId));
+    } catch (err) {
+      if (err && typeof err === "object" && "code" in err && err.code === "23505") {
+        return NextResponse.json({ error: "This recurring series already has a job scheduled on that date." }, { status: 409 });
+      }
+      throw err;
+    }
     await db.insert(auditLog).values({
       companyId: admin.companyId,
       userId: admin.id,

@@ -153,22 +153,24 @@ export default function NewQuotePage() {
     setAddOnsAddedToNotes(false);
   }, [customerId]);
 
-  // Prefill bedroom/full-bathroom counts from the customer's stored home profile,
-  // and flag any add-ons they mentioned in their notes (e.g. a GHL intake form
-  // submission) — still fully editable afterward (e.g. skip a room they don't
-  // want cleaned this visit, or un-flag an add-on that isn't actually wanted).
+  // Prefill every room count from the customer's stored home profile (keyed by
+  // roomTypeId, so it covers whatever room types the company has configured —
+  // not just bedrooms/bathrooms), and flag any add-ons they mentioned in their
+  // notes (e.g. a GHL intake form submission) — still fully editable afterward
+  // (e.g. skip a room they don't want cleaned this visit, or un-flag an add-on
+  // that isn't actually wanted).
   useEffect(() => {
     if (!customerId || roomTypes.length === 0 || customerId === autofilledFor) return;
     fetch(`/api/customers/${customerId}`)
       .then((response) => response.json())
       .then((body) => {
-        const home = (body.customer?.homeDetails ?? {}) as Record<string, unknown>;
-        const bedroomRoom = roomTypes.find((room) => room.name.toLowerCase() === "bedroom");
-        const fullBathRoom = roomTypes.find((room) => room.name.toLowerCase() === "full bathroom");
+        const home = (body.customer?.homeDetails ?? {}) as { roomCounts?: Record<string, number> };
+        const storedRoomCounts = home.roomCounts ?? {};
         setCounts((current) => {
           const next = { ...current };
-          if (bedroomRoom && home.bedrooms) next[bedroomRoom.id] = Number(home.bedrooms) || 0;
-          if (fullBathRoom && home.fullBathrooms) next[fullBathRoom.id] = Number(home.fullBathrooms) || 0;
+          for (const roomType of roomTypes) {
+            if (storedRoomCounts[roomType.id] != null) next[roomType.id] = Number(storedRoomCounts[roomType.id]) || 0;
+          }
           return next;
         });
 
@@ -454,7 +456,7 @@ export default function NewQuotePage() {
                       }`}
                     >
                       {selected ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}
-                      {addOn.label} · +{dollars(addOn.priceCents)}
+                      {addOn.label} · {addOn.priceCents != null ? `+${dollars(addOn.priceCents)}` : (addOn.priceLabel ?? "ask for pricing")}
                       {wasDetected ? <span className={`text-[10px] ${selected ? "text-white/80" : "text-[var(--co-evergreen)]"}`}>(flagged)</span> : null}
                     </button>
                   );

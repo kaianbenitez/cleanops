@@ -4,6 +4,7 @@ import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { db } from "@/db";
 import { customers, quotes } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { LocalDateTime } from "@/components/local-date-time";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Draft",
@@ -172,7 +173,9 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
                         {STATUS_LABELS[quote.status] ?? quote.status}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-xs text-[var(--co-muted)]">{new Date(quote.createdAt).toLocaleDateString()}</td>
+                    <td className="whitespace-nowrap px-5 py-4 text-xs text-[var(--co-muted)]">
+                      <LocalDateTime value={quote.createdAt} options={{ month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }} />
+                    </td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <Link href={`/quotes/${quote.id}`} className="rounded-lg border border-[var(--co-line)] px-3 py-2 text-xs font-medium text-[var(--co-evergreen)]">

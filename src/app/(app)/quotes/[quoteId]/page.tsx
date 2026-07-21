@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ADD_ONS } from "@/lib/pricing/add-ons";
 
 type Tier = {
   roomSubtotalCents: number;
@@ -21,6 +22,7 @@ type Quote = {
   acceptedServiceType: string | null;
   signatureName: string | null;
   acceptedAt: string | null;
+  acceptedAddOns: string[];
   sentAt: string | null;
   allTierPricing: Record<string, Tier> | null;
 };
@@ -262,6 +264,28 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
                 {quote.acceptedAt ? ` on ${new Date(quote.acceptedAt).toLocaleString()}` : ""}.
               </div>
             ) : null}
+
+            {quote.acceptedAddOns?.length ? (
+              <div className="mt-3 rounded-xl border border-[var(--co-line-soft)] p-4 text-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Add-ons requested</p>
+                <ul className="mt-2 space-y-1.5">
+                  {quote.acceptedAddOns.map((key) => {
+                    const addOn = ADD_ONS.find((item) => item.key === key);
+                    const needsPricing = addOn?.priceCents == null;
+                    return (
+                      <li key={key} className="flex items-center justify-between gap-3">
+                        <span>{addOn?.label ?? key}</span>
+                        {needsPricing ? (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Call to price — {addOn?.priceLabel}</span>
+                        ) : (
+                          <span className="font-medium">{addOn ? dollars(addOn.priceCents!) : ""}</span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ) : null}
           </PageCard>
 
           <PageCard eyebrow="What this quote will become" title="Conversion context" description="Accepted quotes can turn into scheduled work.">
@@ -321,11 +345,11 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Sent</p>
-                <p className="mt-2 text-sm font-medium">{quote.sentAt ? new Date(quote.sentAt).toLocaleDateString() : "Not sent"}</p>
+                <p className="mt-2 text-sm font-medium">{quote.sentAt ? new Date(quote.sentAt).toLocaleString() : "Not sent"}</p>
               </div>
               <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Viewed / accepted</p>
-                <p className="mt-2 text-sm font-medium">{quote.acceptedAt ? new Date(quote.acceptedAt).toLocaleDateString() : "No response yet"}</p>
+                <p className="mt-2 text-sm font-medium">{quote.acceptedAt ? new Date(quote.acceptedAt).toLocaleString() : "No response yet"}</p>
               </div>
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">

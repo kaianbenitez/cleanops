@@ -1,8 +1,8 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
-import { Sparkles, Droplet, Star, PanelsTopLeft, Flame, Refrigerator, Ruler, LayoutGrid, Shirt, type LucideIcon } from "lucide-react";
-import { ADD_ONS, type AddOnKey } from "@/lib/pricing/add-ons";
+import { Sparkles, Droplet, Star, Truck, PanelsTopLeft, Flame, Refrigerator, Ruler, LayoutGrid, Shirt, type LucideIcon } from "lucide-react";
+import { ADD_ONS, MOVE_IN_OUT_DEFAULT_ADD_ONS, type AddOnKey } from "@/lib/pricing/add-ons";
 
 type TierBreakdown = {
   roomLines: Array<{ roomTypeName: string; count: number; subtotalCents: number }>;
@@ -25,7 +25,10 @@ type PublicQuote = {
   };
   customerFirstName: string;
   customerLastName: string;
+  customerAddressLine1: string | null;
   customerCity: string | null;
+  customerState: string | null;
+  customerZip: string | null;
   companyName: string;
   companyPhone: string | null;
   companyLogoUrl: string | null;
@@ -55,7 +58,7 @@ type PublicQuote = {
   } | null;
 };
 
-const MAIN_TYPES = ["supreme_deep", "deep", "first_time"] as const;
+const MAIN_TYPES = ["supreme_deep", "deep", "first_time", "move_in_out"] as const;
 const RECURRING_TYPES = ["weekly", "biweekly", "four_weeks"] as const;
 
 const SERVICE_LABELS: Record<string, string> = {
@@ -75,19 +78,21 @@ const SERVICE_DESCRIPTIONS: Record<string, string> = {
   weekly: "Maintenance clean.",
   biweekly: "Every 2 weeks.",
   four_weeks: "Every 4 weeks.",
-  move_in_out: "Move-in / move-out.",
+  move_in_out: "A full deep clean for move-in or move-out day.",
 };
 
 const SERVICE_ICONS: Record<string, typeof Sparkles> = {
   supreme_deep: Sparkles,
   deep: Droplet,
   first_time: Star,
+  move_in_out: Truck,
 };
 
 const SERVICE_BULLETS: Record<string, string[]> = {
   supreme_deep: ["Hand wipe fixtures & vents", "Steam mop all hard floors", "Interior fridge & oven detail", "Full kitchen sanitizing"],
   deep: ["Hand wipe fixtures & surfaces", "Spot clean doors & handles", "Vacuum & mop all floors", "Detailed bathroom clean"],
   first_time: ["General dusting throughout", "Vacuum & mop all floors", "Wipe down kitchen counters", "Fresh baseline for recurring service"],
+  move_in_out: ["Full top-to-bottom deep clean", "Oven clean out included by default", "Fridge clean out included by default", "Windows included by default"],
 };
 
 const ADD_ON_STYLES: Record<AddOnKey, { icon: LucideIcon; color: string }> = {
@@ -114,6 +119,20 @@ const FAQS = [
 function dollars(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
 }
+
+function addOnPriceLabel(item: (typeof ADD_ONS)[number]) {
+  return item.priceCents != null ? `+${dollars(item.priceCents)}` : (item.priceLabel ?? "Ask for pricing");
+}
+
+function formatValidUntil(value: string | null) {
+  if (!value) return null;
+  const parsed = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+}
+
+const ESTIMATE_DISCLAIMER =
+  "Please note that the provided estimate is an approximation of the time in labor hours required to clean your property, based on the condition discussed during the estimation process. We strive to offer accurate estimates; however, if upon arrival, the actual condition of the home varies from the initial description, or if additional cleaning time is required, we will seek your approval to extend the time needed to ensure a thorough clean. Alternatively, you may choose to stay within the original estimated time, with the understanding that some cleaning tasks may be left incomplete. We recognize that the expectations and definitions of 'clean' can vary among individuals. Should we arrive and find that the home is not in a condition ready for cleaning, we reserve the right to refuse service. Thank you for your understanding and cooperation.";
 
 function Section({
   eyebrow,
@@ -194,6 +213,13 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
   const [openFaq, setOpenFaq] = useState<string | null>(FAQS[0].q);
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
 
+  // Move In/Out bundles oven/fridge/window cleaning by default — the customer can
+  // still uncheck any of them, this just saves them from having to remember to ask.
+  function applyTierAddOnDefaults(type: string | null) {
+    if (type !== "move_in_out") return;
+    setSelectedAddOns((current) => Array.from(new Set([...current, ...MOVE_IN_OUT_DEFAULT_ADD_ONS])));
+  }
+
   useEffect(() => {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 8_000);
@@ -210,6 +236,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
           setRecurringFrequency(initialType);
         } else {
           setSelectedType(initialType);
+          applyTierAddOnDefaults(initialType);
         }
       })
       .catch(() => setNotFound(true))
@@ -251,6 +278,10 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
   const isAccepted = accepted || data?.quote.status === "accepted";
   const locked = isAccepted || isExpired;
   const intro = data?.quoteTemplate?.introLetter || DEFAULT_INTRO;
+  const fullAddress = data
+    ? [data.customerAddressLine1, data.customerCity, data.customerState, data.customerZip].filter(Boolean).join(", ")
+    : "";
+  const validUntilLabel = data ? formatValidUntil(data.quote.validUntil) : null;
   const mainTiers = useMemo(
     () => MAIN_TYPES.filter((type) => data?.allTierPricing?.[type]).map((type) => [type, data!.allTierPricing![type]] as const),
     [data]
@@ -319,20 +350,28 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                 <p className="break-words text-sm text-[var(--co-muted)]">
                   Proposal for {data.customerFirstName} {data.customerLastName}
                 </p>
+                {fullAddress ? <p className="mt-1 break-words text-xs text-[var(--co-muted)]">{fullAddress}</p> : null}
                 <p className="mt-2 break-words text-xs text-[var(--co-faint)]">{data.locationName || "Your home"} · Proposal {data.quote.id.slice(0, 8).toUpperCase()}</p>
               </div>
             </div>
 
-            <div className="flex shrink-0 flex-wrap gap-2">
-              {data.companyPhone ? (
-                <>
-                  <a href={`tel:${data.companyPhone}`} className="co-button-secondary">
-                    Call
-                  </a>
-                  <a href={`sms:${data.companyPhone}`} className="co-button-secondary">
-                    Text
-                  </a>
-                </>
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              <div className="flex flex-wrap justify-end gap-2">
+                {data.companyPhone ? (
+                  <>
+                    <a href={`tel:${data.companyPhone}`} className="co-button-secondary">
+                      Call
+                    </a>
+                    <a href={`sms:${data.companyPhone}`} className="co-button-secondary">
+                      Text
+                    </a>
+                  </>
+                ) : null}
+              </div>
+              {validUntilLabel ? (
+                <span className="whitespace-nowrap rounded-full bg-[var(--co-surface-muted)] px-3 py-1 text-xs font-medium text-[var(--co-muted)]">
+                  Valid until {validUntilLabel}
+                </span>
               ) : null}
             </div>
           </div>
@@ -366,7 +405,10 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                     <button
                       key={type}
                       disabled={locked}
-                      onClick={() => setSelectedType(type)}
+                      onClick={() => {
+                        setSelectedType(type);
+                        applyTierAddOnDefaults(type);
+                      }}
                       className={`relative flex min-w-0 flex-col rounded-2xl border p-5 text-left transition-transform hover:-translate-y-0.5 ${
                         selected ? "border-[var(--co-evergreen)] bg-[var(--co-accent-tint)] ring-2 ring-[var(--co-evergreen)]" : "border-[var(--co-line-soft)] bg-[var(--co-surface)]"
                       } ${locked ? "cursor-default opacity-75" : ""}`}
@@ -461,6 +503,11 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
               ) : null}
             </Section>
 
+            <section className="min-w-0 rounded-[28px] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-6">
+              <p className="eyebrow">Please read before booking</p>
+              <p className="mt-3 text-sm leading-6 text-[var(--co-muted)]">{ESTIMATE_DISCLAIMER}</p>
+            </section>
+
             <section className="min-w-0 rounded-[28px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-6 shadow-[0_12px_40px_rgba(15,23,42,0.05)]">
               <p className="eyebrow">Add-on services</p>
               <h3 className="mt-2 text-2xl font-semibold text-[var(--co-ink)]">Add extras without reopening the whole quote</h3>
@@ -472,6 +519,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                   const checked = selectedAddOns.includes(item.key);
                   const style = ADD_ON_STYLES[item.key];
                   const Icon = style.icon;
+                  const includedByDefault = selectedType === "move_in_out" && MOVE_IN_OUT_DEFAULT_ADD_ONS.includes(item.key);
                   return (
                     <button
                       key={item.key}
@@ -499,28 +547,35 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                               ✓
                             </span>
                           </div>
-                          <p className="mt-1 text-xs text-[var(--co-muted)]">Tap to add or remove this extra.</p>
+                          <p className="mt-1 text-xs leading-5 text-[var(--co-muted)]">
+                            {includedByDefault ? "Included with Move In/Out by default — tap to remove." : (item.description ?? "Tap to add or remove this extra.")}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center justify-between gap-3 border-t border-[var(--co-line-soft)] pt-3">
-                        <span className="eyebrow">Add-on price</span>
-                        <span className="co-badge-success shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-sm font-semibold">+{dollars(item.priceCents)}</span>
+                        <span className="eyebrow">{item.priceCents != null ? "Add-on price" : "Estimated range"}</span>
+                        <span className="co-badge-success shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-sm font-semibold">{addOnPriceLabel(item)}</span>
                       </div>
                     </button>
                   );
                 })}
               </div>
-              {selectedAddOnTotalCents ? (
+              {selectedAddOns.length > 0 ? (
                 <div className="mt-5 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-accent-tint)] p-4">
                   <p className="eyebrow">Add-ons selected</p>
                   <div className="mt-3 space-y-2 text-sm text-[var(--co-muted)]">
                     {ADD_ONS.filter((item) => selectedAddOns.includes(item.key)).map((item) => (
                       <div key={item.key} className="flex min-w-0 items-center justify-between gap-3">
                         <span className="min-w-0">{item.label}</span>
-                        <span className="shrink-0 font-medium text-[var(--co-ink)]">+{dollars(item.priceCents)}</span>
+                        <span className="shrink-0 font-medium text-[var(--co-ink)]">{addOnPriceLabel(item)}</span>
                       </div>
                     ))}
                   </div>
+                  {selectedAddOns.some((key) => ADD_ONS.find((item) => item.key === key)?.priceCents == null) ? (
+                    <p className="mt-3 text-xs text-[var(--co-muted)]">
+                      Items without a fixed price aren&apos;t added to your total yet — we&apos;ll follow up to confirm those before your appointment.
+                    </p>
+                  ) : null}
                 </div>
               ) : null}
               {contactPhone ? (

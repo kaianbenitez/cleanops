@@ -1,7 +1,9 @@
 "use client";
 
-import { use, useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { MapPin, User, CalendarDays, History } from "lucide-react";
+import PtoEditor, { type EmployeePto } from "./pto-editor";
 
 type PayTier = { minHours: number; maxHours: number | null; rateCents: number };
 type Employee = {
@@ -18,8 +20,19 @@ type Employee = {
   payTiers: PayTier[] | null;
   gustoEmployeeId: string | null;
   isActive: boolean;
+  serviceLocationId: string | null;
+  serviceLocationName: string | null;
 };
-type Stats = { jobsCompleted: number; hoursWorked: number; thisMonthPayCents: number };
+type Stats = {
+  jobsCompleted: number;
+  hoursWorked: number;
+  thisMonthPayCents: number;
+  completionRate: number | null;
+  teamRank: number | null;
+  teamSize: number;
+};
+type WeekDay = { date: string; jobCount: number };
+type ServiceLocation = { id: string; name: string };
 type EmployeeJob = {
   id: string;
   status: "scheduled" | "in_progress" | "completed" | "cancelled" | "no_show";
@@ -69,11 +82,11 @@ const JOB_STATUS_LABELS: Record<EmployeeJob["status"], string> = {
 };
 
 const JOB_STATUS_CLASSES: Record<EmployeeJob["status"], string> = {
-  scheduled: "border-[#d9e5cf] bg-[#f6faf1] text-[#5c7436]",
-  in_progress: "border-[#cfe3ff] bg-[#eef5ff] text-[#456c9a]",
-  completed: "border-[#d9e5cf] bg-[#edf5e4] text-[#5c7436]",
-  cancelled: "border-[#f0d4d4] bg-[#fbefef] text-[#a35c5c]",
-  no_show: "border-[#f2d9c2] bg-[#fff5ea] text-[#a46a2e]",
+  scheduled: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  in_progress: "border-blue-200 bg-blue-50 text-blue-700",
+  completed: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  cancelled: "border-rose-200 bg-rose-50 text-rose-700",
+  no_show: "border-amber-200 bg-amber-50 text-amber-700",
 };
 
 function dollars(cents: number) {
@@ -84,23 +97,103 @@ function formatClock(value: string | null) {
   return value ? value.slice(0, 5) : "—";
 }
 
-function formatHours(minutes: number | null) {
-  return minutes == null ? "—" : (minutes / 60).toFixed(2);
+function tenureLabel(hiredDate: string | null) {
+  if (!hiredDate) return null;
+  const hired = new Date(`${hiredDate}T00:00:00.000Z`);
+  if (Number.isNaN(hired.getTime())) return null;
+  const months = Math.max(0, Math.floor((Date.now() - hired.getTime()) / (1000 * 60 * 60 * 24 * 30.44)));
+  if (months < 1) return "New this month";
+  if (months < 12) return `${months} month${months === 1 ? "" : "s"} tenured`;
+  const years = Math.floor(months / 12);
+  const remMonths = months % 12;
+  return remMonths === 0 ? `${years} year${years === 1 ? "" : "s"} tenured` : `${years}.${Math.floor((remMonths / 12) * 10)} years tenured`;
+}
+
+function milestoneCountdown(value: string | null, label: string) {
+  if (!value) return null;
+  const source = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(source.getTime())) return null;
+  const now = new Date();
+  const next = new Date(Date.UTC(now.getUTCFullYear(), source.getUTCMonth(), source.getUTCDate()));
+  if (next < new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))) next.setUTCFullYear(next.getUTCFullYear() + 1);
+  const days = Math.round((next.getTime() - Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())) / 86_400_000);
+  const countdown = days === 0 ? "today" : days < 45 ? `in ${days} day${days === 1 ? "" : "s"}` : `in ${Math.round(days / 30.44)} months`;
+  return `${label} ${countdown}`;
+}
+
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function WeekStrip({ days, pto = [] }: { days: WeekDay[]; pto?: EmployeePto[] }) {
+  if (days.length === 0) return null;
+  const todayISO = new Date().toISOString().slice(0, 10);
+  return (
+    <div className="grid grid-cols-7 gap-2">
+      {days.map((day, i) => {
+        const isToday = day.date === todayISO;
+        const ptoEntry = pto.find((entry) => entry.startDate <= day.date && entry.endDate >= day.date);
+        const isPto = Boolean(ptoEntry);
+        const isOff = day.jobCount === 0 && !isPto;
+        const dayNumber = Number(day.date.slice(8, 10));
+        return (
+          <div
+            key={day.date}
+            className={`rounded-xl border px-2 py-2.5 text-center ${
+              isPto
+                ? "border-amber-200 bg-amber-50"
+                : isOff
+                ? "border-rose-200 bg-rose-50"
+                : isToday
+                  ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)]/5"
+                  : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40"
+            }`}
+          >
+            <p className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${isPto ? "text-amber-700" : isOff ? "text-rose-500" : "text-[var(--co-muted)]"}`}>
+              {WEEKDAY_LABELS[i]}
+            </p>
+            <p className={`mt-0.5 text-sm font-semibold ${isPto ? "text-amber-800" : isOff ? "text-rose-600" : "text-[var(--co-ink)]"}`}>{dayNumber}</p>
+            {isPto ? (
+              <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-amber-700">PTO</p>
+            ) : isOff ? (
+              <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-rose-500">Off</p>
+            ) : (
+              <p className="mt-1 text-[11px] font-semibold text-[var(--co-evergreen)]">
+                {day.jobCount} job{day.jobCount === 1 ? "" : "s"}
+              </p>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ComingSoonStat({ label }: { label: string }) {
+  return (
+    <section className="rounded-2xl border border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)]/30 p-5">
+      <p className="text-xs font-semibold text-[var(--co-muted)]">{label}</p>
+      <p className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--co-muted)]">—</p>
+      <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--co-surface-muted)] px-2 py-0.5 text-[11px] font-semibold text-[var(--co-muted)]">
+        Coming soon
+      </p>
+    </section>
+  );
 }
 
 export default function EmployeeProfilePage({ params }: { params: Promise<{ employeeId: string }> }) {
   const { employeeId } = use(params);
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
-  const [upcomingJobs, setUpcomingJobs] = useState<EmployeeJob[]>([]);
   const [recentJobs, setRecentJobs] = useState<EmployeeJob[]>([]);
-  const [recentTimeEntries, setRecentTimeEntries] = useState<EmployeeTimeEntry[]>([]);
   const [payTierBrackets, setPayTierBrackets] = useState<PayTierBracket[]>([]);
+  const [weeklySchedule, setWeeklySchedule] = useState<WeekDay[]>([]);
+  const [serviceLocations, setServiceLocations] = useState<ServiceLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
   const [managementMessage, setManagementMessage] = useState<string | null>(null);
   const [managementError, setManagementError] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [pto, setPto] = useState<EmployeePto[]>([]);
+  const employeeInfoRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -115,10 +208,9 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
 
     setEmployee(data.employee);
     setStats(data.stats);
-    setUpcomingJobs(data.upcomingJobs ?? []);
     setRecentJobs(data.recentJobs ?? []);
-    setRecentTimeEntries(data.recentTimeEntries ?? []);
     setPayTierBrackets(data.payTierBrackets ?? []);
+    setWeeklySchedule(data.weeklySchedule ?? []);
     setError(null);
     setLoading(false);
   }, [employeeId]);
@@ -129,8 +221,15 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
     void load();
   }, [load]);
 
+  useEffect(() => {
+    // Loads the list of service locations for the "Service area" dropdown.
+    void fetch("/api/service-locations")
+      .then((res) => res.json())
+      .then((data) => setServiceLocations(data.locations ?? []))
+      .catch(() => setServiceLocations([]));
+  }, []);
+
   async function save(fields: Record<string, unknown>) {
-    setSaved(false);
     const response = await fetch(`/api/employees/${employeeId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -141,8 +240,6 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
       setError(data.error ?? "Could not save this change.");
       return;
     }
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
     await load();
   }
 
@@ -179,25 +276,50 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
   }
 
   if (error || !employee || !stats) {
-    return <div className="rounded-2xl border border-[#ecd8cf] bg-[#fff6f2] p-6 text-sm text-[#9b553d]">{error ?? "Employee not found."}</div>;
+    return <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">{error ?? "Employee not found."}</div>;
   }
 
   const fullName = `${employee.firstName} ${employee.lastName}`;
   const initials = `${employee.firstName[0] ?? ""}${employee.lastName[0] ?? ""}`.toUpperCase();
+  const tenure = tenureLabel(employee.hiredDate);
 
+  return <CompactProfile
+    employee={employee}
+    stats={stats}
+    recentJobs={recentJobs}
+    weeklySchedule={weeklySchedule}
+    pto={pto}
+    serviceLocations={serviceLocations}
+    editMode={editMode}
+    setEditMode={setEditMode}
+    employeeInfoRef={employeeInfoRef}
+    save={save}
+    setPto={setPto}
+    fullName={fullName}
+    initials={initials}
+    tenure={tenure}
+    payTierBrackets={payTierBrackets}
+    setPassword={setPassword}
+    deleteEmployee={deleteEmployee}
+    managementMessage={managementMessage}
+    managementError={managementError}
+    load={load}
+  />;
+
+  /* Legacy expanded profile retained below while the compact read-first profile is active.
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/employees" className="text-xs font-semibold text-[#668344] hover:text-[#40592b]">
+          <Link href="/employees" className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">
             ← Back to employees
           </Link>
-          <p className="mt-3 text-xs text-[#8a9b93]">
-            Employees / <span className="text-[#52635b]">{fullName}</span>
+          <p className="mt-3 text-xs text-[var(--co-muted)]">
+            Employees / <span className="text-[var(--co-ink)]">{fullName}</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {saved && <span className="text-xs font-semibold text-[#5c7436]">Saved</span>}
+          {saved && <span className="text-xs font-semibold text-[var(--co-evergreen)]">Saved</span>}
           <button
             type="button"
             onClick={() => save({ isActive: !employee.isActive })}
@@ -208,55 +330,101 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
         </div>
       </div>
 
-      <section className="grid gap-6 rounded-2xl border border-[#e1e8df] bg-white p-6 shadow-[0_16px_40px_rgba(27,41,37,0.05)] lg:grid-cols-[1fr_auto] lg:items-center">
+      <section className="co-card flex flex-col gap-6 p-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-4">
-          <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[#e5eedc] text-2xl font-semibold text-[#526d3a]">
+          <span className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-[var(--co-surface-muted)] text-2xl font-semibold text-[var(--co-evergreen)]">
             {initials}
+            <span
+              className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] ${
+                employee.isActive ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-500"
+              }`}
+            >
+              {employee.isActive ? "Active" : "Inactive"}
+            </span>
           </span>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-[-0.04em] text-[#1b2925]">{fullName}</h1>
-              <span
-                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                  employee.isActive ? "bg-[#e8f2d3] text-[#5c7436]" : "bg-[#f1f2f0] text-[#7a8580]"
-                }`}
-              >
-                {employee.isActive ? "Active" : "Inactive"}
+              <h1 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--co-ink)]">{fullName}</h1>
+              <span className="rounded-full border border-[var(--co-accent-tint)] bg-[var(--co-accent-tint)] px-2.5 py-1 text-[11px] font-semibold text-[var(--co-evergreen)]">
+                {employee.title ?? "Team member"}
               </span>
             </div>
-            <p className="mt-1 text-sm text-[#718179]">{employee.title ?? "Team member"}</p>
-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#718179]">
-              <span>{employee.email}</span>
-              {employee.phone && <span>{employee.phone}</span>}
-              <span>Hired {employee.hiredDate ?? "date not set"}</span>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--co-muted)]">
+              <span className="flex items-center gap-1">
+                <MapPin aria-hidden="true" strokeWidth={1.75} className="h-3.5 w-3.5" />
+                {employee.serviceLocationName ?? "No service area set"}
+              </span>
+              {tenure && <span className="font-semibold text-[var(--co-evergreen)]">{tenure}</span>}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => employeeInfoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                className="co-button-primary"
+              >
+                Edit profile
+              </button>
+              <Link href="/calendar" className="co-button-secondary">
+                View schedule
+              </Link>
             </div>
           </div>
         </div>
-        <div className="border-t border-[#edf0ec] pt-4 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
-          <p className="text-xs font-semibold text-[#718179]">Availability</p>
-          <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-[#526d3a]">
-            <span className="h-2 w-2 rounded-full bg-[#6f9251]" />
-            Managed manually
-          </p>
-          <p className="mt-1 text-xs text-[#8a9b93]">Use Calendar to assign work.</p>
+        <div className="flex gap-6 border-t border-[var(--co-line-soft)] pt-4 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Total jobs</p>
+            <p className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-[var(--co-ink)]">{stats.jobsCompleted.toLocaleString()}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Team rank</p>
+            <p className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-[var(--co-ink)]">
+              {stats.teamRank == null ? "—" : `#${stats.teamRank}`}
+            </p>
+            {stats.teamRank != null && <p className="text-[11px] text-[var(--co-muted)]">of {stats.teamSize}</p>}
+          </div>
         </div>
       </section>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <Stat label="Jobs completed" value={String(stats.jobsCompleted)} detail="Lifetime" />
-        <Stat label="Hours worked" value={stats.hoursWorked.toFixed(1)} detail="Based on current pay type" />
-        <Stat label="This month&apos;s pay" value={`$${dollars(stats.thisMonthPayCents)}`} detail="Generated payroll lines" />
+        <ComingSoonStat label="Avg rating" />
+        <Stat
+          label="Completion rate"
+          value={stats.completionRate == null ? "—" : `${Math.round(stats.completionRate * 100)}%`}
+          detail="Completed vs. cancelled/no-show"
+        />
+        <ComingSoonStat label="Attendance" />
       </div>
+
+      <section className="co-card p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <CalendarDays aria-hidden="true" strokeWidth={1.75} className="h-4 w-4 text-[var(--co-evergreen)]" />
+            <div>
+              <p className="eyebrow">Schedule</p>
+              <h2 className="mt-1 text-lg font-semibold">This week</h2>
+            </div>
+          </div>
+          <Link href="/calendar" className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">
+            Open calendar
+          </Link>
+        </div>
+        <div className="mt-4">
+          <WeekStrip days={weeklySchedule} />
+        </div>
+      </section>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(330px,0.75fr)]">
         <div className="space-y-5">
-          <section className="rounded-2xl border border-[#e1e8df] bg-white p-6 shadow-[0_12px_30px_rgba(27,41,37,0.04)]">
+          <section ref={employeeInfoRef} className="co-card scroll-mt-6 p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="eyebrow">Account</p>
-                <h2 className="mt-2 text-lg font-semibold text-[#263631]">Employee information</h2>
+              <div className="flex items-center gap-2">
+                <User aria-hidden="true" strokeWidth={1.75} className="h-4 w-4 text-[var(--co-evergreen)]" />
+                <div>
+                  <p className="eyebrow">Personnel details</p>
+                  <h2 className="mt-2 text-lg font-semibold">Employee information</h2>
+                </div>
               </div>
-              <span className="text-xs text-[#5c7436]">Changes are saved as you edit</span>
+              <span className="text-xs text-[var(--co-evergreen)]">Changes are saved as you edit</span>
             </div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <Field label="First name" defaultValue={employee.firstName} onSave={(v) => save({ firstName: v })} />
@@ -267,16 +435,44 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
               <Field label="Gusto employee ID" defaultValue={employee.gustoEmployeeId ?? ""} onSave={(v) => save({ gustoEmployeeId: v })} />
               <Field label="Birthday" type="date" defaultValue={employee.birthday ?? ""} onSave={(v) => save({ birthday: v || null })} />
               <Field label="Hired date" type="date" defaultValue={employee.hiredDate ?? ""} onSave={(v) => save({ hiredDate: v || null })} />
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-[var(--co-muted)]">Service area</label>
+                <select
+                  defaultValue={employee.serviceLocationId ?? ""}
+                  onChange={(e) => save({ serviceLocationId: e.target.value || null })}
+                  className="co-input w-full text-sm"
+                >
+                  <option value="">No service area set</option>
+                  {serviceLocations.map((location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#e1e8df] bg-white p-6 shadow-[0_12px_30px_rgba(27,41,37,0.04)]">
-            <p className="eyebrow">Payroll</p>
-            <h2 className="mt-2 text-lg font-semibold text-[#263631]">Pay setup</h2>
-            <p className="mt-1 text-sm text-[#718179]">These values feed payroll calculations and the Gusto export.</p>
+          <section className="co-card p-6">
+            <div className="flex items-center gap-2">
+              <Wallet aria-hidden="true" strokeWidth={1.75} className="h-4 w-4 text-[var(--co-evergreen)]" />
+              <div>
+                <p className="eyebrow">Payroll</p>
+                <h2 className="mt-2 text-lg font-semibold text-[var(--co-ink)]">Pay setup</h2>
+              </div>
+            </div>
+            <p className="mt-1 text-sm text-[var(--co-muted)]">These values feed payroll calculations and the Gusto export.</p>
+            <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 rounded-xl bg-[var(--co-surface-muted)]/50 px-4 py-3 text-sm">
+              <span className="text-[var(--co-muted)]">
+                Hours worked <span className="font-semibold text-[var(--co-ink)]">{stats.hoursWorked.toFixed(1)}</span>
+              </span>
+              <span className="text-[var(--co-muted)]">
+                This month&apos;s pay <span className="font-semibold text-[var(--co-ink)]">${dollars(stats.thisMonthPayCents)}</span>
+              </span>
+            </div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-[#65775e]">Pay type</label>
+                <label className="mb-1.5 block text-xs font-semibold text-[var(--co-muted)]">Pay type</label>
                 <select
                   defaultValue={employee.payType ?? "commission_jth"}
                   onChange={(e) => save({ payType: e.target.value })}
@@ -317,32 +513,35 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
         </div>
 
         <div className="space-y-5">
-          <section className="rounded-2xl border border-[#d9e5cf] bg-[#e8f0df] p-6">
-            <p className="eyebrow text-[#718e49]">Operations</p>
-            <h2 className="mt-3 text-xl font-semibold tracking-[-0.035em] text-[#27352c]">Keep the profile connected.</h2>
-            <p className="mt-3 text-sm leading-6 text-[#65775e]">
+          <section className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-6">
+            <p className="eyebrow text-[var(--co-evergreen)]">Operations</p>
+            <h2 className="mt-3 text-xl font-semibold tracking-[-0.035em] text-[var(--co-ink)]">Keep the profile connected.</h2>
+            <p className="mt-3 text-sm leading-6 text-[var(--co-muted)]">
               This page now shows the jobs and time entries tied to the employee so you can manage work without jumping across screens.
             </p>
             <div className="mt-6 space-y-2">
-              <Link href="/calendar" className="block rounded-xl border border-[#cfdcc2] bg-white/60 px-4 py-3 text-sm font-semibold text-[#536d35] hover:bg-white">
+              <Link href="/calendar" className="block rounded-xl border border-[var(--co-line)] bg-white/60 px-4 py-3 text-sm font-semibold text-[var(--co-evergreen)] hover:bg-white">
                 Open calendar →
               </Link>
-              <Link href="/jobs" className="block rounded-xl border border-[#cfdcc2] bg-white/60 px-4 py-3 text-sm font-semibold text-[#536d35] hover:bg-white">
+              <Link href="/jobs" className="block rounded-xl border border-[var(--co-line)] bg-white/60 px-4 py-3 text-sm font-semibold text-[var(--co-evergreen)] hover:bg-white">
                 Open jobs →
               </Link>
-              <Link href="/payroll" className="block rounded-xl border border-[#cfdcc2] bg-white/60 px-4 py-3 text-sm font-semibold text-[#536d35] hover:bg-white">
+              <Link href="/payroll" className="block rounded-xl border border-[var(--co-line)] bg-white/60 px-4 py-3 text-sm font-semibold text-[var(--co-evergreen)] hover:bg-white">
                 Open payroll →
               </Link>
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#e1e8df] bg-white p-6 shadow-[0_12px_30px_rgba(27,41,37,0.04)]">
+          <section className="co-card p-6">
             <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="eyebrow">Schedule</p>
-                <h2 className="mt-2 text-lg font-semibold text-[#263631]">Upcoming jobs</h2>
+              <div className="flex items-center gap-2">
+                <CalendarDays aria-hidden="true" strokeWidth={1.75} className="h-4 w-4 text-[var(--co-evergreen)]" />
+                <div>
+                  <p className="eyebrow">Schedule</p>
+                  <h2 className="mt-2 text-lg font-semibold text-[var(--co-ink)]">Upcoming jobs</h2>
+                </div>
               </div>
-              <Link href="/calendar" className="text-xs font-semibold text-[#668344] hover:text-[#40592b]">
+              <Link href="/calendar" className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">
                 Open calendar
               </Link>
             </div>
@@ -355,13 +554,16 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#e1e8df] bg-white p-6 shadow-[0_12px_30px_rgba(27,41,37,0.04)]">
+          <section className="co-card p-6">
             <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="eyebrow">History</p>
-                <h2 className="mt-2 text-lg font-semibold text-[#263631]">Recent jobs</h2>
+              <div className="flex items-center gap-2">
+                <History aria-hidden="true" strokeWidth={1.75} className="h-4 w-4 text-[var(--co-evergreen)]" />
+                <div>
+                  <p className="eyebrow">History</p>
+                  <h2 className="mt-2 text-lg font-semibold text-[var(--co-ink)]">Recent jobs</h2>
+                </div>
               </div>
-              <Link href="/jobs" className="text-xs font-semibold text-[#668344] hover:text-[#40592b]">
+              <Link href="/jobs" className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">
                 View all jobs
               </Link>
             </div>
@@ -374,19 +576,19 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#e1e8df] bg-white p-6 shadow-[0_12px_30px_rgba(27,41,37,0.04)]">
+          <section className="co-card p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="eyebrow">Hours</p>
-                <h2 className="mt-2 text-lg font-semibold text-[#263631]">Recent time entries</h2>
+                <h2 className="mt-2 text-lg font-semibold text-[var(--co-ink)]">Recent time entries</h2>
               </div>
-              <Link href="/payroll" className="text-xs font-semibold text-[#668344] hover:text-[#40592b]">
+              <Link href="/payroll" className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">
                 Edit payroll
               </Link>
             </div>
-            <div className="mt-4 overflow-hidden rounded-xl border border-[#edf0ec]">
+            <div className="mt-4 overflow-hidden rounded-xl border border-[var(--co-line-soft)]">
               <table className="w-full text-left text-sm">
-                <thead className="bg-[#fafbf8] text-[11px] uppercase tracking-[0.12em] text-[#8a9b93]">
+                <thead className="bg-[var(--co-surface-muted)] text-[11px] uppercase tracking-[0.12em] text-[var(--co-muted)]">
                   <tr>
                     <th className="px-4 py-3">Date</th>
                     <th className="px-4 py-3">Customer / job</th>
@@ -395,34 +597,34 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
                     <th className="px-4 py-3">Flags</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#edf0ec]">
+                <tbody className="divide-y divide-[var(--co-line-soft)]">
                   {recentTimeEntries.length === 0 ? (
                     <tr>
-                      <td className="px-4 py-6 text-sm text-[#718179]" colSpan={5}>
+                      <td className="px-4 py-6 text-sm text-[var(--co-muted)]" colSpan={5}>
                         No time entries recorded yet.
                       </td>
                     </tr>
                   ) : (
                     recentTimeEntries.map((entry) => (
                       <tr key={entry.id} className="align-top">
-                        <td className="px-4 py-3 text-xs text-[#718179]">{entry.scheduledDate}</td>
+                        <td className="px-4 py-3 text-xs text-[var(--co-muted)]">{entry.scheduledDate}</td>
                         <td className="px-4 py-3">
-                          <div className="font-medium text-[#263631]">
+                          <div className="font-medium text-[var(--co-ink)]">
                             {entry.customerFirstName} {entry.customerLastName}
                           </div>
-                          <div className="mt-1 text-xs text-[#8a9b93]">
+                          <div className="mt-1 text-xs text-[var(--co-muted)]">
                             {JOB_TYPE_LABELS[entry.type]} • {JOB_STATUS_LABELS[entry.status]}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-xs text-[#718179]">
-                          <div>{formatClock(entry.clockIn)}</div>
-                          <div>{formatClock(entry.clockOut)}</div>
+                        <td className="px-4 py-3 text-xs text-[var(--co-muted)]">
+                          <div>{formatTimestampClock(entry.clockIn)}</div>
+                          <div>{formatTimestampClock(entry.clockOut)}</div>
                         </td>
-                        <td className="px-4 py-3 text-right text-sm font-semibold text-[#263631]">{formatHours(entry.minutesWorked)}</td>
-                        <td className="px-4 py-3 text-xs text-[#718179]">
+                        <td className="px-4 py-3 text-right text-sm font-semibold text-[var(--co-ink)]">{formatHours(entry.minutesWorked)}</td>
+                        <td className="px-4 py-3 text-xs text-[var(--co-muted)]">
                           {entry.editedByAdmin ? <div>Edited by admin</div> : null}
                           {entry.recordedByAdmin ? <div>Recorded by admin</div> : null}
-                          {entry.notes ? <div className="mt-1 text-[#5c7436]">{entry.notes}</div> : null}
+                          {entry.notes ? <div className="mt-1 text-[var(--co-evergreen)]">{entry.notes}</div> : null}
                         </td>
                       </tr>
                     ))
@@ -432,14 +634,147 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#e1e8df] bg-white p-6">
+          <section className="co-card p-6">
             <p className="eyebrow">Audit readiness</p>
-            <h2 className="mt-2 text-lg font-semibold text-[#263631]">Change history</h2>
-            <p className="mt-2 text-sm leading-6 text-[#718179]">
+            <h2 className="mt-2 text-lg font-semibold text-[var(--co-ink)]">Change history</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--co-muted)]">
               Employee profile and pay changes are recorded with the admin who made them. Time edits stay visible in payroll and job views.
             </p>
-            <div className="mt-5 rounded-xl bg-[#fafbf8] p-4 text-xs text-[#65775e]">Every saved profile change creates an audit record.</div>
+            <div className="mt-5 rounded-xl bg-[var(--co-surface-muted)] p-4 text-xs text-[var(--co-muted)]">Every saved profile change creates an audit record.</div>
           </section>
+        </div>
+      </div>
+    </div>
+  ); */
+}
+
+type CompactProfileProps = {
+  employee: Employee;
+  stats: Stats;
+  recentJobs: EmployeeJob[];
+  weeklySchedule: WeekDay[];
+  pto: EmployeePto[];
+  serviceLocations: ServiceLocation[];
+  editMode: boolean;
+  setEditMode: (value: boolean) => void;
+  employeeInfoRef: React.RefObject<HTMLDivElement | null>;
+  save: (fields: Record<string, unknown>) => Promise<void>;
+  setPto: (pto: EmployeePto[]) => void;
+  fullName: string;
+  initials: string;
+  tenure: string | null;
+  payTierBrackets: PayTierBracket[];
+  setPassword: (password: string, confirmPassword: string) => Promise<void>;
+  deleteEmployee: () => Promise<void>;
+  managementMessage: string | null;
+  managementError: string | null;
+  load: () => Promise<void>;
+};
+
+function CompactProfile({
+  employee,
+  stats,
+  recentJobs,
+  weeklySchedule,
+  pto,
+  serviceLocations,
+  editMode,
+  setEditMode,
+  employeeInfoRef,
+  save,
+  setPto,
+  fullName,
+  initials,
+  tenure,
+  payTierBrackets,
+  setPassword,
+  deleteEmployee,
+  managementMessage,
+  managementError,
+  load,
+}: CompactProfileProps) {
+  const anniversary = milestoneCountdown(employee.hiredDate, "Work anniversary");
+  const birthday = milestoneCountdown(employee.birthday, "Birthday");
+  return (
+    <div className="mx-auto max-w-[1180px] space-y-5 pb-8">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <Link href="/employees" className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">← Team directory</Link>
+          <p className="mt-2 text-xs text-[var(--co-muted)]">Cleaners <span className="mx-1">›</span> <span className="text-[var(--co-ink)]">{fullName}</span></p>
+        </div>
+        <button type="button" onClick={() => void save({ isActive: !employee.isActive })} className="co-button-secondary text-xs">
+          {employee.isActive ? "Archive" : "Restore"}
+        </button>
+      </div>
+
+      <section className="co-card flex flex-col gap-5 p-5 lg:flex-row lg:items-center lg:justify-between lg:px-6">
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-2xl border-2 border-[var(--co-evergreen)] bg-[var(--co-surface-muted)] text-2xl font-semibold text-[var(--co-evergreen)]">
+            {initials}
+            <span className={`absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] ${employee.isActive ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-500"}`}>{employee.isActive ? "Active" : "Inactive"}</span>
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--co-ink)]">{fullName}</h1>
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-[var(--co-evergreen)]">{employee.title ?? "Team member"}</span>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--co-muted)]">
+              <span className="flex items-center gap-1"><MapPin aria-hidden="true" className="h-3.5 w-3.5" />{employee.serviceLocationName ?? "No primary area"}</span>
+              {tenure ? <span>{tenure}</span> : null}
+            </div>
+            {anniversary || birthday ? <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-medium text-[var(--co-muted)]"><span className="rounded-md border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2 py-1">{anniversary ?? "Work anniversary not set"}</span><span className="rounded-md border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2 py-1">{birthday ?? "Birthday not set"}</span></div> : null}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button type="button" onClick={() => { setEditMode(true); employeeInfoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="co-button-primary">Edit profile</button>
+              <Link href={`/calendar?view=staff&employeeId=${employee.id}`} className="co-button-secondary">View schedule</Link>
+              <a href={`mailto:${employee.email}`} className="co-button-secondary">Message</a>
+            </div>
+          </div>
+        </div>
+        <div className="flex shrink-0 gap-7 border-t border-[var(--co-line-soft)] pt-4 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
+          <div><p className="eyebrow">Total jobs</p><p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--co-evergreen)]">{stats.jobsCompleted.toLocaleString()}</p></div>
+          <div><p className="eyebrow">Team rank</p><p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--co-evergreen)]">{stats.teamRank == null ? "—" : `#${stats.teamRank}`}</p>{stats.teamRank != null ? <p className="text-[11px] text-[var(--co-muted)]">of {stats.teamSize}</p> : null}</div>
+        </div>
+      </section>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <ComingSoonStat label="Avg rating" />
+        <Stat label="Hours worked" value={stats.hoursWorked.toFixed(1)} detail="Lifetime tracked hours" />
+        <ComingSoonStat label="Attendance" />
+      </div>
+
+      <div className="grid items-start gap-5 xl:grid-cols-[285px_minmax(0,1fr)]">
+        <aside className="space-y-5">
+          <section ref={employeeInfoRef} className="co-card scroll-mt-5 p-5">
+            <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><User className="h-4 w-4 text-[var(--co-evergreen)]" /><h2 className="text-sm font-semibold">Personnel details</h2></div>{editMode ? <button type="button" onClick={() => setEditMode(false)} className="text-xs font-semibold text-[var(--co-muted)] hover:text-[var(--co-ink)]">Done</button> : null}</div>
+            {editMode ? (
+              <div className="mt-5 space-y-3">
+                <Field label="First name" defaultValue={employee.firstName} onSave={(v) => save({ firstName: v })} />
+                <Field label="Last name" defaultValue={employee.lastName} onSave={(v) => save({ lastName: v })} />
+                <Field label="Email" type="email" defaultValue={employee.email} onSave={(v) => save({ email: v })} />
+                <Field label="Phone" defaultValue={employee.phone ?? ""} onSave={(v) => save({ phone: v })} />
+                <Field label="Title" defaultValue={employee.title ?? ""} onSave={(v) => save({ title: v })} />
+                <Field label="Hire date" type="date" defaultValue={employee.hiredDate ?? ""} onSave={(v) => save({ hiredDate: v || null })} />
+                <Field label="Birthday" type="date" defaultValue={employee.birthday ?? ""} onSave={(v) => save({ birthday: v || null })} />
+              </div>
+            ) : (
+              <div className="mt-5 space-y-4 text-xs">
+                <div><p className="eyebrow">Contact info</p><p className="mt-1 font-medium text-[var(--co-ink)]">{employee.email}</p><p className="text-[var(--co-muted)]">{employee.phone ?? "No phone number"}</p></div>
+                <div><p className="eyebrow">Hire date</p><p className="mt-1 text-[var(--co-ink)]">{employee.hiredDate ?? "Not set"}</p></div>
+                <div><p className="eyebrow">Birthday</p><p className="mt-1 text-[var(--co-ink)]">{employee.birthday ?? "Not set"}</p></div>
+                <div><p className="eyebrow">Employment</p><div className="mt-1 flex flex-wrap gap-1.5"><span className="rounded bg-[var(--co-surface-muted)] px-2 py-1 text-[11px]">{employee.payType === "office_hourly" ? "Hourly" : "Commission"}</span><span className="rounded bg-[var(--co-surface-muted)] px-2 py-1 text-[11px]">{employee.isActive ? "Active" : "Archived"}</span></div></div>
+              </div>
+            )}
+          </section>
+
+          <section className="co-card p-5"><div className="flex items-center justify-between"><h2 className="text-sm font-semibold">Service area</h2><span className="text-[var(--co-evergreen)]">Primary</span></div><p className="mt-4 rounded-xl bg-[var(--co-surface-muted)] px-3 py-3 text-xs font-medium text-[var(--co-ink)]">{employee.serviceLocationName ?? "No primary area assigned"}</p>{editMode ? <select defaultValue={employee.serviceLocationId ?? ""} onChange={(event) => void save({ serviceLocationId: event.target.value || null })} className="co-input mt-3 w-full text-xs"><option value="">No primary area</option>{serviceLocations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select> : null}</section>
+        </aside>
+
+        <div className="space-y-5">
+          <section className="co-card overflow-hidden"><div className="flex items-center justify-between border-b border-[var(--co-line-soft)] px-5 py-4"><div className="flex items-center gap-2"><History className="h-4 w-4 text-[var(--co-evergreen)]" /><h2 className="text-sm font-semibold">Recent jobs</h2></div><Link href="/jobs" className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">View full history ↗</Link></div><div className="divide-y divide-[var(--co-line-soft)]">{recentJobs.length === 0 ? <div className="px-5 py-6"><EmptyState label="No recent jobs yet." detail="Completed work will appear here." /></div> : recentJobs.map((job) => <JobRow key={job.id} job={job} compact />)}</div></section>
+
+          <section className="co-card p-5"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[var(--co-evergreen)]" /><h2 className="text-sm font-semibold">Weekly schedule preview</h2></div><Link href={`/calendar?view=staff&employeeId=${employee.id}`} className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">View schedule</Link></div><p className="mt-1 text-xs text-[var(--co-muted)]">Assignments and admin PTO for this week.</p><div className="mt-4"><WeekStrip days={weeklySchedule} pto={pto} /></div><PtoEditor employeeId={employee.id} onChange={setPto} /></section>
+
+          <details className="co-card group"><summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 text-sm font-semibold"><span>More details</span><span className="text-xs font-normal text-[var(--co-muted)] group-open:hidden">Payroll, account access, and audit history</span><span className="hidden text-xs font-normal text-[var(--co-muted)] group-open:inline">Collapse</span></summary><div className="space-y-5 border-t border-[var(--co-line-soft)] p-5"><div className="grid gap-4 sm:grid-cols-2"><Field label="Birthday" type="date" defaultValue={employee.birthday ?? ""} onSave={(v) => save({ birthday: v || null })} /><Field label="Hired date" type="date" defaultValue={employee.hiredDate ?? ""} onSave={(v) => save({ hiredDate: v || null })} /><Field label="Gusto employee ID" defaultValue={employee.gustoEmployeeId ?? ""} onSave={(v) => save({ gustoEmployeeId: v })} /></div><div className="rounded-xl bg-[var(--co-surface-muted)] p-4 text-sm"><div className="flex flex-wrap gap-5"><span className="text-[var(--co-muted)]">Hours worked <strong className="text-[var(--co-ink)]">{stats.hoursWorked.toFixed(1)}</strong></span><span className="text-[var(--co-muted)]">This month <strong className="text-[var(--co-ink)]">${dollars(stats.thisMonthPayCents)}</strong></span></div><div className="mt-4"><label className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Pay type</label><select defaultValue={employee.payType ?? "commission_jth"} onChange={(event) => void save({ payType: event.target.value })} className="co-input w-full max-w-sm text-sm"><option value="commission_jth">Commission by job ticket hours</option><option value="office_hourly">Office hourly</option></select></div>{employee.payType === "commission_jth" ? <TierRatesEditor employeeId={employee.id} payTiers={employee.payTiers} brackets={payTierBrackets} fallbackRateCents={employee.hourlyRateCents ?? 0} onSaved={load} /> : null}</div><EmployeeAccountManagement employeeName={fullName} isActive={employee.isActive} onSetPassword={setPassword} onDelete={deleteEmployee} message={managementMessage} error={managementError} /></div></details>
         </div>
       </div>
     </div>
@@ -475,15 +810,15 @@ function EmployeeAccountManagement({
   }
 
   return (
-    <section className="rounded-2xl border border-[#e1e8df] bg-white p-6 shadow-[0_12px_30px_rgba(27,41,37,0.04)]">
+    <section className="co-card p-6">
       <p className="eyebrow">Account access</p>
-      <h2 className="mt-2 text-lg font-semibold text-[#263631]">Manage {employeeName}</h2>
-      <p className="mt-1 text-sm leading-6 text-[#718179]">
+      <h2 className="mt-2 text-lg font-semibold text-[var(--co-ink)]">Manage {employeeName}</h2>
+      <p className="mt-1 text-sm leading-6 text-[var(--co-muted)]">
         Set a new sign-in password or archive this employee when they leave. Archived employees stay in historical payroll and job records.
       </p>
 
       <form onSubmit={submitPassword} className="mt-5 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-        <label className="block text-xs font-semibold text-[#65775e]">
+        <label className="block text-xs font-semibold text-[var(--co-muted)]">
           New password
           <input
             aria-label="New employee password"
@@ -496,7 +831,7 @@ function EmployeeAccountManagement({
             required
           />
         </label>
-        <label className="block text-xs font-semibold text-[#65775e]">
+        <label className="block text-xs font-semibold text-[var(--co-muted)]">
           Confirm password
           <input
             aria-label="Confirm employee password"
@@ -514,17 +849,17 @@ function EmployeeAccountManagement({
         </button>
       </form>
 
-      {message ? <p className="mt-3 text-xs font-semibold text-[#5c7436]">{message}</p> : null}
-      {error ? <p className="mt-3 text-xs font-semibold text-[#a35c5c]">{error}</p> : null}
+      {message ? <p className="mt-3 text-xs font-semibold text-[var(--co-evergreen)]">{message}</p> : null}
+      {error ? <p className="mt-3 text-xs font-semibold text-rose-600">{error}</p> : null}
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0ec] pt-5">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--co-line-soft)] pt-5">
         <div>
-          <p className="text-sm font-semibold text-[#263631]">{isActive ? "Archive employee" : "Employee is archived"}</p>
-          <p className="mt-1 text-xs text-[#718179]">{isActive ? "Stops this person from appearing in active assignment pickers." : "Restore them from the button above when needed."}</p>
+          <p className="text-sm font-semibold text-[var(--co-ink)]">{isActive ? "Archive employee" : "Employee is archived"}</p>
+          <p className="mt-1 text-xs text-[var(--co-muted)]">{isActive ? "Stops this person from appearing in active assignment pickers." : "Restore them from the button above when needed."}</p>
         </div>
         <button
           type="button"
-          className="rounded-xl border border-[#efcaca] px-3.5 py-2.5 text-xs font-semibold text-[#a35c5c] hover:bg-[#fff6f6]"
+          className="rounded-xl border border-rose-200 px-3.5 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50"
           onClick={() => {
             if (window.confirm(`Permanently delete ${employeeName}? This cannot be undone. Employees with job, payroll, or audit history must be archived instead.`)) {
               void onDelete();
@@ -540,10 +875,10 @@ function EmployeeAccountManagement({
 
 function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <section className="rounded-2xl border border-[#e1e8df] bg-white p-5 shadow-[0_12px_30px_rgba(27,41,37,0.04)]">
-      <p className="text-xs font-semibold text-[#718179]">{label}</p>
-      <p className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[#1b2925]">{value}</p>
-      <p className="mt-2 text-xs text-[#8a9b93]">{detail}</p>
+    <section className="co-card p-5">
+      <p className="text-xs font-semibold text-[var(--co-muted)]">{label}</p>
+      <p className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--co-ink)]">{value}</p>
+      <p className="mt-2 text-xs text-[var(--co-muted)]">{detail}</p>
     </section>
   );
 }
@@ -551,7 +886,7 @@ function Stat({ label, value, detail }: { label: string; value: string; detail: 
 function ProfileSkeleton() {
   return (
     <div className="space-y-5" aria-busy="true">
-      <div className="h-5 w-36 animate-pulse rounded bg-[#e5ebe4]" />
+      <div className="h-5 w-36 animate-pulse rounded bg-[var(--co-surface-muted)]" />
       <div className="h-36 animate-pulse rounded-2xl bg-white" />
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="h-28 animate-pulse rounded-2xl bg-white" />
@@ -575,7 +910,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold text-[#65775e]">{label}</label>
+      <label className="mb-1.5 block text-xs font-semibold text-[var(--co-muted)]">{label}</label>
       <input
         type={type}
         defaultValue={defaultValue}
@@ -594,15 +929,15 @@ function JobRow({ job, compact = false }: { job: EmployeeJob; compact?: boolean 
   return (
     <Link
       href={`/jobs/${job.id}`}
-      className={`block rounded-xl border border-[#edf0ec] bg-[#fafbf8] px-4 py-3 transition-colors hover:border-[#cfdcc2] hover:bg-[#f5f8f1] ${compact ? "text-xs" : ""}`}
+      className={`block border-b border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-5 py-4 transition-colors last:border-b-0 hover:bg-white ${compact ? "text-xs" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="font-medium text-[#263631]">
+          <div className="font-medium text-[var(--co-ink)]">
             {job.customerFirstName} {job.customerLastName}
           </div>
-          <div className="mt-1 text-[#718179]">{JOB_TYPE_LABELS[job.type]}</div>
-          <div className="mt-1 text-[#8a9b93]">
+          <div className="mt-1 text-[var(--co-muted)]">{JOB_TYPE_LABELS[job.type]}</div>
+          <div className="mt-1 text-[var(--co-muted)]">
             {job.addressLine1 ?? "No address"}
             {job.city ? `, ${job.city}` : ""}
             {job.state ? `, ${job.state}` : ""}
@@ -612,7 +947,7 @@ function JobRow({ job, compact = false }: { job: EmployeeJob; compact?: boolean 
           {JOB_STATUS_LABELS[job.status]}
         </span>
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#718179]">
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--co-muted)]">
         <span>{job.scheduledDate}</span>
         <span>{formatClock(job.scheduledStartTime)}</span>
         <span>{job.estimatedDurationMinutes ? `${Math.round((job.estimatedDurationMinutes / 60) * 10) / 10} hrs est.` : "No estimate"}</span>
@@ -624,9 +959,9 @@ function JobRow({ job, compact = false }: { job: EmployeeJob; compact?: boolean 
 
 function EmptyState({ label, detail }: { label: string; detail: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-[#dfe7dd] bg-[#fafbf8] px-4 py-5">
-      <p className="text-sm font-medium text-[#263631]">{label}</p>
-      <p className="mt-1 text-xs leading-5 text-[#8a9b93]">{detail}</p>
+    <div className="rounded-xl border border-dashed border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-4 py-5">
+      <p className="text-sm font-medium text-[var(--co-ink)]">{label}</p>
+      <p className="mt-1 text-xs leading-5 text-[var(--co-muted)]">{detail}</p>
     </div>
   );
 }
@@ -679,14 +1014,14 @@ function TierRatesEditor({
   }
 
   return (
-    <div className="mt-5 border-t border-[#edf0ec] pt-5">
-      <label className="mb-3 block text-xs font-semibold text-[#65775e]">Tier rate schedule by weekly job ticket hours</label>
+    <div className="mt-5 border-t border-[var(--co-line-soft)] pt-5">
+      <label className="mb-3 block text-xs font-semibold text-[var(--co-muted)]">Tier rate schedule by weekly job ticket hours</label>
       <div className="grid gap-2 sm:grid-cols-4">
         {brackets.map((bracket, index) => (
           <div key={bracket.label}>
-            <label className="mb-1.5 block text-[11px] text-[#8a9b93]">{bracket.label}</label>
+            <label className="mb-1.5 block text-[11px] text-[var(--co-muted)]">{bracket.label}</label>
             <div className="relative">
-              <span className="absolute left-3 top-2.5 text-xs text-[#8a9b93]">$</span>
+              <span className="absolute left-3 top-2.5 text-xs text-[var(--co-muted)]">$</span>
               <input
                 type="number"
                 step="0.01"
@@ -707,7 +1042,7 @@ function TierRatesEditor({
         <button type="button" onClick={handleSave} className="co-button-primary">
           Save tier rates
         </button>
-        {saved && <span className="text-xs font-semibold text-[#5c7436]">Saved</span>}
+        {saved && <span className="text-xs font-semibold text-[var(--co-evergreen)]">Saved</span>}
         {error && <span className="text-xs font-semibold text-rose-600">{error}</span>}
       </div>
     </div>

@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { quotes } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { SERVICE_TYPES, type PricingBreakdown, type ServiceType } from "@/lib/pricing/calculate";
+import { ADD_ONS } from "@/lib/pricing/add-ons";
 import { syncToGhl } from "@/lib/ghl/sync";
 
 const acceptSchema = z.object({
@@ -11,15 +12,6 @@ const acceptSchema = z.object({
   signatureName: z.string().trim().min(1, "Signature name is required"),
   addOns: z.array(z.string().trim().min(1)).default([]),
 });
-
-const ADD_ONS: Record<string, { label: string; priceCents: number }> = {
-  inside_windows: { label: "Inside windows", priceCents: 4500 },
-  oven_interior: { label: "Oven interior", priceCents: 3500 },
-  fridge_interior: { label: "Fridge interior", priceCents: 3500 },
-  baseboards: { label: "Baseboards", priceCents: 2500 },
-  cabinet_fronts: { label: "Cabinet fronts", priceCents: 3000 },
-  laundry: { label: "Laundry / folding", priceCents: 5000 },
-};
 
 /** POST /api/public/quotes/[token]/accept — unauthenticated customer-facing accept action.
  * The customer picks which of the quote's priced tiers they want, and types their name as
@@ -52,9 +44,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   }
 
   const addOnEntries = parsed.data.addOns
-    .map((key) => ADD_ONS[key])
-    .filter((addon): addon is { label: string; priceCents: number } => Boolean(addon));
-  const addOnTotalCents = addOnEntries.reduce((sum, addon) => sum + addon.priceCents, 0);
+    .map((key) => ADD_ONS.find((addOn) => addOn.key === key))
+    .filter((addon): addon is (typeof ADD_ONS)[number] => Boolean(addon));
+  // Add-ons without a flat price (e.g. windows, priced per-window after a follow-up
+  // call) contribute $0 here — the customer isn't charged an amount we haven't
+  // actually confirmed with them. `acceptedAddOns` below is what lets the scheduler
+  // still see the request and follow up, even though it added nothing to the total.
+  const addOnTotalCents = addOnEntries.reduce((sum, addon) => sum + (addon.priceCents ?? 0), 0);
   const finalTotalCents = chosenTier.finalCents + addOnTotalCents;
 
   await db
@@ -63,6 +59,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       status: "accepted",
       acceptedAt: new Date(),
       acceptedServiceType: parsed.data.serviceType,
+      acceptedAddOns: addOnEntries.map((addon) => addon.key),
       totalCents: finalTotalCents,
       signatureName: parsed.data.signatureName,
       signatureAt: new Date(),

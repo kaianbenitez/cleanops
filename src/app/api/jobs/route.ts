@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
 import { auditLog, jobs, customers, jobAssignments, users } from "@/db/schema";
 import { and, eq, gte, lte, inArray } from "drizzle-orm";
+import { findPtoConflicts, ptoConflictMessage } from "@/lib/scheduling/pto";
 
 const createJobSchema = z.object({
   customerId: z.string().uuid(),
@@ -102,6 +103,16 @@ export async function POST(req: NextRequest) {
       .where(and(inArray(users.id, data.employeeIds), eq(users.companyId, admin.companyId)));
     if (validUsers.length !== data.employeeIds.length) {
       return NextResponse.json({ error: "One or more assigned employees were not found" }, { status: 400 });
+    }
+
+    const conflicts = await findPtoConflicts({
+      companyId: admin.companyId,
+      employeeIds: data.employeeIds,
+      scheduledDate: data.scheduledDate,
+      scheduledStartTime: data.scheduledStartTime ?? "09:00:00",
+    });
+    if (conflicts.length > 0) {
+      return NextResponse.json({ error: ptoConflictMessage(conflicts), conflicts }, { status: 409 });
     }
   }
 
