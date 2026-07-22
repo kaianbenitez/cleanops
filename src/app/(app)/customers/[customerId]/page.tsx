@@ -10,6 +10,7 @@ type Customer = {
   lastName: string;
   status: string;
   clientType: string;
+  companyName?: string | null;
   salutation?: string | null;
   customerNumber?: string | null;
   phone?: string | null;
@@ -315,6 +316,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         phone: customer.phone || null,
         status: customer.status,
         clientType: customer.clientType || "residential",
+        companyName: customer.companyName || null,
         source: customer.source || null,
         textMessagingAllowed: Boolean(customer.textMessagingAllowed),
         preferredCommunication: customer.preferredCommunication || null,
@@ -393,8 +395,13 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
             </span>
           </div>
           <h1 className="page-title mt-2">
-            {customer.firstName} {customer.lastName}
+            {customer.companyName ? customer.companyName : `${customer.firstName} ${customer.lastName}`}
           </h1>
+          {customer.companyName ? (
+            <p className="mt-1 text-sm text-[var(--co-muted)]">
+              Contact: {customer.firstName} {customer.lastName}
+            </p>
+          ) : null}
           <p className="page-subtitle">Internal profile for scheduling, house instructions, and customer history.</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -422,13 +429,18 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         <div className="co-card p-5">
           <div className="flex items-start gap-4">
             <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-[var(--co-surface-muted)] text-2xl font-bold text-[var(--co-evergreen)]">
-              {customer.firstName[0]}
-              {customer.lastName[0]}
+              {customer.companyName ? customer.companyName[0] : customer.firstName[0]}
+              {customer.companyName ? "" : customer.lastName[0]}
             </div>
             <div className="min-w-0">
               <h2 className="text-lg font-semibold">
-                {customer.firstName} {customer.lastName}
+                {customer.companyName ? customer.companyName : `${customer.firstName} ${customer.lastName}`}
               </h2>
+              {customer.companyName ? (
+                <p className="text-sm text-[var(--co-muted)]">
+                  Contact: {customer.firstName} {customer.lastName}
+                </p>
+              ) : null}
               <p className="mt-1 text-sm text-[var(--co-muted)]">{customer.email || "No email"}</p>
               <p className="text-sm text-[var(--co-muted)]">{customer.phone || "No phone"}</p>
               <p className="mt-3 text-xs text-[var(--co-muted)]">Lead source: {customer.source || "Not recorded"}</p>
@@ -758,6 +770,8 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
           <span className="text-xs text-[var(--co-muted)]">Sensitive details stay internal</span>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Company name (commercial clients)" value={customer.companyName ?? ""} onChange={(value) => updateCustomer("companyName", value)} />
+          <div />
           <Field label="First name" value={customer.firstName} onChange={(value) => updateCustomer("firstName", value)} />
           <Field label="Last name" value={customer.lastName} onChange={(value) => updateCustomer("lastName", value)} />
           <Field label="Phone" value={customer.phone ?? ""} onChange={(value) => updateCustomer("phone", value)} />

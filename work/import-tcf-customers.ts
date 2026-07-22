@@ -266,6 +266,7 @@ async function main() {
         salutation: s(row, "Salutation") || null,
         firstName: firstName || "(no first name)",
         lastName: lastName || "(no last name)",
+        companyName: s(row, "Company Name") || null,
         email: s(row, "Email") || null,
         phone,
         addressLine1,

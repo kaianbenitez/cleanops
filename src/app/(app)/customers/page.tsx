@@ -37,6 +37,7 @@ type CustomerRow = {
   id: string;
   firstName: string;
   lastName: string;
+  companyName: string | null;
   status: string;
   clientType: string;
   serviceType: string | null;
@@ -131,7 +132,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   if (sp.attention === "yes") conditions.push(or(isNull(customers.paymentMethod), eq(customers.paymentMethod, ""), eq(customers.paymentMethod, "unknown"), isNull(customers.serviceType), eq(customers.serviceType, ""), isNull(customers.addressLine1), eq(customers.addressLine1, ""))!);
   if (sp.q?.trim()) {
     const query = `%${sp.q.trim()}%`;
-    conditions.push(or(ilike(customers.firstName, query), ilike(customers.lastName, query), ilike(customers.email, query), ilike(customers.addressLine1, query))!);
+    conditions.push(or(ilike(customers.firstName, query), ilike(customers.lastName, query), ilike(customers.companyName, query), ilike(customers.email, query), ilike(customers.addressLine1, query))!);
   }
 
   const rows: CustomerRow[] = await db
@@ -139,6 +140,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
       id: customers.id,
       firstName: customers.firstName,
       lastName: customers.lastName,
+      companyName: customers.companyName,
       status: customers.status,
       clientType: customers.clientType,
       serviceType: customers.serviceType,
@@ -311,10 +313,13 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                         <tr key={row.id} className="transition-colors hover:bg-[var(--co-surface-muted)]/50">
                           <td className="px-5 py-4">
                             <Link href={`/customers/${row.id}`} className="font-semibold text-[var(--co-ink)] hover:text-[var(--co-evergreen)]">
-                              {row.firstName} {row.lastName}
+                              {row.companyName ? row.companyName : `${row.firstName} ${row.lastName}`}
                             </Link>
                             {row.clientType === "commercial" ? (
                               <span className="ml-2 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-blue-700">Commercial</span>
+                            ) : null}
+                            {row.companyName ? (
+                              <span className="mt-1 block text-xs text-[var(--co-muted)]">Contact: {row.firstName} {row.lastName}</span>
                             ) : null}
                             <span className="mt-1 block text-xs text-[var(--co-muted)]">
                               {row.addressLine1 ?? "Address missing"}

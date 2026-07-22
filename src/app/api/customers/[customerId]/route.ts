@@ -14,6 +14,7 @@ const updateCustomerSchema = z.object({
   salutation: z.string().trim().max(40).nullable().optional(),
   firstName: z.string().trim().min(1).max(100).optional(),
   lastName: z.string().trim().min(1).max(100).optional(),
+  companyName: z.string().trim().max(200).nullable().optional(),
   email: z.string().trim().email().nullable().optional(),
   phone: z.string().trim().max(50).nullable().optional(),
   textMessagingAllowed: z.boolean().optional(),

@@ -116,6 +116,7 @@ export const customers = pgTable("customers", {
   salutation: text("salutation"),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
+  companyName: text("company_name"),
   email: text("email"),
   phone: text("phone"),
   addressLine1: text("address_line1"),
