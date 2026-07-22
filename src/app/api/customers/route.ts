@@ -36,6 +36,7 @@ const createCustomerSchema = z.object({
   zip: z.string().trim().max(20).optional(),
   county: z.string().trim().max(100).optional(),
   ghlContactId: z.string().trim().max(200).optional(),
+  clientType: z.enum(["residential", "commercial"]).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -69,6 +70,7 @@ export async function POST(req: NextRequest) {
     state: data.state || null,
     zip: data.zip || null,
     ghlContactId: data.ghlContactId || null,
+    clientType: data.clientType || "residential",
     status: "lead",
   }).returning();
 

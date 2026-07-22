@@ -9,6 +9,7 @@ type Customer = {
   firstName: string;
   lastName: string;
   status: string;
+  clientType: string;
   salutation?: string | null;
   customerNumber?: string | null;
   phone?: string | null;
@@ -97,6 +98,13 @@ const STATUS_OPTIONS = [
   { value: "lost", label: "Lost" },
   { value: "moved", label: "Moved" },
 ];
+
+const CLIENT_TYPE_OPTIONS = [
+  { value: "residential", label: "Residential" },
+  { value: "commercial", label: "Commercial" },
+];
+
+const PAYMENT_METHOD_OPTIONS = ["Cash", "Check", "Credit Card"];
 
 const STATUS_STYLES: Record<string, string> = {
   lead: "border-slate-200 bg-slate-50 text-slate-600",
@@ -306,6 +314,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         email: customer.email || null,
         phone: customer.phone || null,
         status: customer.status,
+        clientType: customer.clientType || "residential",
         source: customer.source || null,
         textMessagingAllowed: Boolean(customer.textMessagingAllowed),
         preferredCommunication: customer.preferredCommunication || null,
@@ -465,16 +474,28 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
             </div>
           </div>
           <div className="mt-5 border-t border-[var(--co-line-soft)] pt-4">
-            <label className="block text-xs font-semibold text-[var(--co-muted)]">
-              Customer status
-              <select className="co-input mt-1 w-full" value={customer.status} onChange={(event) => updateCustomer("status", event.target.value)}>
-                {STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-xs font-semibold text-[var(--co-muted)]">
+                Customer status
+                <select className="co-input mt-1 w-full" value={customer.status} onChange={(event) => updateCustomer("status", event.target.value)}>
+                  {STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-xs font-semibold text-[var(--co-muted)]">
+                Client type
+                <select className="co-input mt-1 w-full" value={customer.clientType ?? "residential"} onChange={(event) => updateCustomer("clientType", event.target.value)}>
+                  {CLIENT_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
             <label className="mt-3 flex items-center gap-2 text-sm">
               <input type="checkbox" checked={Boolean(customer.textMessagingAllowed)} onChange={(event) => updateCustomer("textMessagingAllowed", event.target.checked)} className="accent-[var(--co-evergreen)]" />
               Allow text messaging
@@ -648,7 +669,20 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         <Section eyebrow="Home profile" title="Rooms and preferences" description="The fields your team needs when they first walk in.">
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Service type" value={customer.serviceType ?? ""} onChange={(value) => updateCustomer("serviceType", value)} />
-            <Field label="Payment method" value={customer.paymentMethod ?? ""} onChange={(value) => updateCustomer("paymentMethod", value)} />
+            <label className="block text-sm">
+              <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Payment method</span>
+              <select className={input} value={customer.paymentMethod ?? ""} onChange={(event) => updateCustomer("paymentMethod", event.target.value)}>
+                <option value="">Not set</option>
+                {PAYMENT_METHOD_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+                {customer.paymentMethod && !PAYMENT_METHOD_OPTIONS.includes(customer.paymentMethod) ? (
+                  <option value={customer.paymentMethod}>{customer.paymentMethod} (from import)</option>
+                ) : null}
+              </select>
+            </label>
             <Field label="Preferred communication" value={customer.preferredCommunication ?? ""} onChange={(value) => updateCustomer("preferredCommunication", value)} />
             <Field label="Preferred day" value={customer.preferredDay ?? ""} onChange={(value) => updateCustomer("preferredDay", value)} />
             <Field label="Preferred time" value={customer.preferredTime ?? ""} onChange={(value) => updateCustomer("preferredTime", value)} />

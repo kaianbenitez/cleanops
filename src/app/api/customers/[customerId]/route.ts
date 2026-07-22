@@ -9,6 +9,7 @@ import { resolveCustomerServiceArea } from "@/lib/service-area";
 
 const updateCustomerSchema = z.object({
   status: z.enum(["lead", "quoted", "first_clean_booked", "client", "lost", "moved"]).optional(),
+  clientType: z.enum(["residential", "commercial"]).optional(),
   customerNumber: z.string().trim().max(100).nullable().optional(),
   salutation: z.string().trim().max(40).nullable().optional(),
   firstName: z.string().trim().min(1).max(100).optional(),

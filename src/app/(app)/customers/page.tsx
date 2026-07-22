@@ -30,6 +30,7 @@ type SearchParams = {
   payment?: string;
   recurrence?: string;
   attention?: string;
+  clientType?: string;
 };
 
 type CustomerRow = {
@@ -37,6 +38,7 @@ type CustomerRow = {
   firstName: string;
   lastName: string;
   status: string;
+  clientType: string;
   serviceType: string | null;
   recurrence: string | null;
   paymentMethod: string | null;
@@ -122,6 +124,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   const conditions = [eq(customers.companyId, admin.companyId)];
 
   if (sp.status && sp.status !== "all") conditions.push(eq(customers.status, sp.status as typeof customers.status.enumValues[number]));
+  if (sp.clientType && sp.clientType !== "all") conditions.push(eq(customers.clientType, sp.clientType as typeof customers.clientType.enumValues[number]));
   if (sp.service) conditions.push(ilike(customers.serviceType, `%${sp.service}%`));
   if (sp.recurrence === "recurring") conditions.push(and(isNotNull(customers.recurrence), ne(customers.recurrence, "none"))!);
   if (sp.payment === "missing") conditions.push(or(isNull(customers.paymentMethod), eq(customers.paymentMethod, ""), eq(customers.paymentMethod, "unknown"))!);
@@ -137,6 +140,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
       firstName: customers.firstName,
       lastName: customers.lastName,
       status: customers.status,
+      clientType: customers.clientType,
       serviceType: customers.serviceType,
       recurrence: customers.recurrence,
       paymentMethod: customers.paymentMethod,
@@ -251,6 +255,11 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                   </option>
                 ))}
               </select>
+              <select name="clientType" defaultValue={sp.clientType ?? "all"} className="co-input w-full sm:w-auto">
+                <option value="all">Residential + commercial</option>
+                <option value="residential">Residential</option>
+                <option value="commercial">Commercial</option>
+              </select>
               <select name="service" defaultValue={sp.service ?? ""} className="co-input w-full sm:w-auto">
                 <option value="">All service types</option>
                 <option value="supreme deep">Supreme Deep Cleaning</option>
@@ -304,6 +313,9 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                             <Link href={`/customers/${row.id}`} className="font-semibold text-[var(--co-ink)] hover:text-[var(--co-evergreen)]">
                               {row.firstName} {row.lastName}
                             </Link>
+                            {row.clientType === "commercial" ? (
+                              <span className="ml-2 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-blue-700">Commercial</span>
+                            ) : null}
                             <span className="mt-1 block text-xs text-[var(--co-muted)]">
                               {row.addressLine1 ?? "Address missing"}
                               {row.city ? ` · ${row.city}` : ""}

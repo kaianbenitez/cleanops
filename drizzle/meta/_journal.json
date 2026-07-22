@@ -57,6 +57,13 @@
       "when": 1784715321976,
       "tag": "0007_flaky_rawhide_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784730225430,
+      "tag": "0008_wild_riptide",
+      "breakpoints": true
     }
   ]
 }

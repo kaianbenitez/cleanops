@@ -105,6 +105,7 @@ export const customerStatusEnum = [
   "moved",
 ] as const;
 export const recurrenceEnum = ["none", "weekly", "biweekly", "every4weeks", "monthly"] as const;
+export const clientTypeEnum = ["residential", "commercial"] as const;
 
 export const customers = pgTable("customers", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -139,6 +140,7 @@ export const customers = pgTable("customers", {
   textMessagingAllowed: boolean("text_messaging_allowed").notNull().default(false),
   archivedReason: text("archived_reason"),
   status: text("status", { enum: customerStatusEnum }).notNull().default("lead"),
+  clientType: text("client_type", { enum: clientTypeEnum }).notNull().default("residential"),
   recurrence: text("recurrence", { enum: recurrenceEnum }),
   source: text("source"),
   notes: text("notes"),

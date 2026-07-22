@@ -16,6 +16,7 @@ type CustomerForm = {
   zip: string;
   county: string;
   ghlContactId: string;
+  clientType: string;
 };
 
 const FIELD_ORDER: Array<{ key: keyof CustomerForm; label: string; placeholder?: string }> = [
@@ -65,6 +66,7 @@ export default function NewCustomerPage() {
     zip: "",
     county: "",
     ghlContactId: "",
+    clientType: "residential",
   });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -92,6 +94,7 @@ export default function NewCustomerPage() {
       zip: form.zip,
       county: form.county,
       ghlContactId: form.ghlContactId,
+      clientType: form.clientType,
     };
 
     const res = await fetch("/api/customers", {
@@ -153,6 +156,13 @@ export default function NewCustomerPage() {
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label>
+              <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Client type</span>
+              <select className="co-input w-full" value={form.clientType} onChange={(event) => update("clientType", event.target.value)}>
+                <option value="residential">Residential</option>
+                <option value="commercial">Commercial</option>
+              </select>
+            </label>
+            <label>
               <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">GHL contact ID</span>
               <input
                 className="co-input w-full"
@@ -161,7 +171,7 @@ export default function NewCustomerPage() {
                 placeholder="Optional if manually linking a contact"
               />
             </label>
-            <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4 text-sm text-[var(--co-muted)]">
+            <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4 text-sm text-[var(--co-muted)] sm:col-span-2">
               Keep this minimal if you’re creating the record by hand. The fuller house notes, room profile, and scheduling preferences can be filled in on the customer profile next.
             </div>
           </div>

@@ -288,6 +288,7 @@ async function main() {
         notes: s(row, "Notes") || null,
         source: s(row, "Marketing Method") || null,
         status: isCanceled ? "lost" : "client",
+        clientType: s(row, "Customer Type").toLowerCase().includes("commercial") ? "commercial" : "residential",
         recurrence,
         archivedReason: isCanceled ? `Cancelled in TheCustomerFactor (recorded: "${canceledDate}")` : null,
         archivedAt: null,
