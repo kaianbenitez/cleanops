@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { emailToUsername } from "@/lib/auth/username";
 
 const SECTIONS = [
   { href: "/settings/pricing", label: "Pricing & service locations", desc: "Hourly rates, minimums, dirty-code discounts, and travel-zone fees." },
@@ -311,7 +312,7 @@ export default function SettingsPage() {
                   <p className="font-medium">
                     {admin.firstName} {admin.lastName}
                   </p>
-                  <p className="text-xs text-[var(--co-muted)]">{admin.email}</p>
+                  <p className="text-xs text-[var(--co-muted)]">{emailToUsername(admin.email)}</p>
                 </div>
                 <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${admin.isActive ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>
                   {admin.isActive ? "Active" : "Inactive"}

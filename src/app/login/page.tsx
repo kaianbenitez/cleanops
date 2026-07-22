@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { usernameToEmail } from "@/lib/auth/username";
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
@@ -15,7 +16,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,6 +26,7 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
+    const email = usernameToEmail(username.trim().toLowerCase());
     const { error: signInError } = await createClient().auth.signInWithPassword({ email, password });
 
     if (signInError) {
@@ -80,15 +82,16 @@ export default function LoginPage() {
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-5">
               <label className="block text-sm">
-                <span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Email address</span>
+                <span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Username</span>
                 <input
-                  id="email"
-                  type="email"
+                  id="username"
+                  type="text"
+                  autoComplete="username"
                   required
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
                   className="co-input w-full bg-white py-3"
-                  placeholder="you@company.com"
+                  placeholder="firstlast"
                 />
               </label>
 

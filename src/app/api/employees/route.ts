@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { DEFAULT_ACCOUNT_PASSWORD, slugifyUsername, usernameToEmail } from "@/lib/auth/username";
 
 /** GET /api/employees — active employees for assignment pickers (kept minimal —
  * other code depends on this exact shape). For the full directory list with
@@ -29,7 +30,7 @@ const createEmployeeSchema = z.object({
   role: z.enum(["employee", "admin"]).default("employee"),
   firstName: z.string().trim().min(1),
   lastName: z.string().trim().min(1),
-  email: z.string().trim().email(),
+  contactEmail: z.string().trim().optional(),
   phone: z.string().trim().optional(),
   title: z.string().trim().optional(),
   birthday: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -39,9 +40,10 @@ const createEmployeeSchema = z.object({
   gustoEmployeeId: z.string().trim().optional(),
 });
 
-/** POST /api/employees — creates a Supabase auth account (temp password, admin
- * shares it out-of-band) plus the profile row. Mirrors the seed script's
- * account-creation pattern but usable from the app itself, not just seeding. */
+/** POST /api/employees — creates a Supabase auth account (username =
+ * firstname+lastname, default password shared out-of-band by the admin) plus
+ * the profile row. Mirrors the seed script's account-creation pattern but
+ * usable from the app itself, not just seeding. */
 export async function POST(req: NextRequest) {
   const admin = await requireAdmin();
   const body = await req.json();
@@ -58,28 +60,44 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-  const tempPassword = crypto.randomUUID();
 
   const supabaseAdmin = createAdminClient();
-  const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-    email: data.email,
-    password: tempPassword,
-    email_confirm: true,
-  });
+  const baseUsername = slugifyUsername(data.firstName, data.lastName);
+  if (!baseUsername) {
+    return NextResponse.json({ error: "Could not derive a username from that name." }, { status: 400 });
+  }
 
-  if (authError || !authUser.user) {
-    return NextResponse.json({ error: authError?.message ?? "Failed to create auth account" }, { status: 400 });
+  let username = baseUsername;
+  let authUserId: string | null = null;
+  for (let attempt = 1; attempt <= 20 && !authUserId; attempt++) {
+    username = attempt === 1 ? baseUsername : `${baseUsername}${attempt}`;
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: usernameToEmail(username),
+      password: DEFAULT_ACCOUNT_PASSWORD,
+      email_confirm: true,
+    });
+
+    if (authUser?.user) {
+      authUserId = authUser.user.id;
+    } else if (!authError?.message?.toLowerCase().includes("already been registered")) {
+      return NextResponse.json({ error: authError?.message ?? "Failed to create auth account" }, { status: 400 });
+    }
+  }
+
+  if (!authUserId) {
+    return NextResponse.json({ error: "Could not find an available username after 20 attempts." }, { status: 409 });
   }
 
   const [employee] = await db
     .insert(users)
     .values({
-      id: authUser.user.id,
+      id: authUserId,
       companyId: admin.companyId,
       role: data.role,
       firstName: data.firstName,
       lastName: data.lastName,
-      email: data.email,
+      email: usernameToEmail(username),
+      contactEmail: data.contactEmail,
       phone: data.phone,
       title: data.title,
       birthday: data.birthday,
@@ -91,5 +109,5 @@ export async function POST(req: NextRequest) {
     })
     .returning();
 
-  return NextResponse.json({ employee, tempPassword }, { status: 201 });
+  return NextResponse.json({ employee, username, password: DEFAULT_ACCOUNT_PASSWORD }, { status: 201 });
 }

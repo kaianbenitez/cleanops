@@ -3,6 +3,7 @@
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MapPin, User, CalendarDays, History } from "lucide-react";
+import { emailToUsername } from "@/lib/auth/username";
 import PtoEditor, { type EmployeePto } from "./pto-editor";
 
 type PayTier = { minHours: number; maxHours: number | null; rateCents: number };
@@ -11,6 +12,7 @@ type Employee = {
   firstName: string;
   lastName: string;
   email: string;
+  contactEmail: string | null;
   phone: string | null;
   title: string | null;
   birthday: string | null;
@@ -429,7 +431,11 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <Field label="First name" defaultValue={employee.firstName} onSave={(v) => save({ firstName: v })} />
               <Field label="Last name" defaultValue={employee.lastName} onSave={(v) => save({ lastName: v })} />
-              <Field label="Email" type="email" defaultValue={employee.email} onSave={(v) => save({ email: v })} />
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-[var(--co-muted)]">Username</label>
+                <p className="co-input flex w-full items-center text-sm text-[var(--co-muted)]">{emailToUsername(employee.email)}</p>
+              </div>
+              <Field label="Email" type="email" defaultValue={employee.contactEmail ?? ""} onSave={(v) => save({ contactEmail: v })} />
               <Field label="Phone" defaultValue={employee.phone ?? ""} onSave={(v) => save({ phone: v })} />
               <Field label="Title" defaultValue={employee.title ?? ""} onSave={(v) => save({ title: v })} />
               <Field label="Gusto employee ID" defaultValue={employee.gustoEmployeeId ?? ""} onSave={(v) => save({ gustoEmployeeId: v })} />
@@ -726,7 +732,7 @@ function CompactProfile({
             <div className="mt-4 flex flex-wrap gap-2">
               <button type="button" onClick={() => { setEditMode(true); employeeInfoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="co-button-primary">Edit profile</button>
               <Link href={`/calendar?view=staff&employeeId=${employee.id}`} className="co-button-secondary">View schedule</Link>
-              <a href={`mailto:${employee.email}`} className="co-button-secondary">Message</a>
+              {employee.contactEmail ? <a href={`mailto:${employee.contactEmail}`} className="co-button-secondary">Message</a> : null}
             </div>
           </div>
         </div>
@@ -750,7 +756,11 @@ function CompactProfile({
               <div className="mt-5 space-y-3">
                 <Field label="First name" defaultValue={employee.firstName} onSave={(v) => save({ firstName: v })} />
                 <Field label="Last name" defaultValue={employee.lastName} onSave={(v) => save({ lastName: v })} />
-                <Field label="Email" type="email" defaultValue={employee.email} onSave={(v) => save({ email: v })} />
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-[var(--co-muted)]">Username</label>
+                  <p className="co-input flex w-full items-center text-sm text-[var(--co-muted)]">{emailToUsername(employee.email)}</p>
+                </div>
+                <Field label="Email" type="email" defaultValue={employee.contactEmail ?? ""} onSave={(v) => save({ contactEmail: v })} />
                 <Field label="Phone" defaultValue={employee.phone ?? ""} onSave={(v) => save({ phone: v })} />
                 <Field label="Title" defaultValue={employee.title ?? ""} onSave={(v) => save({ title: v })} />
                 <Field label="Hire date" type="date" defaultValue={employee.hiredDate ?? ""} onSave={(v) => save({ hiredDate: v || null })} />
@@ -758,7 +768,7 @@ function CompactProfile({
               </div>
             ) : (
               <div className="mt-5 space-y-4 text-xs">
-                <div><p className="eyebrow">Contact info</p><p className="mt-1 font-medium text-[var(--co-ink)]">{employee.email}</p><p className="text-[var(--co-muted)]">{employee.phone ?? "No phone number"}</p></div>
+                <div><p className="eyebrow">Contact info</p><p className="mt-1 font-medium text-[var(--co-ink)]">{employee.contactEmail ?? "No email on file"}</p><p className="text-[var(--co-muted)]">{employee.phone ?? "No phone number"}</p><p className="mt-1 text-[var(--co-muted)]">Username: {emailToUsername(employee.email)}</p></div>
                 <div><p className="eyebrow">Hire date</p><p className="mt-1 text-[var(--co-ink)]">{employee.hiredDate ?? "Not set"}</p></div>
                 <div><p className="eyebrow">Birthday</p><p className="mt-1 text-[var(--co-ink)]">{employee.birthday ?? "Not set"}</p></div>
                 <div><p className="eyebrow">Employment</p><div className="mt-1 flex flex-wrap gap-1.5"><span className="rounded bg-[var(--co-surface-muted)] px-2 py-1 text-[11px]">{employee.payType === "office_hourly" ? "Hourly" : "Commission"}</span><span className="rounded bg-[var(--co-surface-muted)] px-2 py-1 text-[11px]">{employee.isActive ? "Active" : "Archived"}</span></div></div>

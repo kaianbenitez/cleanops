@@ -9,7 +9,7 @@ export default function NewEmployeePage() {
   const [role, setRole] = useState<"employee" | "admin">("employee");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [title, setTitle] = useState("");
   const [birthday, setBirthday] = useState("");
@@ -19,15 +19,15 @@ export default function NewEmployeePage() {
   const [gustoEmployeeId, setGustoEmployeeId] = useState("");
 
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ tempPassword: string } | null>(null);
+  const [result, setResult] = useState<{ username: string; password: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    if (!firstName || !lastName || !email) {
-      setError("First name, last name, and email are required.");
+    if (!firstName || !lastName) {
+      setError("First name and last name are required.");
       return;
     }
 
@@ -39,7 +39,7 @@ export default function NewEmployeePage() {
         role,
         firstName,
         lastName,
-        email,
+        contactEmail: contactEmail || undefined,
         phone: phone || undefined,
         title: title || undefined,
         birthday: birthday || undefined,
@@ -58,7 +58,7 @@ export default function NewEmployeePage() {
     }
 
     const data = await res.json();
-    setResult({ tempPassword: data.tempPassword });
+    setResult({ username: data.username, password: data.password });
     setSubmitting(false);
   }
 
@@ -72,15 +72,15 @@ export default function NewEmployeePage() {
           </p>
           <div className="bg-gray-50 rounded p-3 text-sm space-y-1">
             <div>
-              <span className="text-gray-500">Email:</span> {email}
+              <span className="text-gray-500">Username:</span> <span className="font-mono">{result.username}</span>
             </div>
             <div>
-              <span className="text-gray-500">Temporary password:</span>{" "}
-              <span className="font-mono">{result.tempPassword}</span>
+              <span className="text-gray-500">Password:</span>{" "}
+              <span className="font-mono">{result.password}</span>
             </div>
           </div>
           <p className="text-xs text-amber-600">
-            This password is shown once and not stored anywhere retrievable — copy it now.
+            This is the default password for every new account — have them change it from Account settings after their first login.
           </p>
           <button
             onClick={() => router.push(role === "admin" ? "/settings" : "/employees")}
@@ -136,11 +136,12 @@ export default function NewEmployeePage() {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label className="block text-sm font-medium mb-1">Email (optional)</label>
             <input
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+              placeholder="Personal contact email — not used to log in"
               className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
@@ -153,6 +154,12 @@ export default function NewEmployeePage() {
             />
           </div>
         </div>
+
+        {firstName && lastName ? (
+          <p className="text-xs text-gray-500">
+            Username will be <span className="font-mono">{`${firstName}${lastName}`.toLowerCase().replace(/[^a-z0-9]/g, "")}</span>, default password <span className="font-mono">password123</span>.
+          </p>
+        ) : null}
 
         {role === "employee" && (
           <div>

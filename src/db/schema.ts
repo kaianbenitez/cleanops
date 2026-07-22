@@ -43,7 +43,8 @@ export const users = pgTable("users", {
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   phone: text("phone"),
-  email: text("email").notNull(),
+  email: text("email").notNull(), // login identity — `<username>@cleanops.local`, see src/lib/auth/username.ts
+  contactEmail: text("contact_email"), // real personal email, display/contact only, no auth meaning
   birthday: date("birthday"),
   hiredDate: date("hired_date"),
   title: text("title"), // Gusto job title, e.g. "Cleaning Tech (Primary)"

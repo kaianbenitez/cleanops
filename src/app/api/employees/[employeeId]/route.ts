@@ -10,7 +10,7 @@ import { buildPayTiers, getPayTierBrackets } from "@/lib/payroll/calculate";
 const updateEmployeeSchema = z.object({
   firstName: z.string().trim().min(1).optional(),
   lastName: z.string().trim().min(1).optional(),
-  email: z.string().trim().email().optional(),
+  contactEmail: z.string().trim().optional(),
   phone: z.string().trim().optional(),
   title: z.string().trim().optional(),
   birthday: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
