@@ -1,13 +1,13 @@
 import { expect, test } from "@playwright/test";
 
-const adminEmail = process.env.BROWSER_ADMIN_EMAIL;
+const adminUsername = process.env.BROWSER_ADMIN_USERNAME;
 const adminPassword = process.env.BROWSER_ADMIN_PASSWORD;
 
 test("admin employee profile exposes password, archive, and delete controls", async ({ page }) => {
-  test.skip(!adminEmail || !adminPassword, "Set BROWSER_ADMIN_EMAIL and BROWSER_ADMIN_PASSWORD for the authenticated employee-management check.");
+  test.skip(!adminUsername || !adminPassword, "Set BROWSER_ADMIN_USERNAME and BROWSER_ADMIN_PASSWORD for the authenticated employee-management check.");
 
   await page.goto("/login");
-  await page.getByLabel("Email address").fill(adminEmail!);
+  await page.getByLabel("Username").fill(adminUsername!);
   await page.getByLabel("Password").fill(adminPassword!);
   await page.getByRole("button", { name: /sign in/i }).click();
   await page.waitForURL(/\/dashboard|\/employees/);
