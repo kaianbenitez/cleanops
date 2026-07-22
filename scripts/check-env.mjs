@@ -16,6 +16,7 @@ const optionalForIntegrations = [
   "SQUARE_ENVIRONMENT",
   "SQUARE_WEBHOOK_SIGNATURE_KEY",
   "CRON_SECRET",
+  "SENTRY_DSN",
 ];
 
 const source = fs.existsSync(".env.local") ? ".env.local" : ".env.local.example";
