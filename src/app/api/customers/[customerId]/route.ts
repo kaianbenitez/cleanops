@@ -26,6 +26,7 @@ const updateCustomerSchema = z.object({
   doNotClean: z.string().trim().max(5000).nullable().optional(),
   petNotes: z.string().trim().max(5000).nullable().optional(),
   operationalNotes: z.string().trim().max(10000).nullable().optional(),
+  notes: z.string().trim().max(10000).nullable().optional(),
   tags: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
   homeDetails: z.record(z.string(), z.unknown()).optional(),
   locations: z.array(z.object({

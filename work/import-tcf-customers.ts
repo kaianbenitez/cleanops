@@ -27,7 +27,7 @@ import fs from "fs";
 import { parse } from "csv-parse/sync";
 import { eq } from "drizzle-orm";
 import { db } from "../src/db";
-import { companies, customers, customerLocations } from "../src/db/schema";
+import { companies, customers, customerLocations, roomTypes } from "../src/db/schema";
 
 const csvPath = process.argv[2];
 const commit = process.argv.includes("--commit");
@@ -81,30 +81,91 @@ function toTags(row: Row): string[] {
   return raw.split(/[,;]/).map((t) => t.trim()).filter(Boolean);
 }
 
-function toHomeDetails(row: Row): Record<string, string> {
-  const fields = [
-    "Bedrooms",
-    "Bathroom (Shower & Tub Area)",
-    "Bathroom (Shower/Tub Combo)",
-    "1/2 Bathroom",
-    "Living Rooms",
-    "Kitchens",
-    "Dining Room",
-    "Laundry Room",
-    "Hallway",
-    "Entry",
-    "Stairs",
-    "Office",
-    "Theater/Game room",
-    "Other",
-    "Dirt Level",
-    "Clutter Code",
-  ];
-  const details: Record<string, string> = {};
-  for (const f of fields) {
-    const v = s(row, f);
-    if (v) details[f] = v;
+/** House Entry / Key # / Garage Code / Gate Code / Alarm Code / Mop Heads
+ *  Needed / Trash Bags / Vacuum Cleaner Kept all map straight onto
+ *  customerLocations' own dedicated columns — that's what the customer
+ *  profile page actually reads, not a combined string on customers. */
+function toLocationAccessFields(row: Row) {
+  return {
+    accessInstructions: s(row, "House Entry") || null,
+    keyNumber: s(row, "Key #") || null,
+    garageCode: s(row, "Garage Code") || null,
+    gateCode: s(row, "Gate Code") || null,
+    alarmCode: s(row, "Alarm Code") || null,
+    vacuumLocation: s(row, "Vacuum Cleaner Kept") || null,
+    mopHeadsNeeded: s(row, "Mop Heads Needed") || null,
+    trashBags: s(row, "Trash Bags") || null,
+  };
+}
+
+/** Extracts a room count from TCF's free-text values ("4 Bedrooms" -> 4,
+ *  "1 Shower & Tub (Master) Bathroom" -> 1). Falls back to 1 for
+ *  description-only values ("Small Laundry Area") since their presence
+ *  means the room exists, just without a stated count. */
+function parseCount(value: string): number | null {
+  const match = value.match(/\d+/);
+  if (match) return parseInt(match[0], 10);
+  return value.trim() ? 1 : null;
+}
+
+const ROOM_FIELD_TO_TYPE_NAME: [string, string][] = [
+  ["Bedrooms", "Bedrooms"],
+  ["Bathroom (Shower & Tub Area)", "Master Bathroom"],
+  ["Bathroom (Shower/Tub Combo)", "Full Bathroom"],
+  ["1/2 Bathroom", "Half Bathroom"],
+  ["Living Rooms", "Living Room"],
+  ["Dining Room", "Dining Room"],
+  ["Laundry Room", "Laundry Room"],
+  ["Hallway", "Hallway"],
+  ["Stairs", "Stairs"],
+  ["Office", "Office"],
+];
+const KITCHEN_SIZE_TO_TYPE_NAME: [string, string][] = [
+  ["large", "Kitchen Large"],
+  ["medium", "Kitchen Medium"],
+  ["small", "Kitchen Small"],
+];
+const OTHER_ROOM_FIELDS = ["Theater/Game room", "Other"]; // TCF has no matching room type — folded into "Other"
+
+/** Builds the { roomCounts, dirtLevel, clutterCode } shape the customer
+ *  profile page and quote-autofill actually read, keyed by this company's
+ *  real room_type ids (not TCF's raw column names). */
+function toHomeDetails(row: Row, roomTypeIdByName: Map<string, string>): Record<string, unknown> {
+  const roomCounts: Record<string, number> = {};
+
+  for (const [tcfField, typeName] of ROOM_FIELD_TO_TYPE_NAME) {
+    const raw = s(row, tcfField);
+    if (!raw) continue;
+    const count = parseCount(raw);
+    const typeId = roomTypeIdByName.get(typeName);
+    if (count && typeId) roomCounts[typeId] = count;
   }
+
+  const kitchens = s(row, "Kitchens").toLowerCase();
+  for (const [keyword, typeName] of KITCHEN_SIZE_TO_TYPE_NAME) {
+    if (kitchens.includes(keyword)) {
+      const typeId = roomTypeIdByName.get(typeName);
+      if (typeId) roomCounts[typeId] = 1;
+      break;
+    }
+  }
+
+  let otherCount = 0;
+  for (const f of OTHER_ROOM_FIELDS) {
+    const raw = s(row, f);
+    if (raw) otherCount += parseCount(raw) ?? 1;
+  }
+  if (otherCount) {
+    const typeId = roomTypeIdByName.get("Other");
+    if (typeId) roomCounts[typeId] = otherCount;
+  }
+
+  const details: Record<string, unknown> = {};
+  if (Object.keys(roomCounts).length) details.roomCounts = roomCounts;
+  const dirtLevel = s(row, "Dirt Level");
+  if (dirtLevel) details.dirtLevel = dirtLevel;
+  const clutterCode = s(row, "Clutter Code");
+  if (clutterCode) details.clutterCode = clutterCode;
   return details;
 }
 
@@ -119,6 +180,9 @@ async function main() {
 
   const [company] = await db.select().from(companies).limit(1);
   if (!company) throw new Error("No company found — run the config import first");
+
+  const companyRoomTypes = await db.select().from(roomTypes).where(eq(roomTypes.companyId, company.id));
+  const roomTypeIdByName = new Map(companyRoomTypes.map((rt) => [rt.name, rt.id]));
 
   const existing = await db
     .select({ customerNumber: customers.customerNumber })
@@ -145,7 +209,7 @@ async function main() {
   let skippedNoName = 0;
   let canceled = 0;
   let noAddress = 0;
-  let recurrenceCounts: Record<string, number> = { weekly: 0, biweekly: 0, every4weeks: 0, monthly: 0, none: 0 };
+  const recurrenceCounts: Record<string, number> = { weekly: 0, biweekly: 0, every4weeks: 0, monthly: 0, none: 0 };
   const unmappedJobTypes = new Map<string, number>();
   let inserted = 0;
 
@@ -184,13 +248,6 @@ async function main() {
     }
 
     const phone = s(row, "Cell Phone") || s(row, "Home Phone") || s(row, "Work Phone") || null;
-    const gateCodeOrKeyNotes = combine(row, [
-      ["House entry", "House Entry"],
-      ["Key #", "Key #"],
-      ["Garage code", "Garage Code"],
-      ["Gate code", "Gate Code"],
-      ["Alarm code", "Alarm Code"],
-    ]);
     const petNotes = combine(row, [
       ["Dog", "Dog"],
       ["Cat", "Cat"],
@@ -224,9 +281,8 @@ async function main() {
         preferredDay: s(row, "Preferred Day") || null,
         preferredTime: s(row, "Preferred Time") || null,
         doNotClean: s(row, "Don't CLEAN") || null,
-        gateCodeOrKeyNotes,
         petNotes,
-        homeDetails: toHomeDetails(row),
+        homeDetails: toHomeDetails(row, roomTypeIdByName),
         tags: toTags(row),
         textMessagingAllowed: /y|x|text/i.test(s(row, "Send Preference: Text")),
         notes: s(row, "Notes") || null,
@@ -249,6 +305,7 @@ async function main() {
         state: s(row, "State") || null,
         zip: s(row, "Zip Code") || null,
         isPrimary: true,
+        ...toLocationAccessFields(row),
       });
     }
 

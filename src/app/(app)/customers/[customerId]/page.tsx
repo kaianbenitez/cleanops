@@ -24,6 +24,7 @@ type Customer = {
   doNotClean?: string | null;
   petNotes?: string | null;
   operationalNotes?: string | null;
+  notes?: string | null;
   homeDetails?: Record<string, unknown>;
   tags?: unknown;
 };
@@ -316,6 +317,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         doNotClean: customer.doNotClean || null,
         petNotes: customer.petNotes || null,
         operationalNotes: customer.operationalNotes || null,
+        notes: customer.notes || null,
         homeDetails: customer.homeDetails ?? {},
         locations: locations.map((item) => ({ ...item, id: item.id || undefined })),
       }),
@@ -639,6 +641,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
             <Field label="Do not clean" value={customer.doNotClean ?? ""} onChange={(value) => updateCustomer("doNotClean", value)} textarea />
             <Field label="Pet notes" value={customer.petNotes ?? ""} onChange={(value) => updateCustomer("petNotes", value)} textarea />
             <Field label="Operational notes" value={customer.operationalNotes ?? ""} onChange={(value) => updateCustomer("operationalNotes", value)} textarea />
+            <Field label="Notes" value={customer.notes ?? ""} onChange={(value) => updateCustomer("notes", value)} textarea />
           </div>
         </Section>
 
