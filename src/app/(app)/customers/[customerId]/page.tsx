@@ -17,19 +17,17 @@ type Customer = {
   email?: string | null;
   textMessagingAllowed?: boolean;
   source?: string | null;
-  preferredCommunication?: string | null;
-  preferredDay?: string | null;
-  preferredTime?: string | null;
-  serviceType?: string | null;
-  paymentMethod?: string | null;
-  importantToCustomer?: string | null;
-  doNotClean?: string | null;
-  petNotes?: string | null;
-  operationalNotes?: string | null;
-  notes?: string | null;
+  preferredDays?: string[] | null;
+  preferredCleanerId?: string | null;
+  preferredTimeOfDay?: "AM" | "PM" | null;
+  paymentMethods?: string[] | null;
+  generalNotes?: string | null;
+  recurrence?: string | null;
   homeDetails?: Record<string, unknown>;
   tags?: unknown;
 };
+
+type EmployeeOption = { id: string; firstName: string; lastName: string };
 
 type RoomType = { id: string; name: string; sortOrder: number };
 
@@ -105,7 +103,14 @@ const CLIENT_TYPE_OPTIONS = [
   { value: "commercial", label: "Commercial" },
 ];
 
-const PAYMENT_METHOD_OPTIONS = ["Cash", "Check", "Credit Card"];
+const PAYMENT_METHOD_OPTIONS = ["Cash", "Check", "Credit Card"] as const;
+const WEEKDAY_OPTIONS = [
+  ["monday", "Mon"],
+  ["tuesday", "Tue"],
+  ["wednesday", "Wed"],
+  ["thursday", "Thu"],
+  ["friday", "Fri"],
+] as const;
 
 const STATUS_STYLES: Record<string, string> = {
   lead: "border-slate-200 bg-slate-50 text-slate-600",
@@ -219,6 +224,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
   const { customerId } = use(params);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [jobs, setJobs] = useState<CustomerJob[]>([]);
   const [invoices, setInvoices] = useState<CustomerInvoice[]>([]);
@@ -235,7 +241,27 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
     const response = await fetch(`/api/customers/${customerId}`, { cache: "no-store" });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(body.error ?? `Customer could not be loaded (${response.status}).`);
-    setCustomer(body.customer);
+    const rawCustomer = body.customer as Customer & {
+      notes?: string | null;
+      operationalNotes?: string | null;
+      importantToCustomer?: string | null;
+      doNotClean?: string | null;
+      petNotes?: string | null;
+      preferredDay?: string | null;
+      preferredTime?: string | null;
+      paymentMethod?: string | null;
+    };
+    setCustomer({
+      ...rawCustomer,
+      generalNotes:
+        rawCustomer.generalNotes ??
+        ([rawCustomer.notes, rawCustomer.operationalNotes, rawCustomer.importantToCustomer, rawCustomer.doNotClean, rawCustomer.petNotes]
+          .filter((value): value is string => Boolean(value?.trim()))
+          .join("\n\n") || null),
+      preferredDays: rawCustomer.preferredDays ?? (rawCustomer.preferredDay ? [rawCustomer.preferredDay.toLowerCase()] : []),
+      preferredTimeOfDay: rawCustomer.preferredTimeOfDay ?? (rawCustomer.preferredTime === "PM" ? "PM" : rawCustomer.preferredTime ? "AM" : null),
+      paymentMethods: rawCustomer.paymentMethods ?? (rawCustomer.paymentMethod ? [rawCustomer.paymentMethod] : []),
+    });
     setLocations(body.locations ?? []);
     setJobs(body.jobs ?? []);
     setInvoices(body.invoices ?? []);
@@ -256,6 +282,13 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
     fetch("/api/room-types")
       .then((response) => response.json())
       .then((body) => setRoomTypes(body.roomTypes ?? []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/employees")
+      .then((response) => response.json())
+      .then((body) => setEmployees(body.employees ?? []))
       .catch(() => {});
   }, []);
 
@@ -280,7 +313,19 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
   const lastJob = recentJobs[0] ?? null;
   const openBalance = invoices.reduce((sum, invoice) => sum + (invoice.status === "void" ? 0 : Math.max(invoice.totalCents - invoice.amountPaidCents, 0)), 0);
 
-  const updateCustomer = (key: keyof Customer, value: string | boolean) => setCustomer((current) => (current ? { ...current, [key]: value } : current));
+  const updateCustomer = (key: keyof Customer, value: string | string[] | boolean | null) => setCustomer((current) => (current ? { ...current, [key]: value } : current));
+  const togglePreferredDay = (day: string) =>
+    setCustomer((current) => {
+      if (!current) return current;
+      const days = current.preferredDays ?? [];
+      return { ...current, preferredDays: days.includes(day) ? days.filter((value) => value !== day) : [...days, day] };
+    });
+  const togglePaymentMethod = (method: string) =>
+    setCustomer((current) => {
+      if (!current) return current;
+      const methods = current.paymentMethods ?? [];
+      return { ...current, paymentMethods: methods.includes(method) ? methods.filter((value) => value !== method) : [...methods, method] };
+    });
   const updateHome = (key: string, value: string) => setCustomer((current) => (current ? { ...current, homeDetails: { ...(current.homeDetails ?? {}), [key]: value } } : current));
   const updateRoomCount = (roomTypeId: string, value: string) =>
     setCustomer((current) => {
@@ -319,16 +364,11 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         companyName: customer.companyName || null,
         source: customer.source || null,
         textMessagingAllowed: Boolean(customer.textMessagingAllowed),
-        preferredCommunication: customer.preferredCommunication || null,
-        preferredDay: customer.preferredDay || null,
-        preferredTime: customer.preferredTime || null,
-        serviceType: customer.serviceType || null,
-        paymentMethod: customer.paymentMethod || null,
-        importantToCustomer: customer.importantToCustomer || null,
-        doNotClean: customer.doNotClean || null,
-        petNotes: customer.petNotes || null,
-        operationalNotes: customer.operationalNotes || null,
-        notes: customer.notes || null,
+        preferredDays: customer.preferredDays ?? [],
+        preferredCleanerId: customer.preferredCleanerId || null,
+        preferredTimeOfDay: customer.preferredTimeOfDay || null,
+        paymentMethods: customer.paymentMethods ?? [],
+        generalNotes: customer.generalNotes || null,
         homeDetails: customer.homeDetails ?? {},
         locations: locations.map((item) => ({ ...item, id: item.id || undefined })),
       }),
@@ -444,7 +484,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <p className="mt-1 text-sm text-[var(--co-muted)]">{customer.email || "No email"}</p>
               <p className="text-sm text-[var(--co-muted)]">{customer.phone || "No phone"}</p>
               <p className="mt-3 text-xs text-[var(--co-muted)]">Lead source: {customer.source || "Not recorded"}</p>
-              <p className="mt-1 text-xs text-[var(--co-muted)]">Preferred contact: {customer.preferredCommunication || "Not recorded"}</p>
+              <p className="mt-1 text-xs text-[var(--co-muted)]">Plan: {customer.recurrence && customer.recurrence !== "none" ? customer.recurrence : "One-time"}</p>
             </div>
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -505,6 +545,16 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                       {option.label}
                     </option>
                   ))}
+                </select>
+              </label>
+              <label className="block text-xs font-semibold text-[var(--co-muted)] sm:col-span-2">
+                Plan / recurrence
+                <select className="co-input mt-1 w-full" value={customer.recurrence ?? "none"} onChange={(event) => updateCustomer("recurrence", event.target.value)}>
+                  <option value="none">One-time / no recurring plan</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Every other week</option>
+                  <option value="every4weeks">Every 4 weeks</option>
+                  <option value="monthly">Monthly</option>
                 </select>
               </label>
             </div>
@@ -580,7 +630,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               </a>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <InfoCard label="Gate / access" value={location?.accessInstructions || "No instructions"} sub="Visible to internal team" />
+              <InfoCard label="Entrance notes" value={location?.accessInstructions || "No instructions"} sub="Visible to internal team" />
               <InfoCard label="Subdivision" value={location?.subdivision || "Not recorded"} sub="Useful for route recall" />
             </div>
           </div>
@@ -667,37 +717,64 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1fr_0.95fr]">
-        <Section eyebrow="House notes" title="Takeover instructions" description="These are the notes that matter when someone new takes over the job.">
-          <div className="space-y-3">
-            <Field label="Important to the customer" value={customer.importantToCustomer ?? ""} onChange={(value) => updateCustomer("importantToCustomer", value)} textarea />
-            <Field label="Do not clean" value={customer.doNotClean ?? ""} onChange={(value) => updateCustomer("doNotClean", value)} textarea />
-            <Field label="Pet notes" value={customer.petNotes ?? ""} onChange={(value) => updateCustomer("petNotes", value)} textarea />
-            <Field label="Operational notes" value={customer.operationalNotes ?? ""} onChange={(value) => updateCustomer("operationalNotes", value)} textarea />
-            <Field label="Notes" value={customer.notes ?? ""} onChange={(value) => updateCustomer("notes", value)} textarea />
-          </div>
+      <section className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+        <Section eyebrow="Notes" title="General notes" description="One place for the context the team should remember about this customer.">
+          <Field label="General notes" value={customer.generalNotes ?? ""} onChange={(value) => updateCustomer("generalNotes", value)} textarea />
         </Section>
 
-        <Section eyebrow="Home profile" title="Rooms and preferences" description="The fields your team needs when they first walk in.">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Service type" value={customer.serviceType ?? ""} onChange={(value) => updateCustomer("serviceType", value)} />
+        <Section eyebrow="Preferences" title="Scheduling and payment" description="Keep repeat-visit preferences compact and easy to scan.">
+          <div className="space-y-5">
+            <div>
+              <p className="mb-2 text-xs font-semibold text-[var(--co-muted)]">Preferred day</p>
+              <div className="flex flex-wrap gap-2">
+                {WEEKDAY_OPTIONS.map(([value, label]) => {
+                  const selected = customer.preferredDays?.includes(value) ?? false;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => togglePreferredDay(value)}
+                      className={`rounded-lg border px-3 py-2 text-xs font-semibold ${selected ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)] text-white" : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)]"}`}
+                      aria-pressed={selected}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <label className="block text-sm">
-              <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Payment method</span>
-              <select className={input} value={customer.paymentMethod ?? ""} onChange={(event) => updateCustomer("paymentMethod", event.target.value)}>
-                <option value="">Not set</option>
-                {PAYMENT_METHOD_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-                {customer.paymentMethod && !PAYMENT_METHOD_OPTIONS.includes(customer.paymentMethod) ? (
-                  <option value={customer.paymentMethod}>{customer.paymentMethod} (from import)</option>
-                ) : null}
+              <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Preferred cleaner</span>
+              <select className={input} value={customer.preferredCleanerId ?? ""} onChange={(event) => updateCustomer("preferredCleanerId", event.target.value || null)}>
+                <option value="">Any available cleaner</option>
+                {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}</option>)}
               </select>
             </label>
-            <Field label="Preferred communication" value={customer.preferredCommunication ?? ""} onChange={(value) => updateCustomer("preferredCommunication", value)} />
-            <Field label="Preferred day" value={customer.preferredDay ?? ""} onChange={(value) => updateCustomer("preferredDay", value)} />
-            <Field label="Preferred time" value={customer.preferredTime ?? ""} onChange={(value) => updateCustomer("preferredTime", value)} />
+            <div>
+              <p className="mb-2 text-xs font-semibold text-[var(--co-muted)]">Preferred time of day</p>
+              <div className="grid grid-cols-2 gap-2">
+                {["AM", "PM"].map((period) => {
+                  const selected = customer.preferredTimeOfDay === period;
+                  return <button key={period} type="button" onClick={() => updateCustomer("preferredTimeOfDay", selected ? null : period)} className={`rounded-lg border px-3 py-2 text-sm font-semibold ${selected ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)] text-white" : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)]"}`} aria-pressed={selected}>{period}</button>;
+                })}
+              </div>
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-semibold text-[var(--co-muted)]">Accepted payment methods</p>
+              <div className="flex flex-wrap gap-2">
+                {PAYMENT_METHOD_OPTIONS.map((method) => {
+                  const selected = customer.paymentMethods?.includes(method) ?? false;
+                  return <button key={method} type="button" onClick={() => togglePaymentMethod(method)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${selected ? "border-emerald-200 bg-emerald-50 text-[var(--co-evergreen)]" : "border-[var(--co-line-soft)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)]"}`} aria-pressed={selected}>{method}</button>;
+                })}
+              </div>
+            </div>
+          </div>
+        </Section>
+      </section>
+
+      <section>
+        <Section eyebrow="Home profile" title="Rooms and preferences" description="The fields your team needs when they first walk in.">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Dirt level" value={String(home.dirtLevel ?? "")} onChange={(value) => updateHome("dirtLevel", value)} />
             <Field label="Clutter code" value={String(home.clutterCode ?? "")} onChange={(value) => updateHome("clutterCode", value)} />
             <Field label="Pets" value={String(home.dogs ?? "")} onChange={(value) => updateHome("dogs", value)} />
@@ -786,7 +863,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <Field label="City" value={location.city ?? ""} onChange={(value) => updateLocation("city", value)} />
               <Field label="State" value={location.state ?? ""} onChange={(value) => updateLocation("state", value)} />
               <Field label="ZIP" value={location.zip ?? ""} onChange={(value) => updateLocation("zip", value)} />
-              <Field label="Gate / key notes" value={location.accessInstructions ?? ""} onChange={(value) => updateLocation("accessInstructions", value)} textarea />
+              <Field label="Entrance notes" value={location.accessInstructions ?? ""} onChange={(value) => updateLocation("accessInstructions", value)} textarea />
               <Field label="Garage code" value={location.garageCode ?? ""} onChange={(value) => updateLocation("garageCode", value)} />
               <Field label="Gate code" value={location.gateCode ?? ""} onChange={(value) => updateLocation("gateCode", value)} />
             </>

@@ -212,10 +212,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     db
       .select({
         id: customers.id,
-        paymentMethod: customers.paymentMethod,
+        paymentMethods: customers.paymentMethods,
         addressLine1: customers.addressLine1,
-        importantToCustomer: customers.importantToCustomer,
-        operationalNotes: customers.operationalNotes,
+        generalNotes: customers.generalNotes,
         gateCodeOrKeyNotes: customers.gateCodeOrKeyNotes,
       })
       .from(customers)
@@ -278,9 +277,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     unassigned: todayRows.filter((job) => !(assignmentsByJob.get(job.id) ?? []).length).length,
     missingHours: completedIds.filter((jobId) => !timeJobIds.has(jobId)).length,
     awaitingInvoice: completedIds.filter((jobId) => !invoicedJobIds.has(jobId)).length,
-    paymentMethod: customersNeedingAttention.filter((customer) => !customer.paymentMethod?.trim()).length,
+    paymentMethod: customersNeedingAttention.filter((customer) => !customer.paymentMethods?.length).length,
     incompleteNotes: customersNeedingAttention.filter(
-      (customer) => !customer.addressLine1 || !customer.importantToCustomer?.trim() || !customer.operationalNotes?.trim() || !customer.gateCodeOrKeyNotes?.trim()
+      (customer) => !customer.addressLine1 || !customer.generalNotes?.trim() || !customer.gateCodeOrKeyNotes?.trim()
     ).length,
     sync: failedSyncRows.length,
   };

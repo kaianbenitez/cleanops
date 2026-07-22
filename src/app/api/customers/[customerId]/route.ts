@@ -22,13 +22,11 @@ const updateCustomerSchema = z.object({
   preferredCommunication: z.string().trim().max(100).nullable().optional(),
   preferredDay: z.string().trim().max(100).nullable().optional(),
   preferredTime: z.string().trim().max(100).nullable().optional(),
-  serviceType: z.string().trim().max(100).nullable().optional(),
-  paymentMethod: z.string().trim().max(100).nullable().optional(),
-  importantToCustomer: z.string().trim().max(5000).nullable().optional(),
-  doNotClean: z.string().trim().max(5000).nullable().optional(),
-  petNotes: z.string().trim().max(5000).nullable().optional(),
-  operationalNotes: z.string().trim().max(10000).nullable().optional(),
-  notes: z.string().trim().max(10000).nullable().optional(),
+  preferredDays: z.array(z.enum(["monday", "tuesday", "wednesday", "thursday", "friday"])).max(5).optional(),
+  preferredCleanerId: z.string().uuid().nullable().optional(),
+  preferredTimeOfDay: z.enum(["AM", "PM"]).nullable().optional(),
+  paymentMethods: z.array(z.enum(["Cash", "Check", "Credit Card"])).max(3).optional(),
+  generalNotes: z.string().trim().max(10000).nullable().optional(),
   tags: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
   homeDetails: z.record(z.string(), z.unknown()).optional(),
   locations: z.array(z.object({
@@ -118,6 +116,15 @@ export async function PATCH(
 
   if (!customer) {
     return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+  }
+
+  if (parsed.data.preferredCleanerId) {
+    const [cleaner] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.id, parsed.data.preferredCleanerId), eq(users.companyId, admin.companyId), eq(users.role, "employee"), eq(users.isActive, true)))
+      .limit(1);
+    if (!cleaner) return NextResponse.json({ error: "Preferred cleaner must be an active employee in this company." }, { status: 400 });
   }
 
   const { locations, ...customerFields } = parsed.data;

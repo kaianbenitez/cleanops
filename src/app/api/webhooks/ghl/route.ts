@@ -207,7 +207,7 @@ async function processLead(payload: unknown): Promise<void> {
         city: p.city ?? existing.city,
         state: p.state ?? existing.state,
         zip: p.postal_code ?? existing.zip,
-        notes: p.notes ?? existing.notes,
+        generalNotes: p.notes ?? existing.generalNotes,
         source: p.source ?? existing.source,
       })
       .where(eq(customers.id, existing.id));
@@ -231,7 +231,7 @@ async function processLead(payload: unknown): Promise<void> {
     city: p.city,
     state: p.state,
     zip: p.postal_code,
-    notes: p.notes,
+    generalNotes: p.notes,
     tags: p.tags ?? [],
     homeDetails: buildHomeDetails(p),
   }).returning();

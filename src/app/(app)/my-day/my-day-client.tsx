@@ -29,13 +29,9 @@ type JobCard = {
   vacuumLocation: string | null;
   mopHeadsNeeded: string | null;
   trashBags: string | null;
-  importantToCustomer: string | null;
-  doNotClean: string | null;
-  petNotes: string | null;
-  operationalNotes: string | null;
-  preferredCommunication: string | null;
-  preferredDay: string | null;
-  preferredTime: string | null;
+  generalNotes?: string | null;
+  preferredDays?: string[] | null;
+  preferredTimeOfDay?: string | null;
   subdivision: string | null;
 };
 

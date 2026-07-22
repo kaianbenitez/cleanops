@@ -29,13 +29,9 @@ type Job = {
   vacuumLocation: string | null;
   mopHeadsNeeded: string | null;
   trashBags: string | null;
-  importantToCustomer: string | null;
-  doNotClean: string | null;
-  petNotes: string | null;
-  operationalNotes: string | null;
-  preferredCommunication: string | null;
-  preferredDay: string | null;
-  preferredTime: string | null;
+  generalNotes?: string | null;
+  preferredDays?: string[] | null;
+  preferredTimeOfDay?: string | null;
   subdivision: string | null;
 };
 
@@ -81,7 +77,7 @@ export default function JobExecutionClient({
   const elapsed = timeEntry ? formatElapsed(timeEntry.clockIn, timeEntry.clockOut ? new Date(timeEntry.clockOut).getTime() : now) : "00:00";
   const address = jobAddress(job) || "Address not set";
   const notes = groupNotes(job);
-  const clientNote = [job.importantToCustomer, job.doNotClean, job.petNotes, job.operationalNotes].filter(Boolean).join(" ");
+  const clientNote = job.generalNotes ?? "";
   const beforePhotos = photos.filter((photo) => photo.slot === "before");
   const afterPhotos = photos.filter((photo) => photo.slot === "after");
   const extraPhotos = photos.filter((photo) => photo.slot === "extra");
