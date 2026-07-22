@@ -1,29 +1,32 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { and, eq, gte, ilike, inArray, isNotNull, isNull, lte } from "drizzle-orm";
+import { and, eq, gte, ilike, inArray, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
-import { customers, jobAssignments, jobTypeEnum, jobs, users } from "@/db/schema";
+import { customers, jobAssignments, jobTypeEnum, jobs, recurringSeries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { addDays, formatDayLabel, startOfWeek, toISODate, weekDates } from "@/lib/scheduling/dates";
+import { addDays, formatDayLabel, startOfWeek, toISODate } from "@/lib/scheduling/dates";
 import FilterBar from "./filter-bar";
-import RoutePreview from "./route-preview";
 import StaffBoard from "./staff-board";
 import WeekBoard from "./week-board";
-import DayBoard from "./day-board";
-import ListBoard from "./list-board";
-import { TYPE_LABELS, STATUS_STYLES } from "./shared";
+import MonthBoard from "./month-board";
+import DatePicker from "./date-picker";
 
 type SearchParams = {
   view?: string;
   week?: string;
   day?: string;
+  month?: string;
   employeeId?: string;
   type?: string;
-  recurring?: string;
+  recurrence?: string;
+  status?: string;
   zip?: string;
+  assignment?: string;
 };
 
-type CalendarJob = {
+export type CalendarEmployee = { id: string; firstName: string; lastName: string };
+
+export type CalendarJob = {
   id: string;
   type: string;
   status: string;
@@ -32,12 +35,19 @@ type CalendarJob = {
   estimatedDurationMinutes: number | null;
   priceCents: number;
   recurringSeriesId: string | null;
+  recurrenceFrequency: string | null;
   customerFirstName: string;
   customerLastName: string;
+  companyName: string | null;
+  clientType: string;
   customerZip: string | null;
   customerCity: string | null;
   customerAddress: string | null;
+  assignedUserIds: string[];
+  updatedAt: Date;
 };
+
+export type CalendarActivity = { id: string; tone: "success" | "warning" | "info"; title: string; detail: string };
 
 function query(params: SearchParams) {
   const result = new URLSearchParams();
@@ -46,40 +56,10 @@ function query(params: SearchParams) {
   return text ? `?${text}` : "";
 }
 
-function Metric({ label, value, hint }: { label: string; value: string; hint: string }) {
-  return (
-    <div className="co-card p-5">
-      <p className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--co-muted)]">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-[-0.04em]">{value}</p>
-      <p className="mt-1 text-xs text-[var(--co-muted)]">{hint}</p>
-    </div>
-  );
-}
-
-function SidePanel({
-  eyebrow,
-  title,
-  children,
-}: {
-  eyebrow: string;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="co-card overflow-hidden">
-      <div className="border-b border-[var(--co-line-soft)] px-5 py-4">
-        <p className="eyebrow">{eyebrow}</p>
-        <h2 className="mt-1 text-lg font-semibold">{title}</h2>
-      </div>
-      <div className="px-5 py-5">{children}</div>
-    </section>
-  );
-}
-
 function monthBounds(date: Date) {
-  const start = new Date(Date.UTC(date.getFullYear(), date.getMonth(), 1));
-  const end = new Date(Date.UTC(date.getFullYear(), date.getMonth() + 1, 0));
-  return { start: toISODate(start), end: toISODate(end) };
+  const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+  const end = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0));
+  return { start, end };
 }
 
 export default async function CalendarPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
@@ -88,17 +68,19 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   if (admin.role !== "admin") redirect("/my-day");
 
   const sp = await searchParams;
-  const view = sp.view ?? "week";
-  const dayAnchor = sp.day ? new Date(`${sp.day}T00:00:00.000Z`) : new Date();
-  const weekStart = startOfWeek(sp.week ? new Date(`${sp.week}T00:00:00.000Z`) : new Date());
-  const days = view === "day" || view === "staff" ? [dayAnchor] : weekDates(weekStart);
-  const start = toISODate(days[0]);
-  const end = toISODate(days[days.length - 1]);
-  const now = new Date();
-  const todayIso = toISODate(now);
-  const { start: monthStart, end: monthEnd } = monthBounds(now);
+  const view = sp.view === "week" || sp.view === "month" ? sp.view : "staff";
+  const today = new Date();
+  const dayAnchor = sp.day ? new Date(`${sp.day}T00:00:00.000Z`) : today;
+  const weekStart = startOfWeek(sp.week ? new Date(`${sp.week}T00:00:00.000Z`) : today);
+  const weekDays = Array.from({ length: 5 }, (_, index) => addDays(weekStart, index + 1));
+  const monthAnchor = sp.month ? new Date(`${sp.month}-01T00:00:00.000Z`) : new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+  const month = monthBounds(monthAnchor);
+  const days = view === "staff" ? [dayAnchor] : view === "month" ? [] : weekDays;
+  const start = view === "month" ? toISODate(month.start) : toISODate(days[0]);
+  const end = view === "month" ? toISODate(month.end) : toISODate(days[days.length - 1]);
+  const todayIso = toISODate(today);
 
-  const employees = await db
+  const employees: CalendarEmployee[] = await db
     .select({ id: users.id, firstName: users.firstName, lastName: users.lastName })
     .from(users)
     .where(and(eq(users.companyId, admin.companyId), eq(users.role, "employee"), eq(users.isActive, true)))
@@ -106,9 +88,10 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
 
   const conditions = [eq(jobs.companyId, admin.companyId), gte(jobs.scheduledDate, start), lte(jobs.scheduledDate, end)];
   if (sp.type && (jobTypeEnum as readonly string[]).includes(sp.type)) conditions.push(eq(jobs.type, sp.type as typeof jobs.type.enumValues[number]));
-  if (sp.recurring === "yes") conditions.push(isNotNull(jobs.recurringSeriesId));
-  if (sp.recurring === "no") conditions.push(isNull(jobs.recurringSeriesId));
+  if (sp.status) conditions.push(eq(jobs.status, sp.status as typeof jobs.status.enumValues[number]));
   if (sp.zip) conditions.push(ilike(customers.zip, `${sp.zip}%`));
+  if (sp.recurrence === "none") conditions.push(isNull(recurringSeries.id));
+  if (sp.recurrence && sp.recurrence !== "none") conditions.push(eq(recurringSeries.frequency, sp.recurrence as typeof recurringSeries.frequency.enumValues[number]));
 
   const base = db
     .select({
@@ -120,258 +103,55 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       estimatedDurationMinutes: jobs.estimatedDurationMinutes,
       priceCents: jobs.priceCents,
       recurringSeriesId: jobs.recurringSeriesId,
+      recurrenceFrequency: recurringSeries.frequency,
       customerFirstName: customers.firstName,
       customerLastName: customers.lastName,
+      companyName: customers.companyName,
+      clientType: customers.clientType,
       customerZip: customers.zip,
       customerCity: customers.city,
       customerAddress: customers.addressLine1,
-    })
-    .from(jobs)
-    .innerJoin(customers, eq(jobs.customerId, customers.id));
-
-  const rows: CalendarJob[] = sp.employeeId
-    ? await base
-        .innerJoin(jobAssignments, and(eq(jobAssignments.jobId, jobs.id), eq(jobAssignments.userId, sp.employeeId)))
-        .where(and(...conditions))
-        .orderBy(jobs.scheduledDate, jobs.scheduledStartTime)
-    : await base.where(and(...conditions)).orderBy(jobs.scheduledDate, jobs.scheduledStartTime);
-
-  const monthRows = await db
-    .select({
-      id: jobs.id,
-      type: jobs.type,
-      status: jobs.status,
-      scheduledDate: jobs.scheduledDate,
-      customerFirstName: customers.firstName,
-      customerLastName: customers.lastName,
+      updatedAt: jobs.updatedAt,
     })
     .from(jobs)
     .innerJoin(customers, eq(jobs.customerId, customers.id))
-    .where(and(eq(jobs.companyId, admin.companyId), gte(jobs.scheduledDate, monthStart), lte(jobs.scheduledDate, monthEnd)));
+    .leftJoin(recurringSeries, eq(jobs.recurringSeriesId, recurringSeries.id));
+
+  const rows = (sp.employeeId
+    ? await base.innerJoin(jobAssignments, and(eq(jobAssignments.jobId, jobs.id), eq(jobAssignments.userId, sp.employeeId))).where(and(...conditions)).orderBy(jobs.scheduledDate, jobs.scheduledStartTime)
+    : await base.where(and(...conditions)).orderBy(jobs.scheduledDate, jobs.scheduledStartTime)) as Omit<CalendarJob, "assignedUserIds">[];
 
   const assignments = rows.length
-    ? await db
-        .select({ jobId: jobAssignments.jobId, userId: users.id, firstName: users.firstName, lastName: users.lastName, role: jobAssignments.role })
-        .from(jobAssignments)
-        .innerJoin(users, eq(jobAssignments.userId, users.id))
-        .where(inArray(jobAssignments.jobId, rows.map((row) => row.id)))
+    ? await db.select({ jobId: jobAssignments.jobId, userId: users.id }).from(jobAssignments).innerJoin(users, eq(jobAssignments.userId, users.id)).where(inArray(jobAssignments.jobId, rows.map((row) => row.id)))
     : [];
+  const byJob = new Map<string, string[]>();
+  assignments.forEach((assignment) => byJob.set(assignment.jobId, [...(byJob.get(assignment.jobId) ?? []), assignment.userId]));
+  const jobsWithAssignments: CalendarJob[] = rows.map((row) => ({ ...row, assignedUserIds: byJob.get(row.id) ?? [] }));
+  const displayedJobs = sp.assignment === "unassigned" ? jobsWithAssignments.filter((job) => !job.assignedUserIds.length) : jobsWithAssignments;
 
-  const byJob = new Map<string, typeof assignments>();
-  assignments.forEach((assignment) => byJob.set(assignment.jobId, [...(byJob.get(assignment.jobId) ?? []), assignment]));
-  // Postgres makes no row-order guarantee without ORDER BY; assignedUserIds[0] must be the lead, so sort explicitly.
-  byJob.forEach((jobAssignmentsForJob) => jobAssignmentsForJob.sort((a, b) => (a.role === b.role ? 0 : a.role === "lead" ? -1 : 1)));
-  const byDate = new Map<string, CalendarJob[]>();
-  rows.forEach((row) => byDate.set(row.scheduledDate, [...(byDate.get(row.scheduledDate) ?? []), row]));
-  const monthAssigned = new Set(assignments.map((assignment) => assignment.jobId));
-  const monthUnassigned = monthRows.filter((job) => !monthAssigned.has(job.id) && !["cancelled", "no_show"].includes(job.status));
+  const filterParams: SearchParams = { view: sp.view, week: sp.week, day: sp.day, month: sp.month, employeeId: sp.employeeId, type: sp.type, recurrence: sp.recurrence, status: sp.status, zip: sp.zip, assignment: sp.assignment };
+  const previousDate = view === "month" ? new Date(Date.UTC(monthAnchor.getUTCFullYear(), monthAnchor.getUTCMonth() - 1, 1)) : view === "staff" ? addDays(dayAnchor, -1) : addDays(weekStart, -7);
+  const nextDate = view === "month" ? new Date(Date.UTC(monthAnchor.getUTCFullYear(), monthAnchor.getUTCMonth() + 1, 1)) : view === "staff" ? addDays(dayAnchor, 1) : addDays(weekStart, 7);
+  const prev = query({ ...filterParams, ...(view === "month" ? { month: toISODate(previousDate).slice(0, 7) } : view === "staff" ? { day: toISODate(previousDate) } : { week: toISODate(previousDate) }) });
+  const next = query({ ...filterParams, ...(view === "month" ? { month: toISODate(nextDate).slice(0, 7) } : view === "staff" ? { day: toISODate(nextDate) } : { week: toISODate(nextDate) }) });
+  const todayQuery = query({ ...filterParams, ...(view === "month" ? { month: todayIso.slice(0, 7) } : view === "staff" ? { day: todayIso } : { week: toISODate(startOfWeek(today)) }) });
 
-  const filterParams: SearchParams = { view: sp.view, employeeId: sp.employeeId, type: sp.type, recurring: sp.recurring, zip: sp.zip };
-  const prev = query({ ...filterParams, ...(view === "day" || view === "staff" ? { day: toISODate(addDays(dayAnchor, -1)) } : { week: toISODate(addDays(weekStart, -7)) }) });
-  const next = query({ ...filterParams, ...(view === "day" || view === "staff" ? { day: toISODate(addDays(dayAnchor, 1)) } : { week: toISODate(addDays(weekStart, 7)) }) });
-
-  const selectedEmployee = employees.find((employee) => employee.id === sp.employeeId) ?? null;
-  const routeDate = view === "day" || view === "staff" ? dayAnchor : days.find((day) => toISODate(day) === todayIso) ?? days[0];
-  const routeJobs = (byDate.get(toISODate(routeDate)) ?? [])
-    .filter((job) => (selectedEmployee ? (byJob.get(job.id) ?? []).some((assignment) => assignment.userId === selectedEmployee.id) : true))
-    .slice(0, 5);
-  const unassigned = monthUnassigned;
-  const todayRows = rows.filter((row) => row.scheduledDate === todayIso);
-  const selectedJobs = selectedEmployee ? rows.filter((job) => (byJob.get(job.id) ?? []).some((assignment) => assignment.userId === selectedEmployee.id)) : rows;
-
+  const activities: CalendarActivity[] = [...displayedJobs].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()).slice(0, 5).map((job) => ({ id: job.id, tone: job.status === "completed" ? "success" : job.status === "in_progress" ? "info" : "warning", title: job.status === "completed" ? `Job completed - ${job.companyName || `${job.customerFirstName} ${job.customerLastName}`}` : job.status === "in_progress" ? `Job started - ${job.companyName || `${job.customerFirstName} ${job.customerLastName}`}` : `Schedule updated - ${job.companyName || `${job.customerFirstName} ${job.customerLastName}`}`, detail: `${job.customerCity ?? "No city"} - ${job.customerZip ?? "No ZIP"}` }));
+  const currentDate = view === "month" ? monthAnchor : view === "staff" ? dayAnchor : weekStart;
+  const dateLabel = view === "month" ? monthAnchor.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" }) : view === "staff" ? formatDayLabel(dayAnchor) : `${weekDays[0].toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })} to ${weekDays[4].toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`;
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="eyebrow">Operations / Schedule</p>
-          <h1 className="page-title">Calendar</h1>
-          <p className="page-subtitle">Place every job with confidence, then publish the day.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href={`/calendar${prev}`} className="co-button-secondary">
-            ← Prev
-          </Link>
-          <Link href={`/calendar${query(filterParams)}`} className="co-button-secondary">
-            Today
-          </Link>
-          <Link href={`/calendar${next}`} className="co-button-secondary">
-            Next →
-          </Link>
-          <Link href="/jobs/new" className="co-button-primary">
-            + New job
-          </Link>
-        </div>
+    <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-3 lg:px-6">
+        <div className="flex flex-wrap items-center gap-2"><DatePicker view={view} value={currentDate} label={dateLabel} /><Link href={`/calendar${prev}`} className="co-button-secondary" aria-label="Previous period">Previous</Link><Link href={`/calendar${todayQuery}`} className="co-button-secondary">Today</Link><Link href={`/calendar${next}`} className="co-button-secondary" aria-label="Next period">Next</Link></div>
       </header>
-
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric label="Today" value={String(todayRows.length)} hint="jobs on the board today" />
-        <Metric label="This week" value={String(rows.length)} hint="jobs in the current window" />
-        <Metric label="Unassigned" value={String(unassigned.length)} hint="need a technician" />
-        <Metric
-          label="Technician load"
-          value={selectedEmployee ? String(selectedJobs.length) : "All"}
-          hint={selectedEmployee ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}` : "Use technician filter"}
-        />
-      </section>
 
       <FilterBar employees={employees} />
 
-      <section className="grid gap-5 xl:grid-cols-[1.45fr_0.75fr]">
-        <div className="space-y-5">
-          {view === "week" ? (
-            <WeekBoard
-              days={days.map((day) => {
-                const iso = toISODate(day);
-                return { iso, label: formatDayLabel(day), dayNum: day.getDate(), isToday: iso === todayIso };
-              })}
-              employees={employees}
-              jobs={rows.map((job) => ({
-                id: job.id,
-                type: job.type,
-                status: job.status,
-                scheduledDate: job.scheduledDate,
-                scheduledStartTime: job.scheduledStartTime,
-                estimatedDurationMinutes: job.estimatedDurationMinutes,
-                recurringSeriesId: job.recurringSeriesId,
-                customerFirstName: job.customerFirstName,
-                customerLastName: job.customerLastName,
-                customerZip: job.customerZip,
-                assignedUserIds: (byJob.get(job.id) ?? []).map((assignment) => assignment.userId),
-              }))}
-            />
-          ) : null}
-
-          {view === "day" ? (
-            <DayBoard
-              key={toISODate(routeDate)}
-              dayLabel={formatDayLabel(routeDate)}
-              employees={employees}
-              jobs={rows.map((job) => ({
-                id: job.id,
-                type: job.type,
-                status: job.status,
-                scheduledStartTime: job.scheduledStartTime,
-                estimatedDurationMinutes: job.estimatedDurationMinutes,
-                priceCents: job.priceCents,
-                customerFirstName: job.customerFirstName,
-                customerLastName: job.customerLastName,
-                customerZip: job.customerZip,
-                assignedUserIds: (byJob.get(job.id) ?? []).map((assignment) => assignment.userId),
-              }))}
-            />
-          ) : null}
-
-          {view === "staff" ? (
-            <StaffBoard
-              key={toISODate(dayAnchor)}
-              dayLabel={formatDayLabel(dayAnchor)}
-              employees={sp.employeeId ? employees.filter((employee) => employee.id === sp.employeeId) : employees}
-              jobs={rows.map((job) => ({
-                id: job.id,
-                type: job.type,
-                status: job.status,
-                scheduledStartTime: job.scheduledStartTime,
-                estimatedDurationMinutes: job.estimatedDurationMinutes,
-                customerFirstName: job.customerFirstName,
-                customerLastName: job.customerLastName,
-                customerZip: job.customerZip,
-                assignedUserIds: (byJob.get(job.id) ?? []).map((assignment) => assignment.userId),
-              }))}
-            />
-          ) : null}
-
-          {view === "list" ? (
-            <ListBoard
-              employees={employees}
-              jobs={rows.map((job) => ({
-                id: job.id,
-                type: job.type,
-                status: job.status,
-                scheduledDate: job.scheduledDate,
-                scheduledStartTime: job.scheduledStartTime,
-                recurringSeriesId: job.recurringSeriesId,
-                customerFirstName: job.customerFirstName,
-                customerLastName: job.customerLastName,
-                customerZip: job.customerZip,
-                customerCity: job.customerCity,
-                customerAddress: job.customerAddress,
-                assignedUserIds: (byJob.get(job.id) ?? []).map((assignment) => assignment.userId),
-              }))}
-            />
-          ) : null}
-
-        </div>
-
-        <aside className="space-y-5">
-          <SidePanel eyebrow="Route preview" title={selectedEmployee ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}` : "Today's route"}>
-            <RoutePreview
-              showHeader={false}
-              title={selectedEmployee ? `${selectedEmployee.firstName}'s route` : "Today's route"}
-              jobs={routeJobs.map((job) => ({
-                id: job.id,
-                firstName: job.customerFirstName,
-                lastName: job.customerLastName,
-                address: job.customerAddress ?? "",
-                city: job.customerCity ?? "",
-                zip: job.customerZip ?? "",
-                time: job.scheduledStartTime?.slice(0, 5) ?? "No time",
-              }))}
-            />
-          </SidePanel>
-
-          <SidePanel eyebrow="Schedule" title="Today's jobs">
-            <div className="space-y-2">
-              {todayRows.slice(0, 5).map((job) => (
-                <Link key={job.id} href={`/jobs/${job.id}`} className={`block rounded-2xl border px-3 py-3 text-sm ${STATUS_STYLES[job.status] ?? "border-slate-200 bg-slate-50"}`}>
-                  <div className="font-medium">
-                    {job.scheduledStartTime?.slice(0, 5)} {job.customerFirstName} {job.customerLastName}
-                  </div>
-                  <div className="mt-1 text-xs opacity-75">
-                    {TYPE_LABELS[job.type] ?? job.type} · {job.customerZip ?? "No zip"}
-                  </div>
-                </Link>
-              ))}
-              {todayRows.length === 0 ? <p className="text-sm text-[var(--co-muted)]">No jobs scheduled for today.</p> : null}
-            </div>
-          </SidePanel>
-
-          <SidePanel eyebrow="Current month" title="Unassigned jobs">
-            <div className="space-y-2">
-              {unassigned.slice(0, 4).map((job) => (
-                <Link key={job.id} href={`/jobs/${job.id}`} className="block rounded-2xl border border-amber-200 bg-amber-50/60 p-3 text-sm hover:bg-amber-50">
-                  <div className="font-medium">
-                    {job.customerFirstName} {job.customerLastName}
-                  </div>
-                  <div className="mt-1 text-xs text-[var(--co-muted)]">
-                    {job.scheduledDate} · {TYPE_LABELS[job.type] ?? job.type}
-                  </div>
-                </Link>
-              ))}
-              {unassigned.length === 0 ? <p className="text-sm text-[var(--co-muted)]">Everything is assigned.</p> : null}
-            </div>
-          </SidePanel>
-
-          <SidePanel eyebrow="Availability" title="Team today">
-            <div className="space-y-3">
-              {employees.map((employee) => {
-                const count = rows.filter((job) => (byJob.get(job.id) ?? []).some((assignment) => assignment.userId === employee.id)).length;
-                const available = count === 0;
-                return (
-                  <div key={employee.id} className="flex items-center justify-between rounded-2xl border border-[var(--co-line-soft)] px-3 py-3 text-sm">
-                    <div>
-                      <p className="font-medium">
-                        {employee.firstName} {employee.lastName}
-                      </p>
-                      <p className="text-xs text-[var(--co-muted)]">{available ? "Available today" : `${count} scheduled job${count === 1 ? "" : "s"}`}</p>
-                    </div>
-                    <span className={`h-2.5 w-2.5 rounded-full ${available ? "bg-emerald-500" : "bg-amber-500"}`} aria-label={available ? "Available" : "Scheduled"} />
-                  </div>
-                );
-              })}
-            </div>
-          </SidePanel>
-        </aside>
-      </section>
+      <main className="p-3 sm:p-4 lg:p-5">
+        {view === "week" ? <WeekBoard days={weekDays.map((day) => ({ iso: toISODate(day), label: formatDayLabel(day), dayNum: day.getDate(), isToday: toISODate(day) === todayIso }))} employees={employees} jobs={displayedJobs} /> : null}
+        {view === "staff" ? <StaffBoard dayIso={toISODate(dayAnchor)} dayLabel={formatDayLabel(dayAnchor)} employees={employees} jobs={displayedJobs} activities={activities} unassignedJobs={jobsWithAssignments.filter((job) => !job.assignedUserIds.length)} /> : null}
+        {view === "month" ? <MonthBoard month={monthAnchor} jobs={displayedJobs} /> : null}
+      </main>
     </div>
   );
 }

@@ -24,8 +24,8 @@ export const TYPE_COLORS: Record<string, string> = {
 
 export const EMPLOYEE_PALETTE = ["#2563eb", "#0f766e", "#7c3aed", "#ea580c", "#be123c", "#15803d", "#b45309", "#4f46e5"];
 
-export const STAFF_RANGE_START = 7 * 60;
-export const STAFF_RANGE_MINUTES = 12 * 60;
+export const STAFF_RANGE_START = 9 * 60;
+export const STAFF_RANGE_MINUTES = 9 * 60;
 
 export function minutesFromTime(value: string | null | undefined) {
   if (!value) return 9 * 60;
@@ -60,6 +60,16 @@ export function employeeColor(id: string | null | undefined) {
     hash = (hash * 31 + id.charCodeAt(index)) >>> 0;
   }
   return EMPLOYEE_PALETTE[hash % EMPLOYEE_PALETTE.length];
+}
+
+export function displayCustomer(job: { customerFirstName: string; customerLastName: string; companyName?: string | null }) {
+  return job.companyName?.trim() || `${job.customerFirstName} ${job.customerLastName}`;
+}
+
+export function recurrenceLabel(value: string | null | undefined) {
+  if (!value || value === "none") return "One-time";
+  if (value === "every4weeks") return "Every 4 weeks";
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 export function jobDuration(job: { estimatedDurationMinutes: number | null }) {
