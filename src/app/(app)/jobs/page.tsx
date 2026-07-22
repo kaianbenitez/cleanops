@@ -152,45 +152,64 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
     conditions.push(assigned.length ? inArray(jobs.id, assigned.map((row) => row.jobId)) : inArray(jobs.id, ["00000000-0000-0000-0000-000000000000"]));
   }
 
-  const rows = await db
-    .select({
-      id: jobs.id,
-      type: jobs.type,
-      status: jobs.status,
-      scheduledDate: jobs.scheduledDate,
-      scheduledStartTime: jobs.scheduledStartTime,
-      estimatedDurationMinutes: jobs.estimatedDurationMinutes,
-      priceCents: jobs.priceCents,
-      customerId: jobs.customerId,
-      customerFirstName: customers.firstName,
-      customerLastName: customers.lastName,
-      addressLine1: customers.addressLine1,
-      city: customers.city,
-      state: customers.state,
-      zip: customers.zip,
-    })
-    .from(jobs)
-    .innerJoin(customers, eq(jobs.customerId, customers.id))
-    .where(and(...conditions))
-    .orderBy(desc(jobs.scheduledDate), jobs.scheduledStartTime)
-    .limit(150);
-
-  const employees = await db
-    .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, isActive: users.isActive })
-    .from(users)
-    .where(and(eq(users.companyId, admin.companyId), eq(users.role, "employee")))
-    .orderBy(users.firstName);
+  const [rows, employees, allJobs] = await Promise.all([
+    db
+      .select({
+        id: jobs.id,
+        type: jobs.type,
+        status: jobs.status,
+        scheduledDate: jobs.scheduledDate,
+        scheduledStartTime: jobs.scheduledStartTime,
+        estimatedDurationMinutes: jobs.estimatedDurationMinutes,
+        priceCents: jobs.priceCents,
+        customerId: jobs.customerId,
+        customerFirstName: customers.firstName,
+        customerLastName: customers.lastName,
+        addressLine1: customers.addressLine1,
+        city: customers.city,
+        state: customers.state,
+        zip: customers.zip,
+      })
+      .from(jobs)
+      .innerJoin(customers, eq(jobs.customerId, customers.id))
+      .where(and(...conditions))
+      .orderBy(desc(jobs.scheduledDate), jobs.scheduledStartTime)
+      .limit(150),
+    db
+      .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, isActive: users.isActive })
+      .from(users)
+      .where(and(eq(users.companyId, admin.companyId), eq(users.role, "employee")))
+      .orderBy(users.firstName),
+    db
+      .select({ id: jobs.id, status: jobs.status, scheduledDate: jobs.scheduledDate })
+      .from(jobs)
+      .where(and(eq(jobs.companyId, admin.companyId), gte(jobs.scheduledDate, rangeStart), lte(jobs.scheduledDate, rangeEnd))),
+  ]);
 
   const jobIds = rows.map((row) => row.id);
-  const assignments = jobIds.length
-    ? await db
-        .select({ jobId: jobAssignments.jobId, userId: users.id, firstName: users.firstName, lastName: users.lastName })
-        .from(jobAssignments)
-        .innerJoin(users, eq(jobAssignments.userId, users.id))
-        .where(inArray(jobAssignments.jobId, jobIds))
-    : [];
-  const entries = jobIds.length ? await db.select({ jobId: timeEntries.jobId, minutesWorked: timeEntries.minutesWorked }).from(timeEntries).where(inArray(timeEntries.jobId, jobIds)) : [];
-  const invoiceRows = jobIds.length ? await db.select({ jobId: invoices.jobId, status: invoices.status }).from(invoices).where(inArray(invoices.jobId, jobIds)) : [];
+  const allJobIds = allJobs.map((job) => job.id);
+
+  const [assignments, entries, invoiceRows, allAssignments, allInvoiceRows] = await Promise.all([
+    jobIds.length
+      ? db
+          .select({ jobId: jobAssignments.jobId, userId: users.id, firstName: users.firstName, lastName: users.lastName })
+          .from(jobAssignments)
+          .innerJoin(users, eq(jobAssignments.userId, users.id))
+          .where(inArray(jobAssignments.jobId, jobIds))
+      : Promise.resolve([]),
+    jobIds.length
+      ? db.select({ jobId: timeEntries.jobId, minutesWorked: timeEntries.minutesWorked }).from(timeEntries).where(inArray(timeEntries.jobId, jobIds))
+      : Promise.resolve([]),
+    jobIds.length
+      ? db.select({ jobId: invoices.jobId, status: invoices.status }).from(invoices).where(inArray(invoices.jobId, jobIds))
+      : Promise.resolve([]),
+    allJobIds.length
+      ? db.select({ jobId: jobAssignments.jobId }).from(jobAssignments).where(inArray(jobAssignments.jobId, allJobIds))
+      : Promise.resolve([]),
+    allJobIds.length
+      ? db.select({ jobId: invoices.jobId }).from(invoices).where(inArray(invoices.jobId, allJobIds))
+      : Promise.resolve([]),
+  ]);
 
   const assignmentsByJob = new Map<string, typeof assignments>();
   assignments.forEach((assignment) => assignmentsByJob.set(assignment.jobId, [...(assignmentsByJob.get(assignment.jobId) ?? []), assignment]));
@@ -199,13 +218,6 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
   const invoiceByJob = new Map<string, string>();
   invoiceRows.forEach((invoice) => invoice.jobId && invoiceByJob.set(invoice.jobId, invoice.status));
 
-  const allJobs = await db
-    .select({ id: jobs.id, status: jobs.status, scheduledDate: jobs.scheduledDate })
-    .from(jobs)
-    .where(and(eq(jobs.companyId, admin.companyId), gte(jobs.scheduledDate, rangeStart), lte(jobs.scheduledDate, rangeEnd)));
-  const allJobIds = allJobs.map((job) => job.id);
-  const allAssignments = allJobIds.length ? await db.select({ jobId: jobAssignments.jobId }).from(jobAssignments).where(inArray(jobAssignments.jobId, allJobIds)) : [];
-  const allInvoiceRows = allJobIds.length ? await db.select({ jobId: invoices.jobId }).from(invoices).where(inArray(invoices.jobId, allJobIds)) : [];
   const assignedIds = new Set(allAssignments.map((assignment) => assignment.jobId));
   const invoicedIds = new Set(allInvoiceRows.map((invoice) => invoice.jobId).filter((jobId): jobId is string => Boolean(jobId)));
 

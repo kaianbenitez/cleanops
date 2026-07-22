@@ -27,15 +27,15 @@ export default function AppSurfaceMotion({ children }: { children: React.ReactNo
       ].join(","));
       gsap.fromTo(
         element,
-        { autoAlpha: 0, y: 8 },
-        { autoAlpha: 1, y: 0, duration: 0.3, ease: "power2.out", clearProps: "opacity,transform" },
+        { autoAlpha: 0, y: 4 },
+        { autoAlpha: 1, y: 0, duration: 0.12, ease: "power2.out", clearProps: "opacity,transform" },
       );
 
       if (targets.length) {
         gsap.fromTo(
           targets,
-          { autoAlpha: 0, y: 12 },
-          { autoAlpha: 1, y: 0, duration: 0.42, stagger: 0.028, ease: "power2.out", delay: 0.04, clearProps: "opacity,transform" },
+          { autoAlpha: 0, y: 6 },
+          { autoAlpha: 1, y: 0, duration: 0.16, stagger: 0.01, ease: "power2.out", clearProps: "opacity,transform" },
         );
       }
     }, element);
