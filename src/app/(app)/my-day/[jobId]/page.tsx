@@ -45,13 +45,9 @@ export default async function JobExecutionPage({ params }: { params: Promise<{ j
       vacuumLocation: customerLocations.vacuumLocation,
       mopHeadsNeeded: customerLocations.mopHeadsNeeded,
       trashBags: customerLocations.trashBags,
-      importantToCustomer: customers.importantToCustomer,
-      doNotClean: customers.doNotClean,
-      petNotes: customers.petNotes,
-      operationalNotes: customers.operationalNotes,
-      preferredCommunication: customers.preferredCommunication,
-      preferredDay: customers.preferredDay,
-      preferredTime: customers.preferredTime,
+      generalNotes: customers.generalNotes,
+      preferredDays: customers.preferredDays,
+      preferredTimeOfDay: customers.preferredTimeOfDay,
       subdivision: customers.subdivision,
     })
     .from(jobAssignments)

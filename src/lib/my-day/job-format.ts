@@ -6,6 +6,7 @@ type AddressLike = {
 };
 
 type NotesLike = {
+  generalNotes?: string | null;
   accessInstructions: string | null;
   keyNumber: string | null;
   garageCode: string | null;
@@ -14,13 +15,8 @@ type NotesLike = {
   vacuumLocation: string | null;
   mopHeadsNeeded: string | null;
   trashBags: string | null;
-  importantToCustomer: string | null;
-  doNotClean: string | null;
-  petNotes: string | null;
-  operationalNotes: string | null;
-  preferredCommunication: string | null;
-  preferredDay: string | null;
-  preferredTime: string | null;
+  preferredDays?: string[] | null;
+  preferredTimeOfDay?: string | null;
   subdivision: string | null;
 };
 
@@ -47,6 +43,7 @@ export function jobAddress(job: AddressLike) {
 
 export function groupNotes(job: NotesLike) {
   return [
+    job.generalNotes,
     job.accessInstructions,
     job.keyNumber ? `Key #: ${job.keyNumber}` : null,
     job.garageCode ? `Garage: ${job.garageCode}` : null,
@@ -55,26 +52,18 @@ export function groupNotes(job: NotesLike) {
     job.vacuumLocation ? `Vacuum: ${job.vacuumLocation}` : null,
     job.mopHeadsNeeded ? `Mop heads: ${job.mopHeadsNeeded}` : null,
     job.trashBags ? `Trash bags: ${job.trashBags}` : null,
-    job.importantToCustomer ? `Important: ${job.importantToCustomer}` : null,
-    job.doNotClean ? `Do not clean: ${job.doNotClean}` : null,
-    job.petNotes ? `Pets: ${job.petNotes}` : null,
-    job.operationalNotes ? job.operationalNotes : null,
-    job.preferredCommunication ? `Prefers ${job.preferredCommunication}` : null,
-    job.preferredDay ? `Prefers ${job.preferredDay}` : null,
-    job.preferredTime ? `Prefers ${job.preferredTime}` : null,
+    job.preferredDays?.length ? `Preferred days: ${job.preferredDays.join(", ")}` : null,
+    job.preferredTimeOfDay ? `Preferred time: ${job.preferredTimeOfDay}` : null,
     job.subdivision ? `Subdivision: ${job.subdivision}` : null,
   ].filter((entry): entry is string => Boolean(entry));
 }
 
 export function customerProfile(job: NotesLike) {
   return [
-    { label: "Preferred communication", value: job.preferredCommunication ?? "Not set" },
-    { label: "Preferred day", value: job.preferredDay ?? "Not set" },
-    { label: "Preferred time", value: job.preferredTime ?? "Not set" },
+    { label: "Preferred days", value: job.preferredDays?.join(", ") ?? "Not set" },
+    { label: "Preferred time", value: job.preferredTimeOfDay ?? "Not set" },
     { label: "Subdivision", value: job.subdivision ?? "Not set" },
-    { label: "Pets", value: job.petNotes ?? "None noted" },
-    { label: "Important to customer", value: job.importantToCustomer ?? "Not noted" },
-    { label: "Do not clean", value: job.doNotClean ?? "None noted" },
+    { label: "General notes", value: job.generalNotes ?? "No general notes" },
     { label: "Access notes", value: job.accessInstructions ?? "No access notes" },
   ];
 }

@@ -64,6 +64,13 @@
       "when": 1784730225430,
       "tag": "0008_wild_riptide",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784733978468,
+      "tag": "0009_chief_donald_blake",
+      "breakpoints": true
     }
   ]
 }

@@ -409,10 +409,8 @@ export default async function ReportsPage() {
         lastName: customers.lastName,
         status: customers.status,
         recurrence: customers.recurrence,
-        paymentMethod: customers.paymentMethod,
-        importantToCustomer: customers.importantToCustomer,
-        operationalNotes: customers.operationalNotes,
-        notes: customers.notes,
+        paymentMethods: customers.paymentMethods,
+        generalNotes: customers.generalNotes,
       })
       .from(customers)
       .where(eq(customers.companyId, user.companyId))
@@ -544,7 +542,7 @@ export default async function ReportsPage() {
 
   const declinedCardById = new Map<string, number>();
   customerRows.forEach((customer) => {
-    const value = customer.paymentMethod?.toLowerCase() ?? "";
+    const value = customer.paymentMethods?.join(" ").toLowerCase() ?? "";
     if (value.includes("declin") || value.includes("fail") || value.includes("invalid")) {
       declinedCardById.set(customer.id, 1);
     }
@@ -553,9 +551,9 @@ export default async function ReportsPage() {
   const customerRowsFlagged = customerRows
     .map((customer) => {
       const flags: string[] = [];
-      if (!customer.paymentMethod?.trim()) flags.push("Missing payment method");
+      if (!customer.paymentMethods?.length) flags.push("Missing payment method");
       if (declinedCardById.has(customer.id)) flags.push("Declined card");
-      if (!customer.operationalNotes?.trim() && !customer.importantToCustomer?.trim() && !customer.notes?.trim()) flags.push("Incomplete notes");
+      if (!customer.generalNotes?.trim()) flags.push("Incomplete notes");
       if ((customerNoShowById.get(customer.id) ?? 0) > 0) flags.push(`${customerNoShowById.get(customer.id)} no-show${customerNoShowById.get(customer.id) === 1 ? "" : "s"}`);
       if ((customerRescheduleById.get(customer.id) ?? 0) > 0) flags.push(`${customerRescheduleById.get(customer.id)} reschedule${customerRescheduleById.get(customer.id) === 1 ? "" : "s"}`);
       if ((overdueByCustomer.get(customer.id) ?? 0) > 0) flags.push(`${overdueByCustomer.get(customer.id)} overdue invoice${overdueByCustomer.get(customer.id) === 1 ? "" : "s"}`);
@@ -711,9 +709,9 @@ export default async function ReportsPage() {
     },
   ];
 
-  const missingPaymentCount = customerRows.filter((row) => !row.paymentMethod?.trim()).length;
+  const missingPaymentCount = customerRows.filter((row) => !row.paymentMethods?.length).length;
   const declinedCardCount = declinedCardById.size;
-  const incompleteNotesCount = customerRows.filter((row) => !row.operationalNotes?.trim() && !row.importantToCustomer?.trim() && !row.notes?.trim()).length;
+  const incompleteNotesCount = customerRows.filter((row) => !row.generalNotes?.trim()).length;
   const rescheduleCount = customerRows.filter((row) => (customerRescheduleById.get(row.id) ?? 0) > 0).length;
   const noShowCount = customerRows.filter((row) => (customerNoShowById.get(row.id) ?? 0) > 0).length;
 

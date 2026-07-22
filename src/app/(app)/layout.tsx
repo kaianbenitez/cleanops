@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Bell, MessageCircle, LogOut } from "lucide-react";
+import { Bell, MessageCircle, LogOut, Search } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { emailToUsername } from "@/lib/auth/username";
 import AppNav from "./app-nav";
@@ -22,13 +22,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       <div className="lg:pl-[260px]">
         <header className="sticky top-0 z-20 hidden border-b border-[var(--co-line-soft)] bg-[var(--co-surface)]/90 backdrop-blur-xl xl:block">
-          <div className="mx-auto flex h-[72px] w-full max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 xl:px-10">
+          <div className="mx-auto flex h-[64px] w-full max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 xl:px-10">
             <div className="min-w-0">
-              <p className="eyebrow">{isAdmin ? "Operations desk" : "Field view"}</p>
-              <p className="mt-1 text-sm font-medium text-[var(--co-muted)]">Keep the day moving</p>
+              <p className="text-xl font-semibold tracking-[-0.03em] text-[var(--co-evergreen)]">{isAdmin ? "Operations Dashboard" : "Field view"}</p>
             </div>
 
             <div className="flex items-center gap-3">
+              {isAdmin ? (
+                <form action="/customers" className="hidden min-w-0 sm:block">
+                  <label className="relative block w-[min(34vw,360px)]">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--co-faint)]" aria-hidden />
+                    <input name="q" placeholder="Search customers, addresses, or tags..." className="co-input h-10 w-full rounded-lg bg-[var(--co-surface-muted)] pl-9 text-sm" />
+                  </label>
+                </form>
+              ) : null}
               {isAdmin ? <CreateMenu /> : null}
               <div className="flex items-center gap-1.5">
                 <button

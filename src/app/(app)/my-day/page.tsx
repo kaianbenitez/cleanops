@@ -29,13 +29,9 @@ type JobCard = {
   vacuumLocation: string | null;
   mopHeadsNeeded: string | null;
   trashBags: string | null;
-  importantToCustomer: string | null;
-  doNotClean: string | null;
-  petNotes: string | null;
-  operationalNotes: string | null;
-  preferredCommunication: string | null;
-  preferredDay: string | null;
-  preferredTime: string | null;
+  generalNotes: string | null;
+  preferredDays: string[] | null;
+  preferredTimeOfDay: string | null;
   subdivision: string | null;
 };
 
@@ -127,13 +123,9 @@ export default async function MyDayPage() {
       vacuumLocation: customerLocations.vacuumLocation,
       mopHeadsNeeded: customerLocations.mopHeadsNeeded,
       trashBags: customerLocations.trashBags,
-      importantToCustomer: customers.importantToCustomer,
-      doNotClean: customers.doNotClean,
-      petNotes: customers.petNotes,
-      operationalNotes: customers.operationalNotes,
-      preferredCommunication: customers.preferredCommunication,
-      preferredDay: customers.preferredDay,
-      preferredTime: customers.preferredTime,
+      generalNotes: customers.generalNotes,
+      preferredDays: customers.preferredDays,
+      preferredTimeOfDay: customers.preferredTimeOfDay,
       subdivision: customers.subdivision,
     })
     .from(jobAssignments)
@@ -167,13 +159,9 @@ export default async function MyDayPage() {
       vacuumLocation: customerLocations.vacuumLocation,
       mopHeadsNeeded: customerLocations.mopHeadsNeeded,
       trashBags: customerLocations.trashBags,
-      importantToCustomer: customers.importantToCustomer,
-      doNotClean: customers.doNotClean,
-      petNotes: customers.petNotes,
-      operationalNotes: customers.operationalNotes,
-      preferredCommunication: customers.preferredCommunication,
-      preferredDay: customers.preferredDay,
-      preferredTime: customers.preferredTime,
+      generalNotes: customers.generalNotes,
+      preferredDays: customers.preferredDays,
+      preferredTimeOfDay: customers.preferredTimeOfDay,
       subdivision: customers.subdivision,
     })
     .from(jobAssignments)
@@ -208,13 +196,9 @@ export default async function MyDayPage() {
       vacuumLocation: customerLocations.vacuumLocation,
       mopHeadsNeeded: customerLocations.mopHeadsNeeded,
       trashBags: customerLocations.trashBags,
-      importantToCustomer: customers.importantToCustomer,
-      doNotClean: customers.doNotClean,
-      petNotes: customers.petNotes,
-      operationalNotes: customers.operationalNotes,
-      preferredCommunication: customers.preferredCommunication,
-      preferredDay: customers.preferredDay,
-      preferredTime: customers.preferredTime,
+      generalNotes: customers.generalNotes,
+      preferredDays: customers.preferredDays,
+      preferredTimeOfDay: customers.preferredTimeOfDay,
       subdivision: customers.subdivision,
     })
     .from(jobAssignments)
@@ -256,13 +240,9 @@ export default async function MyDayPage() {
       vacuumLocation: customerLocations.vacuumLocation,
       mopHeadsNeeded: customerLocations.mopHeadsNeeded,
       trashBags: customerLocations.trashBags,
-      importantToCustomer: customers.importantToCustomer,
-      doNotClean: customers.doNotClean,
-      petNotes: customers.petNotes,
-      operationalNotes: customers.operationalNotes,
-      preferredCommunication: customers.preferredCommunication,
-      preferredDay: customers.preferredDay,
-      preferredTime: customers.preferredTime,
+      generalNotes: customers.generalNotes,
+      preferredDays: customers.preferredDays,
+      preferredTimeOfDay: customers.preferredTimeOfDay,
       subdivision: customers.subdivision,
     })
     .from(timeEntries)
@@ -304,13 +284,9 @@ export default async function MyDayPage() {
       vacuumLocation: customerLocations.vacuumLocation,
       mopHeadsNeeded: customerLocations.mopHeadsNeeded,
       trashBags: customerLocations.trashBags,
-      importantToCustomer: customers.importantToCustomer,
-      doNotClean: customers.doNotClean,
-      petNotes: customers.petNotes,
-      operationalNotes: customers.operationalNotes,
-      preferredCommunication: customers.preferredCommunication,
-      preferredDay: customers.preferredDay,
-      preferredTime: customers.preferredTime,
+      generalNotes: customers.generalNotes,
+      preferredDays: customers.preferredDays,
+      preferredTimeOfDay: customers.preferredTimeOfDay,
       subdivision: customers.subdivision,
     })
     .from(timeEntries)
@@ -364,13 +340,9 @@ export default async function MyDayPage() {
         vacuumLocation: openEntry.vacuumLocation,
         mopHeadsNeeded: openEntry.mopHeadsNeeded,
         trashBags: openEntry.trashBags,
-        importantToCustomer: openEntry.importantToCustomer,
-        doNotClean: openEntry.doNotClean,
-        petNotes: openEntry.petNotes,
-        operationalNotes: openEntry.operationalNotes,
-        preferredCommunication: openEntry.preferredCommunication,
-        preferredDay: openEntry.preferredDay,
-        preferredTime: openEntry.preferredTime,
+        generalNotes: openEntry.generalNotes,
+        preferredDays: openEntry.preferredDays,
+        preferredTimeOfDay: openEntry.preferredTimeOfDay,
         subdivision: openEntry.subdivision,
       }
     : currentJob
@@ -397,13 +369,9 @@ export default async function MyDayPage() {
           vacuumLocation: currentJob.vacuumLocation,
           mopHeadsNeeded: currentJob.mopHeadsNeeded,
           trashBags: currentJob.trashBags,
-          importantToCustomer: currentJob.importantToCustomer,
-          doNotClean: currentJob.doNotClean,
-          petNotes: currentJob.petNotes,
-          operationalNotes: currentJob.operationalNotes,
-          preferredCommunication: currentJob.preferredCommunication,
-          preferredDay: currentJob.preferredDay,
-          preferredTime: currentJob.preferredTime,
+          generalNotes: currentJob.generalNotes,
+          preferredDays: currentJob.preferredDays,
+          preferredTimeOfDay: currentJob.preferredTimeOfDay,
           subdivision: currentJob.subdivision,
         }
       : null;

@@ -26,7 +26,6 @@ const STATUS_STYLES: Record<string, string> = {
 type SearchParams = {
   q?: string;
   status?: string;
-  service?: string;
   payment?: string;
   recurrence?: string;
   attention?: string;
@@ -39,9 +38,8 @@ type CustomerRow = {
   lastName: string;
   status: string;
   clientType: string;
-  serviceType: string | null;
   recurrence: string | null;
-  paymentMethod: string | null;
+  paymentMethods: string[] | null;
   addressLine1: string | null;
   city: string | null;
   state: string | null;
@@ -92,17 +90,7 @@ function statCard({ label, value, note, href }: { label: string; value: string; 
   );
 }
 
-function panel({
-  eyebrow,
-  title,
-  description,
-  children,
-}: {
-  eyebrow: string;
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
+function panel({ eyebrow, title, description, children }: { eyebrow: string; title: string; description?: string; children: React.ReactNode }) {
   return (
     <section className="co-card overflow-hidden">
       <div className="border-b border-[var(--co-line-soft)] px-5 py-4">
@@ -125,10 +113,9 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
 
   if (sp.status && sp.status !== "all") conditions.push(eq(customers.status, sp.status as typeof customers.status.enumValues[number]));
   if (sp.clientType && sp.clientType !== "all") conditions.push(eq(customers.clientType, sp.clientType as typeof customers.clientType.enumValues[number]));
-  if (sp.service) conditions.push(ilike(customers.serviceType, `%${sp.service}%`));
   if (sp.recurrence === "recurring") conditions.push(and(isNotNull(customers.recurrence), ne(customers.recurrence, "none"))!);
-  if (sp.payment === "missing") conditions.push(or(isNull(customers.paymentMethod), eq(customers.paymentMethod, ""), eq(customers.paymentMethod, "unknown"))!);
-  if (sp.attention === "yes") conditions.push(or(isNull(customers.paymentMethod), eq(customers.paymentMethod, ""), eq(customers.paymentMethod, "unknown"), isNull(customers.serviceType), eq(customers.serviceType, ""), isNull(customers.addressLine1), eq(customers.addressLine1, ""))!);
+  if (sp.payment === "missing") conditions.push(isNull(customers.paymentMethods));
+  if (sp.attention === "yes") conditions.push(or(isNull(customers.paymentMethods), isNull(customers.addressLine1), eq(customers.addressLine1, ""))!);
   if (sp.q?.trim()) {
     const query = `%${sp.q.trim()}%`;
     conditions.push(or(ilike(customers.firstName, query), ilike(customers.lastName, query), ilike(customers.email, query), ilike(customers.addressLine1, query))!);
@@ -141,9 +128,8 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
       lastName: customers.lastName,
       status: customers.status,
       clientType: customers.clientType,
-      serviceType: customers.serviceType,
       recurrence: customers.recurrence,
-      paymentMethod: customers.paymentMethod,
+      paymentMethods: customers.paymentMethods,
       addressLine1: customers.addressLine1,
       city: customers.city,
       state: customers.state,
@@ -198,7 +184,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   });
 
   const recurringCount = rows.filter((row) => row.recurrence && row.recurrence !== "none").length;
-  const attentionCount = rows.filter((row) => !row.paymentMethod || !row.serviceType || !row.addressLine1).length;
+  const attentionCount = rows.filter((row) => !row.paymentMethods?.length || !row.addressLine1).length;
   const openBalance = [...openInvoiceByCustomer.values()].reduce((sum, value) => sum + value, 0);
   const leadCount = rows.filter((row) => row.status === "lead").length;
 
@@ -260,12 +246,6 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                 <option value="residential">Residential</option>
                 <option value="commercial">Commercial</option>
               </select>
-              <select name="service" defaultValue={sp.service ?? ""} className="co-input w-full sm:w-auto">
-                <option value="">All service types</option>
-                <option value="supreme deep">Supreme Deep Cleaning</option>
-                <option value="first time">First Time Cleaning</option>
-                <option value="deep">Deep Cleaning</option>
-              </select>
               <select name="payment" defaultValue={sp.payment ?? ""} className="co-input w-full sm:w-auto">
                 <option value="">All payment methods</option>
                 <option value="missing">Payment method missing</option>
@@ -295,7 +275,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                       <th className="px-5 py-3">Customer</th>
                       <th className="px-5 py-3">Status</th>
                       <th className="px-5 py-3">Next cleaning</th>
-                      <th className="px-5 py-3">Service</th>
+                      <th className="px-5 py-3">Plan</th>
                       <th className="px-5 py-3">Payment</th>
                       <th className="px-5 py-3">Attention</th>
                       <th className="px-5 py-3"></th>
@@ -305,7 +285,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                     {rows.map((row) => {
                       const nextJob = nextJobByCustomer.get(row.id);
                       const balance = openInvoiceByCustomer.get(row.id) ?? 0;
-                      const missing = !row.paymentMethod || !row.serviceType || !row.addressLine1;
+                      const missing = !row.paymentMethods?.length || !row.addressLine1;
 
                       return (
                         <tr key={row.id} className="transition-colors hover:bg-[var(--co-surface-muted)]/50">
@@ -340,11 +320,11 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                             )}
                           </td>
                           <td className="px-5 py-4 text-[var(--co-muted)]">
-                            {row.serviceType ?? "Not set"}
-                            <span className="block text-xs">{row.recurrence && row.recurrence !== "none" ? row.recurrence : "One-time"}</span>
+                            {row.recurrence && row.recurrence !== "none" ? row.recurrence : "One-time"}
+                            <span className="block text-xs">{row.clientType === "commercial" ? "Commercial" : "Residential"}</span>
                           </td>
                           <td className="px-5 py-4">
-                            {row.paymentMethod ? <span className="text-[var(--co-muted)]">{row.paymentMethod}</span> : <span className="font-medium text-amber-700">Missing</span>}
+                            {row.paymentMethods?.length ? <span className="text-[var(--co-muted)]">{row.paymentMethods.join(", ")}</span> : <span className="font-medium text-amber-700">Missing</span>}
                             {balance > 0 ? <span className="block text-xs text-rose-600">{money(balance)} due</span> : null}
                           </td>
                           <td className="px-5 py-4">
