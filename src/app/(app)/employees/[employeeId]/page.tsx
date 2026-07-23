@@ -701,8 +701,8 @@ function CompactProfile({
 
       <section className="co-card flex flex-col gap-5 p-5 lg:flex-row lg:items-center lg:justify-between lg:px-6">
         <div className="flex min-w-0 items-center gap-4">
-          <div className="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-[var(--co-evergreen)] bg-[var(--co-surface-muted)] text-2xl font-semibold text-[var(--co-evergreen)]">
-            {employee.profilePhotoUrl ? <img src={employee.profilePhotoUrl} alt={`${fullName} profile`} className="h-full w-full object-cover" /> : initials}
+          <div className="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-2xl border-2 border-[var(--co-evergreen)] bg-[var(--co-surface-muted)] text-2xl font-semibold text-[var(--co-evergreen)]">
+            {employee.profilePhotoUrl ? <img src={employee.profilePhotoUrl} alt={`${fullName} profile`} className="h-full w-full rounded-[14px] object-cover" /> : initials}
             <span className={`absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] ${employee.isActive ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-500"}`}>{employee.isActive ? "Active" : "Inactive"}</span>
           </div>
           <div className="min-w-0">

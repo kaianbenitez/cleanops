@@ -144,7 +144,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
 
   const page = Math.max(1, Math.floor(Number(sp.page)) || 1);
 
-  const [rows, [stats], [{ openBalance }]]: [CustomerRow[], { recurring: number; attention: number; leads: number; total: number }[], { openBalance: number }[]] = await Promise.all([
+  const [rows, [stats], [{ openBalance: openBalanceRaw }]]: [CustomerRow[], { recurring: number; attention: number; leads: number; total: number }[], { openBalance: number }[]] = await Promise.all([
     db
       .select({
         id: customers.id,
@@ -229,6 +229,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   const attentionCount = Number(stats.attention);
   const leadCount = Number(stats.leads);
   const totalCount = Number(stats.total);
+  const openBalance = Number(openBalanceRaw);
 
   return (
     <div className="space-y-6">
@@ -387,7 +388,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                 </table>
               </div>
             )}
-            <div className="border-t border-[var(--co-line-soft)] px-5 py-3 text-xs text-[var(--co-muted)]">Showing {rows.length} customer{rows.length === 1 ? "" : "s"}</div>
+            <PaginationControls page={page} pageSize={PAGE_SIZE} total={totalCount} itemLabel="customer" hrefForPage={(target) => hrefForPage(sp, target)} />
           </section>
         </div>
 
