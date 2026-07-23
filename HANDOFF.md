@@ -48,12 +48,6 @@ Last updated: 2026-07-24 (post-migration).
   in Vercel (`src/lib/square/client.ts` falls back to fake invoice IDs/URLs with zero
   warning anywhere in the admin UI when the token is unset). **Explicitly on hold** until the
   client approves the current build — do not chase this until told to.
-- **Nightly DB backup workflow is failing** (`kaianbenitez/cleanops-backup` repo, most recent
-  run failed). Supabase's direct connection (port 5432) is IPv6-only; GitHub Actions runners
-  can't reach it. Fix: Supabase dashboard → Project Settings → Database → Connection string →
-  switch to **Session pooler** mode → copy that URL into the `BACKUP_DATABASE_URL` secret in
-  `cleanops-backup` → re-run the workflow manually from the Actions tab to confirm green.
-  Needs dashboard/GitHub-secrets access only the user has.
 - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` not yet set (user is obtaining one). Once added: the
   legacy `Autocomplete` widget in `customers/address-autocomplete.tsx` already qualifies for
   Google's cheaper per-session billing (Basic Data fields only) — no change needed there. But
@@ -72,6 +66,19 @@ Last updated: 2026-07-24 (post-migration).
 
 ## Resolved — don't re-investigate
 
+- **Nightly DB backup workflow (`kaianbenitez/cleanops-backup`) fixed and confirmed green
+  2026-07-23.** Was blocked on three stacked issues, resolved in order: (1) user switched
+  `BACKUP_DATABASE_URL` to the Supabase Session pooler connection string and reset the DB
+  password, fixing the original IPv6/auth failures; (2) Supabase project runs Postgres 17.6,
+  but `backup.yml` pinned the dump container to `postgres:16` — `pg_dump` requires client
+  version ≥ server major version, so it aborted with a version-mismatch error; bumped the
+  image to `postgres:17` (commit `73d43ef`); (3) the workflow has no `actions/checkout` step,
+  so `gh release create/list/delete` had no git remote to infer the repo from and failed with
+  "not a git repository" — fixed by passing `-R kaianbenitez/cleanops-backup` explicitly to
+  all three calls instead of adding an unneeded checkout (commit `c88c28c`). Also required
+  granting the local `gh` CLI auth the `workflow` scope (`gh auth refresh -s workflow`) to
+  push changes to a workflow file at all. Manually triggered run confirmed all steps (dump,
+  upload, prune) succeed.
 - **`npm run db:migrate` does not work on this hosted database — don't try it.** This DB has
   never been tracked by drizzle-kit's migration system; schema here has always been applied
   via `db:push` or manual `ALTER TABLE` (per `DECISIONS.md`'s earlier entries). Running
