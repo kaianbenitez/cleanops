@@ -740,6 +740,11 @@ function CompactProfile({
             <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><User className="h-4 w-4 text-[var(--co-evergreen)]" /><h2 className="text-sm font-semibold">Personnel details</h2></div>{editMode ? <button type="button" onClick={() => setEditMode(false)} className="text-xs font-semibold text-[var(--co-muted)] hover:text-[var(--co-ink)]">Done</button> : null}</div>
             {editMode ? (
               <div className="mt-5 space-y-3">
+                <div className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-3">
+                  <p className="text-xs font-semibold text-[var(--co-ink)]">Profile photo</p>
+                  <p className="mt-1 text-[11px] text-[var(--co-muted)]">Upload a JPG, PNG, or WebP image (up to 5 MB).</p>
+                  <div className="mt-3"><PhotoUpload employeeId={employee.id} photoUrl={employee.profilePhotoUrl} initials={initials} onUploaded={load} /></div>
+                </div>
                 <Field label="First name" defaultValue={employee.firstName} onSave={(v) => save({ firstName: v })} />
                 <Field label="Last name" defaultValue={employee.lastName} onSave={(v) => save({ lastName: v })} />
                 <div>
