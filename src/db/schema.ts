@@ -45,7 +45,9 @@ export const users = pgTable("users", {
   phone: text("phone"),
   email: text("email").notNull(), // login identity — `<username>@cleanops.local`, see src/lib/auth/username.ts
   contactEmail: text("contact_email"), // real personal email, display/contact only, no auth meaning
-  birthday: date("birthday"),
+  // Month/day only (MM-DD). The production database intentionally does not
+  // retain a birth year.
+  birthday: text("birthday"),
   hiredDate: date("hired_date"),
   title: text("title"), // Gusto job title, e.g. "Cleaning Tech (Primary)"
   gustoEmployeeId: text("gusto_employee_id"), // for CSV export matching
@@ -69,6 +71,8 @@ export const users = pgTable("users", {
   // works out of. Cleaning techs generally stick to one area rather than
   // cross-driving between them. Nullable — not every employee has this set.
   serviceLocationId: uuid("service_location_id").references(() => serviceLocations.id),
+  // Storage object path in the private employee-photos bucket.
+  profilePhotoUrl: text("profile_photo_url"),
   isActive: boolean("is_active").notNull().default(true),
   ...timestamps,
 }, (t) => ({

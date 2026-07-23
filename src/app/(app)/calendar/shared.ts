@@ -93,11 +93,14 @@ export function jobsOverlap(
  * with no overlap anywhere that day land alone in a cluster of laneCount 1,
  * so non-overlapping days render at full width exactly as before this
  * existed — only genuinely concurrent jobs get split into side-by-side lanes.
+ * The visible lane count is capped so dense clusters remain readable; callers
+ * can replace hidden jobs with the returned overflow count.
  */
 export function assignDayLanes<T extends { id: string; scheduledStartTime: string | null; estimatedDurationMinutes: number | null }>(
-  dayJobs: T[]
-): Map<string, { lane: number; laneCount: number }> {
-  const result = new Map<string, { lane: number; laneCount: number }>();
+  dayJobs: T[],
+  maxVisibleLanes = 3
+): Map<string, { lane: number; laneCount: number; hidden: boolean; overflowCount: number }> {
+  const result = new Map<string, { lane: number; laneCount: number; hidden: boolean; overflowCount: number }>();
   const sorted = [...dayJobs].sort((a, b) => minutesFromTime(a.scheduledStartTime) - minutesFromTime(b.scheduledStartTime));
 
   let cluster: T[] = [];
@@ -119,9 +122,17 @@ export function assignDayLanes<T extends { id: string; scheduledStartTime: strin
       }
       laneOf.set(job.id, lane);
     }
-    const laneCount = laneEndTimes.length;
+    const laneCount = Math.min(laneEndTimes.length, Math.max(maxVisibleLanes, 1));
+    const hiddenJobs = cluster.filter((job) => (laneOf.get(job.id) ?? 0) >= laneCount);
+    const overflowAnchor = cluster.find((job) => laneOf.get(job.id) === laneCount - 1);
     for (const job of cluster) {
-      result.set(job.id, { lane: laneOf.get(job.id)!, laneCount });
+      const lane = laneOf.get(job.id)!;
+      result.set(job.id, {
+        lane: Math.min(lane, laneCount - 1),
+        laneCount,
+        hidden: lane >= laneCount,
+        overflowCount: job.id === overflowAnchor?.id ? hiddenJobs.length : 0,
+      });
     }
     cluster = [];
   }

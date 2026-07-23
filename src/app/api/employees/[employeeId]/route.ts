@@ -55,6 +55,10 @@ export async function GET(
   }
 
   const employee = { ...employeeRow.employee, serviceLocationName: employeeRow.serviceLocationName };
+  if (employee.profilePhotoUrl) {
+    const { data } = await createAdminClient().storage.from("employee-photos").createSignedUrl(employee.profilePhotoUrl, 60 * 60);
+    employee.profilePhotoUrl = data?.signedUrl ?? null;
+  }
 
   const [jobsCompletedResult] = await db
     .select({ count: sql<number>`count(*)` })
