@@ -6,6 +6,7 @@ import { users } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DEFAULT_ACCOUNT_PASSWORD, slugifyUsername, usernameToEmail } from "@/lib/auth/username";
+import { isValidBirthday } from "@/lib/employees/birthday";
 
 /** GET /api/employees — active employees for assignment pickers (kept minimal —
  * other code depends on this exact shape). For the full directory list with
@@ -31,9 +32,10 @@ const createEmployeeSchema = z.object({
   firstName: z.string().trim().min(1),
   lastName: z.string().trim().min(1),
   contactEmail: z.string().trim().optional(),
+  profilePhotoUrl: z.string().url().optional(),
   phone: z.string().trim().optional(),
   title: z.string().trim().optional(),
-  birthday: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  birthday: z.string().refine(isValidBirthday, "Birthday must be a valid month and day in MM-DD format.").optional(),
   hiredDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   payType: z.enum(["commission_jth", "office_hourly"]).optional(),
   hourlyRateCents: z.number().int().nonnegative().optional(),
@@ -98,6 +100,7 @@ export async function POST(req: NextRequest) {
       lastName: data.lastName,
       email: usernameToEmail(username),
       contactEmail: data.contactEmail,
+      profilePhotoUrl: data.profilePhotoUrl,
       phone: data.phone,
       title: data.title,
       birthday: data.birthday,

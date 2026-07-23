@@ -4,6 +4,7 @@ import { use, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MapPin, User, CalendarDays, History } from "lucide-react";
 import { emailToUsername } from "@/lib/auth/username";
+import { formatBirthday } from "@/lib/employees/birthday";
 import PtoEditor, { type EmployeePto } from "./pto-editor";
 
 type PayTier = { minHours: number; maxHours: number | null; rateCents: number };
@@ -13,6 +14,7 @@ type Employee = {
   lastName: string;
   email: string;
   contactEmail: string | null;
+  profilePhotoUrl: string | null;
   phone: string | null;
   title: string | null;
   birthday: string | null;
@@ -97,10 +99,10 @@ function tenureLabel(hiredDate: string | null) {
 
 function milestoneCountdown(value: string | null, label: string) {
   if (!value) return null;
-  const source = new Date(`${value}T00:00:00.000Z`);
-  if (Number.isNaN(source.getTime())) return null;
+  const [month, day] = value.split("-").map(Number);
+  if (!month || !day) return null;
   const now = new Date();
-  const next = new Date(Date.UTC(now.getUTCFullYear(), source.getUTCMonth(), source.getUTCDate()));
+  const next = new Date(Date.UTC(now.getUTCFullYear(), month - 1, day));
   if (next < new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))) next.setUTCFullYear(next.getUTCFullYear() + 1);
   const days = Math.round((next.getTime() - Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())) / 86_400_000);
   const countdown = days === 0 ? "today" : days < 45 ? `in ${days} day${days === 1 ? "" : "s"}` : `in ${Math.round(days / 30.44)} months`;
@@ -423,7 +425,7 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
               <Field label="Phone" defaultValue={employee.phone ?? ""} onSave={(v) => save({ phone: v })} />
               <Field label="Title" defaultValue={employee.title ?? ""} onSave={(v) => save({ title: v })} />
               <Field label="Gusto employee ID" defaultValue={employee.gustoEmployeeId ?? ""} onSave={(v) => save({ gustoEmployeeId: v })} />
-              <Field label="Birthday" type="date" defaultValue={employee.birthday ?? ""} onSave={(v) => save({ birthday: v || null })} />
+              <Field label="Birthday (MM-DD)" placeholder="MM-DD" inputMode="numeric" pattern="(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])" maxLength={5} defaultValue={employee.birthday ?? ""} onSave={(v) => save({ birthday: v || null })} />
               <Field label="Hired date" type="date" defaultValue={employee.hiredDate ?? ""} onSave={(v) => save({ hiredDate: v || null })} />
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-[var(--co-muted)]">Service area</label>
@@ -683,8 +685,26 @@ function CompactProfile({
   managementError,
   load,
 }: CompactProfileProps) {
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const anniversary = milestoneCountdown(employee.hiredDate, "Work anniversary");
   const birthday = milestoneCountdown(employee.birthday, "Birthday");
+
+  async function uploadPhoto(file: File | null) {
+    if (!file) return;
+    setPhotoUploading(true);
+    setPhotoError(null);
+    const formData = new FormData();
+    formData.set("photo", file);
+    const response = await fetch(`/api/employees/${employee.id}/photo`, { method: "POST", body: formData });
+    const data = await response.json().catch(() => ({}));
+    setPhotoUploading(false);
+    if (!response.ok) {
+      setPhotoError(data.error ?? "Could not upload this photo.");
+      return;
+    }
+    await load();
+  }
   return (
     <div className="mx-auto max-w-[1180px] space-y-5 pb-8">
       <div className="flex items-center justify-between gap-3">
@@ -699,8 +719,13 @@ function CompactProfile({
 
       <section className="co-card flex flex-col gap-5 p-5 lg:flex-row lg:items-center lg:justify-between lg:px-6">
         <div className="flex min-w-0 items-center gap-4">
-          <div className="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-2xl border-2 border-[var(--co-evergreen)] bg-[var(--co-surface-muted)] text-2xl font-semibold text-[var(--co-evergreen)]">
-            {initials}
+          <div
+            role={employee.profilePhotoUrl ? "img" : undefined}
+            aria-label={employee.profilePhotoUrl ? `${fullName} profile photo` : undefined}
+            className="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-2xl border-2 border-[var(--co-evergreen)] bg-[var(--co-surface-muted)] bg-cover bg-center text-2xl font-semibold text-[var(--co-evergreen)]"
+            style={employee.profilePhotoUrl ? { backgroundImage: `url("${employee.profilePhotoUrl.replaceAll('"', "%22")}")` } : undefined}
+          >
+            {employee.profilePhotoUrl ? <span className="sr-only">{fullName}</span> : initials}
             <span className={`absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] ${employee.isActive ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-500"}`}>{employee.isActive ? "Active" : "Inactive"}</span>
           </div>
           <div className="min-w-0">
@@ -715,9 +740,14 @@ function CompactProfile({
             {anniversary || birthday ? <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-medium text-[var(--co-muted)]"><span className="rounded-md border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2 py-1">{anniversary ?? "Work anniversary not set"}</span><span className="rounded-md border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2 py-1">{birthday ?? "Birthday not set"}</span></div> : null}
             <div className="mt-4 flex flex-wrap gap-2">
               <button type="button" onClick={() => { setEditMode(true); employeeInfoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="co-button-primary">Edit profile</button>
+              <label className="co-button-secondary cursor-pointer">
+                {photoUploading ? "Uploading…" : employee.profilePhotoUrl ? "Replace photo" : "Upload photo"}
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={photoUploading} onChange={(event) => void uploadPhoto(event.target.files?.[0] ?? null)} />
+              </label>
               <Link href={`/calendar?view=staff&employeeId=${employee.id}`} className="co-button-secondary">View schedule</Link>
               {employee.contactEmail ? <a href={`mailto:${employee.contactEmail}`} className="co-button-secondary">Message</a> : null}
             </div>
+            {photoError ? <p role="alert" className="mt-2 text-xs font-medium text-rose-700">{photoError}</p> : null}
           </div>
         </div>
         <div className="flex shrink-0 gap-7 border-t border-[var(--co-line-soft)] pt-4 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
@@ -748,13 +778,13 @@ function CompactProfile({
                 <Field label="Phone" defaultValue={employee.phone ?? ""} onSave={(v) => save({ phone: v })} />
                 <Field label="Title" defaultValue={employee.title ?? ""} onSave={(v) => save({ title: v })} />
                 <Field label="Hire date" type="date" defaultValue={employee.hiredDate ?? ""} onSave={(v) => save({ hiredDate: v || null })} />
-                <Field label="Birthday" type="date" defaultValue={employee.birthday ?? ""} onSave={(v) => save({ birthday: v || null })} />
+                <Field label="Birthday (MM-DD)" placeholder="MM-DD" inputMode="numeric" pattern="(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])" maxLength={5} defaultValue={employee.birthday ?? ""} onSave={(v) => save({ birthday: v || null })} />
               </div>
             ) : (
               <div className="mt-5 space-y-4 text-xs">
                 <div><p className="eyebrow">Contact info</p><p className="mt-1 font-medium text-[var(--co-ink)]">{employee.contactEmail ?? "No email on file"}</p><p className="text-[var(--co-muted)]">{employee.phone ?? "No phone number"}</p><p className="mt-1 text-[var(--co-muted)]">Username: {emailToUsername(employee.email)}</p></div>
                 <div><p className="eyebrow">Hire date</p><p className="mt-1 text-[var(--co-ink)]">{employee.hiredDate ?? "Not set"}</p></div>
-                <div><p className="eyebrow">Birthday</p><p className="mt-1 text-[var(--co-ink)]">{employee.birthday ?? "Not set"}</p></div>
+                <div><p className="eyebrow">Birthday</p><p className="mt-1 text-[var(--co-ink)]">{formatBirthday(employee.birthday)}</p></div>
                 <div><p className="eyebrow">Employment</p><div className="mt-1 flex flex-wrap gap-1.5"><span className="rounded bg-[var(--co-surface-muted)] px-2 py-1 text-[11px]">{employee.payType === "office_hourly" ? "Hourly" : "Commission"}</span><span className="rounded bg-[var(--co-surface-muted)] px-2 py-1 text-[11px]">{employee.isActive ? "Active" : "Archived"}</span></div></div>
               </div>
             )}
@@ -768,7 +798,7 @@ function CompactProfile({
 
           <section className="co-card p-5"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[var(--co-evergreen)]" /><h2 className="text-sm font-semibold">Weekly schedule preview</h2></div><Link href={`/calendar?view=staff&employeeId=${employee.id}`} className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">View schedule</Link></div><p className="mt-1 text-xs text-[var(--co-muted)]">Assignments and admin PTO for this week.</p><div className="mt-4"><WeekStrip days={weeklySchedule} pto={pto} /></div><PtoEditor employeeId={employee.id} onChange={setPto} /></section>
 
-          <details className="co-card group"><summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 text-sm font-semibold"><span>More details</span><span className="text-xs font-normal text-[var(--co-muted)] group-open:hidden">Payroll, account access, and audit history</span><span className="hidden text-xs font-normal text-[var(--co-muted)] group-open:inline">Collapse</span></summary><div className="space-y-5 border-t border-[var(--co-line-soft)] p-5"><div className="grid gap-4 sm:grid-cols-2"><Field label="Birthday" type="date" defaultValue={employee.birthday ?? ""} onSave={(v) => save({ birthday: v || null })} /><Field label="Hired date" type="date" defaultValue={employee.hiredDate ?? ""} onSave={(v) => save({ hiredDate: v || null })} /><Field label="Gusto employee ID" defaultValue={employee.gustoEmployeeId ?? ""} onSave={(v) => save({ gustoEmployeeId: v })} /></div><div className="rounded-xl bg-[var(--co-surface-muted)] p-4 text-sm"><div className="flex flex-wrap gap-5"><span className="text-[var(--co-muted)]">Hours worked <strong className="text-[var(--co-ink)]">{stats.hoursWorked.toFixed(1)}</strong></span><span className="text-[var(--co-muted)]">This month <strong className="text-[var(--co-ink)]">${dollars(stats.thisMonthPayCents)}</strong></span></div><div className="mt-4"><label className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Pay type</label><select defaultValue={employee.payType ?? "commission_jth"} onChange={(event) => void save({ payType: event.target.value })} className="co-input w-full max-w-sm text-sm"><option value="commission_jth">Commission by job ticket hours</option><option value="office_hourly">Office hourly</option></select></div>{employee.payType === "commission_jth" ? <TierRatesEditor employeeId={employee.id} payTiers={employee.payTiers} brackets={payTierBrackets} fallbackRateCents={employee.hourlyRateCents ?? 0} onSaved={load} /> : null}</div><EmployeeAccountManagement employeeName={fullName} isActive={employee.isActive} onSetPassword={setPassword} onDelete={deleteEmployee} message={managementMessage} error={managementError} /></div></details>
+          <details className="co-card group"><summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 text-sm font-semibold"><span>More details</span><span className="text-xs font-normal text-[var(--co-muted)] group-open:hidden">Payroll, account access, and audit history</span><span className="hidden text-xs font-normal text-[var(--co-muted)] group-open:inline">Collapse</span></summary><div className="space-y-5 border-t border-[var(--co-line-soft)] p-5"><div className="grid gap-4 sm:grid-cols-2"><Field label="Birthday (MM-DD)" placeholder="MM-DD" inputMode="numeric" pattern="(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])" maxLength={5} defaultValue={employee.birthday ?? ""} onSave={(v) => save({ birthday: v || null })} /><Field label="Hired date" type="date" defaultValue={employee.hiredDate ?? ""} onSave={(v) => save({ hiredDate: v || null })} /><Field label="Gusto employee ID" defaultValue={employee.gustoEmployeeId ?? ""} onSave={(v) => save({ gustoEmployeeId: v })} /></div><div className="rounded-xl bg-[var(--co-surface-muted)] p-4 text-sm"><div className="flex flex-wrap gap-5"><span className="text-[var(--co-muted)]">Hours worked <strong className="text-[var(--co-ink)]">{stats.hoursWorked.toFixed(1)}</strong></span><span className="text-[var(--co-muted)]">This month <strong className="text-[var(--co-ink)]">${dollars(stats.thisMonthPayCents)}</strong></span></div><div className="mt-4"><label className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Pay type</label><select defaultValue={employee.payType ?? "commission_jth"} onChange={(event) => void save({ payType: event.target.value })} className="co-input w-full max-w-sm text-sm"><option value="commission_jth">Commission by job ticket hours</option><option value="office_hourly">Office hourly</option></select></div>{employee.payType === "commission_jth" ? <TierRatesEditor employeeId={employee.id} payTiers={employee.payTiers} brackets={payTierBrackets} fallbackRateCents={employee.hourlyRateCents ?? 0} onSaved={load} /> : null}</div><EmployeeAccountManagement employeeName={fullName} isActive={employee.isActive} onSetPassword={setPassword} onDelete={deleteEmployee} message={managementMessage} error={managementError} /></div></details>
         </div>
       </div>
     </div>
@@ -896,17 +926,29 @@ function Field({
   defaultValue,
   onSave,
   type = "text",
+  placeholder,
+  inputMode,
+  pattern,
+  maxLength,
 }: {
   label: string;
   defaultValue: string;
   onSave: (value: string) => void;
   type?: string;
+  placeholder?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  pattern?: string;
+  maxLength?: number;
 }) {
   return (
     <div>
       <label className="mb-1.5 block text-xs font-semibold text-[var(--co-muted)]">{label}</label>
       <input
         type={type}
+        placeholder={placeholder}
+        inputMode={inputMode}
+        pattern={pattern}
+        maxLength={maxLength}
         defaultValue={defaultValue}
         onBlur={(e) => {
           if (e.target.value !== defaultValue) {

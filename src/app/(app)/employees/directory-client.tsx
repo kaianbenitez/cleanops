@@ -8,6 +8,7 @@ export type EmployeeDirectoryRow = {
   id: string;
   name: string;
   initials: string;
+  profilePhotoUrl: string | null;
   title: string;
   isActive: boolean;
   status: "Scheduled" | "Available";
@@ -24,7 +25,7 @@ function roleLabel(title: string) { return title.toLowerCase().includes("clean")
 function statusTone(row: EmployeeDirectoryRow) { if (!row.isActive) return "text-slate-500"; return row.status === "Scheduled" ? "text-amber-700" : "text-[var(--co-evergreen)]"; }
 
 function Avatar({ row, large = false }: { row: EmployeeDirectoryRow; large?: boolean }) {
-  return <span className={`inline-flex shrink-0 items-center justify-center rounded-full border border-white bg-[var(--co-surface-muted-strong)] font-semibold text-[var(--co-evergreen)] shadow-sm ${large ? "h-11 w-11 text-xs" : "h-9 w-9 text-[10px]"}`}>{row.initials}</span>;
+  return <span role={row.profilePhotoUrl ? "img" : undefined} aria-label={row.profilePhotoUrl ? `${row.name} profile photo` : undefined} style={row.profilePhotoUrl ? { backgroundImage: `url("${row.profilePhotoUrl.replaceAll('"', "%22")}")` } : undefined} className={`inline-flex shrink-0 items-center justify-center rounded-full border border-white bg-[var(--co-surface-muted-strong)] bg-cover bg-center font-semibold text-[var(--co-evergreen)] shadow-sm ${large ? "h-11 w-11 text-xs" : "h-9 w-9 text-[10px]"}`}>{row.profilePhotoUrl ? <span className="sr-only">{row.name}</span> : row.initials}</span>;
 }
 function FilterChip({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
   return <button type="button" onClick={onClick} className={`rounded-md px-3 py-1.5 text-[11px] font-semibold transition ${active ? "bg-[var(--co-evergreen)] text-white" : "bg-[var(--co-surface-muted)] text-[var(--co-muted)] hover:bg-[var(--co-surface-muted-strong)]"}`}>{children}</button>;
