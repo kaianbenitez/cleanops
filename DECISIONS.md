@@ -584,3 +584,35 @@ button (it renders ~200-300ms after the drag, once the PATCH resolves — a naiv
 check missed it a couple of times before polling caught it reliably), clicked it, and confirmed
 via direct API read that the job reverted to its exact pre-drag time. `npm run verify` is clean
 at 0 errors. This completes all 5 phases of the calendar scheduling UX overhaul.
+
+## 2026-07-24 — Backend efficiency pass: schema cleanup + missing indexes
+
+Deviates from §4 (schema). Dropped two pieces of dead schema after verifying zero live data
+in the hosted DB (checked via direct query before dropping, not assumed):
+
+- `quote_line_items` table + its relations (§4's original per-line-item quoting model was
+  superseded at some point by pricing via `roomCounts`/`allTierPricing` JSONB directly on
+  `quotes` — the table was defined but nothing ever read or wrote it; 0 rows in prod).
+- `customers.archivedReason` / `customers.archivedAt` — write-only columns, only ever set by
+  the one-off `work/import-tcf-customers.ts` migration script and never read by any route or
+  UI; `customers.status` already captures the cancelled/lost state that `archivedReason` was
+  duplicating. 0 non-null values in prod. Removed the two write sites in
+  `import-tcf-customers.ts` and the matching `ADD COLUMN IF NOT EXISTS archived_reason` in
+  `work/repair-database.ts`.
+
+Also added indexes that were missing on columns hit by every-request filters/joins:
+`invoices(company_id, status)`, `invoices(job_id)`, `webhook_events(source, processed_at)`
+(the dedup check on every inbound GHL/Square webhook), `audit_log(company_id, created_at)`,
+`ghl_sync_log(company_id, status)`, `job_assignments(user_id)`. Generated as
+`drizzle/0011_plain_freak.sql` — **not yet applied** to the hosted DB, pending explicit
+approval per the migration-approval rule in `AGENTS.md`.
+
+Same session: patched Next.js 16.2.10 → 16.2.11 (latest stable; real CVE fixes are only in
+unreleased 16.3.0 canary builds, so the vulnerability isn't fully closed — tracked in
+`HANDOFF.md`, not treated as done), and removed ~10 unused vars/types flagged by ESLint
+across `dashboard`, `invoices`, `employees/[employeeId]`, `jobs/[jobId]`, and `reports`
+pages. Deliberately left 3 unused vars in `my-day/page.tsx` untouched — `AGENTS.md` calls
+out My Day as needing on-phone verification before any change there, and it was recently
+reworked, so it wasn't touched blind. Deliberately skipped `calendar/shared.ts`,
+`month-board.tsx`, and `staff-board.tsx` entirely — Codex had uncommitted work in progress
+in those exact files at the time (an overflow-cap fix for `assignDayLanes()`).
