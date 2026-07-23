@@ -5,7 +5,7 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-07-24.
+Last updated: 2026-07-24 (post-migration).
 
 ## Done
 
@@ -33,11 +33,13 @@ Last updated: 2026-07-24.
   `customers/page.tsx`, `dashboard/page.tsx` (x2), `calendar/page.tsx`; replaced a
   full company-wide customer table scan with two SQL `COUNT` queries for the dashboard's
   "needs attention" cards.
-- New DB indexes generated in `drizzle/0011_plain_freak.sql`: `invoices(company_id, status)`,
-  `invoices(job_id)`, `webhook_events(source, processed_at)`, `audit_log(company_id,
-  created_at)`, `ghl_sync_log(company_id, status)`, `job_assignments(user_id)`.
-  **Not yet applied to the hosted DB** — run `npm run db:migrate` after review, per the
-  "never run production migrations without explicit approval" rule in `AGENTS.md`.
+- Migration `drizzle/0011_plain_freak.sql` **applied to the hosted DB** (2026-07-24, approved
+  by user): dropped `quote_line_items` table and `customers.archived_reason`/`archived_at`
+  columns, added indexes `invoices(company_id, status)`, `invoices(job_id)`,
+  `webhook_events(source, processed_at)`, `audit_log(company_id, created_at)`,
+  `ghl_sync_log(company_id, status)`, `job_assignments(user_id)`. Applied as a direct SQL
+  transaction, **not** via `npm run db:migrate` — see the `db:migrate` caveat below, this
+  matters for every future migration on this DB, not just this one.
 
 ## Blocked / needs a human
 
@@ -58,15 +60,27 @@ Last updated: 2026-07-24.
   `calendar/route-preview.tsx` re-geocodes every job's address on every render with no
   caching — cache the resulting lat/lng on the customer/location record after first lookup
   before this goes live, or it'll scale linearly with usage on the metered Geocoding API.
-- Codex is actively reworking `calendar/shared.ts`, `calendar/month-board.tsx`, and
-  `calendar/staff-board.tsx` (adding an overflow-cap to `assignDayLanes()` for dense dispatch
-  days) — uncommitted as of this writing. **Do not touch those three files** until that work
-  is committed.
-- Migration `drizzle/0011_plain_freak.sql` is generated but not applied. Needs an explicit
-  go-ahead before running `npm run db:migrate` against the hosted DB.
+- Codex is actively working in this repo in parallel — as of this writing, uncommitted
+  changes span `calendar/shared.ts`, `calendar/month-board.tsx`, `calendar/staff-board.tsx`
+  (overflow-cap for `assignDayLanes()`), plus a new employee-photo-upload feature
+  (`employees/directory-client.tsx`, `employees/page.tsx`, `employees/new/page.tsx`,
+  `api/employees/[employeeId]/photo/`, `src/lib/employees/`, and two more generated
+  migrations `0012`/`0013` changing `users.birthday` to `text` and adding a photo column).
+  **Do not touch any of those files or apply those migrations** — not reviewed, not
+  committed, not yours to finish. Re-check `git status` at the start of every session; this
+  list will be stale by the time you read it.
 
 ## Resolved — don't re-investigate
 
+- **`npm run db:migrate` does not work on this hosted database — don't try it.** This DB has
+  never been tracked by drizzle-kit's migration system; schema here has always been applied
+  via `db:push` or manual `ALTER TABLE` (per `DECISIONS.md`'s earlier entries). Running
+  `db:migrate` makes drizzle-kit try to replay the *entire* migration history from `0000`
+  onward against a DB where those tables already exist — confirmed on 2026-07-24 that it
+  fails safely (rolls back, `drizzle.__drizzle_migrations` ends up created but empty, no
+  schema change, no data loss) but accomplishes nothing. To apply a specific migration file,
+  extract its SQL and run it directly in a single transaction (psql, a short node/postgres
+  script, or the Supabase SQL editor) instead of through the npm script.
 - Payroll tier rates: safe by default. Company bracket *boundaries* fall back to a hardcoded
   4-tier default; every employee requires a flat `hourlyRateCents` at creation
   (`POST /api/employees`), so payroll never silently computes $0. Per-employee tiered rates
