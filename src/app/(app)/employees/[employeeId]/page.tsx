@@ -49,22 +49,6 @@ type EmployeeJob = {
   city: string | null;
   state: string | null;
 };
-type EmployeeTimeEntry = {
-  id: string;
-  jobId: string;
-  clockIn: string;
-  clockOut: string | null;
-  minutesWorked: number | null;
-  editedByAdmin: boolean;
-  recordedByAdmin: boolean;
-  notes: string | null;
-  scheduledDate: string;
-  type: EmployeeJob["type"];
-  status: EmployeeJob["status"];
-  customerFirstName: string;
-  customerLastName: string;
-};
-
 type PayTierBracket = { minHours: number; maxHours: number | null; label: string };
 
 const JOB_TYPE_LABELS: Record<EmployeeJob["type"], string> = {

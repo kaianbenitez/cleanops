@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { and, desc, eq, gte, inArray, isNotNull, lt, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { companies, customers, ghlSyncLog, invoices, jobAssignments, jobs, quotes, timeEntries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -20,30 +20,6 @@ const CARD_DESC_CLASS = "text-sm text-[var(--co-muted)]";
 const CARD_CONTENT_CLASS = "px-5 py-5";
 
 type SearchParams = { from?: string; to?: string };
-
-type RouteJob = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  address: string;
-  city: string;
-  zip: string;
-  time: string;
-};
-
-type ScheduleRow = {
-  id: string;
-  type: string;
-  status: string;
-  scheduledDate: string;
-  scheduledStartTime: string | null;
-  estimatedDurationMinutes: number | null;
-  customerFirstName: string;
-  customerLastName: string;
-  addressLine1: string | null;
-  city: string | null;
-  zip: string | null;
-};
 
 function iso(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -145,7 +121,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     overdueRows,
     todayRows,
     failedSyncRows,
-    customersNeedingAttention,
+    missingPaymentMethodCount,
+    incompleteNotesCount,
     companyRows,
     employees,
   ] = await Promise.all([
@@ -210,15 +187,30 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       .from(ghlSyncLog)
       .where(and(eq(ghlSyncLog.companyId, admin.companyId), ne(ghlSyncLog.status, "ok"))),
     db
-      .select({
-        id: customers.id,
-        paymentMethods: customers.paymentMethods,
-        addressLine1: customers.addressLine1,
-        generalNotes: customers.generalNotes,
-        gateCodeOrKeyNotes: customers.gateCodeOrKeyNotes,
-      })
+      .select({ count: sql<number>`count(*)` })
       .from(customers)
-      .where(eq(customers.companyId, admin.companyId)),
+      .where(
+        and(
+          eq(customers.companyId, admin.companyId),
+          or(isNull(customers.paymentMethods), sql`cardinality(${customers.paymentMethods}) = 0`)
+        )
+      ),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(customers)
+      .where(
+        and(
+          eq(customers.companyId, admin.companyId),
+          or(
+            isNull(customers.addressLine1),
+            eq(customers.addressLine1, ""),
+            isNull(customers.generalNotes),
+            sql`trim(${customers.generalNotes}) = ''`,
+            isNull(customers.gateCodeOrKeyNotes),
+            sql`trim(${customers.gateCodeOrKeyNotes}) = ''`
+          )
+        )
+      ),
     db
       .select({ settings: companies.settings })
       .from(companies)
@@ -268,8 +260,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     assignmentsByJob.set(assignment.jobId, [...(assignmentsByJob.get(assignment.jobId) ?? []), assignment]);
   });
 
-  const timeRows = completedIds.length ? await db.select({ jobId: timeEntries.jobId }).from(timeEntries).where(inArray(timeEntries.jobId, completedIds)) : [];
-  const invoicedRows = completedIds.length ? await db.select({ jobId: invoices.jobId }).from(invoices).where(inArray(invoices.jobId, completedIds)) : [];
+  const [timeRows, invoicedRows] = completedIds.length
+    ? await Promise.all([
+        db.select({ jobId: timeEntries.jobId }).from(timeEntries).where(inArray(timeEntries.jobId, completedIds)),
+        db.select({ jobId: invoices.jobId }).from(invoices).where(inArray(invoices.jobId, completedIds)),
+      ])
+    : [[], []];
   const timeJobIds = new Set(timeRows.map((row) => row.jobId));
   const invoicedJobIds = new Set(invoicedRows.map((row) => row.jobId));
 
@@ -277,10 +273,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     unassigned: todayRows.filter((job) => !(assignmentsByJob.get(job.id) ?? []).length).length,
     missingHours: completedIds.filter((jobId) => !timeJobIds.has(jobId)).length,
     awaitingInvoice: completedIds.filter((jobId) => !invoicedJobIds.has(jobId)).length,
-    paymentMethod: customersNeedingAttention.filter((customer) => !customer.paymentMethods?.length).length,
-    incompleteNotes: customersNeedingAttention.filter(
-      (customer) => !customer.addressLine1 || !customer.generalNotes?.trim() || !customer.gateCodeOrKeyNotes?.trim()
-    ).length,
+    paymentMethod: Number(missingPaymentMethodCount[0]?.count ?? 0),
+    incompleteNotes: Number(incompleteNotesCount[0]?.count ?? 0),
     sync: failedSyncRows.length,
   };
 

@@ -145,30 +145,30 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
     .orderBy(customers.lastName, customers.firstName);
 
   const customerIds = rows.map((row) => row.id);
-  const customerJobs: JobRow[] = customerIds.length
-    ? await db
-        .select({
-          customerId: jobs.customerId,
-          id: jobs.id,
-          status: jobs.status,
-          scheduledDate: jobs.scheduledDate,
-          scheduledStartTime: jobs.scheduledStartTime,
-          type: jobs.type,
-        })
-        .from(jobs)
-        .where(inArray(jobs.customerId, customerIds))
-    : [];
-  const customerInvoices: InvoiceRow[] = customerIds.length
-    ? await db
-        .select({
-          customerId: invoices.customerId,
-          status: invoices.status,
-          totalCents: invoices.totalCents,
-          amountPaidCents: invoices.amountPaidCents,
-        })
-        .from(invoices)
-        .where(inArray(invoices.customerId, customerIds))
-    : [];
+  const [customerJobs, customerInvoices]: [JobRow[], InvoiceRow[]] = customerIds.length
+    ? await Promise.all([
+        db
+          .select({
+            customerId: jobs.customerId,
+            id: jobs.id,
+            status: jobs.status,
+            scheduledDate: jobs.scheduledDate,
+            scheduledStartTime: jobs.scheduledStartTime,
+            type: jobs.type,
+          })
+          .from(jobs)
+          .where(inArray(jobs.customerId, customerIds)),
+        db
+          .select({
+            customerId: invoices.customerId,
+            status: invoices.status,
+            totalCents: invoices.totalCents,
+            amountPaidCents: invoices.amountPaidCents,
+          })
+          .from(invoices)
+          .where(inArray(invoices.customerId, customerIds)),
+      ])
+    : [[], []];
 
   const nextJobByCustomer = new Map<string, JobRow>();
   customerJobs

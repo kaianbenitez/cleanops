@@ -248,7 +248,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
   );
   const recordedHours = useMemo(() => timeEntries.reduce((total, entry) => total + (entry.minutesWorked ?? 0), 0) / 60, [timeEntries]);
   const openEntries = useMemo(() => timeEntries.filter((entry) => !entry.clockOut).length, [timeEntries]);
-  const auditCount = auditLogs.length;
   const completionState = job?.status === "completed" ? "Ready to invoice" : openEntries > 0 ? "Waiting on clock-out" : "Not yet completed";
   const jobLocation = job ? [job.addressLine1, job.city, job.state, job.zip].filter(Boolean).join(", ") : "";
   const jobDateTime = job ? `${job.scheduledDate} · ${job.scheduledStartTime?.slice(0, 5) ?? "No time"}` : "";

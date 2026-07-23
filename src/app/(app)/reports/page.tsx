@@ -7,43 +7,6 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { payrollWeekRangeForDate } from "@/lib/payroll/periods";
 import ReportsMotion from "./reports-motion";
 
-type JobRow = {
-  id: string;
-  status: string;
-  type: string;
-  scheduledDate: string;
-  scheduledStartTime: string | null;
-  estimatedDurationMinutes: number | null;
-  createdAt: Date;
-  updatedAt: Date;
-  customerId: string;
-  customerFirstName: string;
-  customerLastName: string;
-  addressLine1: string | null;
-  city: string | null;
-  zip: string | null;
-};
-
-type SyncRow = {
-  id: string;
-  eventType: string;
-  status: "ok" | "failed" | "retrying";
-  attempts: number;
-  lastAttemptAt: Date | null;
-  response: unknown;
-  createdAt: Date;
-};
-
-type WebhookRow = {
-  id: string;
-  source: "ghl" | "square";
-  signatureValid: boolean;
-  payload: unknown;
-  processedAt: Date | null;
-  error: string | null;
-  createdAt: Date;
-};
-
 type PayrollRow = {
   id: string;
   userId: string;

@@ -29,16 +29,6 @@ function isOverdue(status: string, createdAt: Date) {
   return status === "sent" && Date.now() - new Date(createdAt).getTime() > 14 * 24 * 60 * 60 * 1000;
 }
 
-function queryHref(params: SearchParams, key: keyof SearchParams, value: string) {
-  const next = new URLSearchParams();
-  Object.entries(params).forEach(([name, current]) => {
-    if (name !== key && current) next.set(name, current);
-  });
-  if (value) next.set(key, value);
-  const query = next.toString();
-  return query ? `/invoices?${query}` : "/invoices";
-}
-
 function statsCard({ label, value, note, key }: { label: string; value: string; note: string; key?: string }) {
   return (
     <div key={key} className="co-card p-5">

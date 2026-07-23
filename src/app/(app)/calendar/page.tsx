@@ -80,7 +80,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const end = view === "month" ? toISODate(month.end) : toISODate(days[days.length - 1]);
   const todayIso = toISODate(today);
 
-  const employees: CalendarEmployee[] = await db
+  const employeesQuery = db
     .select({ id: users.id, firstName: users.firstName, lastName: users.lastName })
     .from(users)
     .where(and(eq(users.companyId, admin.companyId), eq(users.role, "employee"), eq(users.isActive, true)))
@@ -117,9 +117,11 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
     .innerJoin(customers, eq(jobs.customerId, customers.id))
     .leftJoin(recurringSeries, eq(jobs.recurringSeriesId, recurringSeries.id));
 
-  const rows = (sp.employeeId
-    ? await base.innerJoin(jobAssignments, and(eq(jobAssignments.jobId, jobs.id), eq(jobAssignments.userId, sp.employeeId))).where(and(...conditions)).orderBy(jobs.scheduledDate, jobs.scheduledStartTime)
-    : await base.where(and(...conditions)).orderBy(jobs.scheduledDate, jobs.scheduledStartTime)) as Omit<CalendarJob, "assignedUserIds">[];
+  const rowsQuery = sp.employeeId
+    ? base.innerJoin(jobAssignments, and(eq(jobAssignments.jobId, jobs.id), eq(jobAssignments.userId, sp.employeeId))).where(and(...conditions)).orderBy(jobs.scheduledDate, jobs.scheduledStartTime)
+    : base.where(and(...conditions)).orderBy(jobs.scheduledDate, jobs.scheduledStartTime);
+
+  const [employees, rows] = (await Promise.all([employeesQuery, rowsQuery])) as [CalendarEmployee[], Omit<CalendarJob, "assignedUserIds">[]];
 
   const assignments = rows.length
     ? await db.select({ jobId: jobAssignments.jobId, userId: users.id }).from(jobAssignments).innerJoin(users, eq(jobAssignments.userId, users.id)).where(inArray(jobAssignments.jobId, rows.map((row) => row.id)))

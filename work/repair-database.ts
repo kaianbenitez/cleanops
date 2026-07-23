@@ -23,8 +23,7 @@ async function main() {
         ADD COLUMN IF NOT EXISTS home_details jsonb DEFAULT '{}'::jsonb NOT NULL,
         ADD COLUMN IF NOT EXISTS operational_notes text,
         ADD COLUMN IF NOT EXISTS tags jsonb DEFAULT '[]'::jsonb NOT NULL,
-        ADD COLUMN IF NOT EXISTS text_messaging_allowed boolean DEFAULT false NOT NULL,
-        ADD COLUMN IF NOT EXISTS archived_reason text
+        ADD COLUMN IF NOT EXISTS text_messaging_allowed boolean DEFAULT false NOT NULL
     `);
     await tx.unsafe(`
       CREATE TABLE IF NOT EXISTS customer_locations (

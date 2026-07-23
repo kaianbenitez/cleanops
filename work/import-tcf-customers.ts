@@ -286,8 +286,6 @@ async function main() {
         status: isCanceled ? "lost" : "client",
         clientType: s(row, "Customer Type").toLowerCase().includes("commercial") ? "commercial" : "residential",
         recurrence,
-        archivedReason: isCanceled ? `Cancelled in TheCustomerFactor (recorded: "${canceledDate}")` : null,
-        archivedAt: null,
       })
       .returning();
 
