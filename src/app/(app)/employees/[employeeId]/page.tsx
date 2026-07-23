@@ -701,8 +701,8 @@ function CompactProfile({
 
       <section className="co-card flex flex-col gap-5 p-5 lg:flex-row lg:items-center lg:justify-between lg:px-6">
         <div className="flex min-w-0 items-center gap-4">
-          <div className="relative">
-            <PhotoUpload employeeId={employee.id} photoUrl={employee.profilePhotoUrl} initials={initials} onUploaded={load} />
+          <div className="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-[var(--co-evergreen)] bg-[var(--co-surface-muted)] text-2xl font-semibold text-[var(--co-evergreen)]">
+            {employee.profilePhotoUrl ? <img src={employee.profilePhotoUrl} alt={`${fullName} profile`} className="h-full w-full object-cover" /> : initials}
             <span className={`absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] ${employee.isActive ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-500"}`}>{employee.isActive ? "Active" : "Inactive"}</span>
           </div>
           <div className="min-w-0">
@@ -715,16 +715,17 @@ function CompactProfile({
               {tenure ? <span>{tenure}</span> : null}
             </div>
             {anniversary || birthday ? <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-medium text-[var(--co-muted)]"><span className="rounded-md border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2 py-1">{anniversary ?? "Work anniversary not set"}</span><span className="rounded-md border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2 py-1">{birthday ?? "Birthday not set"}</span></div> : null}
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button type="button" onClick={() => { setEditMode(true); employeeInfoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="co-button-primary">Edit profile</button>
-              <Link href={`/calendar?view=staff&employeeId=${employee.id}`} className="co-button-secondary">View schedule</Link>
-              {employee.contactEmail ? <a href={`mailto:${employee.contactEmail}`} className="co-button-secondary">Message</a> : null}
-            </div>
           </div>
         </div>
-        <div className="flex shrink-0 gap-7 border-t border-[var(--co-line-soft)] pt-4 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
+        <div className="flex shrink-0 flex-col gap-4 border-t border-[var(--co-line-soft)] pt-4 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <button type="button" onClick={() => { setEditMode(true); employeeInfoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="co-button-primary">Edit profile</button>
+            <Link href={`/calendar?view=staff&employeeId=${employee.id}`} className="co-button-secondary">View schedule</Link>
+          </div>
+          <div className="flex gap-7">
           <div><p className="eyebrow">Total jobs</p><p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--co-evergreen)]">{stats.jobsCompleted.toLocaleString()}</p></div>
           <div><p className="eyebrow">Team rank</p><p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--co-evergreen)]">{stats.teamRank == null ? "—" : `#${stats.teamRank}`}</p>{stats.teamRank != null ? <p className="text-[11px] text-[var(--co-muted)]">of {stats.teamSize}</p> : null}</div>
+          </div>
         </div>
       </section>
 

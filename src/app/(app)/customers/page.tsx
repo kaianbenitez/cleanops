@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { and, eq, ilike, inArray, isNotNull, isNull, ne, or } from "drizzle-orm";
+import { and, eq, ilike, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { customers, invoices, jobs } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { PaginationControls } from "@/components/ui/pagination";
+
+const PAGE_SIZE = 25;
 
 const STATUS_LABELS: Record<string, string> = {
   lead: "Lead",
@@ -30,6 +33,7 @@ type SearchParams = {
   recurrence?: string;
   attention?: string;
   clientType?: string;
+  page?: string;
 };
 
 type CustomerRow = {
@@ -73,9 +77,19 @@ function money(cents: number) {
 function hrefWith(params: SearchParams, key: keyof SearchParams, value: string) {
   const next = new URLSearchParams();
   Object.entries(params).forEach(([name, current]) => {
-    if (name !== key && current) next.set(name, current);
+    if (name !== key && name !== "page" && current) next.set(name, current);
   });
   if (value) next.set(key, value);
+  const query = next.toString();
+  return query ? `/customers?${query}` : "/customers";
+}
+
+function hrefForPage(params: SearchParams, page: number) {
+  const next = new URLSearchParams();
+  Object.entries(params).forEach(([name, current]) => {
+    if (name !== "page" && current) next.set(name, current);
+  });
+  if (page > 1) next.set("page", String(page));
   const query = next.toString();
   return query ? `/customers?${query}` : "/customers";
 }
@@ -112,37 +126,63 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   const sp = await searchParams;
   const conditions = [eq(customers.companyId, admin.companyId)];
 
+  // Matches a null payment_methods value *and* an explicitly-cleared empty array —
+  // the customer edit form can save `[]` when every method is deselected, and a
+  // plain isNull() check silently misses those rows (see dashboard/page.tsx's
+  // equivalent check, which already handles both cases).
+  const paymentMethodsMissing = or(isNull(customers.paymentMethods), sql`cardinality(${customers.paymentMethods}) = 0`)!;
+
   if (sp.status && sp.status !== "all") conditions.push(eq(customers.status, sp.status as typeof customers.status.enumValues[number]));
   if (sp.clientType && sp.clientType !== "all") conditions.push(eq(customers.clientType, sp.clientType as typeof customers.clientType.enumValues[number]));
   if (sp.recurrence === "recurring") conditions.push(and(isNotNull(customers.recurrence), ne(customers.recurrence, "none"))!);
-  if (sp.payment === "missing") conditions.push(isNull(customers.paymentMethods));
-  if (sp.attention === "yes") conditions.push(or(isNull(customers.paymentMethods), isNull(customers.addressLine1), eq(customers.addressLine1, ""))!);
+  if (sp.payment === "missing") conditions.push(paymentMethodsMissing);
+  if (sp.attention === "yes") conditions.push(or(paymentMethodsMissing, isNull(customers.addressLine1), eq(customers.addressLine1, ""))!);
   if (sp.q?.trim()) {
     const query = `%${sp.q.trim()}%`;
     conditions.push(or(ilike(customers.firstName, query), ilike(customers.lastName, query), ilike(customers.companyName, query), ilike(customers.email, query), ilike(customers.addressLine1, query))!);
   }
 
-  const rows: CustomerRow[] = await db
-    .select({
-      id: customers.id,
-      firstName: customers.firstName,
-      lastName: customers.lastName,
-      companyName: customers.companyName,
-      status: customers.status,
-      clientType: customers.clientType,
-      recurrence: customers.recurrence,
-      paymentMethods: customers.paymentMethods,
-      addressLine1: customers.addressLine1,
-      city: customers.city,
-      state: customers.state,
-      zip: customers.zip,
-      phone: customers.phone,
-      email: customers.email,
-      tags: customers.tags,
-    })
-    .from(customers)
-    .where(and(...conditions))
-    .orderBy(customers.lastName, customers.firstName);
+  const page = Math.max(1, Math.floor(Number(sp.page)) || 1);
+
+  const [rows, [stats], [{ openBalance }]]: [CustomerRow[], { recurring: number; attention: number; leads: number; total: number }[], { openBalance: number }[]] = await Promise.all([
+    db
+      .select({
+        id: customers.id,
+        firstName: customers.firstName,
+        lastName: customers.lastName,
+        companyName: customers.companyName,
+        status: customers.status,
+        clientType: customers.clientType,
+        recurrence: customers.recurrence,
+        paymentMethods: customers.paymentMethods,
+        addressLine1: customers.addressLine1,
+        city: customers.city,
+        state: customers.state,
+        zip: customers.zip,
+        phone: customers.phone,
+        email: customers.email,
+        tags: customers.tags,
+      })
+      .from(customers)
+      .where(and(...conditions))
+      .orderBy(customers.lastName, customers.firstName)
+      .limit(PAGE_SIZE)
+      .offset((page - 1) * PAGE_SIZE),
+    db
+      .select({
+        recurring: sql<number>`count(*) filter (where ${customers.recurrence} is not null and ${customers.recurrence} <> 'none')`,
+        attention: sql<number>`count(*) filter (where ${paymentMethodsMissing} or ${customers.addressLine1} is null or ${customers.addressLine1} = '')`,
+        leads: sql<number>`count(*) filter (where ${customers.status} = 'lead')`,
+        total: sql<number>`count(*)`,
+      })
+      .from(customers)
+      .where(and(...conditions)),
+    db
+      .select({ openBalance: sql<number>`coalesce(sum(greatest(${invoices.totalCents} - ${invoices.amountPaidCents}, 0)), 0)` })
+      .from(invoices)
+      .innerJoin(customers, eq(invoices.customerId, customers.id))
+      .where(and(...conditions, ne(invoices.status, "paid"), ne(invoices.status, "void"))),
+  ]);
 
   const customerIds = rows.map((row) => row.id);
   const [customerJobs, customerInvoices]: [JobRow[], InvoiceRow[]] = customerIds.length
@@ -185,10 +225,10 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
     }
   });
 
-  const recurringCount = rows.filter((row) => row.recurrence && row.recurrence !== "none").length;
-  const attentionCount = rows.filter((row) => !row.paymentMethods?.length || !row.addressLine1).length;
-  const openBalance = [...openInvoiceByCustomer.values()].reduce((sum, value) => sum + value, 0);
-  const leadCount = rows.filter((row) => row.status === "lead").length;
+  const recurringCount = Number(stats.recurring);
+  const attentionCount = Number(stats.attention);
+  const leadCount = Number(stats.leads);
+  const totalCount = Number(stats.total);
 
   return (
     <div className="space-y-6">
