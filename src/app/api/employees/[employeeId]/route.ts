@@ -6,16 +6,14 @@ import { auditLog, customers, users, jobs, jobAssignments, timeEntries, payrollL
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildPayTiers, getPayTierBrackets } from "@/lib/payroll/calculate";
-import { isValidBirthday } from "@/lib/employees/birthday";
 
 const updateEmployeeSchema = z.object({
   firstName: z.string().trim().min(1).optional(),
   lastName: z.string().trim().min(1).optional(),
   contactEmail: z.string().trim().optional(),
-  profilePhotoUrl: z.string().url().optional().nullable(),
   phone: z.string().trim().optional(),
   title: z.string().trim().optional(),
-  birthday: z.string().refine(isValidBirthday, "Birthday must be a valid month and day in MM-DD format.").optional().nullable(),
+  birthday: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
   hiredDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
   payType: z.enum(["commission_jth", "office_hourly"]).optional(),
   hourlyRateCents: z.number().int().nonnegative().optional(),

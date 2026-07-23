@@ -45,9 +45,7 @@ export const users = pgTable("users", {
   phone: text("phone"),
   email: text("email").notNull(), // login identity — `<username>@cleanops.local`, see src/lib/auth/username.ts
   contactEmail: text("contact_email"), // real personal email, display/contact only, no auth meaning
-  profilePhotoUrl: text("profile_photo_url"),
-  // Month and day only (MM-DD). CleanOps does not collect employees' birth years.
-  birthday: text("birthday"),
+  birthday: date("birthday"),
   hiredDate: date("hired_date"),
   title: text("title"), // Gusto job title, e.g. "Cleaning Tech (Primary)"
   gustoEmployeeId: text("gusto_employee_id"), // for CSV export matching

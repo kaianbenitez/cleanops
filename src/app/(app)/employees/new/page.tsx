@@ -175,13 +175,9 @@ export default function NewEmployeePage() {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium mb-1">Birthday <span className="font-normal text-gray-500">(month and day)</span></label>
+            <label className="block text-sm font-medium mb-1">Birthday</label>
             <input
-              type="text"
-              inputMode="numeric"
-              placeholder="MM-DD"
-              pattern="(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])"
-              maxLength={5}
+              type="date"
               value={birthday}
               onChange={(e) => setBirthday(e.target.value)}
               className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
