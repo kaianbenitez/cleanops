@@ -84,6 +84,18 @@ Last updated: 2026-07-24 (post-migration).
   granting the local `gh` CLI auth the `workflow` scope (`gh auth refresh -s workflow`) to
   push changes to a workflow file at all. Manually triggered run confirmed all steps (dump,
   upload, prune) succeed.
+- **This repo's own `.github/workflows/db-backup.yml` removed 2026-07-24.** A second, older,
+  fully independent nightly-backup pipeline (apt-installs `postgresql-client` v16, dumps via
+  the `DATABASE_URL` secret, pushes the dump as a git commit into `secrets.BACKUP_REPO`) had
+  been failing every single scheduled run since at least 2026-07-19 with the identical
+  `pg_dump`/server-version-mismatch error already fixed above — it never once got far enough
+  to actually write a backup (`cleanops-backup` has no committed `.dump` files, only the
+  releases from its own `backup.yml`). Confirmed redundant with the already-working
+  `cleanops-backup` pipeline above and removed rather than re-fixed, per user decision, since
+  keeping two pipelines writing backups of the same DB into the same target repo via two
+  different mechanisms (git commits vs. GitHub Releases) added confusion for no benefit. If
+  a "database backup workflow failing" report comes up again, check which repo/workflow it's
+  actually referring to before assuming it's this one — it's gone now.
 - **`npm run db:migrate` does not work on this hosted database — don't try it.** This DB has
   never been tracked by drizzle-kit's migration system; schema here has always been applied
   via `db:push` or manual `ALTER TABLE` (per `DECISIONS.md`'s earlier entries). Running
