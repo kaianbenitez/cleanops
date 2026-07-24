@@ -1,11 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { CalendarActivity, CalendarEmployee, CalendarJob } from "./page";
 import { commitJobPatch } from "./drag-commit";
 import { UndoToast, useUndoToast } from "./undo-toast";
 import JobCard from "./job-card";
-import JobDetailPanel from "./job-detail-panel";
 import { assignDayLanes } from "./shared";
 
 const START = 9 * 60;
@@ -25,7 +25,6 @@ export default function StaffBoard({ dayIso, dayLabel, employees, jobs: initialJ
   const [jobs, setJobs] = useState(initialJobs);
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [detailJobId, setDetailJobId] = useState<string | null>(null);
   const [queueExpanded, setQueueExpanded] = useState(false);
   const { toast, showUndo, dismiss } = useUndoToast();
   const sortedEmployees = useMemo(() => [...employees], [employees]);
@@ -59,7 +58,7 @@ export default function StaffBoard({ dayIso, dayLabel, employees, jobs: initialJ
   }
 
   function queueCard(job: CalendarJob, retained = false) {
-    return <button key={job.id} data-testid="unassigned-job-card" type="button" onClick={() => setDetailJobId(job.id)} aria-label={`Open job details for ${customerName(job)}`} className={`block w-full rounded-lg border p-2.5 text-left transition hover:bg-[var(--co-accent-tint)] ${retained ? "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]" : "border-dashed border-[var(--co-line)]"}`}>
+    return <Link key={job.id} data-testid="unassigned-job-card" href={`/jobs/${job.id}`} aria-label={`Open job details for ${customerName(job)}`} className={`block w-full rounded-lg border p-2.5 text-left transition hover:bg-[var(--co-accent-tint)] ${retained ? "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]" : "border-dashed border-[var(--co-line)]"}`}>
       <div className="flex items-start justify-between gap-2">
         <p className="truncate text-xs font-semibold">{customerName(job)}</p>
         <span className={`shrink-0 text-[10px] font-semibold ${retained ? "text-[var(--co-muted)]" : "text-[var(--co-evergreen)]"}`}>{job.estimatedDurationMinutes ? `${Math.round(job.estimatedDurationMinutes / 60 * 10) / 10} hrs` : "-"}</span>
@@ -69,7 +68,7 @@ export default function StaffBoard({ dayIso, dayLabel, employees, jobs: initialJ
         <span className="text-[var(--co-faint)]">{job.clientType === "commercial" ? "Commercial" : "Residential"}</span>
         <span className={retained ? "text-[var(--co-muted)]" : "text-amber-700"}>{statusLabel(job.status)}</span>
       </div>
-    </button>;
+    </Link>;
   }
 
   return <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -89,6 +88,6 @@ export default function StaffBoard({ dayIso, dayLabel, employees, jobs: initialJ
       </section>
       <section className="border border-[var(--co-line)] bg-[var(--co-surface)] p-3"><div className="flex items-center justify-between"><h3 className="text-sm font-semibold">Live updates</h3><span className="h-2 w-2 rounded-full bg-[var(--co-evergreen)]" /></div><div className="mt-3 space-y-3">{activities.map((activity) => <div key={activity.id} className="flex gap-2 text-xs"><span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${activity.tone === "success" ? "bg-[var(--co-evergreen)]" : activity.tone === "warning" ? "bg-rose-500" : "bg-indigo-300"}`} /><div><p className="font-semibold text-[var(--co-ink)]">{activity.title}</p><p className="mt-0.5 text-[var(--co-muted)]">{activity.detail}</p></div></div>)}{activities.length === 0 ? <p className="py-4 text-xs text-[var(--co-muted)]">No recent updates for this day.</p> : null}</div></section>
     </aside>
-    <UndoToast toast={toast} onDismiss={dismiss} /><JobDetailPanel jobId={detailJobId} employees={employees} onClose={() => setDetailJobId(null)} />
+    <UndoToast toast={toast} onDismiss={dismiss} />
   </div>;
 }

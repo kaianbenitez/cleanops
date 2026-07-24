@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { TYPE_LABELS, displayCustomer, formatClockLabel, isPlainClick, recurrenceLabel } from "./shared";
+import { TYPE_LABELS, displayCustomer, formatClockLabel, recurrenceLabel } from "./shared";
 import { commitJobPatch } from "./drag-commit";
 import { useUndoToast, UndoToast } from "./undo-toast";
-import JobDetailPanel from "./job-detail-panel";
 import AssigneePicker from "./assignee-picker";
 
 type Employee = { id: string; firstName: string; lastName: string };
@@ -43,7 +42,6 @@ export default function ListBoard({ employees, jobs: initialJobs }: { employees:
   const [syncedJobs, setSyncedJobs] = useState(initialJobs);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [detailJobId, setDetailJobId] = useState<string | null>(null);
   const { toast, showUndo, dismiss } = useUndoToast();
 
   if (initialJobs !== syncedJobs) {
@@ -212,12 +210,7 @@ export default function ListBoard({ employees, jobs: initialJobs }: { employees:
                 <td className="px-5 py-3 font-medium">
                   <Link
                     href={`/jobs/${job.id}`}
-                    onClick={(event) => {
-                      if (!isPlainClick(event)) return;
-                      event.preventDefault();
-                      setDetailJobId(job.id);
-                    }}
-                    className="text-[var(--co-evergreen)] hover:underline"
+                    className="-mx-5 -my-3 block px-5 py-3 text-[var(--co-evergreen)] hover:underline"
                   >
                     {displayCustomer(job)}
                   </Link>
@@ -269,7 +262,6 @@ export default function ListBoard({ employees, jobs: initialJobs }: { employees:
         </table>
       </div>
       <UndoToast toast={toast} onDismiss={dismiss} />
-      <JobDetailPanel jobId={detailJobId} employees={employees} onClose={() => setDetailJobId(null)} />
     </div>
   );
 }

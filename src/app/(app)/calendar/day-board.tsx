@@ -11,13 +11,11 @@ import {
   employeeColor,
   jobDuration,
   formatClockLabel,
-  isPlainClick,
   STAFF_RANGE_START,
   STAFF_RANGE_MINUTES,
 } from "./shared";
 import { commitJobPatch } from "./drag-commit";
 import { useUndoToast, UndoToast } from "./undo-toast";
-import JobDetailPanel from "./job-detail-panel";
 import AssigneePicker from "./assignee-picker";
 
 type Employee = { id: string; firstName: string; lastName: string };
@@ -57,7 +55,6 @@ export default function DayBoard({ dayLabel, employees, jobs: initialJobs }: { d
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragOverRail, setDragOverRail] = useState(false);
-  const [detailJobId, setDetailJobId] = useState<string | null>(null);
   const { toast, showUndo, dismiss } = useUndoToast();
 
   if (initialJobs !== syncedJobs) {
@@ -229,11 +226,6 @@ export default function DayBoard({ dayLabel, employees, jobs: initialJobs }: { d
                 <div className="w-16 font-medium text-[var(--co-ink)]">{job.scheduledStartTime?.slice(0, 5) ?? "No time"}</div>
                 <Link
                   href={`/jobs/${job.id}`}
-                  onClick={(event) => {
-                    if (!isPlainClick(event)) return;
-                    event.preventDefault();
-                    setDetailJobId(job.id);
-                  }}
                   className="min-w-[180px] flex-1 hover:underline"
                 >
                   <div className="font-medium text-[var(--co-ink)]">
@@ -259,7 +251,6 @@ export default function DayBoard({ dayLabel, employees, jobs: initialJobs }: { d
         </div>
       </div>
       <UndoToast toast={toast} onDismiss={dismiss} />
-      <JobDetailPanel jobId={detailJobId} employees={employees} onClose={() => setDetailJobId(null)} />
     </div>
   );
 }

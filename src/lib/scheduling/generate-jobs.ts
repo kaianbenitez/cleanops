@@ -135,7 +135,7 @@ export async function generateJobsForSeries(
         status: "scheduled",
         scheduledDate: date,
         scheduledStartTime: "09:00:00",
-        estimatedDurationMinutes: 120,
+        estimatedDurationMinutes: series.estimatedDurationMinutes ?? 120,
         priceCents: series.priceCents,
       })
       .onConflictDoNothing({

@@ -401,7 +401,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                     return (
                       <tr key={row.id} className={`transition-colors hover:bg-[var(--co-surface-muted)]/55 ${selected ? "bg-[var(--co-surface-muted)]/40" : ""}`}>
                         <td className="px-5 py-4 font-mono font-semibold text-[var(--co-evergreen)]">
-                          <Link href={hrefWith(sp, { jobId: row.id })} className="font-medium text-[var(--co-ink)] hover:text-[var(--co-evergreen)]">
+                          <Link href={`/jobs/${row.id}`} className="-mx-5 -my-4 block px-5 py-4 font-medium text-[var(--co-ink)] hover:text-[var(--co-evergreen)]">
                             #{row.id.slice(0, 8).toUpperCase()}
                           </Link>
                         </td>

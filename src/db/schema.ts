@@ -330,6 +330,9 @@ export const recurringSeries = pgTable("recurring_series", {
   startDate: date("start_date").notNull(),
   endDate: date("end_date"),
   priceCents: integer("price_cents").notNull(),
+  // Kept on the series so every generated visit retains the quote-derived
+  // schedule budget instead of falling back to a generic duration.
+  estimatedDurationMinutes: integer("estimated_duration_minutes"),
   defaultEmployeeIds: jsonb("default_employee_ids").notNull().default([]),
   isActive: boolean("is_active").notNull().default(true),
   ...timestamps,
