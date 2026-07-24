@@ -376,7 +376,7 @@ export default async function ReportsPage() {
         generalNotes: customers.generalNotes,
       })
       .from(customers)
-      .where(eq(customers.companyId, user.companyId))
+      .where(and(eq(customers.companyId, user.companyId), eq(customers.isArchived, false)))
       .orderBy(customers.firstName),
     db
       .select({

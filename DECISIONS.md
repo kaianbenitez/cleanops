@@ -640,3 +640,29 @@ in particular was already applied directly to the hosted DB without a tracked mi
 Those statements were manually stripped from this migration file since they aren't part of
 this change and `profile_photo_url` already existing on the hosted DB would have made the raw
 generated file fail outright if run as-is.
+
+**Follow-up same day, discovered during verification**: directly querying the hosted DB (not
+just diffing against schema.ts) turned up a much bigger pre-existing gap — `customers` is
+missing 7 columns that the *already-shipped* customer list/profile pages depend on:
+`client_type`, `company_name`, `preferred_days`, `preferred_cleaner_id`,
+`preferred_time_of_day`, `payment_methods`, `general_notes`. These aren't new — complete
+migrations for them were generated and committed long ago (`drizzle/0008_wild_riptide.sql`,
+`0009_sleepy_maverick.sql`, `0010_chief_donald_blake.sql`, including backfill logic from the
+legacy singular columns) but were apparently never actually applied to the hosted DB, despite
+the dependent UI being marked "Done" in `HANDOFF.md`. This means `/customers` and
+`/customers/[id]` have very likely been 500-erroring in real production this whole time,
+independent of anything in this session's work.
+
+Per user decision, folded 0008/0009/0010's statements into `0012_amusing_caretaker.sql`
+alongside this feature's 3 archive columns, so one migration catches the hosted DB up
+completely rather than applying them separately. Dry-run verified first against the live DB
+inside a transaction that was rolled back (`BEGIN; ...; ROLLBACK;` — no changes persisted):
+all 10 columns applied cleanly, `client_type` defaulted to `'residential'`, `is_archived`
+defaulted to `false`, and the backfill statement ran without error.
+
+**Applied to the hosted DB 2026-07-24, with explicit user approval**, as a single committed
+SQL transaction (not `db:migrate`/`db:push`, per this repo's established process). Confirmed
+live afterward: all 10 columns, the `customers_archived_idx` index, and the
+`customers_preferred_cleaner_id_users_id_fk` foreign key all present. This retroactively
+un-breaks whatever has been failing on `/customers` and `/customers/[id]` in production since
+0008/0009/0010 were originally committed without ever being run.

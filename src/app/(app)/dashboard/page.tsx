@@ -129,7 +129,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     db
       .select({ count: sql<number>`count(*)` })
       .from(customers)
-      .where(and(eq(customers.companyId, admin.companyId), eq(customers.status, "lead"), gte(customers.createdAt, rangeFrom), lt(customers.createdAt, rangeToExclusive))),
+      .where(and(eq(customers.companyId, admin.companyId), eq(customers.isArchived, false), eq(customers.status, "lead"), gte(customers.createdAt, rangeFrom), lt(customers.createdAt, rangeToExclusive))),
     db
       .select({ count: sql<number>`count(*)` })
       .from(quotes)
@@ -141,11 +141,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     db
       .select({ count: sql<number>`count(*)` })
       .from(customers)
-      .where(and(eq(customers.companyId, admin.companyId), ne(customers.recurrence, "none"), isNotNull(customers.recurrence), gte(customers.updatedAt, monthStart))),
+      .where(and(eq(customers.companyId, admin.companyId), eq(customers.isArchived, false), ne(customers.recurrence, "none"), isNotNull(customers.recurrence), gte(customers.updatedAt, monthStart))),
     db
       .select({ count: sql<number>`count(*)` })
       .from(customers)
-      .where(and(eq(customers.companyId, admin.companyId), eq(customers.status, "client"))),
+      .where(and(eq(customers.companyId, admin.companyId), eq(customers.isArchived, false), eq(customers.status, "client"))),
     db
       .select({
         amountPaidCents: invoices.amountPaidCents,
@@ -192,6 +192,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       .where(
         and(
           eq(customers.companyId, admin.companyId),
+          eq(customers.isArchived, false),
           or(isNull(customers.paymentMethods), sql`cardinality(${customers.paymentMethods}) = 0`)
         )
       ),
@@ -201,6 +202,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       .where(
         and(
           eq(customers.companyId, admin.companyId),
+          eq(customers.isArchived, false),
           or(
             isNull(customers.addressLine1),
             eq(customers.addressLine1, ""),
