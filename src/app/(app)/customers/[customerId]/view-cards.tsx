@@ -1,19 +1,42 @@
 import Link from "next/link";
-import { ComingSoonStat } from "@/components/ui/coming-soon-stat";
-import { TYPE_LABELS, money, type Customer, type Location, type CustomerJob, type AuditEntry } from "./shared";
+import { CalendarDays, CreditCard, KeyRound, Mail, MapPin, PawPrint, Phone, Plus, ShieldBan } from "lucide-react";
+import { TYPE_LABELS, money, type Customer, type Location, type CustomerJob } from "./shared";
 
-function Card({ eyebrow, title, action, children }: { eyebrow: string; title: string; action?: React.ReactNode; children: React.ReactNode }) {
+function Card({ title, action, children, className = "" }: { title: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className="co-card overflow-hidden">
-      <div className="flex items-center justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
-        <div>
-          <p className="eyebrow">{eyebrow}</p>
-          <h2 className="mt-1 text-lg font-semibold">{title}</h2>
-        </div>
+    <section className={`co-card overflow-hidden ${className}`}>
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-4 sm:px-6">
+        <h2 className="text-lg font-semibold tracking-[-0.02em]">{title}</h2>
         {action}
       </div>
-      <div className="px-5 py-5">{children}</div>
+      {children}
     </section>
+  );
+}
+
+function Detail({ icon: Icon, label, children }: { icon: typeof Phone; label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex gap-3">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--co-surface-muted)] text-[var(--co-evergreen)]"><Icon className="h-5 w-5" /></span>
+      <div className="min-w-0 pt-0.5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--co-muted)]">{label}</p>
+        <div className="mt-1 text-sm font-medium leading-5 text-[var(--co-ink)]">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Preference({ icon: Icon, title, children }: { icon: typeof KeyRound; title: string; children: React.ReactNode }) {
+  return (
+    <article className="min-h-32 rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)]/80 p-4">
+      <div className="flex gap-3">
+        <Icon className="mt-0.5 h-5 w-5 shrink-0 text-[var(--co-evergreen)]" />
+        <div>
+          <h3 className="text-sm font-semibold">{title}</h3>
+          <div className="mt-1 text-sm leading-5 text-[var(--co-muted)]">{children}</div>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -21,9 +44,10 @@ export function CustomerViewCards({
   customer,
   location,
   primaryAddress,
+  upcomingJobs,
   recentJobs,
+  nextJob,
   openBalance,
-  lifetimeSpendCents,
   onEditFocus,
 }: {
   customer: Customer;
@@ -36,185 +60,55 @@ export function CustomerViewCards({
   lastJob: CustomerJob | null;
   openBalance: number;
   lifetimeSpendCents: number;
-  auditLogs: AuditEntry[];
+  auditLogs: unknown[];
   onEditFocus: () => void;
 }) {
-  // Access Protocol precedence: a per-location gate code/key location is more precise than
-  // the customer-level free-text field, so prefer it when a location exists and has one set.
-  const gateCode = location?.gateCode || null;
-  const keyLocation = location?.keyNumber || null;
-  const accessFallback = customer.gateCodeOrKeyNotes || null;
-  const hasStructuredAccess = Boolean(gateCode || keyLocation);
-
-  // Priority Areas has no dedicated column — derived by splitting importantToCustomer into
-  // bullets. Cosmetic grouping of an existing free-text field, not new structured capture.
-  const priorityAreas = (customer.importantToCustomer ?? "")
-    .split(/\n|;/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  // Supplies Preference has no dedicated column either — derived from the per-location
-  // supply fields, falling back to the customer-level operational notes.
-  const supplyParts = [
-    location?.vacuumLocation ? `Vacuum: ${location.vacuumLocation}` : null,
-    location?.mopHeadsNeeded ? `Mop heads: ${location.mopHeadsNeeded}` : null,
-    location?.trashBags ? `Trash bags: ${location.trashBags}` : null,
-  ].filter(Boolean) as string[];
-  const suppliesPreference = supplyParts.length ? supplyParts.join(" · ") : customer.operationalNotes || null;
+  const accessNotes = [
+    location?.accessInstructions,
+    location?.gateCode ? `Gate code: ${location.gateCode}` : null,
+    location?.keyNumber ? `Key location: ${location.keyNumber}` : null,
+    customer.gateCodeOrKeyNotes,
+  ].filter(Boolean).join(" ");
+  const preferredDays = customer.preferredDays?.map((day) => day.slice(0, 1).toUpperCase() + day.slice(1)).join(", ");
+  const plan = customer.recurrence && customer.recurrence !== "none" ? customer.recurrence.replace("biweekly", "Every other week").replace(/^./, (letter) => letter.toUpperCase()) : "One-time service";
 
   return (
-    <section className="grid gap-5 xl:grid-cols-[1.05fr_1.05fr_0.9fr]">
-      <div className="space-y-5">
-        <Card eyebrow="Contact" title="Contact Details">
-          <div className="space-y-3 text-sm">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--co-muted)]">Email address</p>
-              <p className="mt-1 font-medium">{customer.email || "No email"}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--co-muted)]">Phone number</p>
-              <p className="mt-1 font-medium">{customer.phone || "No phone"}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--co-muted)]">Primary residence</p>
-              <p className="mt-1 font-medium">{primaryAddress || "Address not recorded"}</p>
-            </div>
-          </div>
-          <div className="mt-4">
-            {primaryAddress ? (
-              <>
-                <iframe
-                  title="Customer location map"
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(primaryAddress)}&output=embed`}
-                  className="h-48 w-full rounded-2xl border-0"
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(primaryAddress)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-2 inline-block text-sm font-medium text-[var(--co-evergreen)] hover:underline"
-                >
-                  View map →
-                </a>
-              </>
-            ) : (
-              <p className="text-sm text-[var(--co-muted)]">Add an address to this customer&apos;s profile to see it on a map here.</p>
-            )}
-          </div>
-        </Card>
-
-        <Card
-          eyebrow="Billing"
-          title="Payment Methods"
-          action={
-            <button className="text-sm font-medium text-[var(--co-evergreen)] hover:underline" onClick={onEditFocus}>
-              Manage
-            </button>
-          }
-        >
-          <div className="space-y-2 text-sm">
-            {["Cash", "Check", "Credit Card"].map((method) => {
-              const accepted = customer.paymentMethods?.includes(method) ?? false;
-              return (
-                <div key={method} className="flex items-center justify-between rounded-xl border border-[var(--co-line-soft)] px-3 py-2">
-                  <span className="font-medium">{method}</span>
-                  <span className={accepted ? "text-xs font-medium text-emerald-700" : "text-xs text-[var(--co-muted)]"}>{accepted ? "Accepted" : "Not accepted"}</span>
-                </div>
-              );
-            })}
-          </div>
-          {openBalance > 0 ? <p className="mt-3 text-sm text-rose-600">{money(openBalance)} currently outstanding.</p> : null}
-        </Card>
-      </div>
-
-      <div className="space-y-5">
-        <Card eyebrow="House notes" title="House Notes & Access">
-          <div className="space-y-4 text-sm">
-            <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-accent-tint)]/35 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">General notes</p>
-                <button type="button" onClick={onEditFocus} className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">Edit</button>
-              </div>
-              <p className="mt-2 whitespace-pre-line leading-6">{customer.generalNotes || "No general notes recorded."}</p>
-            </div>
-            <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Access protocol</p>
-              {hasStructuredAccess ? (
-                <div className="mt-2 space-y-1">
-                  {gateCode ? <p>Gate code: <span className="font-medium">{gateCode}</span></p> : null}
-                  {keyLocation ? <p>Key location: <span className="font-medium">{keyLocation}</span></p> : null}
-                </div>
-              ) : accessFallback ? (
-                <p className="mt-2">{accessFallback}</p>
-              ) : (
-                <p className="mt-2 text-[var(--co-muted)]">No access details recorded.</p>
-              )}
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Pet information</p>
-              <p className="mt-1">{customer.petNotes || "No pet notes recorded."}</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Priority areas</p>
-              {priorityAreas.length ? (
-                <ul className="mt-1 list-disc space-y-1 pl-4">
-                  {priorityAreas.map((line, index) => (
-                    <li key={index}>{line}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-1 text-[var(--co-muted)]">Nothing flagged yet.</p>
-              )}
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Supplies preference</p>
-              <p className="mt-1">{suppliesPreference || "No supply preferences recorded."}</p>
-            </div>
-          </div>
-        </Card>
-
-        <div className="co-card border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)]/30 p-5">
-          <p className="eyebrow">Staff feedback</p>
-          <p className="mt-3 text-sm text-[var(--co-muted)]">—</p>
-          <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--co-surface-muted)] px-2 py-0.5 text-[11px] font-semibold text-[var(--co-muted)]">Coming soon</p>
+    <div className="space-y-6">
+      <section className="rounded-xl border border-[var(--co-line)] bg-[var(--co-surface-muted)]/75 p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3 text-[var(--co-evergreen)]"><CalendarDays className="h-6 w-6" /><h2 className="text-lg font-semibold">Active subscription</h2></div>
+          <span className="rounded-full bg-[var(--co-evergreen)] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white">{customer.status === "client" ? "Active plan" : "Customer plan"}</span>
         </div>
-      </div>
-
-      <div className="space-y-5">
-        <Card eyebrow="History" title="Service History">
-          {recentJobs.length === 0 ? (
-            <p className="text-sm text-[var(--co-muted)]">No completed jobs yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {recentJobs.slice(0, 5).map((job) => (
-                <Link key={job.id} href={`/jobs/${job.id}`} className="block rounded-2xl border border-[var(--co-line-soft)] px-3 py-3 hover:bg-[var(--co-surface-muted)]">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">{TYPE_LABELS[job.type] ?? job.type}</p>
-                    <p className="text-sm font-semibold">{money(job.priceCents)}</p>
-                  </div>
-                  <div className="mt-1 flex items-center justify-between text-xs text-[var(--co-muted)]">
-                    <span>{job.scheduledDate}</span>
-                    <span className="tracking-widest text-[var(--co-line)]" title="Ratings aren't tracked yet">★★★★★</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-          <Link href="/jobs" className="mt-3 inline-block text-sm font-medium text-[var(--co-evergreen)] hover:underline">
-            View full history →
-          </Link>
-        </Card>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="co-card p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Lifetime spend</p>
-            <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--co-evergreen)]">{money(lifetimeSpendCents)}</p>
-          </div>
-          <ComingSoonStat label="Avg rating" />
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <div className="rounded-lg bg-white p-4 shadow-sm"><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Plan details</p><p className="mt-1 text-sm font-semibold">{plan}</p><p className="mt-1 text-sm text-[var(--co-muted)]">{preferredDays ? `${preferredDays}${customer.preferredTimeOfDay ? ` · ${customer.preferredTimeOfDay}` : ""}` : "Schedule preference not set"}</p></div>
+          <div className="rounded-lg bg-white p-4 shadow-sm"><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Next visit</p>{nextJob ? <Link href={`/jobs/${nextJob.id}`} className="mt-1 block text-sm font-semibold text-[var(--co-evergreen)] hover:underline">{new Date(`${nextJob.scheduledDate}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}<span className="mt-1 block font-normal text-[var(--co-muted)]">{nextJob.scheduledStartTime?.slice(0, 5) ?? "Time pending"}</span></Link> : <p className="mt-1 text-sm text-[var(--co-muted)]">No visit scheduled</p>}</div>
+          <div className="rounded-lg bg-white p-4 shadow-sm"><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Preferred cleaner</p><p className="mt-1 text-sm font-semibold">{customer.preferredCleanerId ? "Cleaner assigned" : "Any available cleaner"}</p><p className="mt-1 text-sm text-[var(--co-muted)]">{upcomingJobs.length ? `${upcomingJobs.length} upcoming visit${upcomingJobs.length === 1 ? "" : "s"}` : "No upcoming visits"}</p></div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[305px_minmax(0,1fr)]">
+        <aside className="space-y-6">
+          <Card title="Contact info" action={<button onClick={onEditFocus} className="text-sm font-semibold text-[var(--co-evergreen)] hover:underline">Edit</button>}>
+            <div className="space-y-4 p-5">
+              <Detail icon={Phone} label="Primary phone">{customer.phone || "No phone on file"}</Detail>
+              <Detail icon={Mail} label="Email address">{customer.email || "No email on file"}</Detail>
+              <div className="border-t border-[var(--co-line)] pt-4"><Detail icon={MapPin} label="Service address">{primaryAddress || "No service address on file"}</Detail></div>
+              {primaryAddress ? <iframe title="Customer location map" src={`https://maps.google.com/maps?q=${encodeURIComponent(primaryAddress)}&output=embed`} className="h-32 w-full rounded-lg border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" /> : null}
+            </div>
+          </Card>
+          <Card title="Billing" action={<CreditCard className="h-5 w-5 text-[var(--co-muted)]" />}>
+            <div className="space-y-3 p-5"><div className="rounded-lg bg-[var(--co-surface-muted)] p-3 text-sm"><p className="font-semibold">{customer.paymentMethods?.length ? customer.paymentMethods.join(" · ") : "Payment method not set"}</p><p className="mt-1 text-xs text-[var(--co-muted)]">{openBalance ? `${money(openBalance)} outstanding` : "No open balance"}</p></div><Link href="/invoices" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--co-evergreen)] hover:underline">View all invoices →</Link></div>
+          </Card>
+        </aside>
+        <div className="space-y-6">
+          <Card title="Service history" action={<Link href="/jobs" className="text-sm font-semibold text-[var(--co-evergreen)] hover:underline">View all activity →</Link>}>
+            {recentJobs.length ? <div className="overflow-x-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead className="bg-[var(--co-surface-muted)] text-[10px] font-bold uppercase tracking-wide text-[var(--co-muted)]"><tr><th className="px-6 py-3">Date</th><th className="px-4 py-3">Service type</th><th className="px-4 py-3">Price</th><th className="px-6 py-3 text-right">Status</th></tr></thead><tbody>{recentJobs.slice(0, 5).map((job) => <tr key={job.id} className="border-t border-[var(--co-line-soft)]"><td className="px-6 py-4"><Link href={`/jobs/${job.id}`} className="font-medium hover:text-[var(--co-evergreen)] hover:underline">{new Date(`${job.scheduledDate}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</Link></td><td className="px-4 py-4 font-medium">{TYPE_LABELS[job.type] ?? job.type}</td><td className="px-4 py-4">{money(job.priceCents)}</td><td className="px-6 py-4 text-right"><span className={`rounded px-2 py-1 text-[10px] font-bold uppercase ${job.status === "completed" ? "bg-emerald-50 text-emerald-800" : job.status === "cancelled" ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"}`}>{job.status.replaceAll("_", " ")}</span></td></tr>)}</tbody></table></div> : <p className="p-6 text-sm text-[var(--co-muted)]">No service history yet.</p>}
+          </Card>
+          <Card title="Service notes & preferences" action={<button onClick={onEditFocus} className="text-sm font-semibold text-[var(--co-evergreen)] hover:underline">Edit</button>}>
+            <div className="grid gap-4 p-5 md:grid-cols-2"><Preference icon={KeyRound} title="Access instructions">{accessNotes || "No access instructions recorded."}</Preference><Preference icon={PawPrint} title="Pet warning">{customer.petNotes || "No pet notes recorded."}</Preference><Preference icon={ShieldBan} title="Out-of-bounds">{customer.operationalNotes || customer.importantToCustomer || "No restricted areas recorded."}</Preference><button onClick={onEditFocus} className="flex min-h-32 flex-col items-center justify-center rounded-lg border border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)]/30 text-sm font-semibold uppercase tracking-wide text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-evergreen)]"><Plus className="mb-2 h-6 w-6" />Add preference</button></div>
+          </Card>
+        </div>
+      </section>
+    </div>
   );
 }

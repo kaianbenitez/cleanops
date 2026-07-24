@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Pencil, Plus } from "lucide-react";
 import AddressAutocomplete from "../address-autocomplete";
 import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { CustomerViewCards } from "./view-cards";
@@ -377,13 +378,14 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <Link href="/customers" className="text-sm font-medium text-[var(--co-evergreen)] hover:underline">
-            ← Customers
-          </Link>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <p className="eyebrow">Customer profile</p>
+      <header className="flex flex-wrap items-start justify-between gap-5 border-b border-[var(--co-line-soft)] pb-5">
+        <div className="flex min-w-0 items-center gap-4">
+          <InitialsAvatar firstName={customer.firstName} lastName={customer.lastName} companyName={customer.companyName} className="h-16 w-16 rounded-2xl text-xl shadow-sm" />
+          <div className="min-w-0">
+            <Link href="/customers" className="text-sm font-medium text-[var(--co-evergreen)] hover:underline">
+              ← Customers
+            </Link>
+            <div className="mt-1 flex flex-wrap items-center gap-3">
             <span className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[customer.status] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>
               {STATUS_OPTIONS.find((option) => option.value === customer.status)?.label ?? customer.status}
             </span>
@@ -393,7 +395,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               </span>
             ) : null}
           </div>
-          <h1 className="page-title mt-2">
+          <h1 className="page-title mt-1">
             {customer.companyName ? customer.companyName : `${customer.firstName} ${customer.lastName}`}
           </h1>
           {customer.companyName ? (
@@ -401,11 +403,15 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               Contact: {customer.firstName} {customer.lastName}
             </p>
           ) : null}
-          <p className="page-subtitle">Internal profile for scheduling, house instructions, and customer history.</p>
+          <p className="mt-1 text-sm text-[var(--co-muted)]">
+            {customer.customerNumber ? `Customer ID ${customer.customerNumber}` : "Customer profile"}
+            {customer.recurrence && customer.recurrence !== "none" ? ` · ${customer.recurrence.replace("biweekly", "every other week")}` : ""}
+          </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/jobs/new?customerId=${customer.id}`} className="co-button-secondary">
-            + New job
+          <Link href={`/jobs/new?customerId=${customer.id}`} className="co-button-primary">
+            <Plus className="h-4 w-4" /> New job
           </Link>
           {mode === "view" ? (
             <>
@@ -418,8 +424,8 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                   Archive customer
                 </button>
               )}
-              <button className="co-button-primary" onClick={() => setMode("edit")}>
-                Edit Profile
+              <button className="co-button-secondary" onClick={() => setMode("edit")}>
+                <Pencil className="h-4 w-4" /> Edit profile
               </button>
             </>
           ) : (
