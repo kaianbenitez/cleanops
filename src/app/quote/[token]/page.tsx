@@ -396,7 +396,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
             </Section>
 
             <Section eyebrow="Compare your options" title="One simple choice, one clear total">
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-2">
                 {mainTiers.map(([type, tier], index) => {
                   const selected = selectedType === type;
                   const Icon = SERVICE_ICONS[type];
