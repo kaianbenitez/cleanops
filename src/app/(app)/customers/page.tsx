@@ -304,37 +304,6 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="eyebrow">Operations / Relationships</p>
-          <h1 className="page-title">Customers</h1>
-          <p className="page-subtitle">Keep every home, preference, and service history ready for the next visit.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-4 rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] px-4 py-2 text-sm">
-            <div>
-              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--co-muted)]">Total managed</p>
-              <p className="font-semibold">
-                {totalManaged.toLocaleString()}
-                {trendPct !== null ? (
-                  <span className={`ml-1 text-xs font-medium ${trendPct >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
-                    {trendPct >= 0 ? "↑" : "↓"}
-                    {Math.abs(trendPct)}%
-                  </span>
-                ) : null}
-              </p>
-            </div>
-            <div className="border-l border-[var(--co-line-soft)] pl-4" title="Active clients as a share of everyone pursued past lead/quote — no established definition yet, treat as directional">
-              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--co-muted)]">Retention rate</p>
-              <p className="font-semibold">{retentionRate !== null ? `${retentionRate.toFixed(1)}%` : "—"}</p>
-            </div>
-          </div>
-          <Link href="/customers/new" className="co-button-primary">
-            + Add customer
-          </Link>
-        </div>
-      </header>
-
       {!isEligibleView && eligibleCount > 0 ? (
         <Link
           href="/customers?eligible=archive"
@@ -347,17 +316,14 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         </Link>
       ) : null}
 
-      {isEligibleView ? (
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-[var(--co-muted)]">
-            Showing customers who&apos;ve been served but never signed up for a recurring plan and have nothing upcoming.
-          </p>
-          <Link href="/customers" className="text-sm font-medium text-[var(--co-evergreen)] hover:underline">
-            ← Back to all customers
-          </Link>
-        </div>
-      ) : (
-        <section className="flex flex-wrap gap-3">
+      <section className="co-card flex flex-wrap items-center gap-3 px-4 py-3">
+        {isEligibleView ? (
+          <>
+            <p className="text-sm text-[var(--co-muted)]">Customers eligible for archive</p>
+            <Link href="/customers" className="text-sm font-semibold text-[var(--co-evergreen)] hover:underline">← Back to all customers</Link>
+          </>
+        ) : (
+          <>
           <Link href={hrefWith(sp, "recurrence", sp.recurrence === "recurring" ? "" : "recurring")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.recurrence === "recurring" ? "bg-[var(--co-evergreen)] text-white shadow-sm" : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"}`}>
             Recurring <span className="ml-1 opacity-80">{recurringCount}</span>
           </Link>
@@ -367,11 +333,25 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           <Link href={hrefWith(sp, "status", sp.status === "lead" ? "" : "lead")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.status === "lead" ? "bg-[var(--co-evergreen)] text-white shadow-sm" : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"}`}>
             Leads <span className="ml-1 opacity-80">{leadCount}</span>
           </Link>
-          <Link href={hrefWith(sp, "archived", sp.archived === "1" ? "" : "1")} className={`ml-auto rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.archived === "1" ? "bg-slate-600 text-white shadow-sm" : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-slate-400 hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "archived", sp.archived === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.archived === "1" ? "bg-slate-600 text-white shadow-sm" : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-slate-400 hover:text-[var(--co-ink)]"}`}>
             {sp.archived === "1" ? "Hide archived" : "Show archived"}
           </Link>
-        </section>
-      )}
+          </>
+        )}
+        <div className="ml-auto flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-4 rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)]/40 px-3 py-2 text-sm">
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--co-muted)]">Managed</p>
+              <p className="font-semibold">{totalManaged.toLocaleString()}{trendPct !== null ? <span className={`ml-1 text-xs font-medium ${trendPct >= 0 ? "text-emerald-700" : "text-rose-600"}`}>{trendPct >= 0 ? "↑" : "↓"}{Math.abs(trendPct)}%</span> : null}</p>
+            </div>
+            <div className="border-l border-[var(--co-line-soft)] pl-4" title="Active clients as a share of everyone pursued past lead/quote">
+              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--co-muted)]">Retention</p>
+              <p className="font-semibold">{retentionRate !== null ? `${retentionRate.toFixed(1)}%` : "—"}</p>
+            </div>
+          </div>
+          <Link href="/customers/new" className="co-button-primary">+ Add customer</Link>
+        </div>
+      </section>
 
       <section className="co-card overflow-hidden">
         {!isEligibleView ? (
