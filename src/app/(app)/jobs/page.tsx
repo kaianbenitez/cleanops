@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { and, desc, eq, gte, ilike, inArray, lte, or } from "drizzle-orm";
+import { and, count, desc, eq, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { customers, invoices, jobAssignments, jobs, timeEntries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -37,6 +37,10 @@ type SearchParams = {
   missingHours?: string;
   unassigned?: string;
   jobId?: string;
+  tab?: string;
+  page?: string;
+  start?: string;
+  end?: string;
 };
 
 function dateOnly(date: Date) {
@@ -130,17 +134,23 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
   if (admin.role !== "admin") redirect("/my-day");
 
   const sp = await searchParams;
+  const activeTab = sp.tab ?? "active";
+  const pageSize = 25;
+  const page = Math.max(1, Number(sp.page ?? "1") || 1);
   const today = new Date();
   const weekDay = today.getDay();
   const weekStart = addDays(today, weekDay === 0 ? -6 : 1 - weekDay);
-  const rangeStart = dateOnly(addDays(today, -14));
-  const rangeEnd = dateOnly(addDays(today, 45));
+  const rangeStart = sp.start && /^\d{4}-\d{2}-\d{2}$/.test(sp.start) ? sp.start : dateOnly(addDays(today, -14));
+  const rangeEnd = sp.end && /^\d{4}-\d{2}-\d{2}$/.test(sp.end) ? sp.end : dateOnly(addDays(today, 45));
   const todayText = dateOnly(today);
   const weekStartText = dateOnly(weekStart);
   const weekEndText = dateOnly(addDays(weekStart, 6));
 
   const conditions = [eq(jobs.companyId, admin.companyId), gte(jobs.scheduledDate, rangeStart), lte(jobs.scheduledDate, rangeEnd)];
   if (sp.status && sp.status !== "all" && STATUS_LABELS[sp.status]) conditions.push(eq(jobs.status, sp.status as typeof jobs.status.enumValues[number]));
+  if (!sp.status && activeTab === "active") conditions.push(inArray(jobs.status, ["scheduled", "in_progress"]));
+  if (!sp.status && activeTab === "pending") conditions.push(and(eq(jobs.status, "completed"), sql`not exists (select 1 from invoices where invoices.job_id = ${jobs.id})`)!);
+  if (!sp.status && activeTab === "history") conditions.push(inArray(jobs.status, ["completed", "cancelled", "no_show"]));
   if (sp.type) conditions.push(eq(jobs.type, sp.type as typeof jobs.type.enumValues[number]));
   if (sp.q?.trim()) {
     const query = `%${sp.q.trim()}%`;
@@ -152,7 +162,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
     conditions.push(assigned.length ? inArray(jobs.id, assigned.map((row) => row.jobId)) : inArray(jobs.id, ["00000000-0000-0000-0000-000000000000"]));
   }
 
-  const [rows, employees, allJobs] = await Promise.all([
+  const [rows, totalRowsResult, employees, allJobs] = await Promise.all([
     db
       .select({
         id: jobs.id,
@@ -174,7 +184,9 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
       .innerJoin(customers, eq(jobs.customerId, customers.id))
       .where(and(...conditions))
       .orderBy(desc(jobs.scheduledDate), jobs.scheduledStartTime)
-      .limit(150),
+      .limit(pageSize)
+      .offset((page - 1) * pageSize),
+    db.select({ total: count() }).from(jobs).innerJoin(customers, eq(jobs.customerId, customers.id)).where(and(...conditions)),
     db
       .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, isActive: users.isActive })
       .from(users)
@@ -185,6 +197,8 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
       .from(jobs)
       .where(and(eq(jobs.companyId, admin.companyId), gte(jobs.scheduledDate, rangeStart), lte(jobs.scheduledDate, rangeEnd))),
   ]);
+  const totalRows = Number(totalRowsResult[0]?.total ?? 0);
+  const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
 
   const jobIds = rows.map((row) => row.id);
   const allJobIds = allJobs.map((job) => job.id);
@@ -242,9 +256,9 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="eyebrow">Operations / Jobs</p>
-          <h1 className="page-title">Jobs</h1>
-          <p className="page-subtitle">Plan, track, and close out every service.</p>
+          <p className="eyebrow">Admin &nbsp;›&nbsp; Jobs management</p>
+          <h1 className="page-title">Operations Hub</h1>
+          <p className="page-subtitle">Real-time management of residential cleaning services across all zones.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/calendar" className="co-button-secondary">
@@ -259,20 +273,31 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
         </div>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Today" value={String(metrics.today)} hint="jobs scheduled today" />
-        <MetricCard label="This week" value={String(metrics.week)} hint="jobs in the current week" />
-        <MetricCard label="Unassigned" value={String(metrics.unassigned)} hint="need a technician" tone={metrics.unassigned ? "warning" : "good"} />
-        <MetricCard label="Awaiting invoicing" value={String(metrics.awaiting)} hint="completed jobs" tone={metrics.awaiting ? "warning" : "good"} />
+      <section className="ml-auto grid max-w-[500px] gap-3 sm:grid-cols-2">
+        <MetricCard label="Completed today" value={String(allJobs.filter((job) => job.status === "completed" && job.scheduledDate === todayText).length)} hint="services closed today" tone="good" />
+        <MetricCard label="Pending review" value={String(metrics.awaiting)} hint="completed, awaiting invoice" tone={metrics.awaiting ? "warning" : "good"} />
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.58fr_0.92fr]">
+      <nav className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/55 p-3" aria-label="Job views">
+        <div className="flex rounded-2xl bg-white p-1 shadow-sm">
+          {[['active','Active'],['pending','Pending review'],['history','History']].map(([tab, label]) => <Link key={tab} href={hrefWith(sp, { tab, status: "", page: "", jobId: "" })} className={`rounded-xl px-4 py-2 text-sm font-semibold ${activeTab === tab ? 'bg-[var(--co-evergreen)] text-white' : 'text-[var(--co-muted)] hover:text-[var(--co-ink)]'}`}>{label}</Link>)}
+        </div>
+        <form className="flex flex-wrap items-center gap-2">
+          <input name="start" type="date" defaultValue={rangeStart} className="co-input text-sm" />
+          <span className="text-xs text-[var(--co-muted)]">to</span>
+          <input name="end" type="date" defaultValue={rangeEnd} className="co-input text-sm" />
+          {sp.tab ? <input type="hidden" name="tab" value={sp.tab} /> : null}
+          <button className="co-button-secondary text-sm" type="submit">Apply dates</button>
+        </form>
+      </nav>
+
+      <section className="block">
         <section className="co-card overflow-hidden">
           <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-5 sm:px-6">
             <div>
-              <p className="eyebrow">Schedule board</p>
-              <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--co-ink)]">Manual scheduling</h2>
-              <p className="mt-1 text-sm text-[var(--co-muted)]">Choose exactly who is cleaning which house.</p>
+              <p className="eyebrow">Active jobs</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--co-ink)]">Service operations</h2>
+              <p className="mt-1 text-sm text-[var(--co-muted)]">Open a job to manage crew, timing, customer details, photos, and close-out.</p>
             </div>
             <Link href="/calendar" className="mt-1 text-sm font-medium text-[var(--co-evergreen)] hover:underline">
               Route preview &rarr;
@@ -338,6 +363,9 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
               </select>
               {sp.status ? <input type="hidden" name="status" value={sp.status} /> : null}
               {sp.jobId ? <input type="hidden" name="jobId" value={sp.jobId} /> : null}
+              {sp.tab ? <input type="hidden" name="tab" value={sp.tab} /> : null}
+              <input type="hidden" name="start" value={rangeStart} />
+              <input type="hidden" name="end" value={rangeEnd} />
               <button className="co-button-secondary justify-center" type="submit">
                 Filter
               </button>
@@ -351,17 +379,16 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1020px] text-left text-sm">
+              <table className="w-full min-w-[980px] text-left text-sm">
                 <thead className="border-b border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/50 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">
                   <tr>
-                    <th className="px-5 py-3">Date &amp; time</th>
+                    <th className="px-5 py-3">Job ID</th>
                     <th className="px-5 py-3">Customer</th>
-                    <th className="px-5 py-3">Address</th>
                     <th className="px-5 py-3">Cleaning type</th>
-                    <th className="px-5 py-3">Technician</th>
-                    <th className="px-5 py-3">Hours</th>
+                    <th className="px-5 py-3">Assigned cleaners</th>
+                    <th className="px-5 py-3">Schedule</th>
                     <th className="px-5 py-3">Status</th>
-                    <th className="px-5 py-3">Invoice</th>
+                    <th className="px-5 py-3">Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--co-line-soft)]">
@@ -373,21 +400,14 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
 
                     return (
                       <tr key={row.id} className={`transition-colors hover:bg-[var(--co-surface-muted)]/55 ${selected ? "bg-[var(--co-surface-muted)]/40" : ""}`}>
-                        <td className="px-5 py-4">
+                        <td className="px-5 py-4 font-mono font-semibold text-[var(--co-evergreen)]">
                           <Link href={hrefWith(sp, { jobId: row.id })} className="font-medium text-[var(--co-ink)] hover:text-[var(--co-evergreen)]">
-                            {row.scheduledDate}
-                            <span className="block text-xs text-[var(--co-muted)]">{row.scheduledStartTime?.slice(0, 5) ?? "No time"}</span>
+                            #{row.id.slice(0, 8).toUpperCase()}
                           </Link>
                         </td>
                         <td className="px-5 py-4 font-medium text-[var(--co-ink)]">
                           {row.customerFirstName} {row.customerLastName}
-                        </td>
-                        <td className="max-w-[190px] px-5 py-4 text-xs text-[var(--co-muted)]">
-                          {row.addressLine1 ?? "No address"}
-                          <span className="block">
-                            {row.city ?? ""}
-                            {row.state ? `, ${row.state}` : ""}
-                          </span>
+                          <span className="block max-w-[180px] truncate text-xs font-normal text-[var(--co-muted)]">{row.addressLine1 ?? "No address"}</span>
                         </td>
                         <td className="px-5 py-4 text-[var(--co-muted)]">
                           {TYPE_LABELS[row.type] ?? row.type}
@@ -406,19 +426,11 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                             <span className="font-medium text-amber-700">Unassigned</span>
                           )}
                         </td>
-                        <td className="px-5 py-4 text-[var(--co-muted)]">{minutes ? `${(minutes / 60).toFixed(2)} hrs` : "No hours"}</td>
+                        <td className="px-5 py-4"><span className="block font-semibold text-[var(--co-ink)]">{row.scheduledDate === todayText ? "Today" : row.scheduledDate}</span><span className="block text-xs text-[var(--co-muted)]">{row.scheduledStartTime?.slice(0, 5) ?? "No time"}{row.estimatedDurationMinutes ? ` · Est. ${(row.estimatedDurationMinutes / 60).toFixed(1)} hrs` : ""}</span></td>
                         <td className="px-5 py-4">
                           <Pill status={row.status} />
                         </td>
-                        <td className="px-5 py-4 text-xs">
-                          {invoiceStatus === "paid" ? (
-                            <span className="text-emerald-700">Paid</span>
-                          ) : row.status === "completed" ? (
-                            <span className="text-amber-700">Ready to invoice</span>
-                          ) : (
-                            <span className="text-[var(--co-muted)]">Not ready</span>
-                          )}
-                        </td>
+                        <td className={`px-5 py-4 font-semibold ${row.status === "cancelled" ? "text-[var(--co-muted)] line-through" : "text-[var(--co-ink)]"}`}>{money(row.priceCents)}</td>
                       </tr>
                     );
                   })}
@@ -427,12 +439,13 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
             </div>
           )}
 
-          <div className="border-t border-[var(--co-line-soft)] px-5 py-3 text-xs text-[var(--co-muted)]">
-            Showing {filteredRows.length} of {rows.length} jobs in the planning window.
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--co-line-soft)] px-5 py-3 text-xs text-[var(--co-muted)]">
+            <span>Showing {totalRows ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, totalRows)} of {totalRows} jobs.</span>
+            <div className="flex items-center gap-2"><Link aria-disabled={page === 1} href={hrefWith(sp, { page: page > 1 ? String(page - 1) : "1" })} className={`co-button-secondary px-3 py-1.5 ${page === 1 ? 'pointer-events-none opacity-40' : ''}`}>Previous</Link><span className="font-medium text-[var(--co-ink)]">Page {page} of {totalPages}</span><Link aria-disabled={page >= totalPages} href={hrefWith(sp, { page: page < totalPages ? String(page + 1) : String(totalPages) })} className={`co-button-secondary px-3 py-1.5 ${page >= totalPages ? 'pointer-events-none opacity-40' : ''}`}>Next</Link></div>
           </div>
         </section>
 
-        <aside className="space-y-5">
+        <aside className="hidden space-y-5">
           <SideCard eyebrow="Job details" title={selectedJob ? `${selectedJob.customerFirstName} ${selectedJob.customerLastName}` : "Select a job"}>
             {selectedJob ? (
               <div className="space-y-4">

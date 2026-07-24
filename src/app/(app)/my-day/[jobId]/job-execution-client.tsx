@@ -37,7 +37,7 @@ type Job = {
 
 type TimeEntry = { clockIn: string; clockOut: string | null } | null;
 
-type Photo = { id: string; slot: "before" | "after" | "extra"; label: string; url: string };
+type Photo = { id: string; slot: "before" | "after" | "extra"; url: string | null; caption: string | null };
 
 export default function JobExecutionClient({
   job,
@@ -67,11 +67,11 @@ export default function JobExecutionClient({
   }, []);
 
   useEffect(() => {
-    return () => {
-      photos.forEach((photo) => URL.revokeObjectURL(photo.url));
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    fetch(`/api/jobs/${job.jobId}/photos`, { cache: "no-store" })
+      .then((response) => response.json())
+      .then((body) => setPhotos(body.photos ?? []))
+      .catch(() => setPhotos([]));
+  }, [job.jobId]);
 
   const started = Boolean(timeEntry);
   const elapsed = timeEntry ? formatElapsed(timeEntry.clockIn, timeEntry.clockOut ? new Date(timeEntry.clockOut).getTime() : now) : "00:00";
@@ -93,24 +93,19 @@ export default function JobExecutionClient({
     fileInputRef.current?.click();
   }
 
-  function handleFileChosen(event: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChosen(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
     const slot = pendingSlotRef.current;
-    const url = URL.createObjectURL(file);
-    setPhotos((current) => [
-      ...current,
-      { id: `${slot}-${Date.now()}`, slot, url, label: slot === "before" ? "Before" : slot === "after" ? "After" : "Additional" },
-    ]);
-  }
-
-  function removePhoto(id: string) {
-    setPhotos((current) => {
-      const target = current.find((photo) => photo.id === id);
-      if (target) URL.revokeObjectURL(target.url);
-      return current.filter((photo) => photo.id !== id);
-    });
+    setError(null);
+    const body = new FormData();
+    body.set("photo", file);
+    body.set("slot", slot);
+    const response = await fetch(`/api/jobs/${job.jobId}/photos`, { method: "POST", body });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) return setError(typeof result.error === "string" ? result.error : "Could not upload photo.");
+    setPhotos((current) => [result.photo, ...current]);
   }
 
   async function clockIn() {
@@ -272,15 +267,7 @@ export default function JobExecutionClient({
                       <div key={slot} className="flex flex-col gap-2">
                         {photo ? (
                           <div className="relative aspect-square overflow-hidden rounded-xl border border-[var(--co-line-soft)]">
-                            <img src={photo.url} alt={`${photo.label} photo`} className="h-full w-full object-cover" />
-                            <button
-                              type="button"
-                              onClick={() => removePhoto(photo.id)}
-                              aria-label="Remove photo"
-                              className="absolute top-2 right-2 rounded-full bg-[var(--co-danger)] p-1 text-white shadow-lg"
-                            >
-                              ✕
-                            </button>
+                            {photo.url ? <img src={photo.url} alt={`${slot} photo`} className="h-full w-full object-cover" /> : null}
                           </div>
                         ) : (
                           <button
@@ -299,15 +286,7 @@ export default function JobExecutionClient({
                   {extraPhotos.map((photo) => (
                     <div key={photo.id} className="flex flex-col gap-2">
                       <div className="relative aspect-square overflow-hidden rounded-xl border border-[var(--co-line-soft)]">
-                        <img src={photo.url} alt="Additional evidence" className="h-full w-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => removePhoto(photo.id)}
-                          aria-label="Remove photo"
-                          className="absolute top-2 right-2 rounded-full bg-[var(--co-danger)] p-1 text-white shadow-lg"
-                        >
-                          ✕
-                        </button>
+                        {photo.url ? <img src={photo.url} alt="Additional evidence" className="h-full w-full object-cover" /> : null}
                       </div>
                       <span className="text-center text-xs font-medium text-[var(--co-muted)]">Additional</span>
                     </div>
@@ -321,7 +300,7 @@ export default function JobExecutionClient({
                     <span className="px-4 text-center text-[10px] font-bold uppercase">Add more photos</span>
                   </button>
                 </div>
-                <p className="mt-3 text-xs text-[var(--co-faint)]">Photos stay on this device for now — cloud storage for job photos isn&apos;t wired up yet.</p>
+                <p className="mt-3 text-xs text-[var(--co-faint)]">Photos are securely saved to this job for office review.</p>
               </section>
             </>
           ) : (

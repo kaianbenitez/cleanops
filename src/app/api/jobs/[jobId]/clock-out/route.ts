@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { jobs, jobAssignments, timeEntries } from "@/db/schema";
+import { auditLog, jobs, jobAssignments, timeEntries } from "@/db/schema";
 import { and, eq, isNull, desc } from "drizzle-orm";
 import { syncToGhl } from "@/lib/ghl/sync";
 import { generatePayrollForPeriod } from "@/lib/payroll/calculate";
@@ -63,6 +63,7 @@ export async function POST(
     await tx.update(jobs).set(shouldComplete ? { status: "completed", completedAt: clockOut } : { status: "in_progress" }).where(eq(jobs.id, jobId));
     return shouldComplete;
   });
+  await db.insert(auditLog).values({ companyId: user.companyId, userId: user.id, action: completion ? "job.completed" : "job.clocked_out", entityType: "job", entityId: jobId, before: null, after: { clockOut: clockOut.toISOString(), minutesWorked } });
 
   // PLAN.md §6: "Job completed (first_clean)" -> tag first-clean-done.
   if (completion && job && job.status !== "completed" && job.type === "first_clean") {

@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import JobPhotos from "./job-photos";
 
 type Employee = { id: string; firstName: string; lastName: string };
 type Assignment = { id: string; userId: string; role: string };
-type ChecklistItem = { id: string; label: string; done: boolean };
 type JobDetail = {
   id: string;
   type: string;
@@ -61,15 +61,6 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled: "border-slate-200 bg-slate-50 text-slate-400",
   no_show: "border-rose-200 bg-rose-50 text-rose-700",
 };
-
-const CHECKLIST: ChecklistItem[] = [
-  { id: "arrival", label: "Arrival and access confirmed", done: false },
-  { id: "kitchen", label: "Kitchen and high-touch surfaces", done: false },
-  { id: "bathrooms", label: "Bathrooms completed", done: false },
-  { id: "floors", label: "Floors vacuumed and mopped", done: false },
-  { id: "trash", label: "Trash and supplies handled", done: false },
-  { id: "walkthrough", label: "Final walkthrough complete", done: false },
-];
 
 function readableError(body: { error?: unknown }) {
   if (!body.error) return "Something went wrong. Please try again.";
@@ -194,7 +185,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [auditLogs, setAuditLogs] = useState<TimeEntryAudit[]>([]);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
-  const [checklist, setChecklist] = useState<ChecklistItem[]>(CHECKLIST);
   const [timeEmployeeId, setTimeEmployeeId] = useState("");
   const [clockIn, setClockIn] = useState("");
   const [clockOut, setClockOut] = useState("");
@@ -576,24 +566,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
               <p className="mt-3 text-xs text-[var(--co-muted)]">Use this as the manual scheduling assistant until drag-and-drop scheduling is connected.</p>
             </Panel>
 
-            <Panel eyebrow="Close-out" title="Checklist" description="Use this as the internal completion guide.">
-              <div className="space-y-1">
-                {checklist.map((item) => (
-                  <label key={item.id} className="flex items-center gap-3 rounded-xl px-2 py-2 text-sm hover:bg-[var(--co-surface-muted)]">
-                    <input
-                      type="checkbox"
-                      checked={item.done}
-                      onChange={() => setChecklist((current) => current.map((entry) => (entry.id === item.id ? { ...entry, done: !entry.done } : entry)))}
-                      className="h-4 w-4 accent-[var(--co-evergreen)]"
-                    />
-                    <span className={item.done ? "text-[var(--co-muted)] line-through" : "text-[var(--co-ink)]"}>{item.label}</span>
-                  </label>
-                ))}
-              </div>
-            </Panel>
+            <JobPhotos jobId={job.id} />
           </div>
 
-          <Panel eyebrow="History" title="Change history" description="Job and time-entry edits are recorded here for review.">
+          <Panel eyebrow="Activity timeline" title="Job activity" description="Scheduling, crew, time, close-out, and photo activity recorded for this job.">
             <div className="grid gap-3">
               {auditLogs.slice(0, 8).map((log) => (
                 <div key={log.id} className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4 text-sm">

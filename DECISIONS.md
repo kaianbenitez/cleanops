@@ -616,3 +616,27 @@ out My Day as needing on-phone verification before any change there, and it was 
 reworked, so it wasn't touched blind. Deliberately skipped `calendar/shared.ts`,
 `month-board.tsx`, and `staff-board.tsx` entirely — Codex had uncommitted work in progress
 in those exact files at the time (an overflow-cap fix for `assignDayLanes()`).
+
+## 2026-07-24 — Reintroduce customers.isArchived/archivedAt/archivedReason (different feature this time)
+
+Deviates from §4 (schema), and deliberately reintroduces column names dropped earlier the
+same day (see the entry above). `archivedReason`/`archivedAt` were dropped as dead/write-only
+columns — 0 non-null rows, only ever set by a one-off import script, never read by any route
+or UI. This entry adds them back, plus a new `isArchived` boolean, for a genuinely different
+and this time actually-used feature: letting staff archive one-time customers who never
+converted to a recurring plan, so they drop out of the default `/customers` list without
+deleting their job/invoice history. Unlike the old columns, `isArchived` is read by the
+customers list (default-excludes archived rows, with a "Show archived" toggle), the customer
+profile page (archive/restore action), and a new bulk-archive view for customers matching an
+explicit "eligible" rule (served but never recurring, no upcoming job). Added a company-scoped
+index, `customers_archived_idx (company_id, is_archived)`, since the list page filters on this
+every request.
+
+Generated as `drizzle/0012_amusing_caretaker.sql` — **not yet applied** to the hosted DB,
+pending explicit approval per `AGENTS.md`'s migration-approval rule. Note: `drizzle-kit
+generate` also picked up Codex's in-progress `job_photos` table and `users.birthday`/
+`profile_photo_url` changes (already in `schema.ts` but never migrated — `profile_photo_url`
+in particular was already applied directly to the hosted DB without a tracked migration).
+Those statements were manually stripped from this migration file since they aren't part of
+this change and `profile_photo_url` already existing on the hosted DB would have made the raw
+generated file fail outright if run as-is.
