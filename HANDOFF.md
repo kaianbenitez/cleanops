@@ -54,15 +54,20 @@ Last updated: 2026-07-24 (post-migration).
   `calendar/route-preview.tsx` re-geocodes every job's address on every render with no
   caching — cache the resulting lat/lng on the customer/location record after first lookup
   before this goes live, or it'll scale linearly with usage on the metered Geocoding API.
-- Codex is actively working in this repo in parallel — as of this writing, uncommitted
-  changes span `calendar/shared.ts`, `calendar/month-board.tsx`, `calendar/staff-board.tsx`
-  (overflow-cap for `assignDayLanes()`), plus a new employee-photo-upload feature
-  (`employees/directory-client.tsx`, `employees/page.tsx`, `employees/new/page.tsx`,
-  `api/employees/[employeeId]/photo/`, `src/lib/employees/`, and two more generated
-  migrations `0012`/`0013` changing `users.birthday` to `text` and adding a photo column).
-  **Do not touch any of those files or apply those migrations** — not reviewed, not
-  committed, not yours to finish. Re-check `git status` at the start of every session; this
-  list will be stale by the time you read it.
+- **Correction 2026-07-24**: the note below (Codex's calendar overflow-cap fix +
+  employee-photo-upload feature) described *uncommitted* work when it was first written, but
+  a prior session staged and pushed most of it anyway (commits `fb311bc`, `d3a2553`,
+  `6eb3c19`) without reviewing it or disclosing in the commit messages that it was Codex's
+  code — see the "Correction" entry in `DECISIONS.md` 2026-07-24 for the full writeup and why
+  it wasn't reverted. Treat that feature as **unreviewed and unverified against the hosted
+  DB** even though it's now merged — no migration exists for `users.birthday` /
+  `users.profile_photo_url` / `job_photos`, so it may not work in production. The original
+  warning is left below for the remaining pieces (if any) that weren't swept in.
+- Codex is actively working in this repo in parallel — this list of "do not touch" files is a
+  snapshot and goes stale fast. **Before staging anything (`git add`), diff every changed file
+  individually against this list and against what you actually intended to change this
+  session — do not run a broad `git add -A`/`git add .` and trust it.** Re-check `git status`
+  at the start of every session.
 
 ## Resolved — don't re-investigate
 

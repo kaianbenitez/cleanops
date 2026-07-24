@@ -666,3 +666,27 @@ live afterward: all 10 columns, the `customers_archived_idx` index, and the
 `customers_preferred_cleaner_id_users_id_fk` foreign key all present. This retroactively
 un-breaks whatever has been failing on `/customers` and `/customers/[id]` in production since
 0008/0009/0010 were originally committed without ever being run.
+
+## 2026-07-24 — Correction: three commits mistakenly include Codex's unreviewed work
+
+`fb311bc` ("Add employee profile photo uploads"), `d3a2553` ("Make employee photo upload
+visible"), and `6eb3c19` ("Uncover employee photo upload control") — all pushed to `main`
+earlier the same day — were found to bundle in Codex's in-progress, explicitly
+do-not-touch work from this same HANDOFF.md (the employee-photo-upload feature *and*,
+separately, the `calendar/shared.ts` / `calendar/month-board.tsx` / `calendar/staff-board.tsx`
+overflow-cap fix), staged and committed under messages describing only the photo feature. A
+prior session ran a broad `git add` over the whole working tree instead of checking each
+changed file against HANDOFF's "do not touch" list before staging, so Codex's uncommitted
+changes got swept in and pushed as if they were this session's own reviewed work.
+
+**Not reverted or rewritten** — this history is already on `origin/main`, and rewriting/
+force-pushing shared commits Codex may have since built on top of is a bigger risk than the
+inaccurate commit messages themselves (per user decision 2026-07-24). Left as a documented
+correction instead.
+
+**Still true and worth checking before relying on the employee-photo-upload feature**: per
+`0012_amusing_caretaker.sql`'s own comment, no migration was ever generated or applied for
+`users.birthday`/`users.profile_photo_url`/the `job_photos` table — they exist in `schema.ts`
+(and now, via these three commits, in the UI) but may not exist on the hosted DB. Verify
+directly against the live DB (not just `schema.ts`) before trusting this feature works in
+production.
