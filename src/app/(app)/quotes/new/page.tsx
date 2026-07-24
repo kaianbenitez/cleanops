@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Search,
   MapPin,
@@ -103,10 +103,12 @@ function defaultValidUntil() {
 
 export default function NewQuotePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [locations, setLocations] = useState<ServiceLocation[]>([]);
   const [customerId, setCustomerId] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
   const [serviceLocationId, setServiceLocationId] = useState("");
   const [travelZoneId, setTravelZoneId] = useState("");
   const [dirtyCodeLevel, setDirtyCodeLevel] = useState<number | "">("");
@@ -129,18 +131,35 @@ export default function NewQuotePage() {
       fetch("/api/service-locations").then((response) => response.json()),
     ])
       .then(([customerBody, roomBody, locationBody]) => {
-        setCustomers(customerBody.customers ?? []);
+        const loadedCustomers = customerBody.customers ?? [];
+        setCustomers(loadedCustomers);
+        const requestedCustomerId = searchParams.get("customerId");
+        const requestedCustomer = loadedCustomers.find((customer: Customer) => customer.id === requestedCustomerId);
+        if (requestedCustomer) {
+          setCustomerId(requestedCustomer.id);
+          setCustomerSearch(`${requestedCustomer.firstName} ${requestedCustomer.lastName}`);
+        }
         setRoomTypes(roomBody.roomTypes ?? []);
         setLocations(locationBody.locations ?? []);
         if (locationBody.locations?.[0]) setServiceLocationId(locationBody.locations[0].id);
       })
       .catch(() => setError("Quote setup could not be loaded."));
-  }, []);
+  }, [searchParams]);
 
   const selectedLocation = useMemo(
     () => locations.find((location) => location.id === serviceLocationId) ?? null,
     [locations, serviceLocationId]
   );
+  const matchingCustomers = useMemo(() => {
+    const query = customerSearch.trim().toLowerCase();
+    if (!query) return [];
+    return customers.filter((customer) => `${customer.firstName} ${customer.lastName} ${customer.city ?? ""} ${customer.zip ?? ""}`.toLowerCase().includes(query)).slice(0, 8);
+  }, [customerSearch, customers]);
+
+  function selectCustomer(customer: Customer) {
+    setCustomerId(customer.id);
+    setCustomerSearch(`${customer.firstName} ${customer.lastName}`);
+  }
 
   const [autofilledFor, setAutofilledFor] = useState("");
 
@@ -302,19 +321,28 @@ export default function NewQuotePage() {
                   <Search className="h-3.5 w-3.5" aria-hidden />
                   Customer
                 </span>
-                <select
-                  className="co-input w-full"
-                  value={customerId}
-                  onChange={(event) => setCustomerId(event.target.value)}
-                >
-                  <option value="">Select a customer</option>
-                  {customers.map((customer) => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.firstName} {customer.lastName}
-                      {customer.city || customer.zip ? ` · ${[customer.city, customer.zip].filter(Boolean).join(" ")}` : ""}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <input
+                    className="co-input w-full"
+                    value={customerSearch}
+                    onChange={(event) => {
+                      setCustomerSearch(event.target.value);
+                      setCustomerId("");
+                    }}
+                    placeholder="Search name, city, or ZIP"
+                    aria-label="Search customers"
+                  />
+                  {matchingCustomers.length && (!selectedCustomer || customerSearch !== `${selectedCustomer.firstName} ${selectedCustomer.lastName}`) ? (
+                    <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-[var(--co-line)] bg-white p-1 shadow-lg">
+                      {matchingCustomers.map((customer) => (
+                        <button key={customer.id} type="button" onClick={() => selectCustomer(customer)} className="w-full rounded-lg px-3 py-2.5 text-left text-sm hover:bg-[var(--co-surface-muted)]">
+                          <span className="block font-semibold text-[var(--co-ink)]">{customer.firstName} {customer.lastName}</span>
+                          <span className="block text-xs text-[var(--co-muted)]">{[customer.city, customer.zip].filter(Boolean).join(" · ") || customer.status}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
               </label>
 
               <label className="block text-sm">

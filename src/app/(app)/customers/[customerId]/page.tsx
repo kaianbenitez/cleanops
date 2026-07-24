@@ -414,7 +414,8 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/jobs/new?customerId=${customer.id}`} className="co-button-primary">
+          {customer.status === "lead" ? <Link href={`/quotes/new?customerId=${customer.id}`} className="co-button-primary">+ Create quote</Link> : null}
+          <Link href={`/jobs/new?customerId=${customer.id}`} className={customer.status === "lead" ? "co-button-secondary" : "co-button-primary"}>
             <Plus className="h-4 w-4" /> New job
           </Link>
           {mode === "view" ? (
