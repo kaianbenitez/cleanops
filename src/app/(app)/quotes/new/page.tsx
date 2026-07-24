@@ -35,6 +35,7 @@ type Customer = {
   city?: string | null;
   zip?: string | null;
 };
+type CustomerAddress = { id: string; label: string; addressLine1: string; city?: string | null; state?: string | null; zip?: string | null; subdivision?: string | null };
 
 type RoomType = { id: string; name: string; sortOrder: number };
 type TravelZone = { id: string; name: string; feeCents: number };
@@ -94,6 +95,21 @@ function dollars(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+function normalizeAddressToken(value: string | null | undefined) {
+  return (value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function matchingPricingArea(address: CustomerAddress, locations: ServiceLocation[]) {
+  const tokens = new Set([address.city, address.zip, address.zip?.replace(/\D/g, "").slice(0, 5), address.subdivision].map(normalizeAddressToken).filter(Boolean));
+  for (const location of locations) {
+    const zone = location.travelZones.find((candidate) => candidate.name.split(/[,&/|;]+/g).flatMap((part) => part.split(/\s+-\s+/g)).map(normalizeAddressToken).some((token) => tokens.has(token)));
+    if (zone) return { serviceLocationId: location.id, travelZoneId: zone.id };
+  }
+  const city = normalizeAddressToken(address.city);
+  const namedLocation = locations.find((location) => city && normalizeAddressToken(location.name) === city);
+  return namedLocation ? { serviceLocationId: namedLocation.id, travelZoneId: "" } : null;
+}
+
 // Quotes are valid for 6 months by default — company policy.
 function defaultValidUntil() {
   const date = new Date();
@@ -109,6 +125,8 @@ export default function NewQuotePage() {
   const [locations, setLocations] = useState<ServiceLocation[]>([]);
   const [customerId, setCustomerId] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
+  const [customerAddresses, setCustomerAddresses] = useState<CustomerAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
   const [serviceLocationId, setServiceLocationId] = useState("");
   const [travelZoneId, setTravelZoneId] = useState("");
   const [dirtyCodeLevel, setDirtyCodeLevel] = useState<number | "">("");
@@ -159,6 +177,8 @@ export default function NewQuotePage() {
   function selectCustomer(customer: Customer) {
     setCustomerId(customer.id);
     setCustomerSearch(`${customer.firstName} ${customer.lastName}`);
+    setCustomerAddresses([]);
+    setSelectedAddressId("");
   }
 
   const [autofilledFor, setAutofilledFor] = useState("");
@@ -183,6 +203,9 @@ export default function NewQuotePage() {
     fetch(`/api/customers/${customerId}`)
       .then((response) => response.json())
       .then((body) => {
+        const addresses = (body.locations ?? []) as CustomerAddress[];
+        setCustomerAddresses(addresses);
+        setSelectedAddressId(addresses.length === 1 ? addresses[0].id : "");
         const home = (body.customer?.homeDetails ?? {}) as { roomCounts?: Record<string, number> };
         const storedRoomCounts = home.roomCounts ?? {};
         setCounts((current) => {
@@ -206,6 +229,16 @@ export default function NewQuotePage() {
       })
       .catch(() => {});
   }, [customerId, roomTypes, autofilledFor]);
+
+  useEffect(() => {
+    const address = customerAddresses.find((entry) => entry.id === selectedAddressId);
+    if (!address || locations.length === 0) return;
+    const match = matchingPricingArea(address, locations);
+    if (!match) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronize pricing inputs with the explicitly selected service address.
+    setServiceLocationId(match.serviceLocationId);
+    setTravelZoneId(match.travelZoneId);
+  }, [customerAddresses, locations, selectedAddressId]);
 
   const roomCounts = useMemo(
     () =>
@@ -275,6 +308,10 @@ export default function NewQuotePage() {
       setError("Customer, location, and at least one room are required.");
       return;
     }
+    if (customerAddresses.length > 1 && !selectedAddressId) {
+      setError("Choose the service address for this quote.");
+      return;
+    }
 
     setSubmitting(true);
     const response = await fetch("/api/quotes", {
@@ -282,6 +319,7 @@ export default function NewQuotePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         customerId,
+        serviceAddressLocationId: selectedAddressId || undefined,
         serviceLocationId,
         roomCounts,
         travelZoneId: travelZoneId || null,
@@ -344,6 +382,19 @@ export default function NewQuotePage() {
                   ) : null}
                 </div>
               </label>
+
+              {customerAddresses.length > 1 ? (
+                <label className="block text-sm">
+                  <span className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-[var(--co-muted)]"><MapPin className="h-3.5 w-3.5" aria-hidden />Service address</span>
+                  <select className="co-input w-full" value={selectedAddressId} onChange={(event) => setSelectedAddressId(event.target.value)}>
+                    <option value="">Choose which address to quote</option>
+                    {customerAddresses.map((address) => <option key={address.id} value={address.id}>{address.label} · {[address.addressLine1, address.city, address.zip].filter(Boolean).join(", ")}</option>)}
+                  </select>
+                  <p className="mt-1 text-xs text-[var(--co-muted)]">Pricing area and travel fee update from the selected address.</p>
+                </label>
+              ) : customerAddresses.length === 1 ? (
+                <p className="rounded-xl bg-[var(--co-surface-muted)]/45 px-3 py-2 text-xs text-[var(--co-muted)]">Service address: <span className="font-semibold text-[var(--co-ink)]">{customerAddresses[0].label} · {[customerAddresses[0].addressLine1, customerAddresses[0].city, customerAddresses[0].zip].filter(Boolean).join(", ")}</span></p>
+              ) : null}
 
               <label className="block text-sm">
                 <span className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-[var(--co-muted)]">

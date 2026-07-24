@@ -101,83 +101,39 @@ async function loadPrimaryAddress(companyId: string, customerId: string): Promis
   };
 }
 
+export async function resolveAddressServiceArea(params: {
+  companyId: string;
+  address: AddressLike & { addressLabel?: string | null };
+  serviceLocationId?: string | null;
+}): Promise<ServiceAreaSummary> {
+  const { address } = params;
+  const addressLabel = address.addressLabel ?? ([address.addressLine1, address.city, address.state, address.zip].filter(Boolean).join(", ") || "Address not recorded");
+  const hasAddress = Boolean(address.city || address.zip || address.addressLine1 || address.subdivision);
+  if (!hasAddress) {
+    return { status: "missing_address", label: "Address needed", detail: "Add city or ZIP to check whether this customer is inside your service area.", addressLabel };
+  }
+
+  const locationRows = params.serviceLocationId
+    ? await db.select({ id: serviceLocations.id, name: serviceLocations.name }).from(serviceLocations).where(and(eq(serviceLocations.id, params.serviceLocationId), eq(serviceLocations.companyId, params.companyId), eq(serviceLocations.isActive, true))).limit(1)
+    : await db.select({ id: serviceLocations.id, name: serviceLocations.name }).from(serviceLocations).where(and(eq(serviceLocations.companyId, params.companyId), eq(serviceLocations.isActive, true))).orderBy(asc(serviceLocations.name));
+  if (locationRows.length === 0) return { status: "no_service_zones", label: "No service zones", detail: "Create service area zones before blocking out-of-area quotes.", addressLabel };
+
+  const zoneRows = await db.select({ id: travelZones.id, serviceLocationId: travelZones.serviceLocationId, name: travelZones.name }).from(travelZones).where(inArray(travelZones.serviceLocationId, locationRows.map((row) => row.id))).orderBy(asc(travelZones.sortOrder), asc(travelZones.name));
+  if (zoneRows.length === 0) return { status: "no_service_zones", label: "No service zones", detail: "Add towns or ZIP codes under Pricing before blocking out-of-area quotes.", addressLabel };
+
+  for (const location of locationRows) {
+    for (const zone of zoneRows.filter((entry) => entry.serviceLocationId === location.id)) {
+      if (matchesZone(zone.name, address)) return { status: "in_area", label: "In service area", detail: `${location.name} · ${zone.name}`, matchedServiceLocationName: location.name, matchedZoneName: zone.name, addressLabel };
+    }
+  }
+  return { status: "outside_area", label: "Outside service area", detail: "This address does not match any configured service area zone.", addressLabel };
+}
+
 export async function resolveCustomerServiceArea(params: {
   companyId: string;
   customerId: string;
   serviceLocationId?: string | null;
 }): Promise<ServiceAreaSummary> {
   const address = await loadPrimaryAddress(params.companyId, params.customerId);
-  const hasAddress = Boolean(address.city || address.zip || address.addressLine1 || address.subdivision);
-  if (!hasAddress) {
-    return {
-      status: "missing_address",
-      label: "Address needed",
-      detail: "Add city or ZIP to check whether this customer is inside your service area.",
-      addressLabel: address.addressLabel,
-    };
-  }
-
-  const locationRows = params.serviceLocationId
-    ? await db
-        .select({ id: serviceLocations.id, name: serviceLocations.name })
-        .from(serviceLocations)
-        .where(and(eq(serviceLocations.id, params.serviceLocationId), eq(serviceLocations.companyId, params.companyId), eq(serviceLocations.isActive, true)))
-        .limit(1)
-    : await db
-        .select({ id: serviceLocations.id, name: serviceLocations.name })
-        .from(serviceLocations)
-        .where(and(eq(serviceLocations.companyId, params.companyId), eq(serviceLocations.isActive, true)))
-        .orderBy(asc(serviceLocations.name));
-
-  if (locationRows.length === 0) {
-    return {
-      status: "no_service_zones",
-      label: "No service zones",
-      detail: "Create service area zones before blocking out-of-area quotes.",
-      addressLabel: address.addressLabel,
-    };
-  }
-
-  const locationIds = locationRows.map((row) => row.id);
-  const zoneRows = await db
-    .select({
-      id: travelZones.id,
-      serviceLocationId: travelZones.serviceLocationId,
-      name: travelZones.name,
-    })
-    .from(travelZones)
-    .where(inArray(travelZones.serviceLocationId, locationIds))
-    .orderBy(asc(travelZones.sortOrder), asc(travelZones.name));
-
-  if (zoneRows.length === 0) {
-    return {
-      status: "no_service_zones",
-      label: "No service zones",
-      detail: "Add towns or ZIP codes under Pricing before blocking out-of-area quotes.",
-      addressLabel: address.addressLabel,
-    };
-  }
-
-  for (const location of locationRows) {
-    const zones = zoneRows.filter((zone) => zone.serviceLocationId === location.id);
-    for (const zone of zones) {
-      if (matchesZone(zone.name, address)) {
-        return {
-          status: "in_area",
-          label: "In service area",
-          detail: `${location.name} · ${zone.name}`,
-          matchedServiceLocationName: location.name,
-          matchedZoneName: zone.name,
-          addressLabel: address.addressLabel,
-        };
-      }
-    }
-  }
-
-  return {
-    status: "outside_area",
-    label: "Outside service area",
-    detail: "This address does not match any configured service area zone.",
-    addressLabel: address.addressLabel,
-  };
+  return resolveAddressServiceArea({ companyId: params.companyId, address, serviceLocationId: params.serviceLocationId });
 }
