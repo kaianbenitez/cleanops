@@ -552,9 +552,9 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between gap-3 border-t border-[var(--co-line-soft)] pt-3">
+                      <div className="flex flex-col items-start gap-2 border-t border-[var(--co-line-soft)] pt-3">
                         <span className="eyebrow">{item.priceCents != null ? "Add-on price" : "Estimated range"}</span>
-                        <span className="co-badge-success shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-sm font-semibold">{addOnPriceLabel(item)}</span>
+                        <span className="co-badge-success max-w-full rounded-full px-3 py-1 text-sm font-semibold">{addOnPriceLabel(item)}</span>
                       </div>
                     </button>
                   );
