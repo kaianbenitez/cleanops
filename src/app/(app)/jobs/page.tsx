@@ -94,10 +94,9 @@ function MetricCard({
   tone?: "warning" | "neutral" | "good";
 }) {
   return (
-    <div className={`rounded-[24px] border p-5 shadow-[0_8px_24px_rgba(27,41,37,0.03)] ${metricTone(tone)}`}>
+    <div className={`min-w-[230px] rounded-2xl border bg-white p-5 shadow-[0_8px_24px_rgba(27,41,37,0.03)] ${metricTone(tone)}`}>
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] opacity-75">{label}</p>
-      <p className="mt-2 text-3xl font-semibold tracking-[-0.05em]">{value}</p>
-      <p className="mt-1 text-xs opacity-80">{hint}</p>
+      <div className="mt-2 flex items-end justify-between gap-4"><p className="text-4xl font-semibold tracking-[-0.06em]">{value}</p><p className="max-w-24 text-right text-xs leading-4 opacity-80">{hint}</p></div>
     </div>
   );
 }
@@ -261,42 +260,35 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
+      <header className="grid items-center gap-6 xl:grid-cols-[minmax(0,1fr)_auto]">
         <div className="min-w-0">
-          <p className="eyebrow">Admin &nbsp;›&nbsp; Jobs management</p>
-          <h1 className="page-title">Operations Hub</h1>
-          <p className="page-subtitle">Real-time management of residential cleaning services across all zones.</p>
+          <p className="eyebrow text-[var(--co-evergreen)]">Admin &nbsp;›&nbsp; Jobs management</p>
+          <h1 className="page-title mt-2">Operations Hub</h1>
+          <p className="page-subtitle max-w-[34rem]">Real-time management of residential cleaning services across all zones.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <RecalculateEstimatesButton />
-          <Link href="/calendar" className="co-button-secondary">
-            Open calendar
-          </Link>
-          <Link href="/recurring/new" className="co-button-secondary">
-            + Recurring
-          </Link>
-          <Link href="/jobs/new" className="co-button-primary">
-            + New job
-          </Link>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <MetricCard label="Completed today" value={String(allJobs.filter((job) => job.status === "completed" && job.scheduledDate === todayText).length)} hint="services closed today" tone="good" />
+          <MetricCard label="Pending review" value={String(metrics.awaiting)} hint="completed, awaiting invoice" tone={metrics.awaiting ? "warning" : "good"} />
         </div>
       </header>
 
-      <section className="ml-auto grid max-w-[500px] gap-3 sm:grid-cols-2">
-        <MetricCard label="Completed today" value={String(allJobs.filter((job) => job.status === "completed" && job.scheduledDate === todayText).length)} hint="services closed today" tone="good" />
-        <MetricCard label="Pending review" value={String(metrics.awaiting)} hint="completed, awaiting invoice" tone={metrics.awaiting ? "warning" : "good"} />
-      </section>
-
-      <nav className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/55 p-3" aria-label="Job views">
-        <div className="flex rounded-2xl bg-white p-1 shadow-sm">
-          {[['active','Active'],['pending','Pending review'],['history','History']].map(([tab, label]) => <Link key={tab} href={hrefWith(sp, { tab, status: "", page: "", jobId: "" })} className={`rounded-xl px-4 py-2 text-sm font-semibold ${activeTab === tab ? 'bg-[var(--co-evergreen)] text-white' : 'text-[var(--co-muted)] hover:text-[var(--co-ink)]'}`}>{label}</Link>)}
+      <nav className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] bg-[var(--co-surface-muted)]/80 p-4 sm:p-5" aria-label="Job views">
+        <div className="flex rounded-2xl bg-[var(--co-surface-muted-strong)] p-1.5">
+          {[['active','Active'],['pending','Pending'],['history','History']].map(([tab, label]) => <Link key={tab} href={hrefWith(sp, { tab, status: "", page: "", jobId: "" })} className={`rounded-xl px-5 py-3 text-sm font-semibold ${activeTab === tab ? 'bg-white text-[var(--co-evergreen)] shadow-sm' : 'text-[var(--co-muted)] hover:text-[var(--co-ink)]'}`}>{label}</Link>)}
         </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
         <form className="flex flex-wrap items-center gap-2">
-          <input name="start" type="date" defaultValue={rangeStart} className="co-input text-sm" />
+          <input name="start" type="date" defaultValue={rangeStart} className="co-input w-[154px] bg-white text-sm" />
           <span className="text-xs text-[var(--co-muted)]">to</span>
-          <input name="end" type="date" defaultValue={rangeEnd} className="co-input text-sm" />
+          <input name="end" type="date" defaultValue={rangeEnd} className="co-input w-[154px] bg-white text-sm" />
           {sp.tab ? <input type="hidden" name="tab" value={sp.tab} /> : null}
-          <button className="co-button-secondary text-sm" type="submit">Apply dates</button>
+          <button className="co-button-secondary text-sm" type="submit">Apply</button>
         </form>
+          <Link href="/calendar" className="co-button-secondary">Calendar</Link>
+          <Link href="/recurring/new" className="co-button-secondary">+ Recurring</Link>
+          <RecalculateEstimatesButton />
+          <Link href="/jobs/new" className="co-button-primary">+ New job</Link>
+        </div>
       </nav>
 
       <section className="block">
