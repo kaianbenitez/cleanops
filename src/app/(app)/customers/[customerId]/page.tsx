@@ -384,11 +384,11 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
           </Link>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <p className="eyebrow">Customer profile</p>
-            <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[customer.status] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>
+            <span className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[customer.status] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>
               {STATUS_OPTIONS.find((option) => option.value === customer.status)?.label ?? customer.status}
             </span>
             {customer.isArchived ? (
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-500">
+              <span className="whitespace-nowrap rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-500">
                 Archived{customer.archivedAt ? ` ${new Date(customer.archivedAt).toLocaleDateString()}` : ""}
               </span>
             ) : null}

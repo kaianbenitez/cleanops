@@ -462,7 +462,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[row.status] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>
+                        <span className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[row.status] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>
                           {STATUS_LABELS[row.status] ?? row.status}
                         </span>
                       </td>
