@@ -10,7 +10,7 @@ import {
   companies,
 } from "@/db/schema";
 import { and, eq, gte, lte, isNotNull, or, sql } from "drizzle-orm";
-import { refreshCompletedJobTicketHours } from "./job-ticket-hours";
+import { refreshJobTicketHours } from "./job-ticket-hours";
 
 type CalculationLine = {
   jobId: string;
@@ -121,10 +121,12 @@ export async function generatePayrollForPeriod(periodId: string): Promise<{
   // Commission employees are paid Job Ticket Hours, not clocked time. Refresh
   // the completed jobs first so payroll and the jobs screen share the same
   // amount-due-based estimate. Cancelled/no-show work is excluded at source.
-  await refreshCompletedJobTicketHours({
+  await refreshJobTicketHours({
     companyId: period.companyId,
     startDate: period.startDate,
     endDate: period.endDate,
+    completedOnly: true,
+    failOnUnresolved: true,
   });
 
   const [company] = await db

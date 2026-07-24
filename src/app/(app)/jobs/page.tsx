@@ -5,6 +5,7 @@ import { and, count, desc, eq, gte, ilike, inArray, lte, or, sql } from "drizzle
 import { db } from "@/db";
 import { customers, invoices, jobAssignments, jobs, timeEntries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { RecalculateEstimatesButton } from "./recalculate-estimates-button";
 
 const TYPE_LABELS: Record<string, string> = {
   first_clean: "First clean",
@@ -68,6 +69,11 @@ function hrefWith(params: SearchParams, changes: Partial<Record<keyof SearchPara
 
 function money(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
+}
+
+function formatEstimatedTime(minutes: number | null) {
+  if (!minutes) return "—";
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 }
 
 function metricTone(status: "warning" | "neutral" | "good") {
@@ -262,6 +268,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
           <p className="page-subtitle">Real-time management of residential cleaning services across all zones.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <RecalculateEstimatesButton />
           <Link href="/calendar" className="co-button-secondary">
             Open calendar
           </Link>
@@ -412,7 +419,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                         </td>
                         <td className="px-5 py-4 text-[var(--co-muted)]">
                           {TYPE_LABELS[row.type] ?? row.type}
-                          {row.estimatedDurationMinutes ? <span className="block text-xs">Est. {(row.estimatedDurationMinutes / 60).toFixed(1)} hrs</span> : null}
+                          {row.estimatedDurationMinutes ? <span className="block text-xs">Est. {formatEstimatedTime(row.estimatedDurationMinutes)}</span> : null}
                         </td>
                         <td className="px-5 py-4">
                           {assigned.length ? (
@@ -427,7 +434,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                             <span className="font-medium text-amber-700">Unassigned</span>
                           )}
                         </td>
-                        <td className="px-5 py-4"><span className="block font-semibold text-[var(--co-ink)]">{row.scheduledDate === todayText ? "Today" : formatDisplayDate(row.scheduledDate)}</span><span className="block text-xs text-[var(--co-muted)]">{row.scheduledStartTime?.slice(0, 5) ?? "No time"}{row.estimatedDurationMinutes ? ` · Est. ${(row.estimatedDurationMinutes / 60).toFixed(1)} hrs` : ""}</span></td>
+                        <td className="px-5 py-4"><span className="block font-semibold text-[var(--co-ink)]">{row.scheduledDate === todayText ? "Today" : formatDisplayDate(row.scheduledDate)}</span><span className="block text-xs text-[var(--co-muted)]">{row.scheduledStartTime?.slice(0, 5) ?? "No time"}{row.estimatedDurationMinutes ? ` · Est. ${formatEstimatedTime(row.estimatedDurationMinutes)}` : ""}</span></td>
                         <td className="px-5 py-4">
                           <Pill status={row.status} />
                         </td>

@@ -77,6 +77,11 @@ function money(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+function formatEstimatedTime(minutes: number | null) {
+  if (!minutes) return "duration pending";
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
 function formatTime(value: string | null) {
   if (!value) return "—";
   return new Date(value).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -391,7 +396,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
     );
   }
 
-  const budgetHours = (job.estimatedDurationMinutes ?? 0) / 60;
   const serviceProgress = job.status === "completed" ? 100 : job.status === "in_progress" ? 62 : timeEntries.length > 0 ? 35 : 0;
   const serviceSteps = [
     { label: "Arrival & access", detail: "Confirm arrival, access, and home notes.", done: job.status !== "scheduled" },
@@ -432,7 +436,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
 
             <section className="rounded-2xl border border-[#cad6ca] bg-white p-5 shadow-[0_2px_6px_rgba(18,33,27,0.04)]">
               <h2 className="font-semibold">Service package</h2>
-              <div className="mt-5 rounded-xl border border-[#d3e0d2] bg-[#f1f7ef] p-4"><div className="flex items-start justify-between gap-2"><p className="font-bold text-[var(--co-evergreen)]">{TYPE_LABELS[job.type] ?? job.type}</p><span className="text-sm font-bold text-[var(--co-evergreen)]">{money(job.priceCents)}</span></div><p className="mt-1 text-xs text-[var(--co-muted)]">One-time appointment · Est. {budgetHours ? `${budgetHours.toFixed(1)} hours` : "duration pending"}</p></div>
+              <div className="mt-5 rounded-xl border border-[#d3e0d2] bg-[#f1f7ef] p-4"><div className="flex items-start justify-between gap-2"><p className="font-bold text-[var(--co-evergreen)]">{TYPE_LABELS[job.type] ?? job.type}</p><span className="text-sm font-bold text-[var(--co-evergreen)]">{money(job.priceCents)}</span></div><p className="mt-1 text-xs text-[var(--co-muted)]">One-time appointment · Est. {formatEstimatedTime(job.estimatedDurationMinutes)}</p></div>
               <div className="mt-4 grid grid-cols-2 gap-3"><div className="rounded-xl border border-[#d3e0d2] bg-[#f7fbf5] p-3"><p className="text-xs text-[var(--co-muted)]">Scheduled</p><p className="mt-1 font-semibold">{formatDisplayDate(job.scheduledDate)}</p></div><div className="rounded-xl border border-[#d3e0d2] bg-[#f7fbf5] p-3"><p className="text-xs text-[var(--co-muted)]">Start time</p><p className="mt-1 font-semibold">{job.scheduledStartTime?.slice(0, 5) ?? "Unscheduled"}</p></div></div>
               {job.customerNotes ? <div className="mt-4 rounded-xl border border-[#d3e0d2] bg-[#f7fbf5] p-3"><p className="text-xs font-semibold text-[var(--co-muted)]">Special instructions</p><p className="mt-2 whitespace-pre-line text-sm italic leading-5">{job.customerNotes}</p></div> : null}
             </section>
