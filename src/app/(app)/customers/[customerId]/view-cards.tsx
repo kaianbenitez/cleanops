@@ -132,6 +132,13 @@ export function CustomerViewCards({
       <div className="space-y-5">
         <Card eyebrow="House notes" title="House Notes & Access">
           <div className="space-y-4 text-sm">
+            <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-accent-tint)]/35 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">General notes</p>
+                <button type="button" onClick={onEditFocus} className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">Edit</button>
+              </div>
+              <p className="mt-2 whitespace-pre-line leading-6">{customer.generalNotes || "No general notes recorded."}</p>
+            </div>
             <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Access protocol</p>
               {hasStructuredAccess ? (

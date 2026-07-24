@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatDisplayDate } from "@/lib/scheduling/dates";
 import { redirect } from "next/navigation";
 import { and, count, desc, eq, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -426,7 +427,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                             <span className="font-medium text-amber-700">Unassigned</span>
                           )}
                         </td>
-                        <td className="px-5 py-4"><span className="block font-semibold text-[var(--co-ink)]">{row.scheduledDate === todayText ? "Today" : row.scheduledDate}</span><span className="block text-xs text-[var(--co-muted)]">{row.scheduledStartTime?.slice(0, 5) ?? "No time"}{row.estimatedDurationMinutes ? ` · Est. ${(row.estimatedDurationMinutes / 60).toFixed(1)} hrs` : ""}</span></td>
+                        <td className="px-5 py-4"><span className="block font-semibold text-[var(--co-ink)]">{row.scheduledDate === todayText ? "Today" : formatDisplayDate(row.scheduledDate)}</span><span className="block text-xs text-[var(--co-muted)]">{row.scheduledStartTime?.slice(0, 5) ?? "No time"}{row.estimatedDurationMinutes ? ` · Est. ${(row.estimatedDurationMinutes / 60).toFixed(1)} hrs` : ""}</span></td>
                         <td className="px-5 py-4">
                           <Pill status={row.status} />
                         </td>

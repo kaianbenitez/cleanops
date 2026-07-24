@@ -9,6 +9,21 @@ Last updated: 2026-07-24 (post-migration).
 
 ## Done
 
+- User-facing date convention is now **MM/DD/YY**. Use
+  `formatDisplayDate` from `src/lib/scheduling/dates.ts` for date-only text;
+  database/API values and native `<input type="date">` controls deliberately
+  remain ISO `YYYY-MM-DD` for unambiguous storage and scheduling. The shared
+  `LocalDateTime` default now uses numeric U.S. dates. Jobs and customer
+  surfaces have been converted; replace legacy direct date rendering as those
+  screens are next touched.
+- Job Detail was rebuilt around the approved dispatch mockup (customer and
+  service context, team, progress, activity, and photos). Its current
+  checklist is a non-persistent progress display derived from status/time;
+  it is **not** yet a task checklist synchronized to My Day. Job Detail also
+  does not yet link to My Day; My Day is the assigned technician's workflow.
+- Customer-profile layout repair: the summary cards now remain a readable two-column grid
+  in the narrow profile column, and General Notes are visible in the normal House Notes card.
+
 - Sentry DSN configured in Vercel (`SENTRY_DSN`, Preview + Production); wired in
   `src/instrumentation.ts`.
 - 209 recurring series and 692 jobs backfilled from the TheCustomerFactor CSV export.
@@ -133,3 +148,11 @@ Codex works on this same repo in parallel and can commit/push directly mid-sessi
 `git status` shows an unexpected mid-merge state or files modified that you didn't touch, do
 not touch them destructively — `git fetch` and check `origin/main` and the latest Vercel
 deployment first.
+
+### Commit / push workflow (user decision, 2026-07-25)
+
+- Commit and push each completed, verified feature by default.
+- Before staging, inspect `git status` plus every intended file's diff. Stage exact paths
+  only; never use `git add -A` or `git add .` in this shared worktree.
+- Stop and ask instead of pushing if the scan finds unrelated/shared changes, a merge state,
+  or an unapproved production migration. Report the commit SHA and files after a successful push.

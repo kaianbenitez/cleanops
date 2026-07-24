@@ -493,7 +493,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <p className="mt-1 text-xs text-[var(--co-muted)]">Plan: {customer.recurrence && customer.recurrence !== "none" ? customer.recurrence : "One-time"}</p>
             </div>
           </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <InfoCard label="Visits" value={`${upcomingJobs.length}`} sub="Upcoming jobs" />
             <InfoCard label="Invoices" value={`${invoices.length}`} sub="Recorded invoices" />
             <InfoCard label="Open balance" value={money(openBalance)} sub={openBalance ? "Needs collection" : "Paid through"} />

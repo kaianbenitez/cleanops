@@ -7,7 +7,7 @@
  * server's render pass and the browser's real timezone/locale. */
 export function LocalDateTime({
   value,
-  options = { dateStyle: "medium", timeStyle: "short" },
+  options = { month: "2-digit", day: "2-digit", year: "2-digit", hour: "numeric", minute: "2-digit" },
   fallback = "—",
 }: {
   value: string | Date | null | undefined;
