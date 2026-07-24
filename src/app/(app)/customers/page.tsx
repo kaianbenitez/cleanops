@@ -96,6 +96,14 @@ function money(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+function paymentStatus(invoices: InvoiceRow[]) {
+  const billable = invoices.filter((invoice) => invoice.status !== "void");
+  if (!billable.length) return { label: "No invoices", className: "text-[var(--co-muted)]" };
+  const outstandingCents = billable.reduce((total, invoice) => total + Math.max(invoice.totalCents - invoice.amountPaidCents, 0), 0);
+  if (outstandingCents > 0) return { label: `${money(outstandingCents)} due`, className: "text-amber-700" };
+  return { label: "Paid", className: "text-emerald-700" };
+}
+
 function formatDate(date: string) {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
 }
@@ -269,10 +277,11 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
       if (!lastJobByCustomer.has(job.customerId)) lastJobByCustomer.set(job.customerId, job);
     });
 
-  const ltvByCustomer = new Map<string, number>();
+  const invoicesByCustomer = new Map<string, InvoiceRow[]>();
   customerInvoices.forEach((invoice) => {
-    if (invoice.status === "void") return;
-    ltvByCustomer.set(invoice.customerId, (ltvByCustomer.get(invoice.customerId) ?? 0) + invoice.amountPaidCents);
+    const entries = invoicesByCustomer.get(invoice.customerId) ?? [];
+    entries.push(invoice);
+    invoicesByCustomer.set(invoice.customerId, entries);
   });
 
   const recurringCount = Number(stats.recurring);
@@ -417,14 +426,14 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                   <th className="px-5 py-3">Primary address</th>
                   <th className="px-5 py-3">Last service</th>
                   <th className="px-5 py-3">Next service</th>
-                  <th className="px-5 py-3">LTV</th>
+                  <th className="px-5 py-3">Payment</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--co-line-soft)]">
                 {rows.map((row) => {
                   const nextJob = nextJobByCustomer.get(row.id);
                   const lastJob = lastJobByCustomer.get(row.id);
-                  const ltv = ltvByCustomer.get(row.id) ?? 0;
+                  const payment = paymentStatus(invoicesByCustomer.get(row.id) ?? []);
                   const planLabel = row.recurrence && row.recurrence !== "none" ? RECURRENCE_LABELS[row.recurrence] ?? row.recurrence : "One-time";
                   const clientTypeLabel = row.clientType === "commercial" ? "Commercial" : "Residential";
 
@@ -482,7 +491,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                         </Link>
                       </td>
                       <td className="p-0 font-semibold">
-                        <Link href={`/customers/${row.id}`} className="block px-5 py-4">{money(ltv)}</Link>
+                        <Link href={`/customers/${row.id}`} className={`block px-5 py-4 ${payment.className}`}>{payment.label}</Link>
                       </td>
                     </tr>
                   );
