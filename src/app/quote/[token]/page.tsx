@@ -131,8 +131,23 @@ function formatValidUntil(value: string | null) {
   return parsed.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
+function expectedCrewSize(laborHours: number) {
+  // Plan around a roughly six-hour in-home visit, then add team members for
+  // larger homes so the proposal describes the customer's experience instead
+  // of exposing internal job-ticket hours.
+  return Math.max(1, Math.ceil(laborHours / 6));
+}
+
+function formatVisitDuration(laborHours: number, crewSize: number) {
+  const totalMinutes = Math.max(60, Math.round((laborHours / crewSize) * 2) * 30);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const hourLabel = `${hours} hr${hours === 1 ? "" : "s"}`;
+  return minutes ? `${hourLabel} ${minutes} min` : hourLabel;
+}
+
 const ESTIMATE_DISCLAIMER =
-  "Please note that the provided estimate is an approximation of the time in labor hours required to clean your property, based on the condition discussed during the estimation process. We strive to offer accurate estimates; however, if upon arrival, the actual condition of the home varies from the initial description, or if additional cleaning time is required, we will seek your approval to extend the time needed to ensure a thorough clean. Alternatively, you may choose to stay within the original estimated time, with the understanding that some cleaning tasks may be left incomplete. We recognize that the expectations and definitions of 'clean' can vary among individuals. Should we arrive and find that the home is not in a condition ready for cleaning, we reserve the right to refuse service. Thank you for your understanding and cooperation.";
+  "The visit time shown is an estimate based on the condition discussed during the proposal process. We will confirm your final cleaning team before booking. If we arrive and the home's condition differs from the original description or more time is needed, we will ask for your approval before extending the visit. You may also keep the original visit time, with the understanding that some tasks may remain incomplete. Should the home not be ready for cleaning, we reserve the right to refuse service. Thank you for your understanding and cooperation.";
 
 function Section({
   eyebrow,
@@ -400,7 +415,8 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                 {mainTiers.map(([type, tier], index) => {
                   const selected = selectedType === type;
                   const Icon = SERVICE_ICONS[type];
-                  const estimatedHours = data.hourlyRateCents ? tier.finalCents / data.hourlyRateCents : null;
+                  const laborHours = data.hourlyRateCents ? tier.finalCents / data.hourlyRateCents : null;
+                  const crewSize = laborHours !== null ? expectedCrewSize(laborHours) : null;
                   return (
                     <button
                       key={type}
@@ -443,7 +459,10 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
 
                       <p className="mt-5 text-2xl font-semibold text-[var(--co-ink)]">{dollars(tier.finalCents)}</p>
                       <p className="mt-1 text-xs text-[var(--co-muted)]">
-                        Per scheduled visit{estimatedHours !== null ? ` · ${estimatedHours.toFixed(1)} est. hrs` : ""}
+                        Per scheduled visit
+                        {laborHours !== null && crewSize !== null
+                          ? ` · Expected: ${crewSize} cleaning pro${crewSize === 1 ? "" : "s"} for about ${formatVisitDuration(laborHours, crewSize)} in your home`
+                          : " · Your team and visit time will be confirmed before booking"}
                       </p>
                     </button>
                   );
