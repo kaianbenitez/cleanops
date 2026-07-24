@@ -96,6 +96,10 @@ function money(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+function formatDate(date: string) {
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
+}
+
 function hrefWith(params: SearchParams, key: keyof SearchParams, value: string) {
   const next = new URLSearchParams();
   Object.entries(params).forEach(([name, current]) => {
@@ -447,52 +451,62 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
 
                   return (
                     <tr key={row.id} className="transition-colors hover:bg-[var(--co-surface-muted)]/50">
-                      <td className="px-5 py-4">
+                      <td className="p-0">
+                        <Link href={`/customers/${row.id}`} className="group block px-5 py-4">
                         <div className="flex items-center gap-3">
                           <InitialsAvatar firstName={row.firstName} lastName={row.lastName} companyName={row.companyName} className="h-10 w-10 rounded-full text-sm" />
                           <div className="min-w-0">
-                            <Link href={`/customers/${row.id}`} className="font-semibold text-[var(--co-ink)] hover:text-[var(--co-evergreen)]">
+                            <span className="font-semibold text-[var(--co-ink)] group-hover:text-[var(--co-evergreen)]">
                               {row.companyName ? row.companyName : `${row.firstName} ${row.lastName}`}
-                            </Link>
+                            </span>
                             {row.isArchived ? <span className="ml-2 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-500">Archived</span> : null}
                             <p className="text-xs text-[var(--co-muted)]">
                               {clientTypeLabel} · {planLabel}
                             </p>
                           </div>
                         </div>
+                        </Link>
                       </td>
-                      <td className="px-5 py-4">
+                      <td className="p-0">
+                        <Link href={`/customers/${row.id}`} className="block px-5 py-4">
                         <span className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[row.status] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>
                           {STATUS_LABELS[row.status] ?? row.status}
                         </span>
+                        </Link>
                       </td>
-                      <td className="px-5 py-4 text-[var(--co-muted)]">
+                      <td className="p-0 text-[var(--co-muted)]">
+                        <Link href={`/customers/${row.id}`} className="block px-5 py-4">
                         {row.addressLine1 ?? "Address missing"}
                         {row.city ? ` · ${row.city}` : ""}
                         {row.zip ? <span className="block text-xs">Area: {row.zip}</span> : null}
+                        </Link>
                       </td>
-                      <td className="px-5 py-4">
+                      <td className="p-0">
+                        <Link href={`/customers/${row.id}`} className="block px-5 py-4">
                         {lastJob ? (
                           <>
-                            <p className="font-medium">{lastJob.scheduledDate}</p>
+                            <p className="font-medium">{formatDate(lastJob.scheduledDate)}</p>
                             <p className="text-xs text-[var(--co-muted)]">{TYPE_LABELS[lastJob.type] ?? lastJob.type}</p>
                           </>
                         ) : (
                           <span className="text-[var(--co-muted)]">—</span>
                         )}
+                        </Link>
                       </td>
-                      <td className="px-5 py-4">
-                        {nextJob ? (
-                          <Link href={`/jobs/${nextJob.id}`} className="font-medium text-[var(--co-evergreen)]">
-                            {nextJob.scheduledDate}
-                          </Link>
-                        ) : (
-                          <span className="text-[var(--co-muted)]">—</span>
-                        )}
+                      <td className="p-0">
+                        <Link href={`/customers/${row.id}`} className="block px-5 py-4">
+                          {nextJob ? (
+                            <span className="font-medium text-[var(--co-evergreen)]">{formatDate(nextJob.scheduledDate)}</span>
+                          ) : (
+                            <span className="text-[var(--co-muted)]">—</span>
+                          )}
+                        </Link>
                       </td>
-                      <td className="px-5 py-4 font-semibold">{money(ltv)}</td>
-                      <td className="px-5 py-4 text-right">
-                        <Link href={`/customers/${row.id}`} className="font-medium text-[var(--co-evergreen)]">
+                      <td className="p-0 font-semibold">
+                        <Link href={`/customers/${row.id}`} className="block px-5 py-4">{money(ltv)}</Link>
+                      </td>
+                      <td className="p-0 text-right">
+                        <Link href={`/customers/${row.id}`} className="block px-5 py-4 font-medium text-[var(--co-evergreen)]">
                           Open
                         </Link>
                       </td>

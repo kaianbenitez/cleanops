@@ -57,6 +57,10 @@ const WEEKDAY_OPTIONS = [
 
 const input = "co-input w-full";
 
+function formatCustomerDate(date: string) {
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
+}
+
 function Field({
   label,
   value,
@@ -514,7 +518,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Next visit</p>
               {nextJob ? (
                 <Link href={`/jobs/${nextJob.id}`} className="mt-2 block text-sm font-semibold text-[var(--co-evergreen)] hover:underline">
-                  {nextJob.scheduledDate}
+                  {formatCustomerDate(nextJob.scheduledDate)}
                   <span className="block text-xs font-normal text-[var(--co-muted)]">
                     {nextJob.scheduledStartTime?.slice(0, 5) ?? "No time"} · {TYPE_LABELS[nextJob.type] ?? nextJob.type}
                   </span>
@@ -527,7 +531,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Last visit</p>
               {lastJob ? (
                 <Link href={`/jobs/${lastJob.id}`} className="mt-2 block text-sm font-semibold text-[var(--co-evergreen)] hover:underline">
-                  {lastJob.scheduledDate}
+                  {formatCustomerDate(lastJob.scheduledDate)}
                   <span className="block text-xs font-normal text-[var(--co-muted)]">
                     {TYPE_LABELS[lastJob.type] ?? lastJob.type} · {lastJob.status.replaceAll("_", " ")}
                   </span>
@@ -668,7 +672,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                     className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--co-line-soft)] px-3 py-3 hover:bg-[var(--co-surface-muted)]"
                   >
                     <div>
-                      <p className="text-sm font-medium">{job.scheduledDate}</p>
+                      <p className="text-sm font-medium">{formatCustomerDate(job.scheduledDate)}</p>
                       <p className="text-xs text-[var(--co-muted)]">
                         {job.scheduledStartTime?.slice(0, 5) ?? "No time"} · {TYPE_LABELS[job.type] ?? job.type}
                       </p>
@@ -696,7 +700,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                 {invoices.slice(0, 5).map((invoice) => (
                   <Link key={invoice.id} href={`/invoices/${invoice.id}`} className="flex items-center justify-between rounded-2xl border border-[var(--co-line-soft)] px-3 py-3 text-sm hover:bg-[var(--co-surface-muted)]">
                     <div>
-                      <p className="font-medium">{new Date(invoice.createdAt).toLocaleDateString()}</p>
+                      <p className="font-medium">{formatCustomerDate(invoice.createdAt.slice(0, 10))}</p>
                       <p className="text-xs text-[var(--co-muted)]">{invoice.method || "Payment pending"}</p>
                     </div>
                     <div className="text-right">
@@ -717,7 +721,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                 {recentJobs.slice(0, 4).map((job) => (
                   <Link key={job.id} href={`/jobs/${job.id}`} className="flex items-center justify-between rounded-2xl border border-[var(--co-line-soft)] px-3 py-3 text-sm hover:bg-[var(--co-surface-muted)]">
                     <div>
-                      <p className="font-medium">{job.scheduledDate}</p>
+                      <p className="font-medium">{formatCustomerDate(job.scheduledDate)}</p>
                       <p className="text-xs text-[var(--co-muted)]">{TYPE_LABELS[job.type] ?? job.type}</p>
                     </div>
                     <span className="text-sm font-medium text-[var(--co-evergreen)]">Open →</span>
