@@ -418,7 +418,6 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                   <th className="px-5 py-3">Last service</th>
                   <th className="px-5 py-3">Next service</th>
                   <th className="px-5 py-3">LTV</th>
-                  <th className="px-5 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--co-line-soft)]">
@@ -484,11 +483,6 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                       </td>
                       <td className="p-0 font-semibold">
                         <Link href={`/customers/${row.id}`} className="block px-5 py-4">{money(ltv)}</Link>
-                      </td>
-                      <td className="p-0 text-right">
-                        <Link href={`/customers/${row.id}`} className="block px-5 py-4 font-medium text-[var(--co-evergreen)]">
-                          Open
-                        </Link>
                       </td>
                     </tr>
                   );
