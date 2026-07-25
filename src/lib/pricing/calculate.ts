@@ -31,6 +31,16 @@ export type PricingBreakdown = {
 };
 
 /**
+ * Convert a final, tier-specific quoted price into the job-ticket duration.
+ * The final price is used deliberately: discounts and price minimums in the
+ * saved quote matrix are reflected in the staffing estimate.
+ */
+export function estimateDurationMinutesFromPrice(priceCents: number, hourlyRateCents: number | null | undefined): number {
+  if (!hourlyRateCents || hourlyRateCents <= 0) return 120;
+  return Math.max(60, Math.round((priceCents / hourlyRateCents) * 60));
+}
+
+/**
  * Computes the price for every service tier from the same room counts —
  * matching the source spreadsheet's real behavior (it computes all 7
  * service-type columns simultaneously from one set of room counts; the

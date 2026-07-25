@@ -24,8 +24,8 @@ export const TYPE_COLORS: Record<string, string> = {
 
 export const EMPLOYEE_PALETTE = ["#2563eb", "#0f766e", "#7c3aed", "#ea580c", "#be123c", "#15803d", "#b45309", "#4f46e5"];
 
-export const STAFF_RANGE_START = 7 * 60;
-export const STAFF_RANGE_MINUTES = 12 * 60;
+export const STAFF_RANGE_START = 9 * 60;
+export const STAFF_RANGE_MINUTES = 9 * 60;
 
 export function minutesFromTime(value: string | null | undefined) {
   if (!value) return 9 * 60;
@@ -62,6 +62,16 @@ export function employeeColor(id: string | null | undefined) {
   return EMPLOYEE_PALETTE[hash % EMPLOYEE_PALETTE.length];
 }
 
+export function displayCustomer(job: { customerFirstName: string; customerLastName: string; companyName?: string | null }) {
+  return job.companyName?.trim() || `${job.customerFirstName} ${job.customerLastName}`;
+}
+
+export function recurrenceLabel(value: string | null | undefined) {
+  if (!value || value === "none") return "One-time";
+  if (value === "every4weeks") return "Every 4 weeks";
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
 export function jobDuration(job: { estimatedDurationMinutes: number | null }) {
   return Math.max(job.estimatedDurationMinutes ?? 75, 45);
 }
@@ -83,11 +93,14 @@ export function jobsOverlap(
  * with no overlap anywhere that day land alone in a cluster of laneCount 1,
  * so non-overlapping days render at full width exactly as before this
  * existed — only genuinely concurrent jobs get split into side-by-side lanes.
+ * The visible lane count is capped so dense clusters remain readable; callers
+ * can replace hidden jobs with the returned overflow count.
  */
 export function assignDayLanes<T extends { id: string; scheduledStartTime: string | null; estimatedDurationMinutes: number | null }>(
-  dayJobs: T[]
-): Map<string, { lane: number; laneCount: number }> {
-  const result = new Map<string, { lane: number; laneCount: number }>();
+  dayJobs: T[],
+  maxVisibleLanes = 3
+): Map<string, { lane: number; laneCount: number; hidden: boolean; overflowCount: number }> {
+  const result = new Map<string, { lane: number; laneCount: number; hidden: boolean; overflowCount: number }>();
   const sorted = [...dayJobs].sort((a, b) => minutesFromTime(a.scheduledStartTime) - minutesFromTime(b.scheduledStartTime));
 
   let cluster: T[] = [];
@@ -109,9 +122,17 @@ export function assignDayLanes<T extends { id: string; scheduledStartTime: strin
       }
       laneOf.set(job.id, lane);
     }
-    const laneCount = laneEndTimes.length;
+    const laneCount = Math.min(laneEndTimes.length, Math.max(maxVisibleLanes, 1));
+    const hiddenJobs = cluster.filter((job) => (laneOf.get(job.id) ?? 0) >= laneCount);
+    const overflowAnchor = cluster.find((job) => laneOf.get(job.id) === laneCount - 1);
     for (const job of cluster) {
-      result.set(job.id, { lane: laneOf.get(job.id)!, laneCount });
+      const lane = laneOf.get(job.id)!;
+      result.set(job.id, {
+        lane: Math.min(lane, laneCount - 1),
+        laneCount,
+        hidden: lane >= laneCount,
+        overflowCount: job.id === overflowAnchor?.id ? hiddenJobs.length : 0,
+      });
     }
     cluster = [];
   }

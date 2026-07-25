@@ -3,13 +3,14 @@ import { z } from "zod";
 import { randomBytes } from "crypto";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { quotes, customers } from "@/db/schema";
+import { quotes, customers, customerLocations } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { calculateAllTierPrices, SERVICE_TYPES } from "@/lib/pricing/calculate";
-import { resolveCustomerServiceArea } from "@/lib/service-area";
+import { resolveAddressServiceArea, resolveCustomerServiceArea } from "@/lib/service-area";
 
 const createQuoteSchema = z.object({
   customerId: z.string().uuid(),
+  serviceAddressLocationId: z.string().uuid().optional(),
   serviceLocationId: z.string().uuid(),
   requestedServiceType: z.enum(SERVICE_TYPES).nullable().optional(), // admin's suggested default tier — optional, every tier is priced and sent regardless
   roomCounts: z.array(z.object({ roomTypeId: z.string().uuid(), count: z.number().int().nonnegative() })),
@@ -69,11 +70,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Customer not found" }, { status: 404 });
   }
 
-  const serviceArea = await resolveCustomerServiceArea({
-    companyId: admin.companyId,
-    customerId: data.customerId,
-    serviceLocationId: data.serviceLocationId,
-  });
+  const [selectedAddress] = data.serviceAddressLocationId
+    ? await db.select({ addressLine1: customerLocations.addressLine1, city: customerLocations.city, state: customerLocations.state, zip: customerLocations.zip, subdivision: customerLocations.subdivision, label: customerLocations.label }).from(customerLocations).where(and(eq(customerLocations.id, data.serviceAddressLocationId), eq(customerLocations.customerId, data.customerId), eq(customerLocations.companyId, admin.companyId))).limit(1)
+    : [];
+  if (data.serviceAddressLocationId && !selectedAddress) return NextResponse.json({ error: "Selected service address was not found for this customer." }, { status: 400 });
+  const serviceArea = selectedAddress
+    ? await resolveAddressServiceArea({ companyId: admin.companyId, serviceLocationId: data.serviceLocationId, address: { ...selectedAddress, addressLabel: selectedAddress.label } })
+    : await resolveCustomerServiceArea({ companyId: admin.companyId, customerId: data.customerId, serviceLocationId: data.serviceLocationId });
   if (serviceArea.status === "missing_address") {
     return NextResponse.json({ error: "This customer is missing an address. Add city or ZIP before quoting." }, { status: 400 });
   }

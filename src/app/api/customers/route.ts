@@ -28,6 +28,7 @@ export async function GET() {
 const createCustomerSchema = z.object({
   firstName: z.string().trim().min(1).max(100),
   lastName: z.string().trim().min(1).max(100),
+  companyName: z.string().trim().max(200).optional(),
   email: z.string().trim().email().optional().or(z.literal("")),
   phone: z.string().trim().max(50).optional(),
   addressLine1: z.string().trim().max(200).optional(),
@@ -63,6 +64,7 @@ export async function POST(req: NextRequest) {
     companyId: admin.companyId,
     firstName: data.firstName,
     lastName: data.lastName,
+    companyName: data.companyName || null,
     email: data.email || null,
     phone: data.phone || null,
     addressLine1: data.addressLine1 || null,

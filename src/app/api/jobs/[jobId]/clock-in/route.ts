@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { jobs, jobAssignments, timeEntries } from "@/db/schema";
+import { auditLog, jobs, jobAssignments, timeEntries } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { generatePayrollForPeriod } from "@/lib/payroll/calculate";
 import { refreshPayrollPeriodsForDates } from "@/lib/payroll/periods";
@@ -43,6 +43,7 @@ export async function POST(
   if (!result) {
     return NextResponse.json({ error: "You already have an open time entry for this job" }, { status: 400 });
   }
+  await db.insert(auditLog).values({ companyId: user.companyId, userId: user.id, action: "job.clocked_in", entityType: "job", entityId: jobId, before: null, after: { clockIn: now.toISOString() } });
 
   // Keep the open period's line in sync (jobsCount/hours) the moment a real
   // clock-in happens, same as the admin manual-entry path — otherwise payroll

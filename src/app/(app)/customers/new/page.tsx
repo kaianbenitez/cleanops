@@ -8,6 +8,7 @@ import AddressAutocomplete from "../address-autocomplete";
 type CustomerForm = {
   firstName: string;
   lastName: string;
+  companyName: string;
   email: string;
   phone: string;
   addressLine1: string;
@@ -67,6 +68,7 @@ export default function NewCustomerPage() {
     county: "",
     ghlContactId: "",
     clientType: "residential",
+    companyName: "",
   });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -95,6 +97,7 @@ export default function NewCustomerPage() {
       county: form.county,
       ghlContactId: form.ghlContactId,
       clientType: form.clientType,
+      companyName: form.companyName,
     };
 
     const res = await fetch("/api/customers", {
@@ -162,6 +165,12 @@ export default function NewCustomerPage() {
                 <option value="commercial">Commercial</option>
               </select>
             </label>
+            {form.clientType === "commercial" ? (
+              <label>
+                <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Company name</span>
+                <input className="co-input w-full" value={form.companyName} onChange={(event) => update("companyName", event.target.value)} placeholder="e.g. State Farm" />
+              </label>
+            ) : null}
             <label>
               <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">GHL contact ID</span>
               <input

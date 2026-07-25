@@ -8,6 +8,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 - Run `npm run verify` before presenting a change as ready.
 - Run `npm run smoke:routes` when a local production server is available.
+- By user preference, commit and push each completed, verified feature by default. Before
+  staging, inspect `git status` and the per-file diff; stop and ask before pushing if any
+  unrelated/shared change, merge state, or unapproved production migration would be included.
+  Stage explicit paths only — never use `git add -A` or `git add .` in this shared worktree.
 - Never print, commit, or paste secret values. Check only whether required variables are configured.
 - GHL checks must use the approved test location and read-only requests unless the user explicitly asks for a write test.
 - Preserve company-scoped authorization on every database query and API mutation.

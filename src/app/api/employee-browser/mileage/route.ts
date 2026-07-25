@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { auditLog, payrollLines, payrollPeriods, users } from "@/db/schema";
+import { auditLog, payrollLines, users } from "@/db/schema";
 import { requireUser } from "@/lib/auth/current-user";
 import { generatePayrollForPeriod, recomputeFinalCents } from "@/lib/payroll/calculate";
 import { getOrCreatePayrollPeriodForDate } from "@/lib/payroll/periods";

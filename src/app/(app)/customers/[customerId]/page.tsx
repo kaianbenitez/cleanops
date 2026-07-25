@@ -2,63 +2,15 @@
 
 import Link from "next/link";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Pencil, Plus } from "lucide-react";
 import AddressAutocomplete from "../address-autocomplete";
-
-type Customer = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  status: string;
-  clientType: string;
-  salutation?: string | null;
-  customerNumber?: string | null;
-  phone?: string | null;
-  email?: string | null;
-  textMessagingAllowed?: boolean;
-  source?: string | null;
-  preferredDays?: string[] | null;
-  preferredCleanerId?: string | null;
-  preferredTimeOfDay?: "AM" | "PM" | null;
-  paymentMethods?: string[] | null;
-  generalNotes?: string | null;
-  recurrence?: string | null;
-  homeDetails?: Record<string, unknown>;
-  tags?: unknown;
-};
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
+import { CustomerViewCards } from "./view-cards";
+import { STATUS_STYLES, TYPE_LABELS, money, type Customer, type Location, type CustomerJob, type AuditEntry } from "./shared";
 
 type EmployeeOption = { id: string; firstName: string; lastName: string };
 
 type RoomType = { id: string; name: string; sortOrder: number };
-
-type Location = {
-  id?: string;
-  label: string;
-  addressLine1: string;
-  addressLine2?: string | null;
-  city?: string | null;
-  state?: string | null;
-  zip?: string | null;
-  subdivision?: string | null;
-  accessInstructions?: string | null;
-  keyNumber?: string | null;
-  garageCode?: string | null;
-  gateCode?: string | null;
-  alarmCode?: string | null;
-  vacuumLocation?: string | null;
-  mopHeadsNeeded?: string | null;
-  trashBags?: string | null;
-  googlePlaceId?: string | null;
-};
-
-type CustomerJob = {
-  id: string;
-  type: string;
-  status: string;
-  scheduledDate: string;
-  scheduledStartTime: string | null;
-  estimatedDurationMinutes: number | null;
-  priceCents: number;
-};
 
 type CustomerInvoice = {
   id: string;
@@ -69,14 +21,6 @@ type CustomerInvoice = {
   tipCents: number;
   createdAt: string;
   paidAt: string | null;
-};
-
-type AuditEntry = {
-  id: string;
-  action: string;
-  createdAt: string;
-  editorFirstName: string | null;
-  editorLastName: string | null;
 };
 
 type ServiceAreaSummary = {
@@ -111,24 +55,11 @@ const WEEKDAY_OPTIONS = [
   ["friday", "Fri"],
 ] as const;
 
-const STATUS_STYLES: Record<string, string> = {
-  lead: "border-slate-200 bg-slate-50 text-slate-600",
-  quoted: "border-blue-200 bg-blue-50 text-blue-700",
-  first_clean_booked: "border-amber-200 bg-amber-50 text-amber-700",
-  client: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  lost: "border-rose-200 bg-rose-50 text-rose-700",
-  moved: "border-slate-200 bg-slate-50 text-slate-400",
-};
-
-const TYPE_LABELS: Record<string, string> = {
-  first_clean: "First clean",
-  recurring: "Recurring",
-  one_time: "One-time",
-  deep_clean: "Deep clean",
-  move_out: "Move in/out",
-};
-
 const input = "co-input w-full";
+
+function formatCustomerDate(date: string) {
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
+}
 
 function Field({
   label,
@@ -166,10 +97,6 @@ function formatApiError(error: unknown): string {
     }
   }
   return "Could not save this profile.";
-}
-
-function money(cents: number) {
-  return `$${(cents / 100).toFixed(2)}`;
 }
 
 function Section({
@@ -234,6 +161,11 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [mode, setMode] = useState<"view" | "edit">("view");
+  const [lifetimeSpendCents, setLifetimeSpendCents] = useState(0);
+  const [archiving, setArchiving] = useState(false);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [archiveReasonInput, setArchiveReasonInput] = useState("");
 
   const load = useCallback(async () => {
     setLoaded(false);
@@ -266,6 +198,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
     setInvoices(body.invoices ?? []);
     setAuditLogs(body.auditLogs ?? []);
     setServiceArea(body.serviceArea ?? null);
+    setLifetimeSpendCents(Number(body.lifetimeSpendCents ?? 0));
     setLoaded(true);
   }, [customerId]);
 
@@ -360,6 +293,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         phone: customer.phone || null,
         status: customer.status,
         clientType: customer.clientType || "residential",
+        companyName: customer.companyName || null,
         source: customer.source || null,
         textMessagingAllowed: Boolean(customer.textMessagingAllowed),
         preferredDays: customer.preferredDays ?? [],
@@ -378,6 +312,33 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
       return;
     }
     setMessage("Profile saved.");
+    setMode("view");
+    await load();
+  }
+
+  function cancelEdit() {
+    setError("");
+    setMessage("");
+    load().catch(() => {});
+    setMode("view");
+  }
+
+  async function patchArchive(next: boolean) {
+    setArchiving(true);
+    setError("");
+    const response = await fetch(`/api/customers/${customerId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isArchived: next, archivedReason: next ? archiveReasonInput || null : null }),
+    });
+    setArchiving(false);
+    if (!response.ok) {
+      setError("Could not update this customer's archive status.");
+      return;
+    }
+    setShowArchiveConfirm(false);
+    setArchiveReasonInput("");
+    setMessage(next ? "Customer archived." : "Customer restored.");
     await load();
   }
 
@@ -421,31 +382,95 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <Link href="/customers" className="text-sm font-medium text-[var(--co-evergreen)] hover:underline">
-            ← Customers
-          </Link>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <p className="eyebrow">Customer profile</p>
-            <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[customer.status] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>
+      <header className="flex flex-wrap items-start justify-between gap-5 border-b border-[var(--co-line-soft)] pb-5">
+        <div className="flex min-w-0 items-center gap-4">
+          <InitialsAvatar firstName={customer.firstName} lastName={customer.lastName} companyName={customer.companyName} className="h-16 w-16 rounded-2xl text-xl shadow-sm" />
+          <div className="min-w-0">
+            <Link href="/customers" className="text-sm font-medium text-[var(--co-evergreen)] hover:underline">
+              ← Customers
+            </Link>
+            <div className="mt-1 flex flex-wrap items-center gap-3">
+            <span className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[customer.status] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>
               {STATUS_OPTIONS.find((option) => option.value === customer.status)?.label ?? customer.status}
             </span>
+            {customer.isArchived ? (
+              <span className="whitespace-nowrap rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-500">
+                Archived{customer.archivedAt ? ` ${new Date(customer.archivedAt).toLocaleDateString()}` : ""}
+              </span>
+            ) : null}
           </div>
-          <h1 className="page-title mt-2">
-            {customer.firstName} {customer.lastName}
+          <h1 className="page-title mt-1">
+            {customer.companyName ? customer.companyName : `${customer.firstName} ${customer.lastName}`}
           </h1>
-          <p className="page-subtitle">Internal profile for scheduling, house instructions, and customer history.</p>
+          {customer.companyName ? (
+            <p className="mt-1 text-sm text-[var(--co-muted)]">
+              Contact: {customer.firstName} {customer.lastName}
+            </p>
+          ) : null}
+          <p className="mt-1 text-sm text-[var(--co-muted)]">
+            {customer.customerNumber ? `Customer ID ${customer.customerNumber}` : "Customer profile"}
+            {customer.recurrence && customer.recurrence !== "none" ? ` · ${customer.recurrence.replace("biweekly", "every other week")}` : ""}
+          </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/jobs/new?customerId=${customer.id}`} className="co-button-secondary">
-            + New job
+          {customer.status === "lead" ? <Link href={`/quotes/new?customerId=${customer.id}`} className="co-button-primary">+ Create quote</Link> : null}
+          <Link href={`/jobs/new?customerId=${customer.id}`} className={customer.status === "lead" ? "co-button-secondary" : "co-button-primary"}>
+            <Plus className="h-4 w-4" /> New job
           </Link>
-          <button className="co-button-primary" onClick={save} disabled={saving}>
-            {saving ? "Saving..." : "Save profile"}
-          </button>
+          {mode === "view" ? (
+            <>
+              {customer.isArchived ? (
+                <button className="co-button-secondary" onClick={() => patchArchive(false)} disabled={archiving}>
+                  {archiving ? "Restoring..." : "Restore customer"}
+                </button>
+              ) : (
+                <button className="co-button-secondary" onClick={() => setShowArchiveConfirm(true)}>
+                  Archive customer
+                </button>
+              )}
+              <button className="co-button-secondary" onClick={() => setMode("edit")}>
+                <Pencil className="h-4 w-4" /> Edit profile
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="co-button-secondary" onClick={cancelEdit} disabled={saving}>
+                Cancel
+              </button>
+              <button className="co-button-primary" onClick={save} disabled={saving}>
+                {saving ? "Saving..." : "Save profile"}
+              </button>
+            </>
+          )}
         </div>
       </header>
+
+      {showArchiveConfirm ? (
+        <div className="co-card space-y-3 border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-medium text-amber-800">
+            Archive {customer.companyName || `${customer.firstName} ${customer.lastName}`}? They&apos;ll drop out of the
+            default customers list — history is kept and this can be undone from here.
+          </p>
+          <label className="block text-sm">
+            <span className="mb-1 block text-xs font-semibold text-amber-800">Reason (optional)</span>
+            <input
+              value={archiveReasonInput}
+              onChange={(event) => setArchiveReasonInput(event.target.value)}
+              placeholder="e.g. one-time service, didn't sign up for recurring"
+              className="co-input w-full"
+            />
+          </label>
+          <div className="flex gap-2">
+            <button className="co-button-secondary" onClick={() => setShowArchiveConfirm(false)} disabled={archiving}>
+              Cancel
+            </button>
+            <button className="co-button-primary" onClick={() => patchArchive(true)} disabled={archiving}>
+              {archiving ? "Archiving..." : "Archive customer"}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {message ? (
         <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
@@ -458,24 +483,28 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         </div>
       ) : null}
 
+      {mode === "edit" && (
+      <>
       <section className="grid gap-5 xl:grid-cols-[1.1fr_1.15fr_0.85fr]">
         <div className="co-card p-5">
           <div className="flex items-start gap-4">
-            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-[var(--co-surface-muted)] text-2xl font-bold text-[var(--co-evergreen)]">
-              {customer.firstName[0]}
-              {customer.lastName[0]}
-            </div>
+            <InitialsAvatar firstName={customer.firstName} lastName={customer.lastName} companyName={customer.companyName} className="h-20 w-20 rounded-3xl text-2xl" />
             <div className="min-w-0">
               <h2 className="text-lg font-semibold">
-                {customer.firstName} {customer.lastName}
+                {customer.companyName ? customer.companyName : `${customer.firstName} ${customer.lastName}`}
               </h2>
+              {customer.companyName ? (
+                <p className="text-sm text-[var(--co-muted)]">
+                  Contact: {customer.firstName} {customer.lastName}
+                </p>
+              ) : null}
               <p className="mt-1 text-sm text-[var(--co-muted)]">{customer.email || "No email"}</p>
               <p className="text-sm text-[var(--co-muted)]">{customer.phone || "No phone"}</p>
               <p className="mt-3 text-xs text-[var(--co-muted)]">Lead source: {customer.source || "Not recorded"}</p>
               <p className="mt-1 text-xs text-[var(--co-muted)]">Plan: {customer.recurrence && customer.recurrence !== "none" ? customer.recurrence : "One-time"}</p>
             </div>
           </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <InfoCard label="Visits" value={`${upcomingJobs.length}`} sub="Upcoming jobs" />
             <InfoCard label="Invoices" value={`${invoices.length}`} sub="Recorded invoices" />
             <InfoCard label="Open balance" value={money(openBalance)} sub={openBalance ? "Needs collection" : "Paid through"} />
@@ -490,7 +519,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Next visit</p>
               {nextJob ? (
                 <Link href={`/jobs/${nextJob.id}`} className="mt-2 block text-sm font-semibold text-[var(--co-evergreen)] hover:underline">
-                  {nextJob.scheduledDate}
+                  {formatCustomerDate(nextJob.scheduledDate)}
                   <span className="block text-xs font-normal text-[var(--co-muted)]">
                     {nextJob.scheduledStartTime?.slice(0, 5) ?? "No time"} · {TYPE_LABELS[nextJob.type] ?? nextJob.type}
                   </span>
@@ -503,7 +532,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Last visit</p>
               {lastJob ? (
                 <Link href={`/jobs/${lastJob.id}`} className="mt-2 block text-sm font-semibold text-[var(--co-evergreen)] hover:underline">
-                  {lastJob.scheduledDate}
+                  {formatCustomerDate(lastJob.scheduledDate)}
                   <span className="block text-xs font-normal text-[var(--co-muted)]">
                     {TYPE_LABELS[lastJob.type] ?? lastJob.type} · {lastJob.status.replaceAll("_", " ")}
                   </span>
@@ -644,7 +673,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                     className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--co-line-soft)] px-3 py-3 hover:bg-[var(--co-surface-muted)]"
                   >
                     <div>
-                      <p className="text-sm font-medium">{job.scheduledDate}</p>
+                      <p className="text-sm font-medium">{formatCustomerDate(job.scheduledDate)}</p>
                       <p className="text-xs text-[var(--co-muted)]">
                         {job.scheduledStartTime?.slice(0, 5) ?? "No time"} · {TYPE_LABELS[job.type] ?? job.type}
                       </p>
@@ -672,7 +701,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                 {invoices.slice(0, 5).map((invoice) => (
                   <Link key={invoice.id} href={`/invoices/${invoice.id}`} className="flex items-center justify-between rounded-2xl border border-[var(--co-line-soft)] px-3 py-3 text-sm hover:bg-[var(--co-surface-muted)]">
                     <div>
-                      <p className="font-medium">{new Date(invoice.createdAt).toLocaleDateString()}</p>
+                      <p className="font-medium">{formatCustomerDate(invoice.createdAt.slice(0, 10))}</p>
                       <p className="text-xs text-[var(--co-muted)]">{invoice.method || "Payment pending"}</p>
                     </div>
                     <div className="text-right">
@@ -693,7 +722,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                 {recentJobs.slice(0, 4).map((job) => (
                   <Link key={job.id} href={`/jobs/${job.id}`} className="flex items-center justify-between rounded-2xl border border-[var(--co-line-soft)] px-3 py-3 text-sm hover:bg-[var(--co-surface-muted)]">
                     <div>
-                      <p className="font-medium">{job.scheduledDate}</p>
+                      <p className="font-medium">{formatCustomerDate(job.scheduledDate)}</p>
                       <p className="text-xs text-[var(--co-muted)]">{TYPE_LABELS[job.type] ?? job.type}</p>
                     </div>
                     <span className="text-sm font-medium text-[var(--co-evergreen)]">Open →</span>
@@ -835,6 +864,8 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
           <span className="text-xs text-[var(--co-muted)]">Sensitive details stay internal</span>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Company name (commercial clients)" value={customer.companyName ?? ""} onChange={(value) => updateCustomer("companyName", value)} />
+          <div />
           <Field label="First name" value={customer.firstName} onChange={(value) => updateCustomer("firstName", value)} />
           <Field label="Last name" value={customer.lastName} onChange={(value) => updateCustomer("lastName", value)} />
           <Field label="Phone" value={customer.phone ?? ""} onChange={(value) => updateCustomer("phone", value)} />
@@ -861,6 +892,25 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
           {saving ? "Saving..." : "Save all profile changes"}
         </button>
       </section>
+      </>
+      )}
+
+      {mode === "view" && (
+        <CustomerViewCards
+          customer={customer}
+          location={location}
+          locations={locations}
+          primaryAddress={primaryAddress}
+          upcomingJobs={upcomingJobs}
+          recentJobs={recentJobs}
+          nextJob={nextJob}
+          lastJob={lastJob}
+          openBalance={openBalance}
+          lifetimeSpendCents={lifetimeSpendCents}
+          auditLogs={auditLogs}
+          onEditFocus={() => setMode("edit")}
+        />
+      )}
     </div>
   );
 }

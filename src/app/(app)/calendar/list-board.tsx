@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { TYPE_LABELS, formatClockLabel, isPlainClick } from "./shared";
+import { TYPE_LABELS, displayCustomer, formatClockLabel, recurrenceLabel } from "./shared";
 import { commitJobPatch } from "./drag-commit";
 import { useUndoToast, UndoToast } from "./undo-toast";
-import JobDetailPanel from "./job-detail-panel";
 import AssigneePicker from "./assignee-picker";
 
 type Employee = { id: string; firstName: string; lastName: string };
@@ -18,6 +17,9 @@ type ListJob = {
   scheduledDate: string;
   scheduledStartTime: string | null;
   recurringSeriesId: string | null;
+  recurrenceFrequency: string | null;
+  companyName: string | null;
+  clientType: string;
   customerFirstName: string;
   customerLastName: string;
   customerZip: string | null;
@@ -40,7 +42,6 @@ export default function ListBoard({ employees, jobs: initialJobs }: { employees:
   const [syncedJobs, setSyncedJobs] = useState(initialJobs);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [detailJobId, setDetailJobId] = useState<string | null>(null);
   const { toast, showUndo, dismiss } = useUndoToast();
 
   if (initialJobs !== syncedJobs) {
@@ -177,7 +178,8 @@ export default function ListBoard({ employees, jobs: initialJobs }: { employees:
               <th className="px-5 py-3">Time</th>
               <th className="px-5 py-3">Customer</th>
               <th className="px-5 py-3">Address</th>
-              <th className="px-5 py-3">Type</th>
+                <th className="px-5 py-3">Client</th>
+                <th className="px-5 py-3">Type</th>
               <th className="px-5 py-3">Assigned</th>
               <th className="px-5 py-3">Status</th>
             </tr>
@@ -208,14 +210,9 @@ export default function ListBoard({ employees, jobs: initialJobs }: { employees:
                 <td className="px-5 py-3 font-medium">
                   <Link
                     href={`/jobs/${job.id}`}
-                    onClick={(event) => {
-                      if (!isPlainClick(event)) return;
-                      event.preventDefault();
-                      setDetailJobId(job.id);
-                    }}
-                    className="text-[var(--co-evergreen)] hover:underline"
+                    className="-mx-5 -my-3 block px-5 py-3 text-[var(--co-evergreen)] hover:underline"
                   >
-                    {job.customerFirstName} {job.customerLastName}
+                    {displayCustomer(job)}
                   </Link>
                 </td>
                 <td className="px-5 py-3 text-xs text-[var(--co-muted)]">
@@ -223,6 +220,10 @@ export default function ListBoard({ employees, jobs: initialJobs }: { employees:
                   <span className="block">
                     {job.customerCity ?? ""} {job.customerZip ?? ""}
                   </span>
+                </td>
+                <td className="px-5 py-3 text-xs text-[var(--co-muted)]">
+                  {job.clientType === "commercial" ? "Commercial" : "Residential"}
+                  <span className="mt-0.5 block text-[var(--co-faint)]">{job.recurringSeriesId ? recurrenceLabel(job.recurrenceFrequency) : "One-time"}</span>
                 </td>
                 <td className="px-5 py-3 text-[var(--co-muted)]">{TYPE_LABELS[job.type] ?? job.type}</td>
                 <td className="px-5 py-3">
@@ -252,7 +253,7 @@ export default function ListBoard({ employees, jobs: initialJobs }: { employees:
             ))}
             {jobs.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-5 py-6 text-sm text-[var(--co-muted)]">
+                <td colSpan={8} className="px-5 py-6 text-sm text-[var(--co-muted)]">
                   No jobs scheduled in this window.
                 </td>
               </tr>
@@ -261,7 +262,6 @@ export default function ListBoard({ employees, jobs: initialJobs }: { employees:
         </table>
       </div>
       <UndoToast toast={toast} onDismiss={dismiss} />
-      <JobDetailPanel jobId={detailJobId} employees={employees} onClose={() => setDetailJobId(null)} />
     </div>
   );
 }

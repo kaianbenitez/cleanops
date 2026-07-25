@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowLeft, CalendarClock, Check, CircleUserRound, Mail, MapPin, Phone, UserPlus, XCircle } from "lucide-react";
+import JobPhotos from "./job-photos";
+import { formatDisplayDate } from "@/lib/scheduling/dates";
+import TeamSearchPicker from "@/components/team-search-picker";
 
 type Employee = { id: string; firstName: string; lastName: string };
 type Assignment = { id: string; userId: string; role: string };
@@ -20,13 +24,12 @@ type JobDetail = {
   customerLastName: string;
   customerEmail: string | null;
   customerPhone: string | null;
+  customerNotes: string | null;
   addressLine1: string | null;
   city: string | null;
   state: string | null;
   zip: string | null;
 };
-type Invoice = { id: string; status: string; totalCents: number; amountPaidCents: number } | null;
-type Quote = { id: string; status: string; totalCents: number; acceptedServiceType: string | null } | null;
 type TimeEntry = {
   id: string;
   userId: string;
@@ -73,6 +76,11 @@ function readableError(body: { error?: unknown }) {
 
 function money(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
+}
+
+function formatEstimatedTime(minutes: number | null) {
+  if (!minutes) return "duration pending";
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 }
 
 function formatTime(value: string | null) {
@@ -142,6 +150,43 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint?:
   );
 }
 
+function RoutePreview({ address }: { address: string }) {
+  return (
+    <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[linear-gradient(180deg,#f5f7f3,white)] p-4">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Route preview</p>
+          <p className="mt-1 text-sm font-semibold">Technician route snapshot</p>
+        </div>
+        <span className="rounded-full bg-[var(--co-surface-muted)] px-2.5 py-1 text-xs font-medium text-[var(--co-evergreen)]">Calendar-linked</span>
+      </div>
+      <div className="mt-4 rounded-2xl border border-[var(--co-line-soft)] bg-white p-4">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--co-evergreen)] text-xs font-semibold text-white">1</span>
+            <div className="min-w-0">
+              <p className="text-sm font-medium">Assigned stop</p>
+              <p className="truncate text-xs text-[var(--co-muted)]">{address || "Address not recorded yet"}</p>
+            </div>
+          </div>
+          <div className="h-16 rounded-2xl border border-dashed border-[var(--co-line)] bg-[linear-gradient(135deg,#f7faf4,#eef3e8)]" />
+          <div className="flex items-center justify-between text-xs text-[var(--co-muted)]">
+            <span>Visual placeholder until full routing is connected.</span>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--co-evergreen)] hover:underline"
+            >
+              Open Maps
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function JobDetailPage({ params }: { params: Promise<{ jobId: string }> }) {
   const { jobId } = use(params);
   const router = useRouter();
@@ -149,8 +194,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
   const [job, setJob] = useState<JobDetail | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [invoice, setInvoice] = useState<Invoice>(null);
-  const [quote, setQuote] = useState<Quote>(null);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [auditLogs, setAuditLogs] = useState<TimeEntryAudit[]>([]);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
@@ -182,8 +225,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
     setJob(jobBody.job);
     setEmployees(employeeBody.employees ?? []);
     setAssignments(jobBody.assignments ?? []);
-    setInvoice(jobBody.invoice ?? null);
-    setQuote(jobBody.quote ?? null);
     setSelectedEmployeeIds((jobBody.assignments ?? []).map((assignment: Assignment) => assignment.userId));
     setTimeEntries(jobBody.timeEntries ?? []);
     setAuditLogs(
@@ -237,8 +278,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
     if (!body.job) return;
     setJob(body.job);
     setAssignments(body.assignments ?? []);
-    setInvoice(body.invoice ?? null);
-    setQuote(body.quote ?? null);
     setTimeEntries(body.timeEntries ?? []);
     setAuditLogs(
       [...(body.jobAuditLogs ?? []), ...(body.timeEntryAuditLogs ?? [])].sort(
@@ -358,6 +397,80 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
     );
   }
 
+  const serviceProgress = job.status === "completed" ? 100 : job.status === "in_progress" ? 62 : timeEntries.length > 0 ? 35 : 0;
+  const serviceSteps = [
+    { label: "Arrival & access", detail: "Confirm arrival, access, and home notes.", done: job.status !== "scheduled" },
+    { label: `${TYPE_LABELS[job.type] ?? job.type} service`, detail: "Complete the quoted cleaning scope.", done: job.status === "completed" },
+    { label: "Close-out & photos", detail: "Add service notes and photos before handoff.", done: job.status === "completed" && Boolean(job.completionNotes) },
+  ];
+  const showLegacyLayout = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("legacyJobLayout");
+
+  if (!showLegacyLayout) {
+    return (
+      <div className="-mx-4 -mt-6 min-h-screen bg-[#f7f9f6] pb-10 sm:-mx-6 lg:-mx-8">
+        <header className="sticky top-0 z-20 border-b border-[#d7e0d7] bg-[#fbfdf9]/95 px-5 py-3 backdrop-blur sm:px-8">
+          <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <Link href="/jobs" aria-label="Back to jobs" className="rounded-lg p-2 text-[var(--co-ink)] transition hover:bg-[#edf3eb]"><ArrowLeft className="h-5 w-5" /></Link>
+              <span className="text-lg font-bold tracking-[-0.03em]">Job #{job.id.slice(0, 8).toUpperCase()}</span>
+              <StatusPill status={job.status} />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={() => document.getElementById("assignment")?.scrollIntoView({ behavior: "smooth", block: "center" })} className="co-button-secondary"><UserPlus className="h-4 w-4" /> Reassign</button>
+              <button type="button" onClick={() => document.getElementById("schedule")?.scrollIntoView({ behavior: "smooth", block: "center" })} className="co-button-secondary"><CalendarClock className="h-4 w-4" /> Reschedule</button>
+              {job.status === "cancelled" ? null : <button disabled={saving} type="button" onClick={() => save({ status: "cancelled" })} className="co-button-secondary border-rose-200 text-rose-700 hover:bg-rose-50"><XCircle className="h-4 w-4" /> Cancel</button>}
+            </div>
+          </div>
+        </header>
+
+        <main className="mx-auto grid max-w-[1500px] gap-6 px-5 py-7 xl:grid-cols-[290px_minmax(0,1fr)_280px] sm:px-8">
+          <aside className="space-y-6">
+            <section className="rounded-2xl border border-[#cad6ca] bg-white p-5 shadow-[0_2px_6px_rgba(18,33,27,0.04)]">
+              <div className="flex items-center justify-between gap-3"><h2 className="font-semibold">Customer info</h2><Link href={`/customers/${job.customerId}`} className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">Edit details</Link></div>
+              <div className="mt-5 flex items-center gap-3"><span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#e4eee2] text-sm font-bold text-[var(--co-evergreen)]"><CircleUserRound className="h-7 w-7" /></span><div><p className="font-bold">{job.customerFirstName} {job.customerLastName}</p><p className="text-xs text-[var(--co-muted)]">Customer record</p></div></div>
+              <div className="mt-6 space-y-4 text-sm">
+                <div className="flex gap-3"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-evergreen)]" /><div><p className="font-semibold">{job.addressLine1 ?? "Address not recorded"}</p><p className="text-[var(--co-muted)]">{[job.city, job.state, job.zip].filter(Boolean).join(", ")}</p><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(jobLocation)}`} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-semibold text-[var(--co-evergreen)] hover:underline">View on map</a></div></div>
+                {job.customerPhone ? <a href={`tel:${job.customerPhone}`} className="flex gap-3 font-semibold hover:text-[var(--co-evergreen)]"><Phone className="h-4 w-4 shrink-0 text-[var(--co-evergreen)]" />{job.customerPhone}</a> : null}
+                {job.customerEmail ? <a href={`mailto:${job.customerEmail}`} className="flex gap-3 break-all text-[var(--co-muted)] hover:text-[var(--co-evergreen)]"><Mail className="h-4 w-4 shrink-0 text-[var(--co-evergreen)]" />{job.customerEmail}</a> : null}
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-[#cad6ca] bg-white p-5 shadow-[0_2px_6px_rgba(18,33,27,0.04)]">
+              <h2 className="font-semibold">Service package</h2>
+              <div className="mt-5 rounded-xl border border-[#d3e0d2] bg-[#f1f7ef] p-4"><div className="flex items-start justify-between gap-2"><p className="font-bold text-[var(--co-evergreen)]">{TYPE_LABELS[job.type] ?? job.type}</p><span className="text-sm font-bold text-[var(--co-evergreen)]">{money(job.priceCents)}</span></div><p className="mt-1 text-xs text-[var(--co-muted)]">One-time appointment · Est. {formatEstimatedTime(job.estimatedDurationMinutes)}</p></div>
+              <div className="mt-4 grid grid-cols-2 gap-3"><div className="rounded-xl border border-[#d3e0d2] bg-[#f7fbf5] p-3"><p className="text-xs text-[var(--co-muted)]">Scheduled</p><p className="mt-1 font-semibold">{formatDisplayDate(job.scheduledDate)}</p></div><div className="rounded-xl border border-[#d3e0d2] bg-[#f7fbf5] p-3"><p className="text-xs text-[var(--co-muted)]">Start time</p><p className="mt-1 font-semibold">{job.scheduledStartTime?.slice(0, 5) ?? "Unscheduled"}</p></div></div>
+              {job.customerNotes ? <div className="mt-4 rounded-xl border border-[#d3e0d2] bg-[#f7fbf5] p-3"><p className="text-xs font-semibold text-[var(--co-muted)]">Special instructions</p><p className="mt-2 whitespace-pre-line text-sm italic leading-5">{job.customerNotes}</p></div> : null}
+            </section>
+          </aside>
+
+          <section className="space-y-6">
+            <section id="assignment" className="rounded-2xl border border-[#cad6ca] bg-white p-5 shadow-[0_2px_6px_rgba(18,33,27,0.04)]">
+              <div className="flex items-center justify-between gap-3"><h2 className="font-semibold">Assigned team</h2><span className="rounded bg-[#eef1f5] px-2 py-1 text-xs font-bold text-slate-600">{assignedEmployees.length ? `${assignedEmployees.length} assigned` : "Unassigned"}</span></div>
+              <div className="mt-4 space-y-3">{assignedEmployees.length ? assignedEmployees.map((employee) => <div key={employee.id} className="flex items-center gap-3 rounded-xl border border-[#d5ded5] p-3"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e4eee2] text-xs font-bold text-[var(--co-evergreen)]">{employee.firstName[0]}{employee.lastName[0]}</span><div className="min-w-0 flex-1"><p className="font-semibold">{employee.firstName} {employee.lastName}</p><p className="text-xs text-[var(--co-muted)]">{assignments.find((assignment) => assignment.userId === employee.id)?.role === "lead" ? "Team lead" : "Cleaning professional"}</p></div><a href={`tel:`} aria-label={`Call ${employee.firstName}`} className="rounded-full bg-[#f0f5ef] p-2 text-[var(--co-evergreen)]"><Phone className="h-4 w-4" /></a></div>) : <p className="rounded-xl border border-dashed border-[#cad6ca] p-4 text-sm text-[var(--co-muted)]">No one is assigned yet. Use Reassign to choose the crew.</p>}</div>
+              <details className="mt-4 rounded-xl border border-[#d5ded5] p-3"><summary className="cursor-pointer text-sm font-semibold text-[var(--co-evergreen)]">Manage assignment</summary><div className="mt-3"><TeamSearchPicker employees={employees} selectedIds={selectedEmployeeIds} onChange={setSelectedEmployeeIds} /></div><button type="button" onClick={() => save({ employeeIds: selectedEmployeeIds })} className="co-button-primary mt-3">Save team</button></details>
+            </section>
+
+            <section className="rounded-2xl border border-[#cad6ca] bg-white p-5 shadow-[0_2px_6px_rgba(18,33,27,0.04)]">
+              <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold">Cleaning checklist</h2><p className="mt-1 text-xs text-[var(--co-muted)]">Live job progress from the service status.</p></div><div className="text-right"><p className="text-2xl font-bold text-[var(--co-evergreen)]">{serviceProgress}%</p><p className="text-xs text-[var(--co-muted)]">Complete</p></div></div>
+              <div className="mt-5 h-2 overflow-hidden rounded-full bg-[#dfe6df]"><div className="h-full bg-[var(--co-evergreen)] transition-all" style={{ width: `${serviceProgress}%` }} /></div>
+              <div className="mt-5 space-y-4">{serviceSteps.map((step) => <div key={step.label} className={`flex gap-3 rounded-xl p-3 ${step.done ? "bg-[#f4f8f3]" : ""}`}><span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded ${step.done ? "bg-[var(--co-evergreen)] text-white" : "border border-[#b8c6b8] bg-white"}`}>{step.done ? <Check className="h-3.5 w-3.5" /> : null}</span><div><p className={`font-semibold ${step.done ? "line-through decoration-[#8da28e]" : ""}`}>{step.label}</p><p className="mt-0.5 text-sm text-[var(--co-muted)]">{step.detail}</p></div></div>)}</div>
+              <details className="mt-5 rounded-xl border border-[#d5ded5] p-3"><summary className="cursor-pointer text-sm font-semibold text-[var(--co-evergreen)]">Add close-out notes</summary><textarea defaultValue={job.completionNotes ?? ""} onBlur={(event) => save({ completionNotes: event.target.value })} rows={4} className="co-input mt-3 w-full resize-none" placeholder="Notes save when you leave this field." /></details>
+            </section>
+
+            <section id="schedule" className="rounded-2xl border border-[#cad6ca] bg-white p-5 shadow-[0_2px_6px_rgba(18,33,27,0.04)]"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">Schedule & status</h2><p className="mt-1 text-sm text-[var(--co-muted)]">Update the visit without leaving the dispatch view.</p></div><Link href="/calendar" className="text-sm font-semibold text-[var(--co-evergreen)] hover:underline">Open calendar</Link></div><div className="mt-4 grid gap-3 sm:grid-cols-3"><input type="date" defaultValue={job.scheduledDate} onBlur={(event) => save({ scheduledDate: event.target.value })} className="co-input" /><input type="time" defaultValue={job.scheduledStartTime?.slice(0, 5) ?? ""} onBlur={(event) => event.target.value && save({ scheduledStartTime: `${event.target.value}:00` })} className="co-input" /><select value={job.status} onChange={(event) => save({ status: event.target.value })} className="co-input">{STATUSES.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></div></section>
+          </section>
+
+          <aside className="space-y-6">
+            <section className="rounded-2xl border border-[#cad6ca] bg-white p-5 shadow-[0_2px_6px_rgba(18,33,27,0.04)]"><h2 className="font-semibold">Activity timeline</h2><div className="mt-5 space-y-5 border-l-2 border-[#c8d7c8] pl-5">{auditLogs.length ? auditLogs.slice(0, 5).map((log, index) => <div key={log.id} className="relative"><span className={`absolute -left-[1.72rem] top-1 h-3 w-3 rounded-full border-2 border-white ${index === 0 ? "bg-[var(--co-evergreen)]" : "bg-[#b7c7b8]"}`} /><p className="text-sm font-semibold">{log.action.replaceAll(".", " ")}</p><p className="mt-0.5 text-xs text-[var(--co-muted)]">{formatDateTime(log.createdAt)} · {log.editorFirstName ?? "System"}</p></div>) : <div className="relative"><span className="absolute -left-[1.72rem] top-1 h-3 w-3 rounded-full border-2 border-white bg-[var(--co-evergreen)]" /><p className="text-sm font-semibold">Job scheduled</p><p className="mt-0.5 text-xs text-[var(--co-muted)]">No activity has been logged yet.</p></div>}</div></section>
+            <JobPhotos jobId={job.id} />
+            <section className="rounded-2xl border border-[#cad6ca] bg-white p-5 shadow-[0_2px_6px_rgba(18,33,27,0.04)]"><h2 className="font-semibold">Time & handoff</h2><div className="mt-4 grid grid-cols-2 gap-3 text-sm"><div className="rounded-xl bg-[#f3f7f2] p-3"><p className="text-xs text-[var(--co-muted)]">Recorded</p><p className="mt-1 font-bold">{recordedHours.toFixed(2)} hrs</p></div><div className="rounded-xl bg-[#f3f7f2] p-3"><p className="text-xs text-[var(--co-muted)]">Open clocks</p><p className="mt-1 font-bold">{openEntries}</p></div></div>{job.status === "completed" ? <button type="button" onClick={createInvoice} className="co-button-primary mt-4 w-full justify-center">Create invoice</button> : <button type="button" onClick={() => save({ status: "completed" })} className="co-button-primary mt-4 w-full justify-center">Mark completed</button>}</section>
+          </aside>
+        </main>
+        {error ? <div role="alert" className="fixed bottom-5 left-1/2 z-30 w-[min(92vw,600px)] -translate-x-1/2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-lg">{error}</div> : null}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-5">
@@ -366,7 +479,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
             Back to jobs
           </Link>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <p className="font-mono text-xs text-[var(--co-faint)]">#{job.id.slice(0, 8).toUpperCase()}</p>
+            <p className="eyebrow">Operations / Job detail</p>
             <StatusPill status={job.status} />
           </div>
           <h1 className="page-title mt-2">
@@ -378,9 +491,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="co-button-secondary" onClick={() => document.getElementById("assigned-team")?.scrollIntoView({ behavior: "smooth" })}>Reassign</button>
-          <button type="button" className="co-button-secondary" onClick={() => document.getElementById("scheduling")?.scrollIntoView({ behavior: "smooth" })}>Reschedule</button>
-          {job.status !== "cancelled" && job.status !== "completed" ? <button disabled={saving} type="button" className="co-button-secondary text-rose-700" onClick={() => save({ status: "cancelled" })}>Cancel</button> : null}
           <Link href={`/customers/${job.customerId}`} className="co-button-secondary">
             Customer profile
           </Link>
@@ -418,8 +528,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
         <StatCard label="Invoice handoff" value={money(job.priceCents)} hint={job.status === "completed" ? "Ready to invoice" : "Complete the job first"} />
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-3">
-        <div className="space-y-5 xl:col-span-2">
+      <section className="grid gap-5 xl:grid-cols-[1.18fr_0.82fr]">
+        <div className="space-y-5">
           <section className="co-card overflow-hidden">
             <div className="border-b border-[var(--co-line-soft)] px-5 py-5 sm:px-6">
               <p className="eyebrow">Job overview</p>
@@ -428,7 +538,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
                   <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--co-ink)]">Service record</h2>
                   <p className="mt-1 max-w-2xl text-sm text-[var(--co-muted)]">This is the office view for assignment, scheduling, payroll, and invoice handoff.</p>
                 </div>
-              <div className="rounded-lg border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/45 px-4 py-3 text-right">
+                <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/45 px-4 py-3 text-right">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Job ID</p>
                   <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{job.id.slice(0, 8).toUpperCase()}</p>
                 </div>
@@ -459,13 +569,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
                 <p className="mt-1 text-sm text-[var(--co-muted)]">Editable from this page</p>
               </div>
             </div>
-            <div className="grid gap-4 border-t border-[var(--co-line-soft)] p-5 sm:grid-cols-2 sm:p-6">
-              <div><p className="text-xs font-semibold text-[var(--co-muted)]">Customer</p><Link className="mt-1 block font-semibold text-[var(--co-evergreen)] hover:underline" href={`/customers/${job.customerId}`}>{job.customerFirstName} {job.customerLastName}</Link><p className="mt-1 text-sm text-[var(--co-muted)]">{job.customerEmail ?? "No email recorded"} · {job.customerPhone ?? "No phone recorded"}</p></div>
-              <div><p className="text-xs font-semibold text-[var(--co-muted)]">Commercial record</p><p className="mt-1 text-sm text-[var(--co-muted)]">{quote ? `Quote ${quote.status} · ${money(quote.totalCents)}` : "No related quote"}</p><p className="mt-1 text-sm text-[var(--co-muted)]">{invoice ? `Invoice ${invoice.status} · ${money(invoice.totalCents)}` : "No invoice created"}</p></div>
-            </div>
           </section>
 
-          <div id="assigned-team"><Panel eyebrow="Assigned crew" title="Who is cleaning this home?" description="Select the technicians now or save it for later from Calendar.">
+          <Panel eyebrow="Assigned crew" title="Who is cleaning this home?" description="Select the technicians now or save it for later from Calendar.">
             <div className="grid gap-2 sm:grid-cols-2">
               {employees.map((employee) => {
                 const selected = selectedEmployeeIds.includes(employee.id);
@@ -505,12 +611,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
               <button className="co-button-primary" type="button" onClick={() => save({ employeeIds: selectedEmployeeIds })}>
                 Save assignment
               </button>
-              <p className="text-sm text-[var(--co-muted)]">Crew selection updates the job and payroll records.</p>
+              <p className="text-sm text-[var(--co-muted)]">Crew selection updates the job, payroll, and route planning.</p>
             </div>
-          </Panel></div>
+          </Panel>
 
           <div className="grid gap-5 xl:grid-cols-2">
-            <div id="scheduling"><Panel eyebrow="Scheduling assistant" title="Reschedule / place the visit" description="Keep the office in control of the appointment without giving up manual scheduling.">
+            <Panel eyebrow="Scheduling assistant" title="Reschedule / place the visit" description="Keep the office in control of the appointment without giving up manual scheduling.">
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="block text-xs font-semibold text-[var(--co-muted)]">
                   Date
@@ -546,13 +652,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
               <p className="mt-3 text-xs text-[var(--co-muted)]">Use this as the manual scheduling assistant until drag-and-drop scheduling is connected.</p>
             </Panel>
 
-            <Panel eyebrow="Service value" title="Pricing and duration" description="Values are stored on the job record.">
-              <div className="grid gap-3 sm:grid-cols-2"><div><p className="text-xs text-[var(--co-muted)]">Job value</p><p className="mt-1 text-xl font-semibold">{money(job.priceCents)}</p></div><div><p className="text-xs text-[var(--co-muted)]">Estimated duration</p><p className="mt-1 text-xl font-semibold">{job.estimatedDurationMinutes ? `${(job.estimatedDurationMinutes / 60).toFixed(1)} hrs` : "Not set"}</p></div></div>
-              <label className="mt-4 block text-xs font-semibold text-[var(--co-muted)]">Price (cents)<input type="number" min="0" defaultValue={job.priceCents} onBlur={(event) => save({ priceCents: Number(event.target.value) })} className="co-input mt-1 w-full" /></label>
-            </Panel></div>
+            <JobPhotos jobId={job.id} />
           </div>
 
-          <Panel eyebrow="History" title="Change history" description="Job and time-entry edits are recorded here for review.">
+          <Panel eyebrow="Activity timeline" title="Job activity" description="Scheduling, crew, time, close-out, and photo activity recorded for this job.">
             <div className="grid gap-3">
               {auditLogs.slice(0, 8).map((log) => (
                 <div key={log.id} className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4 text-sm">
@@ -684,6 +787,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
                 </div>
               </div>
             ) : null}
+          </Panel>
+
+          <Panel eyebrow="Route" title="Preview" description="A lightweight placeholder until maps are fully connected.">
+            <RoutePreview address={jobLocation} />
           </Panel>
 
           <Panel eyebrow="Completion notes" title="Close-out memo" description="Capture anything the next person needs to know.">

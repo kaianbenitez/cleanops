@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { auditLog, jobs, jobAssignments, customers, timeEntries, users, invoices, quotes } from "@/db/schema";
+import { auditLog, jobs, jobAssignments, customers, timeEntries, users } from "@/db/schema";
 import { and, eq, inArray, desc } from "drizzle-orm";
 import { syncToGhl } from "@/lib/ghl/sync";
 import { findPtoConflicts, ptoConflictMessage } from "@/lib/scheduling/pto";
@@ -33,12 +33,12 @@ export async function GET(
       estimatedDurationMinutes: jobs.estimatedDurationMinutes,
       priceCents: jobs.priceCents,
       completionNotes: jobs.completionNotes,
-      quoteId: jobs.quoteId,
       customerId: jobs.customerId,
       customerFirstName: customers.firstName,
       customerLastName: customers.lastName,
       customerEmail: customers.email,
       customerPhone: customers.phone,
+      customerNotes: customers.generalNotes,
       addressLine1: customers.addressLine1,
       city: customers.city,
       state: customers.state,
@@ -52,20 +52,6 @@ export async function GET(
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
-
-  const [invoice] = await db
-    .select({ id: invoices.id, status: invoices.status, totalCents: invoices.totalCents, amountPaidCents: invoices.amountPaidCents })
-    .from(invoices)
-    .where(and(eq(invoices.jobId, jobId), eq(invoices.companyId, admin.companyId)))
-    .orderBy(desc(invoices.createdAt))
-    .limit(1);
-  const [quote] = job.quoteId
-    ? await db
-        .select({ id: quotes.id, status: quotes.status, totalCents: quotes.totalCents, acceptedServiceType: quotes.acceptedServiceType })
-        .from(quotes)
-        .where(and(eq(quotes.id, job.quoteId), eq(quotes.companyId, admin.companyId)))
-        .limit(1)
-    : [];
 
   const assignments = await db
     .select()
@@ -113,7 +99,7 @@ export async function GET(
     .where(and(eq(auditLog.companyId, admin.companyId), eq(auditLog.entityType, "job"), eq(auditLog.entityId, jobId)))
     .orderBy(desc(auditLog.createdAt));
 
-  return NextResponse.json({ job, invoice: invoice ?? null, quote: quote ?? null, assignments, timeEntries: entries, timeEntryAuditLogs, jobAuditLogs });
+  return NextResponse.json({ job, assignments, timeEntries: entries, timeEntryAuditLogs, jobAuditLogs });
 }
 
 export async function PATCH(

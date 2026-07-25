@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { quotes, jobs, recurringSeries, customers } from "@/db/schema";
+import { quotes, jobs, recurringSeries, customers, serviceLocations } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { generateJobsForSeries } from "@/lib/scheduling/generate-jobs";
-import type { PricingBreakdown, ServiceType } from "@/lib/pricing/calculate";
+import { estimateDurationMinutesFromPrice, type PricingBreakdown, type ServiceType } from "@/lib/pricing/calculate";
 import { syncToGhl } from "@/lib/ghl/sync";
 
 const convertSchema = z.object({
@@ -45,15 +45,17 @@ export async function POST(
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const [quote] = await db
-    .select()
+  const [quoteRow] = await db
+    .select({ quote: quotes, hourlyRateCents: serviceLocations.hourlyRateCents })
     .from(quotes)
+    .leftJoin(serviceLocations, and(eq(quotes.serviceLocationId, serviceLocations.id), eq(serviceLocations.companyId, admin.companyId)))
     .where(and(eq(quotes.id, quoteId), eq(quotes.companyId, admin.companyId)))
     .limit(1);
 
-  if (!quote) {
+  if (!quoteRow) {
     return NextResponse.json({ error: "Quote not found" }, { status: 404 });
   }
+  const { quote, hourlyRateCents } = quoteRow;
   if (quote.status !== "accepted" && !parsed.data.forceJob) {
     return NextResponse.json({ error: "Only accepted quotes can be converted" }, { status: 400 });
   }
@@ -64,6 +66,16 @@ export async function POST(
 
   const { startDate, employeeIds } = parsed.data;
   const recurrenceFrequency = RECURRING_TYPES[serviceType];
+  const allTierPricing = quote.allTierPricing as Record<ServiceType, PricingBreakdown> | null;
+  const acceptedBreakdown = allTierPricing?.[serviceType];
+  if (!acceptedBreakdown) {
+    return NextResponse.json({ error: "Quote has no price matrix for the selected service" }, { status: 400 });
+  }
+
+  // Use this tier's final matrix price, rather than room weights or the
+  // original requested tier. This is especially important for recurring
+  // options, whose discounted price defines their job-ticket hours.
+  const estimatedDurationMinutes = estimateDurationMinutesFromPrice(acceptedBreakdown.finalCents, hourlyRateCents);
 
   if (recurrenceFrequency) {
     const dayOfWeek = new Date(`${startDate}T00:00:00.000Z`).getUTCDay();
@@ -76,6 +88,7 @@ export async function POST(
         dayOfWeek,
         startDate,
         priceCents: quote.totalCents,
+        estimatedDurationMinutes,
         defaultEmployeeIds: employeeIds ?? [],
         isActive: true,
       })
@@ -99,14 +112,6 @@ export async function POST(
   }
 
   const jobType = ONE_OFF_JOB_TYPE[serviceType] ?? "one_time";
-
-  // Job Ticket Hours: derived from the ACCEPTED tier's own room-weight
-  // breakdown (sum of weightHours x count across every room), not a guess —
-  // this feeds Phase 2 payroll's commission_jth calculation directly.
-  const allTierPricing = quote.allTierPricing as Record<ServiceType, PricingBreakdown> | null;
-  const acceptedBreakdown = allTierPricing?.[serviceType];
-  const totalHours = (acceptedBreakdown?.roomLines ?? []).reduce((sum, l) => sum + l.weightHours * l.count, 0);
-  const estimatedDurationMinutes = Math.max(60, Math.round(totalHours * 60));
 
   const [job] = await db
     .insert(jobs)

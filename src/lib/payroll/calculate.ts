@@ -10,6 +10,7 @@ import {
   companies,
 } from "@/db/schema";
 import { and, eq, gte, lte, isNotNull, or, sql } from "drizzle-orm";
+import { refreshJobTicketHours } from "./job-ticket-hours";
 
 type CalculationLine = {
   jobId: string;
@@ -116,6 +117,17 @@ export async function generatePayrollForPeriod(periodId: string): Promise<{
       `This payroll period is marked "${period.status}" and is protected from automatic recalculation. Reopen it first if changes are needed.`
     );
   }
+
+  // Commission employees are paid Job Ticket Hours, not clocked time. Refresh
+  // the completed jobs first so payroll and the jobs screen share the same
+  // amount-due-based estimate. Cancelled/no-show work is excluded at source.
+  await refreshJobTicketHours({
+    companyId: period.companyId,
+    startDate: period.startDate,
+    endDate: period.endDate,
+    completedOnly: true,
+    failOnUnresolved: true,
+  });
 
   const [company] = await db
     .select({ settings: companies.settings })
@@ -244,18 +256,19 @@ async function generateCommissionLine(
   const calculation: CalculationLine[] = uniqueRows.map((r) => {
     const minutes = r.estimatedDurationMinutes ?? 0;
     const hoursSpent = (minutesByJob.get(r.jobId) ?? 0) / 60;
-    const amountCents = Math.round(hoursSpent * rateCents);
+    const budgetHours = minutes / 60;
+    const amountCents = Math.round(budgetHours * rateCents);
     return {
       jobId: r.jobId,
       date: r.date,
       customerName: `${r.customerFirstName} ${r.customerLastName}`,
       cleaningType: r.cleaningType,
       crewRole: r.crewRole ?? undefined,
-      budgetHours: minutes / 60,
+      budgetHours,
       hoursSpent,
       rateCents,
       amountCents,
-      averageCentsPerHour: hoursSpent > 0 ? Math.round(amountCents / hoursSpent) : 0,
+      averageCentsPerHour: budgetHours > 0 ? Math.round(amountCents / budgetHours) : 0,
     };
   });
 

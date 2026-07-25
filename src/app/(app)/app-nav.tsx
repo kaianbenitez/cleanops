@@ -50,6 +50,7 @@ const iconByHref: Record<string, LucideIcon> = {
   "/employees": UserCog,
   "/supplies": Boxes,
   "/my-day": Clock,
+  "/schedule": CalendarDays,
   "/sync-issues": RefreshCw,
   "/settings": Settings,
   "/help-center": HelpCircle,
@@ -66,7 +67,7 @@ function NavIcon({ href }: { href: string }) {
 
 export default function AppNav({ isAdmin, userName, userEmail }: { isAdmin: boolean; userName: string; userEmail: string }) {
   const pathname = usePathname();
-  const visibleLinks = isAdmin ? links : [["/my-day", "My day"] as const];
+  const visibleLinks = isAdmin ? links : [["/my-day", "My day"], ["/schedule", "Schedule"] as const];
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -272,14 +273,6 @@ export default function AppNav({ isAdmin, userName, userEmail }: { isAdmin: bool
         </nav>
 
         <div className="mt-auto space-y-3">
-          {isAdmin ? (
-            <div className="rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--co-faint)]">Control room</p>
-              <p className="mt-2 text-sm font-semibold text-[var(--co-ink)]">Fast access to syncs and system settings.</p>
-              <p className="mt-1 text-xs leading-5 text-[var(--co-muted)]">Keep integrations visible so nothing drifts quietly in the background.</p>
-            </div>
-          ) : null}
-
           <div ref={profileMenuRef} className="relative">
             {profileMenuOpen ? (
               <div

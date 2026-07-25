@@ -45,7 +45,9 @@ export const users = pgTable("users", {
   phone: text("phone"),
   email: text("email").notNull(), // login identity — `<username>@cleanops.local`, see src/lib/auth/username.ts
   contactEmail: text("contact_email"), // real personal email, display/contact only, no auth meaning
-  birthday: date("birthday"),
+  // Month/day only (MM-DD). The production database intentionally does not
+  // retain a birth year.
+  birthday: text("birthday"),
   hiredDate: date("hired_date"),
   title: text("title"), // Gusto job title, e.g. "Cleaning Tech (Primary)"
   gustoEmployeeId: text("gusto_employee_id"), // for CSV export matching
@@ -69,6 +71,8 @@ export const users = pgTable("users", {
   // works out of. Cleaning techs generally stick to one area rather than
   // cross-driving between them. Nullable — not every employee has this set.
   serviceLocationId: uuid("service_location_id").references(() => serviceLocations.id),
+  // Storage object path in the private employee-photos bucket.
+  profilePhotoUrl: text("profile_photo_url"),
   isActive: boolean("is_active").notNull().default(true),
   ...timestamps,
 }, (t) => ({
@@ -116,6 +120,7 @@ export const customers = pgTable("customers", {
   salutation: text("salutation"),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
+  companyName: text("company_name"),
   email: text("email"),
   phone: text("phone"),
   addressLine1: text("address_line1"),
@@ -142,18 +147,25 @@ export const customers = pgTable("customers", {
   operationalNotes: text("operational_notes"),
   tags: jsonb("tags").notNull().default([]),
   textMessagingAllowed: boolean("text_messaging_allowed").notNull().default(false),
-  archivedReason: text("archived_reason"),
   status: text("status", { enum: customerStatusEnum }).notNull().default("lead"),
   clientType: text("client_type", { enum: clientTypeEnum }).notNull().default("residential"),
   recurrence: text("recurrence", { enum: recurrenceEnum }),
   source: text("source"),
   notes: text("notes"),
   generalNotes: text("general_notes"),
+  // NOTE: archivedAt/archivedReason were dropped in 0011_plain_freak.sql as dead/write-only
+  // columns tied to customers.status (0 non-null rows, never read). These are a deliberate
+  // reintroduction under the same names for a different feature — hiding non-recurring
+  // one-time customers from the working list — this time actually read by the list/profile
+  // UI. See DECISIONS.md 2026-07-24 (drop) and this session's entry (reintroduction).
+  isArchived: boolean("is_archived").notNull().default(false),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
+  archivedReason: text("archived_reason"),
   ...timestamps,
 }, (t) => ({
   companyIdx: index("customers_company_idx").on(t.companyId),
   ghlContactIdx: uniqueIndex("customers_ghl_contact_idx").on(t.ghlContactId),
+  archivedIdx: index("customers_archived_idx").on(t.companyId, t.isArchived),
 }));
 
 // A customer may have more than one service location. The first location is
@@ -306,16 +318,6 @@ export const quotes = pgTable("quotes", {
   companyIdx: index("quotes_company_idx").on(t.companyId),
 }));
 
-export const quoteLineItems = pgTable("quote_line_items", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  quoteId: uuid("quote_id").notNull().references(() => quotes.id),
-  serviceId: uuid("service_id").references(() => services.id),
-  description: text("description").notNull(),
-  qty: integer("qty").notNull().default(1),
-  unitPriceCents: integer("unit_price_cents").notNull(),
-  ...timestamps,
-});
-
 // ---------- recurring series ----------
 export const frequencyEnum = ["weekly", "biweekly", "every4weeks", "monthly"] as const;
 
@@ -328,6 +330,9 @@ export const recurringSeries = pgTable("recurring_series", {
   startDate: date("start_date").notNull(),
   endDate: date("end_date"),
   priceCents: integer("price_cents").notNull(),
+  // Kept on the series so every generated visit retains the quote-derived
+  // schedule budget instead of falling back to a generic duration.
+  estimatedDurationMinutes: integer("estimated_duration_minutes"),
   defaultEmployeeIds: jsonb("default_employee_ids").notNull().default([]),
   isActive: boolean("is_active").notNull().default(true),
   ...timestamps,
@@ -368,6 +373,7 @@ export const jobAssignments = pgTable("job_assignments", {
   ...timestamps,
 }, (t) => ({
   jobUserIdx: uniqueIndex("job_assignments_job_user_idx").on(t.jobId, t.userId),
+  userIdx: index("job_assignments_user_idx").on(t.userId),
 }));
 
 // ---------- time entries ----------
@@ -408,7 +414,10 @@ export const invoices = pgTable("invoices", {
   checkNumber: text("check_number"),
   paymentNote: text("payment_note"),
   ...timestamps,
-});
+}, (t) => ({
+  companyStatusIdx: index("invoices_company_status_idx").on(t.companyId, t.status),
+  jobIdx: index("invoices_job_idx").on(t.jobId),
+}));
 
 // ---------- payroll ----------
 export const payrollPeriodStatusEnum = ["open", "reviewed", "exported"] as const;
@@ -422,6 +431,24 @@ export const payrollPeriods = pgTable("payroll_periods", {
   exportedAt: timestamp("exported_at", { withTimezone: true }),
   ...timestamps,
 });
+
+// ---------- job photos ----------
+export const jobPhotoSlotEnum = ["before", "after", "extra"] as const;
+
+export const jobPhotos = pgTable("job_photos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  jobId: uuid("job_id").notNull().references(() => jobs.id),
+  companyId: uuid("company_id").notNull().references(() => companies.id),
+  uploadedByUserId: uuid("uploaded_by_user_id").notNull().references(() => users.id),
+  storagePath: text("storage_path").notNull(),
+  slot: text("slot", { enum: jobPhotoSlotEnum }).notNull().default("extra"),
+  caption: text("caption"),
+  ...timestamps,
+}, (t) => ({
+  jobCreatedIdx: index("job_photos_job_created_idx").on(t.jobId, t.createdAt),
+  companyIdx: index("job_photos_company_idx").on(t.companyId),
+  storagePathIdx: uniqueIndex("job_photos_storage_path_idx").on(t.storagePath),
+}));
 
 /**
  * One row per employee per payroll period. Columns mirror the company's real
@@ -482,7 +509,9 @@ export const ghlSyncLog = pgTable("ghl_sync_log", {
   attempts: integer("attempts").notNull().default(0),
   lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
   ...timestamps,
-});
+}, (t) => ({
+  companyStatusIdx: index("ghl_sync_log_company_status_idx").on(t.companyId, t.status),
+}));
 
 // ---------- webhook events (raw inbox) ----------
 export const webhookSourceEnum = ["ghl", "square"] as const;
@@ -495,7 +524,9 @@ export const webhookEvents = pgTable("webhook_events", {
   processedAt: timestamp("processed_at", { withTimezone: true }),
   error: text("error"),
   ...timestamps,
-});
+}, (t) => ({
+  sourceProcessedIdx: index("webhook_events_source_idx").on(t.source, t.processedAt),
+}));
 
 // ---------- audit log ----------
 export const auditLog = pgTable("audit_log", {
@@ -508,7 +539,9 @@ export const auditLog = pgTable("audit_log", {
   before: jsonb("before"),
   after: jsonb("after"),
   ...timestamps,
-});
+}, (t) => ({
+  companyCreatedIdx: index("audit_log_company_created_idx").on(t.companyId, t.createdAt),
+}));
 
 // ---------- relations ----------
 export const companiesRelations = relations(companies, ({ many }) => ({
@@ -551,14 +584,8 @@ export const jobAssignmentsRelations = relations(jobAssignments, ({ one }) => ({
   user: one(users, { fields: [jobAssignments.userId], references: [users.id] }),
 }));
 
-export const quotesRelations = relations(quotes, ({ one, many }) => ({
+export const quotesRelations = relations(quotes, ({ one }) => ({
   customer: one(customers, { fields: [quotes.customerId], references: [customers.id] }),
-  lineItems: many(quoteLineItems),
-}));
-
-export const quoteLineItemsRelations = relations(quoteLineItems, ({ one }) => ({
-  quote: one(quotes, { fields: [quoteLineItems.quoteId], references: [quotes.id] }),
-  service: one(services, { fields: [quoteLineItems.serviceId], references: [services.id] }),
 }));
 
 export const payrollPeriodsRelations = relations(payrollPeriods, ({ many }) => ({

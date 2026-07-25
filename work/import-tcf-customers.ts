@@ -266,6 +266,7 @@ async function main() {
         salutation: s(row, "Salutation") || null,
         firstName: firstName || "(no first name)",
         lastName: lastName || "(no last name)",
+        companyName: s(row, "Company Name") || null,
         email: s(row, "Email") || null,
         phone,
         addressLine1,
@@ -285,8 +286,6 @@ async function main() {
         status: isCanceled ? "lost" : "client",
         clientType: s(row, "Customer Type").toLowerCase().includes("commercial") ? "commercial" : "residential",
         recurrence,
-        archivedReason: isCanceled ? `Cancelled in TheCustomerFactor (recorded: "${canceledDate}")` : null,
-        archivedAt: null,
       })
       .returning();
 

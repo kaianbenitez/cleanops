@@ -5,6 +5,8 @@ import Link from "next/link";
 import { MapPin, User, CalendarDays, History } from "lucide-react";
 import { emailToUsername } from "@/lib/auth/username";
 import PtoEditor, { type EmployeePto } from "./pto-editor";
+import PhotoUpload from "./photo-upload";
+import { ComingSoonStat } from "@/components/ui/coming-soon-stat";
 
 type PayTier = { minHours: number; maxHours: number | null; rateCents: number };
 type Employee = {
@@ -24,6 +26,7 @@ type Employee = {
   isActive: boolean;
   serviceLocationId: string | null;
   serviceLocationName: string | null;
+  profilePhotoUrl: string | null;
 };
 type Stats = {
   jobsCompleted: number;
@@ -49,22 +52,6 @@ type EmployeeJob = {
   city: string | null;
   state: string | null;
 };
-type EmployeeTimeEntry = {
-  id: string;
-  jobId: string;
-  clockIn: string;
-  clockOut: string | null;
-  minutesWorked: number | null;
-  editedByAdmin: boolean;
-  recordedByAdmin: boolean;
-  notes: string | null;
-  scheduledDate: string;
-  type: EmployeeJob["type"];
-  status: EmployeeJob["status"];
-  customerFirstName: string;
-  customerLastName: string;
-};
-
 type PayTierBracket = { minHours: number; maxHours: number | null; label: string };
 
 const JOB_TYPE_LABELS: Record<EmployeeJob["type"], string> = {
@@ -169,17 +156,6 @@ function WeekStrip({ days, pto = [] }: { days: WeekDay[]; pto?: EmployeePto[] })
   );
 }
 
-function ComingSoonStat({ label }: { label: string }) {
-  return (
-    <section className="rounded-2xl border border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)]/30 p-5">
-      <p className="text-xs font-semibold text-[var(--co-muted)]">{label}</p>
-      <p className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--co-muted)]">—</p>
-      <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--co-surface-muted)] px-2 py-0.5 text-[11px] font-semibold text-[var(--co-muted)]">
-        Coming soon
-      </p>
-    </section>
-  );
-}
 
 export default function EmployeeProfilePage({ params }: { params: Promise<{ employeeId: string }> }) {
   const { employeeId } = use(params);
@@ -716,7 +692,7 @@ function CompactProfile({
       <section className="co-card flex flex-col gap-5 p-5 lg:flex-row lg:items-center lg:justify-between lg:px-6">
         <div className="flex min-w-0 items-center gap-4">
           <div className="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-2xl border-2 border-[var(--co-evergreen)] bg-[var(--co-surface-muted)] text-2xl font-semibold text-[var(--co-evergreen)]">
-            {initials}
+            {employee.profilePhotoUrl ? <img src={employee.profilePhotoUrl} alt={`${fullName} profile`} className="h-full w-full rounded-[14px] object-cover" /> : initials}
             <span className={`absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] ${employee.isActive ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-500"}`}>{employee.isActive ? "Active" : "Inactive"}</span>
           </div>
           <div className="min-w-0">
@@ -729,16 +705,17 @@ function CompactProfile({
               {tenure ? <span>{tenure}</span> : null}
             </div>
             {anniversary || birthday ? <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-medium text-[var(--co-muted)]"><span className="rounded-md border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2 py-1">{anniversary ?? "Work anniversary not set"}</span><span className="rounded-md border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2 py-1">{birthday ?? "Birthday not set"}</span></div> : null}
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button type="button" onClick={() => { setEditMode(true); employeeInfoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="co-button-primary">Edit profile</button>
-              <Link href={`/calendar?view=staff&employeeId=${employee.id}`} className="co-button-secondary">View schedule</Link>
-              {employee.contactEmail ? <a href={`mailto:${employee.contactEmail}`} className="co-button-secondary">Message</a> : null}
-            </div>
           </div>
         </div>
-        <div className="flex shrink-0 gap-7 border-t border-[var(--co-line-soft)] pt-4 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
+        <div className="flex shrink-0 flex-col gap-4 border-t border-[var(--co-line-soft)] pt-4 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <button type="button" onClick={() => { setEditMode(true); employeeInfoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="co-button-primary">Edit profile</button>
+            <Link href={`/calendar?view=staff&employeeId=${employee.id}`} className="co-button-secondary">View schedule</Link>
+          </div>
+          <div className="flex gap-7">
           <div><p className="eyebrow">Total jobs</p><p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--co-evergreen)]">{stats.jobsCompleted.toLocaleString()}</p></div>
           <div><p className="eyebrow">Team rank</p><p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--co-evergreen)]">{stats.teamRank == null ? "—" : `#${stats.teamRank}`}</p>{stats.teamRank != null ? <p className="text-[11px] text-[var(--co-muted)]">of {stats.teamSize}</p> : null}</div>
+          </div>
         </div>
       </section>
 
@@ -754,6 +731,11 @@ function CompactProfile({
             <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><User className="h-4 w-4 text-[var(--co-evergreen)]" /><h2 className="text-sm font-semibold">Personnel details</h2></div>{editMode ? <button type="button" onClick={() => setEditMode(false)} className="text-xs font-semibold text-[var(--co-muted)] hover:text-[var(--co-ink)]">Done</button> : null}</div>
             {editMode ? (
               <div className="mt-5 space-y-3">
+                <div className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-3">
+                  <p className="text-xs font-semibold text-[var(--co-ink)]">Profile photo</p>
+                  <p className="mt-1 text-[11px] text-[var(--co-muted)]">Upload a JPG, PNG, or WebP image (up to 5 MB).</p>
+                  <div className="mt-3"><PhotoUpload employeeId={employee.id} photoUrl={employee.profilePhotoUrl} initials={initials} onUploaded={load} /></div>
+                </div>
                 <Field label="First name" defaultValue={employee.firstName} onSave={(v) => save({ firstName: v })} />
                 <Field label="Last name" defaultValue={employee.lastName} onSave={(v) => save({ lastName: v })} />
                 <div>

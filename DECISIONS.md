@@ -584,3 +584,109 @@ button (it renders ~200-300ms after the drag, once the PATCH resolves — a naiv
 check missed it a couple of times before polling caught it reliably), clicked it, and confirmed
 via direct API read that the job reverted to its exact pre-drag time. `npm run verify` is clean
 at 0 errors. This completes all 5 phases of the calendar scheduling UX overhaul.
+
+## 2026-07-24 — Backend efficiency pass: schema cleanup + missing indexes
+
+Deviates from §4 (schema). Dropped two pieces of dead schema after verifying zero live data
+in the hosted DB (checked via direct query before dropping, not assumed):
+
+- `quote_line_items` table + its relations (§4's original per-line-item quoting model was
+  superseded at some point by pricing via `roomCounts`/`allTierPricing` JSONB directly on
+  `quotes` — the table was defined but nothing ever read or wrote it; 0 rows in prod).
+- `customers.archivedReason` / `customers.archivedAt` — write-only columns, only ever set by
+  the one-off `work/import-tcf-customers.ts` migration script and never read by any route or
+  UI; `customers.status` already captures the cancelled/lost state that `archivedReason` was
+  duplicating. 0 non-null values in prod. Removed the two write sites in
+  `import-tcf-customers.ts` and the matching `ADD COLUMN IF NOT EXISTS archived_reason` in
+  `work/repair-database.ts`.
+
+Also added indexes that were missing on columns hit by every-request filters/joins:
+`invoices(company_id, status)`, `invoices(job_id)`, `webhook_events(source, processed_at)`
+(the dedup check on every inbound GHL/Square webhook), `audit_log(company_id, created_at)`,
+`ghl_sync_log(company_id, status)`, `job_assignments(user_id)`. Generated as
+`drizzle/0011_plain_freak.sql` — **not yet applied** to the hosted DB, pending explicit
+approval per the migration-approval rule in `AGENTS.md`.
+
+Same session: patched Next.js 16.2.10 → 16.2.11 (latest stable; real CVE fixes are only in
+unreleased 16.3.0 canary builds, so the vulnerability isn't fully closed — tracked in
+`HANDOFF.md`, not treated as done), and removed ~10 unused vars/types flagged by ESLint
+across `dashboard`, `invoices`, `employees/[employeeId]`, `jobs/[jobId]`, and `reports`
+pages. Deliberately left 3 unused vars in `my-day/page.tsx` untouched — `AGENTS.md` calls
+out My Day as needing on-phone verification before any change there, and it was recently
+reworked, so it wasn't touched blind. Deliberately skipped `calendar/shared.ts`,
+`month-board.tsx`, and `staff-board.tsx` entirely — Codex had uncommitted work in progress
+in those exact files at the time (an overflow-cap fix for `assignDayLanes()`).
+
+## 2026-07-24 — Reintroduce customers.isArchived/archivedAt/archivedReason (different feature this time)
+
+Deviates from §4 (schema), and deliberately reintroduces column names dropped earlier the
+same day (see the entry above). `archivedReason`/`archivedAt` were dropped as dead/write-only
+columns — 0 non-null rows, only ever set by a one-off import script, never read by any route
+or UI. This entry adds them back, plus a new `isArchived` boolean, for a genuinely different
+and this time actually-used feature: letting staff archive one-time customers who never
+converted to a recurring plan, so they drop out of the default `/customers` list without
+deleting their job/invoice history. Unlike the old columns, `isArchived` is read by the
+customers list (default-excludes archived rows, with a "Show archived" toggle), the customer
+profile page (archive/restore action), and a new bulk-archive view for customers matching an
+explicit "eligible" rule (served but never recurring, no upcoming job). Added a company-scoped
+index, `customers_archived_idx (company_id, is_archived)`, since the list page filters on this
+every request.
+
+Generated as `drizzle/0012_amusing_caretaker.sql` — **not yet applied** to the hosted DB,
+pending explicit approval per `AGENTS.md`'s migration-approval rule. Note: `drizzle-kit
+generate` also picked up Codex's in-progress `job_photos` table and `users.birthday`/
+`profile_photo_url` changes (already in `schema.ts` but never migrated — `profile_photo_url`
+in particular was already applied directly to the hosted DB without a tracked migration).
+Those statements were manually stripped from this migration file since they aren't part of
+this change and `profile_photo_url` already existing on the hosted DB would have made the raw
+generated file fail outright if run as-is.
+
+**Follow-up same day, discovered during verification**: directly querying the hosted DB (not
+just diffing against schema.ts) turned up a much bigger pre-existing gap — `customers` is
+missing 7 columns that the *already-shipped* customer list/profile pages depend on:
+`client_type`, `company_name`, `preferred_days`, `preferred_cleaner_id`,
+`preferred_time_of_day`, `payment_methods`, `general_notes`. These aren't new — complete
+migrations for them were generated and committed long ago (`drizzle/0008_wild_riptide.sql`,
+`0009_sleepy_maverick.sql`, `0010_chief_donald_blake.sql`, including backfill logic from the
+legacy singular columns) but were apparently never actually applied to the hosted DB, despite
+the dependent UI being marked "Done" in `HANDOFF.md`. This means `/customers` and
+`/customers/[id]` have very likely been 500-erroring in real production this whole time,
+independent of anything in this session's work.
+
+Per user decision, folded 0008/0009/0010's statements into `0012_amusing_caretaker.sql`
+alongside this feature's 3 archive columns, so one migration catches the hosted DB up
+completely rather than applying them separately. Dry-run verified first against the live DB
+inside a transaction that was rolled back (`BEGIN; ...; ROLLBACK;` — no changes persisted):
+all 10 columns applied cleanly, `client_type` defaulted to `'residential'`, `is_archived`
+defaulted to `false`, and the backfill statement ran without error.
+
+**Applied to the hosted DB 2026-07-24, with explicit user approval**, as a single committed
+SQL transaction (not `db:migrate`/`db:push`, per this repo's established process). Confirmed
+live afterward: all 10 columns, the `customers_archived_idx` index, and the
+`customers_preferred_cleaner_id_users_id_fk` foreign key all present. This retroactively
+un-breaks whatever has been failing on `/customers` and `/customers/[id]` in production since
+0008/0009/0010 were originally committed without ever being run.
+
+## 2026-07-24 — Correction: three commits mistakenly include Codex's unreviewed work
+
+`fb311bc` ("Add employee profile photo uploads"), `d3a2553` ("Make employee photo upload
+visible"), and `6eb3c19` ("Uncover employee photo upload control") — all pushed to `main`
+earlier the same day — were found to bundle in Codex's in-progress, explicitly
+do-not-touch work from this same HANDOFF.md (the employee-photo-upload feature *and*,
+separately, the `calendar/shared.ts` / `calendar/month-board.tsx` / `calendar/staff-board.tsx`
+overflow-cap fix), staged and committed under messages describing only the photo feature. A
+prior session ran a broad `git add` over the whole working tree instead of checking each
+changed file against HANDOFF's "do not touch" list before staging, so Codex's uncommitted
+changes got swept in and pushed as if they were this session's own reviewed work.
+
+**Not reverted or rewritten** — this history is already on `origin/main`, and rewriting/
+force-pushing shared commits Codex may have since built on top of is a bigger risk than the
+inaccurate commit messages themselves (per user decision 2026-07-24). Left as a documented
+correction instead.
+
+**Still true and worth checking before relying on the employee-photo-upload feature**: per
+`0012_amusing_caretaker.sql`'s own comment, no migration was ever generated or applied for
+`users.birthday`/`users.profile_photo_url`/the `job_photos` table — they exist in `schema.ts`
+(and now, via these three commits, in the UI) but may not exist on the hosted DB. Verify
+directly against the live DB (not just `schema.ts`) before trusting this feature works in
+production.

@@ -1,134 +1,118 @@
 "use client";
 
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 type Employee = { id: string; firstName: string; lastName: string };
 
 const VIEWS = [
   { value: "week", label: "Week" },
-  { value: "day", label: "Day" },
   { value: "staff", label: "Staff" },
-  { value: "list", label: "List" },
+  { value: "month", label: "Month" },
 ] as const;
 
 const TYPES = [
-  { value: "first_clean", label: "First Clean" },
+  { value: "first_clean", label: "First clean" },
   { value: "recurring", label: "Recurring" },
-  { value: "one_time", label: "One-Time" },
-  { value: "deep_clean", label: "Deep Clean" },
-  { value: "move_out", label: "Move In/Out" },
+  { value: "one_time", label: "One-time" },
+  { value: "deep_clean", label: "Deep clean" },
+  { value: "move_out", label: "Move in/out" },
+] as const;
+
+const RECURRENCES = [
+  { value: "weekly", label: "Weekly" },
+  { value: "biweekly", label: "Biweekly" },
+  { value: "every4weeks", label: "Every 4 weeks" },
+  { value: "monthly", label: "Monthly" },
+  { value: "none", label: "One-time" },
+] as const;
+
+const STATUSES = [
+  { value: "scheduled", label: "Scheduled" },
+  { value: "in_progress", label: "In progress" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "no_show", label: "No show" },
 ] as const;
 
 export default function FilterBar({ employees }: { employees: Employee[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [zipDraft, setZipDraft] = useState(searchParams.get("zip") ?? "");
 
   function setParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
-    if (value) {
-      params.set(key, value);
-    } else {
-      params.delete(key);
-    }
-    // Changing a filter or view shouldn't keep a stale day/week anchor from
-    // a different navigation context — but we DO want to keep the current
-    // anchor when just switching views, so only the filter setters below
-    // touch date params, never this generic setter.
+    if (value) params.set(key, value);
+    else params.delete(key);
     router.push(`${pathname}?${params.toString()}`);
   }
 
   function clearAll() {
     const params = new URLSearchParams();
-    const view = searchParams.get("view");
-    if (view) params.set("view", view);
-    const week = searchParams.get("week");
-    if (week) params.set("week", week);
-    const day = searchParams.get("day");
-    if (day) params.set("day", day);
+    for (const key of ["view", "week", "day", "month"]) {
+      const value = searchParams.get(key);
+      if (value) params.set(key, value);
+    }
     router.push(`${pathname}?${params.toString()}`);
     setZipDraft("");
   }
 
-  const view = searchParams.get("view") ?? "week";
+  const view = searchParams.get("view") ?? "staff";
   const employeeId = searchParams.get("employeeId") ?? "";
   const type = searchParams.get("type") ?? "";
-  const recurring = searchParams.get("recurring") ?? "";
-  const hasFilters = employeeId || type || recurring || searchParams.get("zip");
+  const recurrence = searchParams.get("recurrence") ?? "";
+  const status = searchParams.get("status") ?? "";
+  const hasFilters = employeeId || type || recurrence || status || searchParams.get("zip");
 
   return (
-    <div className="co-card flex flex-wrap items-center gap-2 p-3">
-      <div className="flex overflow-hidden rounded-xl border border-[var(--co-line)] bg-[var(--co-surface-muted)]/50 p-1">
-        {VIEWS.map((v) => (
-          <button
-            key={v.value}
-            type="button"
-            aria-pressed={view === v.value}
-            onClick={() => setParam("view", v.value === "week" ? "" : v.value)}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${view === v.value ? "bg-[var(--co-evergreen)] text-white shadow-sm" : "text-[var(--co-muted)] hover:bg-white hover:text-[var(--co-ink)]"}`}
-          >
-            {v.label}
-          </button>
-        ))}
+    <section className="border-y border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-3 sm:px-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex overflow-hidden rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-0.5">
+          {VIEWS.map((entry) => (
+            <button
+              key={entry.value}
+              type="button"
+              aria-pressed={view === entry.value}
+              onClick={() => setParam("view", entry.value === "staff" ? "" : entry.value)}
+              className={`px-3 py-1.5 text-xs font-semibold transition-colors ${view === entry.value ? "bg-[var(--co-evergreen)] text-white" : "text-[var(--co-muted)] hover:bg-white hover:text-[var(--co-ink)]"}`}
+            >
+              {entry.label}
+            </button>
+          ))}
+        </div>
+
+        <select value={employeeId} onChange={(event) => setParam("employeeId", event.target.value)} aria-label="Filter by employee" className="co-input min-w-[150px] py-2 text-xs">
+          <option value="">All technicians</option>
+          {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}</option>)}
+        </select>
+
+        <select value={status} onChange={(event) => setParam("status", event.target.value)} aria-label="Filter by status" className="co-input min-w-[130px] py-2 text-xs">
+          <option value="">All statuses</option>
+          {STATUSES.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}
+        </select>
+
+        <button type="button" onClick={() => setAdvancedOpen((open) => !open)} aria-expanded={advancedOpen} className={`co-button-secondary py-2 text-xs ${advancedOpen ? "border-[var(--co-evergreen)] text-[var(--co-evergreen)]" : ""}`}>
+          More filters{hasFilters ? ` (${[employeeId, type, recurrence, status, searchParams.get("zip")].filter(Boolean).length})` : ""}
+        </button>
+
+        {hasFilters ? <button type="button" onClick={clearAll} className="ml-auto text-xs font-semibold text-[var(--co-evergreen)] hover:underline">Clear filters</button> : null}
       </div>
 
-      <select
-        value={employeeId}
-        onChange={(e) => setParam("employeeId", e.target.value)}
-        aria-label="Filter by employee"
-        className="co-input min-w-[160px] py-2 text-xs"
-      >
-        <option value="">All employees</option>
-        {employees.map((e) => (
-          <option key={e.id} value={e.id}>
-            {e.firstName} {e.lastName}
-          </option>
-        ))}
-      </select>
-
-      <select
-        value={type}
-        onChange={(e) => setParam("type", e.target.value)}
-        aria-label="Filter by cleaning type"
-        className="co-input min-w-[160px] py-2 text-xs"
-      >
-        <option value="">All cleaning types</option>
-        {TYPES.map((t) => (
-          <option key={t.value} value={t.value}>
-            {t.label}
-          </option>
-        ))}
-      </select>
-
-      <select
-        value={recurring}
-        onChange={(e) => setParam("recurring", e.target.value)}
-        aria-label="Filter by schedule type"
-        className="co-input min-w-[170px] py-2 text-xs"
-      >
-        <option value="">Recurring + one-time</option>
-        <option value="yes">Recurring only</option>
-        <option value="no">One-time only</option>
-      </select>
-
-      <input
-        value={zipDraft}
-        onChange={(e) => setZipDraft(e.target.value)}
-        onBlur={() => setParam("zip", zipDraft.trim())}
-        onKeyDown={(e) => e.key === "Enter" && setParam("zip", zipDraft.trim())}
-        placeholder="Zip code"
-        aria-label="Filter by zip code"
-        className="co-input w-28 py-2 text-xs"
-      />
-
-      {hasFilters ? (
-        <button type="button" onClick={clearAll} className="ml-auto text-xs font-semibold text-[var(--co-evergreen)] hover:underline">
-          Clear filters
-        </button>
+      {advancedOpen ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[var(--co-line-soft)] pt-3">
+          <select value={recurrence} onChange={(event) => setParam("recurrence", event.target.value)} aria-label="Filter by recurrence" className="co-input min-w-[145px] py-2 text-xs">
+            <option value="">All recurrence</option>
+            {RECURRENCES.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}
+          </select>
+          <select value={type} onChange={(event) => setParam("type", event.target.value)} aria-label="Filter by cleaning type" className="co-input min-w-[145px] py-2 text-xs">
+            <option value="">All service types</option>
+            {TYPES.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}
+          </select>
+          <input value={zipDraft} onChange={(event) => setZipDraft(event.target.value)} onBlur={() => setParam("zip", zipDraft.trim())} onKeyDown={(event) => event.key === "Enter" && setParam("zip", zipDraft.trim())} placeholder="ZIP code" aria-label="Filter by ZIP code" className="co-input w-28 py-2 text-xs" />
+        </div>
       ) : null}
-    </div>
+    </section>
   );
 }

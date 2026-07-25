@@ -1,11 +1,24 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { and, desc, eq, ilike, or } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { customers, invoices, jobs } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { PaginationControls } from "@/components/ui/pagination";
 
-type SearchParams = { q?: string; status?: string };
+const PAGE_SIZE = 25;
+
+type SearchParams = { q?: string; status?: string; page?: string };
+
+function hrefForPage(params: SearchParams, page: number) {
+  const next = new URLSearchParams();
+  Object.entries(params).forEach(([name, current]) => {
+    if (name !== "page" && current) next.set(name, current);
+  });
+  if (page > 1) next.set("page", String(page));
+  const query = next.toString();
+  return query ? `/invoices?${query}` : "/invoices";
+}
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Draft",
@@ -29,16 +42,6 @@ function isOverdue(status: string, createdAt: Date) {
   return status === "sent" && Date.now() - new Date(createdAt).getTime() > 14 * 24 * 60 * 60 * 1000;
 }
 
-function queryHref(params: SearchParams, key: keyof SearchParams, value: string) {
-  const next = new URLSearchParams();
-  Object.entries(params).forEach(([name, current]) => {
-    if (name !== key && current) next.set(name, current);
-  });
-  if (value) next.set(key, value);
-  const query = next.toString();
-  return query ? `/invoices?${query}` : "/invoices";
-}
-
 function statsCard({ label, value, note, key }: { label: string; value: string; note: string; key?: string }) {
   return (
     <div key={key} className="co-card p-5">
@@ -59,36 +62,54 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
   if (sp.status && sp.status !== "all") conditions.push(eq(invoices.status, sp.status as typeof invoices.status.enumValues[number]));
   if (sp.q?.trim()) {
     const query = `%${sp.q.trim()}%`;
-    conditions.push(or(ilike(customers.firstName, query), ilike(customers.lastName, query), ilike(invoices.id, query))!);
+    // invoices.id is a uuid column — ILIKE has no operator for uuid without an
+    // explicit text cast, so this previously threw a SQL error on every search.
+    conditions.push(or(ilike(customers.firstName, query), ilike(customers.lastName, query), sql`${invoices.id}::text ilike ${query}`)!);
   }
 
-  const rows = await db
-    .select({
-      id: invoices.id,
-      status: invoices.status,
-      method: invoices.method,
-      totalCents: invoices.totalCents,
-      amountPaidCents: invoices.amountPaidCents,
-      createdAt: invoices.createdAt,
-      customerId: customers.id,
-      customerFirstName: customers.firstName,
-      customerLastName: customers.lastName,
-      jobType: jobs.type,
-      jobScheduledDate: jobs.scheduledDate,
-    })
-    .from(invoices)
-    .innerJoin(customers, eq(invoices.customerId, customers.id))
-    .leftJoin(jobs, eq(invoices.jobId, jobs.id))
-    .where(and(...conditions))
-    .orderBy(desc(invoices.createdAt));
+  const page = Math.max(1, Math.floor(Number(sp.page)) || 1);
+  const overdueCondition = sql`${invoices.status} = 'sent' and ${invoices.createdAt} < now() - interval '14 days'`;
 
-  const counts = {
-    all: rows.length,
-    paid: rows.filter((row) => row.status === "paid").length,
-    sent: rows.filter((row) => row.status === "sent").length,
-    overdue: rows.filter((row) => isOverdue(row.status, row.createdAt)).length,
-  };
-  const overdueTotal = rows.filter((row) => isOverdue(row.status, row.createdAt)).reduce((sum, row) => sum + Math.max(row.totalCents - row.amountPaidCents, 0), 0);
+  const [rows, [counts]] = await Promise.all([
+    db
+      .select({
+        id: invoices.id,
+        status: invoices.status,
+        method: invoices.method,
+        totalCents: invoices.totalCents,
+        amountPaidCents: invoices.amountPaidCents,
+        createdAt: invoices.createdAt,
+        customerId: customers.id,
+        customerFirstName: customers.firstName,
+        customerLastName: customers.lastName,
+        jobType: jobs.type,
+        jobScheduledDate: jobs.scheduledDate,
+      })
+      .from(invoices)
+      .innerJoin(customers, eq(invoices.customerId, customers.id))
+      .leftJoin(jobs, eq(invoices.jobId, jobs.id))
+      .where(and(...conditions))
+      .orderBy(desc(invoices.createdAt))
+      .limit(PAGE_SIZE)
+      .offset((page - 1) * PAGE_SIZE),
+    db
+      .select({
+        all: sql<number>`count(*)`,
+        paid: sql<number>`count(*) filter (where ${invoices.status} = 'paid')`,
+        sent: sql<number>`count(*) filter (where ${invoices.status} = 'sent')`,
+        overdue: sql<number>`count(*) filter (where ${overdueCondition})`,
+        overdueTotal: sql<number>`coalesce(sum(greatest(${invoices.totalCents} - ${invoices.amountPaidCents}, 0)) filter (where ${overdueCondition}), 0)`,
+      })
+      .from(invoices)
+      .innerJoin(customers, eq(invoices.customerId, customers.id))
+      .where(and(...conditions)),
+  ]);
+
+  const total = Number(counts.all);
+  const overdueTotal = Number(counts.overdueTotal);
+  const overdueCount = Number(counts.overdue);
+  const paidCount = Number(counts.paid);
+  const sentCount = Number(counts.sent);
 
   return (
     <div className="space-y-6">
@@ -110,16 +131,16 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: "All invoices", value: String(counts.all), note: "Current billing records" },
-          { label: "Paid", value: String(counts.paid), note: "Collected and closed" },
-          { label: "Pending", value: String(counts.sent), note: "Waiting on payment" },
-          { label: "Overdue", value: String(counts.overdue), note: "Needs follow-up" },
+          { label: "All invoices", value: String(total), note: "Current billing records" },
+          { label: "Paid", value: String(paidCount), note: "Collected and closed" },
+          { label: "Pending", value: String(sentCount), note: "Waiting on payment" },
+          { label: "Overdue", value: String(overdueCount), note: "Needs follow-up" },
         ].map((item) => statsCard({ ...item, key: item.label }))}
       </section>
 
-      {counts.overdue > 0 ? (
+      {overdueCount > 0 ? (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {counts.overdue} overdue invoice{counts.overdue === 1 ? "" : "s"} totaling {dollars(overdueTotal)}.
+          {overdueCount} overdue invoice{overdueCount === 1 ? "" : "s"} totaling {dollars(overdueTotal)}.
         </div>
       ) : null}
 
@@ -207,7 +228,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
           </div>
         )}
 
-        <div className="border-t border-[var(--co-line-soft)] px-5 py-3 text-xs text-[var(--co-muted)]">Showing {rows.length} invoice{rows.length === 1 ? "" : "s"}</div>
+        <PaginationControls page={page} pageSize={PAGE_SIZE} total={total} itemLabel="invoice" hrefForPage={(target) => hrefForPage(sp, target)} />
       </section>
     </div>
   );

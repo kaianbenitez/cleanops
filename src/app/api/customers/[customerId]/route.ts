@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
 import { auditLog, customers, customerLocations, invoices, jobs, users } from "@/db/schema";
-import { and, eq, asc, desc } from "drizzle-orm";
+import { and, eq, asc, desc, sql } from "drizzle-orm";
 import { syncToGhl } from "@/lib/ghl/sync";
 import { resolveCustomerServiceArea } from "@/lib/service-area";
 
@@ -14,6 +14,7 @@ const updateCustomerSchema = z.object({
   salutation: z.string().trim().max(40).nullable().optional(),
   firstName: z.string().trim().min(1).max(100).optional(),
   lastName: z.string().trim().min(1).max(100).optional(),
+  companyName: z.string().trim().max(200).nullable().optional(),
   email: z.string().trim().email().nullable().optional(),
   phone: z.string().trim().max(50).nullable().optional(),
   textMessagingAllowed: z.boolean().optional(),
@@ -28,6 +29,8 @@ const updateCustomerSchema = z.object({
   generalNotes: z.string().trim().max(10000).nullable().optional(),
   tags: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
   homeDetails: z.record(z.string(), z.unknown()).optional(),
+  isArchived: z.boolean().optional(),
+  archivedReason: z.string().trim().max(500).nullable().optional(),
   locations: z.array(z.object({
     id: z.string().uuid().optional(),
     label: z.string().trim().min(1).max(100),
@@ -73,6 +76,10 @@ export async function GET(
   }
   const customerJobs = await db.select({ id: jobs.id, type: jobs.type, status: jobs.status, scheduledDate: jobs.scheduledDate, scheduledStartTime: jobs.scheduledStartTime, estimatedDurationMinutes: jobs.estimatedDurationMinutes, priceCents: jobs.priceCents }).from(jobs).where(and(eq(jobs.customerId, customerId), eq(jobs.companyId, admin.companyId))).orderBy(desc(jobs.scheduledDate), desc(jobs.scheduledStartTime));
   const customerInvoices = await db.select({ id: invoices.id, status: invoices.status, method: invoices.method, totalCents: invoices.totalCents, amountPaidCents: invoices.amountPaidCents, tipCents: invoices.tipCents, createdAt: invoices.createdAt, paidAt: invoices.paidAt }).from(invoices).where(and(eq(invoices.customerId, customerId), eq(invoices.companyId, admin.companyId))).orderBy(desc(invoices.createdAt));
+  const [{ lifetimeSpendCents }] = await db
+    .select({ lifetimeSpendCents: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)` })
+    .from(invoices)
+    .where(and(eq(invoices.customerId, customerId), eq(invoices.companyId, admin.companyId)));
   const serviceArea = await resolveCustomerServiceArea({ companyId: admin.companyId, customerId });
   const auditLogs = await db
     .select({
@@ -88,7 +95,7 @@ export async function GET(
     .leftJoin(users, eq(auditLog.userId, users.id))
     .where(and(eq(auditLog.companyId, admin.companyId), eq(auditLog.entityType, "customer"), eq(auditLog.entityId, customerId)))
     .orderBy(desc(auditLog.createdAt));
-  return NextResponse.json({ customer, locations, jobs: customerJobs, invoices: customerInvoices, auditLogs, serviceArea });
+  return NextResponse.json({ customer, locations, jobs: customerJobs, invoices: customerInvoices, auditLogs, serviceArea, lifetimeSpendCents: Number(lifetimeSpendCents) });
 }
 
 /** PATCH /api/customers/[customerId] — status changes only for now (no full Customers
@@ -127,6 +134,23 @@ export async function PATCH(
   }
 
   const { locations, ...customerFields } = parsed.data;
+
+  // Archive/restore is a distinct workflow action, not a generic profile edit — detect it as
+  // "the only field(s) present are archive-related" so it gets its own audit action name and
+  // skips the GHL sync below (no GhlSyncEvent type maps to "archived", and this is an internal
+  // CleanOps workflow state, not a CRM-relevant transition).
+  const customerFieldKeys = Object.keys(customerFields);
+  const isArchiveOnly = customerFieldKeys.length > 0 && customerFieldKeys.every((key) => key === "isArchived" || key === "archivedReason");
+
+  // Server sets the archive timestamp — never trust a client-supplied value. Restoring clears
+  // both the timestamp and the reason so a future archive doesn't inherit a stale reason.
+  if (parsed.data.isArchived === true) {
+    (customerFields as typeof customerFields & { archivedAt?: Date }).archivedAt = new Date();
+  } else if (parsed.data.isArchived === false) {
+    (customerFields as typeof customerFields & { archivedAt?: Date | null }).archivedAt = null;
+    customerFields.archivedReason = null;
+  }
+
   const [beforeLocations] = await Promise.all([db.select().from(customerLocations).where(and(eq(customerLocations.customerId, customerId), eq(customerLocations.companyId, admin.companyId)))]);
   await db.update(customers).set({ ...customerFields, updatedAt: new Date() }).where(eq(customers.id, customerId));
 
@@ -145,41 +169,49 @@ export async function PATCH(
     }
   }
 
+  const action = isArchiveOnly
+    ? parsed.data.isArchived === true
+      ? "customer.archived"
+      : "customer.restored"
+    : "customer.updated";
+
   await db.insert(auditLog).values({
     companyId: admin.companyId,
     userId: admin.id,
-    action: "customer.updated",
+    action,
     entityType: "customer",
     entityId: customerId,
     before: { customer, locations: beforeLocations },
     after: { ...customer, ...customerFields, locations: locations ?? beforeLocations },
   });
 
-  if (parsed.data.status === "lost") {
-    await syncToGhl(admin.companyId, { type: "customer.lost", customerId });
-  } else if (parsed.data.status === "moved") {
-    await syncToGhl(admin.companyId, { type: "customer.moved", customerId });
-  }
+  if (!isArchiveOnly) {
+    if (parsed.data.status === "lost") {
+      await syncToGhl(admin.companyId, { type: "customer.lost", customerId });
+    } else if (parsed.data.status === "moved") {
+      await syncToGhl(admin.companyId, { type: "customer.moved", customerId });
+    }
 
-  const [updatedCustomer] = await db
-    .select()
-    .from(customers)
-    .where(and(eq(customers.id, customerId), eq(customers.companyId, admin.companyId)))
-    .limit(1);
+    const [updatedCustomer] = await db
+      .select()
+      .from(customers)
+      .where(and(eq(customers.id, customerId), eq(customers.companyId, admin.companyId)))
+      .limit(1);
 
-  if (updatedCustomer) {
-    await syncToGhl(admin.companyId, {
-      type: "customer.updated",
-      customerId,
-      firstName: updatedCustomer.firstName,
-      lastName: updatedCustomer.lastName,
-      email: updatedCustomer.email,
-      phone: updatedCustomer.phone,
-      address1: updatedCustomer.addressLine1,
-      city: updatedCustomer.city,
-      state: updatedCustomer.state,
-      postalCode: updatedCustomer.zip,
-    });
+    if (updatedCustomer) {
+      await syncToGhl(admin.companyId, {
+        type: "customer.updated",
+        customerId,
+        firstName: updatedCustomer.firstName,
+        lastName: updatedCustomer.lastName,
+        email: updatedCustomer.email,
+        phone: updatedCustomer.phone,
+        address1: updatedCustomer.addressLine1,
+        city: updatedCustomer.city,
+        state: updatedCustomer.state,
+        postalCode: updatedCustomer.zip,
+      });
+    }
   }
 
   return NextResponse.json({ ok: true });
