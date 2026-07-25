@@ -1008,12 +1008,12 @@ function TierRatesEditor({
   return (
     <div className="mt-5 border-t border-[var(--co-line-soft)] pt-5">
       <label className="mb-3 block text-xs font-semibold text-[var(--co-muted)]">Tier rate schedule by weekly job ticket hours</label>
-      <div className="grid gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {brackets.map((bracket, index) => (
-          <div key={bracket.label}>
-            <label className="mb-1.5 block text-[11px] text-[var(--co-muted)]">{bracket.label}</label>
+          <div key={bracket.label} className="min-w-0">
+            <label className="mb-1.5 block truncate text-[11px] text-[var(--co-muted)]" title={bracket.label}>{bracket.label}</label>
             <div className="relative">
-              <span className="absolute left-3 top-2.5 text-xs text-[var(--co-muted)]">$</span>
+              <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm leading-none text-[var(--co-muted)]">$</span>
               <input
                 type="number"
                 step="0.01"
@@ -1024,7 +1024,7 @@ function TierRatesEditor({
                   next[index] = e.target.value;
                   setRates(next);
                 }}
-                className="co-input w-full pl-7 text-sm"
+                className="co-input block w-full min-w-0 pl-7 text-sm tabular-nums"
               />
             </div>
           </div>
