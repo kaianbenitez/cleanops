@@ -766,7 +766,6 @@ function CompactProfile({
 
           <section className="co-card p-5"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[var(--co-evergreen)]" /><h2 className="text-sm font-semibold">Weekly schedule preview</h2></div><Link href={`/calendar?view=staff&employeeId=${employee.id}`} className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">View schedule</Link></div><p className="mt-1 text-xs text-[var(--co-muted)]">Assignments and admin PTO for this week.</p><div className="mt-4"><WeekStrip days={weeklySchedule} pto={pto} /></div><PtoEditor employeeId={employee.id} onChange={setPto} /></section>
 
-          <details className="co-card group"><summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 text-sm font-semibold"><span>More details</span><span className="text-xs font-normal text-[var(--co-muted)] group-open:hidden">Payroll, account access, and audit history</span><span className="hidden text-xs font-normal text-[var(--co-muted)] group-open:inline">Collapse</span></summary><div className="space-y-5 border-t border-[var(--co-line-soft)] p-5"><div className="grid gap-4 sm:grid-cols-2"><Field label="Birthday" type="date" defaultValue={employee.birthday ?? ""} onSave={(v) => save({ birthday: v || null })} /><Field label="Hired date" type="date" defaultValue={employee.hiredDate ?? ""} onSave={(v) => save({ hiredDate: v || null })} /><Field label="Gusto employee ID" defaultValue={employee.gustoEmployeeId ?? ""} onSave={(v) => save({ gustoEmployeeId: v })} /></div><div className="rounded-xl bg-[var(--co-surface-muted)] p-4 text-sm"><div className="flex flex-wrap gap-5"><span className="text-[var(--co-muted)]">Hours worked <strong className="text-[var(--co-ink)]">{stats.hoursWorked.toFixed(1)}</strong></span><span className="text-[var(--co-muted)]">This month <strong className="text-[var(--co-ink)]">${dollars(stats.thisMonthPayCents)}</strong></span></div><div className="mt-4"><label className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Pay type</label><select defaultValue={employee.payType ?? "commission_jth"} onChange={(event) => void save({ payType: event.target.value })} className="co-input w-full max-w-sm text-sm"><option value="commission_jth">Commission by job ticket hours</option><option value="office_hourly">Office hourly</option></select></div>{employee.payType === "commission_jth" ? <TierRatesEditor employeeId={employee.id} payTiers={employee.payTiers} brackets={payTierBrackets} fallbackRateCents={employee.hourlyRateCents ?? 0} onSaved={load} /> : null}</div><EmployeeAccountManagement employeeName={fullName} isActive={employee.isActive} onSetPassword={setPassword} onDelete={deleteEmployee} message={managementMessage} error={managementError} /></div></details>
         </div>
       </div>
     </div>
@@ -1024,7 +1023,7 @@ function TierRatesEditor({
                   next[index] = e.target.value;
                   setRates(next);
                 }}
-                className="co-input block w-full min-w-0 pl-7 text-sm tabular-nums"
+                className="co-input block w-full min-w-0 !pl-8 text-sm tabular-nums"
               />
             </div>
           </div>
