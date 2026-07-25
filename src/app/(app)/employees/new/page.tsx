@@ -1,7 +1,25 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+
+function Field({
+  label,
+  className,
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className={className}>
+      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">{label}</span>
+      {children}
+    </label>
+  );
+}
 
 export default function NewEmployeePage() {
   const router = useRouter();
@@ -12,7 +30,6 @@ export default function NewEmployeePage() {
   const [contactEmail, setContactEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [title, setTitle] = useState("");
-  const [birthday, setBirthday] = useState("");
   const [hiredDate, setHiredDate] = useState("");
   const [payType, setPayType] = useState<"commission_jth" | "office_hourly">("commission_jth");
   const [hourlyRate, setHourlyRate] = useState("0");
@@ -42,7 +59,6 @@ export default function NewEmployeePage() {
         contactEmail: contactEmail || undefined,
         phone: phone || undefined,
         title: title || undefined,
-        birthday: birthday || undefined,
         hiredDate: hiredDate || undefined,
         payType: role === "employee" ? payType : undefined,
         hourlyRateCents: role === "employee" ? Math.round(parseFloat(hourlyRate || "0") * 100) : undefined,
@@ -64,185 +80,192 @@ export default function NewEmployeePage() {
 
   if (result) {
     return (
-      <div className="max-w-md space-y-4">
-        <div className="bg-white rounded-lg shadow p-4 space-y-3">
-          <h1 className="text-lg font-semibold">{role === "admin" ? "Admin" : "Employee"} created</h1>
-          <p className="text-sm text-gray-600">
+      <div className="mx-auto max-w-lg space-y-6">
+        <header className="space-y-2">
+          <p className="eyebrow">Operations / Team</p>
+          <h1 className="page-title">{role === "admin" ? "Admin" : "Employee"} created</h1>
+        </header>
+        <section className="co-card space-y-4 p-6">
+          <p className="text-sm text-[var(--co-muted)]">
             Share these login details with {firstName} directly (not over an unsecured channel):
           </p>
-          <div className="bg-gray-50 rounded p-3 text-sm space-y-1">
+          <div className="space-y-1 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4 text-sm">
             <div>
-              <span className="text-gray-500">Username:</span> <span className="font-mono">{result.username}</span>
+              <span className="text-[var(--co-faint)]">Username:</span> <span className="font-mono">{result.username}</span>
             </div>
             <div>
-              <span className="text-gray-500">Password:</span>{" "}
+              <span className="text-[var(--co-faint)]">Password:</span>{" "}
               <span className="font-mono">{result.password}</span>
             </div>
           </div>
-          <p className="text-xs text-amber-600">
+          <p className="text-xs text-[var(--co-warning)]">
             This is the default password for every new account — have them change it from Account settings after their first login.
           </p>
           <button
             onClick={() => router.push(role === "admin" ? "/settings" : "/employees")}
-            className="w-full rounded bg-gray-900 text-white text-sm font-medium py-2"
+            className="co-button-primary w-full"
           >
             Done
           </button>
-        </div>
+        </section>
       </div>
     );
   }
 
   return (
-    <div className="max-w-lg space-y-4">
-      <h1 className="text-lg font-semibold">{role === "admin" ? "New Admin" : "New Employee"}</h1>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/employees" className="text-sm font-medium text-[var(--co-evergreen)] hover:underline">
+          Back to employees
+        </Link>
+      </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-4 space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Account type</label>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value as typeof role)}
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
-          >
-            <option value="employee">Employee (cleaner)</option>
-            <option value="admin">Admin (full access)</option>
-          </select>
-          {role === "admin" && (
-            <p className="mt-1 text-xs text-gray-500">
-              Admins get full access to customers, quotes, scheduling, and payroll — no pay/title fields needed.
-            </p>
-          )}
-        </div>
+      <header className="space-y-2">
+        <p className="eyebrow">Operations / Team</p>
+        <h1 className="page-title">{role === "admin" ? "New admin" : "New employee"}</h1>
+        <p className="page-subtitle max-w-3xl">
+          Get the account created — title, pay, and the rest of the profile can be filled in afterward.
+        </p>
+      </header>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium mb-1">First name</label>
-            <input
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
-            />
+      <form onSubmit={handleSubmit}>
+        <section className="co-card overflow-hidden">
+          <div className="border-b border-[var(--co-line-soft)] p-6">
+            <p className="eyebrow">Account</p>
+            <h2 className="mt-2 text-lg font-semibold">Create the record</h2>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Last name</label>
-            <input
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium mb-1">Email (optional)</label>
-            <input
-              type="email"
-              value={contactEmail}
-              onChange={(e) => setContactEmail(e.target.value)}
-              placeholder="Personal contact email — not used to log in"
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Phone</label>
-            <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
+          <div className="space-y-4 p-6">
+            <Field label="Account type">
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as typeof role)}
+                className="co-input w-full"
+              >
+                <option value="employee">Employee (cleaner)</option>
+                <option value="admin">Admin (full access)</option>
+              </select>
+              {role === "admin" && (
+                <p className="mt-1.5 text-xs text-[var(--co-muted)]">
+                  Admins get full access to customers, quotes, scheduling, and payroll — no pay/title fields needed.
+                </p>
+              )}
+            </Field>
 
-        {firstName && lastName ? (
-          <p className="text-xs text-gray-500">
-            Username will be <span className="font-mono">{`${firstName}${lastName}`.toLowerCase().replace(/[^a-z0-9]/g, "")}</span>, default password <span className="font-mono">password123</span>.
-          </p>
-        ) : null}
-
-        {role === "employee" && (
-          <div>
-            <label className="block text-sm font-medium mb-1">Title</label>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Cleaning Tech (Primary)"
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium mb-1">Birthday</label>
-            <input
-              type="date"
-              value={birthday}
-              onChange={(e) => setBirthday(e.target.value)}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Hired date</label>
-            <input
-              type="date"
-              value={hiredDate}
-              onChange={(e) => setHiredDate(e.target.value)}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
-
-        {role === "employee" && (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">Pay type</label>
-                <select
-                  value={payType}
-                  onChange={(e) => setPayType(e.target.value as typeof payType)}
-                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
-                >
-                  <option value="commission_jth">Commission (Job Ticket Hours)</option>
-                  <option value="office_hourly">Office Hourly</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  {payType === "commission_jth" ? "Fallback rate ($/hr)" : "Hourly rate ($/hr)"}
-                </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="First name">
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={hourlyRate}
-                  onChange={(e) => setHourlyRate(e.target.value)}
-                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="co-input w-full"
                 />
-              </div>
+              </Field>
+              <Field label="Last name">
+                <input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="co-input w-full"
+                />
+              </Field>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Gusto employee ID (optional)</label>
-              <input
-                value={gustoEmployeeId}
-                onChange={(e) => setGustoEmployeeId(e.target.value)}
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Email (optional)">
+                <input
+                  type="email"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  placeholder="Personal contact email — not used to log in"
+                  className="co-input w-full"
+                />
+              </Field>
+              <Field label="Phone">
+                <input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="co-input w-full"
+                />
+              </Field>
             </div>
-          </>
-        )}
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+            {firstName && lastName ? (
+              <p className="text-xs text-[var(--co-muted)]">
+                Username will be <span className="font-mono">{`${firstName}${lastName}`.toLowerCase().replace(/[^a-z0-9]/g, "")}</span>, default password <span className="font-mono">password123</span>.
+              </p>
+            ) : null}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded bg-gray-900 text-white text-sm font-medium py-2 disabled:opacity-50"
-        >
-          {submitting ? "Creating..." : role === "admin" ? "Create Admin" : "Create Employee"}
-        </button>
+            {role === "employee" && (
+              <Field label="Title">
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g. Cleaning Tech (Primary)"
+                  className="co-input w-full"
+                />
+              </Field>
+            )}
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Hired date">
+                <input
+                  type="date"
+                  value={hiredDate}
+                  onChange={(e) => setHiredDate(e.target.value)}
+                  className="co-input w-full"
+                />
+              </Field>
+            </div>
+
+            {role === "employee" && (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Pay type">
+                    <select
+                      value={payType}
+                      onChange={(e) => setPayType(e.target.value as typeof payType)}
+                      className="co-input w-full"
+                    >
+                      <option value="commission_jth">Commission (Job Ticket Hours)</option>
+                      <option value="office_hourly">Office Hourly</option>
+                    </select>
+                  </Field>
+                  <Field label={payType === "commission_jth" ? "Fallback rate ($/hr)" : "Hourly rate ($/hr)"}>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={hourlyRate}
+                      onChange={(e) => setHourlyRate(e.target.value)}
+                      className="co-input w-full"
+                    />
+                  </Field>
+                </div>
+
+                <Field label="Gusto employee ID (optional)">
+                  <input
+                    value={gustoEmployeeId}
+                    onChange={(e) => setGustoEmployeeId(e.target.value)}
+                    className="co-input w-full"
+                  />
+                </Field>
+              </>
+            )}
+          </div>
+        </section>
+
+        <section className="co-card mt-6 flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+          <div className="text-sm text-[var(--co-muted)]">
+            {error ? <span className="text-rose-600">{error}</span> : "Login details are generated automatically after saving."}
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => router.push("/employees")} className="co-button-secondary">
+              Cancel
+            </button>
+            <button type="submit" disabled={submitting} className="co-button-primary">
+              {submitting ? "Creating..." : role === "admin" ? "Create admin" : "Create employee"}
+            </button>
+          </div>
+        </section>
       </form>
     </div>
   );
