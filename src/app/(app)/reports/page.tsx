@@ -4,7 +4,11 @@ import { and, desc, eq, gte, inArray, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { companies, customers, ghlSyncLog, invoices, jobs, jobAssignments, payrollLines, payrollPeriods, quotes, timeEntries, users, webhookEvents } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { todayInTimeZone } from "@/lib/dashboard/range";
+import { compactMoney, formatDateTime, formatTime, money, percent } from "@/lib/format";
 import { payrollWeekRangeForDate } from "@/lib/payroll/periods";
+import { Sparkline } from "@/components/ui/sparkline";
+import { StatTile } from "@/components/ui/stat-tile";
 import ReportsMotion from "./reports-motion";
 
 type PayrollRow = {
@@ -34,45 +38,10 @@ type SummaryCard = {
   sparkline?: number[];
 };
 
-function money(cents: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(cents / 100);
-}
-
-function compactMoney(cents: number) {
-  const dollars = cents / 100;
-  if (Math.abs(dollars) >= 1000) return `$${(dollars / 1000).toFixed(1)}k`;
-  return money(cents);
-}
-
-function percent(value: number) {
-  return `${Math.round(value * 100)}%`;
-}
-
 function addDaysIso(value: string, days: number) {
   const date = new Date(`${value}T00:00:00.000Z`);
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
-}
-
-function todayInTimezone(timezone: string) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-
-  const result = { year: "", month: "", day: "" };
-  parts.forEach((part) => {
-    if (part.type === "year" || part.type === "month" || part.type === "day") {
-      result[part.type] = part.value;
-    }
-  });
-  return result;
 }
 
 function formatDay(iso: string, timezone: string) {
@@ -87,36 +56,6 @@ function formatDay(iso: string, timezone: string) {
 function formatDate(value: Date | string | null | undefined) {
   if (!value) return "—";
   return new Date(value).toLocaleDateString([], { month: "short", day: "numeric" });
-}
-
-function formatDateTime(value: Date | string | null | undefined) {
-  if (!value) return "—";
-  return new Date(value).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-}
-
-function formatClock(value: string | null) {
-  if (!value) return "—";
-  const [hours, minutes] = value.split(":").map((part) => Number(part || 0));
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-}
-
-function sparklinePath(values: number[]) {
-  if (values.length === 0) return "";
-  const width = 160;
-  const height = 56;
-  const padding = 4;
-  const max = Math.max(...values, 1);
-  const min = Math.min(...values, 0);
-  const range = Math.max(max - min, 1);
-  return values
-    .map((value, index) => {
-      const x = padding + (index * (width - padding * 2)) / Math.max(values.length - 1, 1);
-      const y = height - padding - ((value - min) / range) * (height - padding * 2);
-      return `${x.toFixed(2)},${y.toFixed(2)}`;
-    })
-    .join(" L ");
 }
 
 function Pill({
@@ -136,36 +75,6 @@ function Pill({
           : "border-[var(--co-line)] bg-white text-[var(--co-muted)]";
 
   return <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold ${classes}`}>{children}</span>;
-}
-
-function StatCard({
-  label,
-  value,
-  note,
-  trend,
-  tone = "neutral",
-  sparkline,
-}: SummaryCard) {
-  const accent = tone === "good" ? "text-emerald-700" : tone === "warn" ? "text-amber-700" : "text-[var(--co-ink)]";
-
-  return (
-    <div className="co-card p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--co-muted)]">{label}</p>
-      <div className="mt-2 flex items-start justify-between gap-4">
-        <div>
-          <p className={`text-3xl font-semibold tracking-[-0.045em] ${accent}`}>{value}</p>
-          <p className="mt-2 text-xs text-[var(--co-muted)]">{note}</p>
-          {trend ? <p className="mt-1 text-xs font-medium text-[var(--co-success)]">{trend}</p> : null}
-        </div>
-        {sparkline?.length ? (
-          <svg aria-hidden="true" className="mt-1 h-14 w-24 shrink-0 text-[var(--co-evergreen)]" viewBox="0 0 160 56" fill="none">
-            <path d={`M ${sparklinePath(sparkline)} L 156 52 L 4 52 Z`} fill="currentColor" fillOpacity="0.08" />
-            <path d={`M ${sparklinePath(sparkline)}`} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        ) : null}
-      </div>
-    </div>
-  );
 }
 
 function SectionPanel({
@@ -248,8 +157,7 @@ export default async function ReportsPage() {
 
   if (!company) redirect("/login");
 
-  const todayParts = todayInTimezone(company.timezone);
-  const todayIso = `${todayParts.year}-${todayParts.month}-${todayParts.day}`;
+  const todayIso = todayInTimeZone(new Date(), company.timezone);
   const weekRange = payrollWeekRangeForDate(todayIso);
   const monthStart = `${todayIso.slice(0, 7)}-01`;
   const nextWeekStart = addDaysIso(weekRange.endDate, 1);
@@ -714,7 +622,7 @@ export default async function ReportsPage() {
               </div>
               <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {summaryCards.map((card) => (
-                  <StatCard key={card.label} {...card} />
+                  <StatTile key={card.label} {...card} sparkline={card.sparkline?.length ? <Sparkline values={card.sparkline} /> : undefined} />
                 ))}
               </div>
             </div>
@@ -929,7 +837,7 @@ export default async function ReportsPage() {
                         const assignments = assignmentsByJob.get(job.id) ?? [];
                         return (
                           <tr key={job.id} className="hover:bg-[var(--co-surface-muted)]/35">
-                            <td className="px-4 py-3 pl-0 text-sm font-semibold text-[var(--co-ink)]">{formatClock(job.scheduledStartTime)}</td>
+                            <td className="px-4 py-3 pl-0 text-sm font-semibold text-[var(--co-ink)]">{formatTime(job.scheduledStartTime)}</td>
                             <td className="px-4 py-3">
                               <div className="font-medium text-[var(--co-ink)]">
                                 {job.customerFirstName} {job.customerLastName}

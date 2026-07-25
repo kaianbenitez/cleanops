@@ -4,6 +4,10 @@ import { and, desc, eq, gte, inArray, isNotNull, isNull, lt, ne, or, sql } from 
 import { db } from "@/db";
 import { companies, customers, ghlSyncLog, invoices, jobAssignments, jobs, quotes, timeEntries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { resolveRange, startOfMonthIso, startOfWeekIso } from "@/lib/dashboard/range";
+import { formatDateTime, formatTime, money } from "@/lib/format";
+import { overdueSqlCondition } from "@/lib/invoices/overdue";
+import { StatTile } from "@/components/ui/stat-tile";
 import TechnicianRoutePreview, { type TechnicianRoute } from "./technician-route-preview";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,36 +23,7 @@ const CARD_TITLE_CLASS = "text-[1.125rem] font-semibold leading-[1.25] text-[var
 const CARD_DESC_CLASS = "text-sm text-[var(--co-muted)]";
 const CARD_CONTENT_CLASS = "px-5 py-5";
 
-type SearchParams = { from?: string; to?: string };
-
-function iso(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
-
-function dayStart(value: string | undefined, fallback: Date) {
-  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00.000Z`) : fallback;
-}
-
-function formatMoney(cents: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(cents / 100);
-}
-
-function formatTime(value: string | null) {
-  if (!value) return "Time not set";
-  const [hours, minutes] = value.split(":").map((part) => Number(part || 0));
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-}
-
-function formatDateTime(value: string | Date | null) {
-  if (!value) return "—";
-  return new Date(value).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-}
+type SearchParams = { from?: string; to?: string; preset?: string };
 
 function formatDay(date: Date) {
   return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -101,15 +76,21 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   if (admin.role !== "admin") redirect("/my-day");
 
   const sp = await searchParams;
-  const today = new Date();
-  const todayText = iso(today);
-  const rangeFrom = dayStart(sp.from, new Date(today.getTime() - 30 * 86400000));
-  const rangeTo = dayStart(sp.to, today);
-  const rangeToExclusive = new Date(rangeTo.getTime() + 86400000);
-  const weekStart = new Date(today);
-  const weekDay = today.getUTCDay();
-  weekStart.setUTCDate(today.getUTCDate() - (weekDay === 0 ? 6 : weekDay - 1));
-  const monthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+  const company = await db
+    .select({ settings: companies.settings, timezone: companies.timezone })
+    .from(companies)
+    .where(eq(companies.id, admin.companyId))
+    .limit(1)
+    .then((rows) => rows[0] ?? null);
+  if (!company) redirect("/login");
+
+  const range = resolveRange(sp, company.timezone);
+  const rangeFrom = new Date(`${range.fromIso}T00:00:00.000Z`);
+  const rangeTo = new Date(`${range.toIso}T00:00:00.000Z`);
+  const rangeToExclusive = new Date(`${range.toIso}T00:00:00.000Z`);
+  rangeToExclusive.setUTCDate(rangeToExclusive.getUTCDate() + 1);
+  const weekStart = new Date(`${startOfWeekIso(range.todayIso)}T00:00:00.000Z`);
+  const monthStart = new Date(`${startOfMonthIso(range.todayIso)}T00:00:00.000Z`);
 
   const [
     leadCount,
@@ -123,7 +104,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     failedSyncRows,
     missingPaymentMethodCount,
     incompleteNotesCount,
-    companyRows,
     employees,
   ] = await Promise.all([
     db
@@ -162,7 +142,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         createdAt: invoices.createdAt,
       })
       .from(invoices)
-      .where(and(eq(invoices.companyId, admin.companyId), eq(invoices.status, "sent"), lt(invoices.createdAt, new Date(today.getTime() - 14 * 86400000))))
+      .where(and(eq(invoices.companyId, admin.companyId), overdueSqlCondition()))
       .orderBy(desc(invoices.createdAt)),
     db
       .select({
@@ -180,7 +160,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       })
       .from(jobs)
       .innerJoin(customers, eq(jobs.customerId, customers.id))
-      .where(and(eq(jobs.companyId, admin.companyId), eq(jobs.scheduledDate, todayText)))
+      .where(and(eq(jobs.companyId, admin.companyId), eq(jobs.scheduledDate, range.todayIso)))
       .orderBy(jobs.scheduledStartTime, jobs.createdAt),
     db
       .select({ id: ghlSyncLog.id })
@@ -213,11 +193,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           )
         )
       ),
-    db
-      .select({ settings: companies.settings })
-      .from(companies)
-      .where(eq(companies.id, admin.companyId))
-      .limit(1),
     db
       .select({
         id: users.id,
@@ -297,9 +272,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const revenueDays = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(weekStart);
     date.setUTCDate(weekStart.getUTCDate() + index);
-    const key = iso(date);
+    const key = date.toISOString().slice(0, 10);
     const amount = revenueRows
-      .filter((row) => row.paidAt && iso(new Date(row.paidAt)) === key)
+      .filter((row) => row.paidAt && new Date(row.paidAt).toISOString().slice(0, 10) === key)
       .reduce((sum, row) => sum + row.amountPaidCents, 0);
     return {
       key,
@@ -309,9 +284,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   });
   const maxRevenueDay = Math.max(...revenueDays.map((day) => day.amount), 1);
 
-  const inventory = Array.isArray((companyRows[0]?.settings as { inventory?: unknown } | null)?.inventory)
+  const inventory = Array.isArray((company.settings as { inventory?: unknown } | null)?.inventory)
     ? (
-        companyRows[0]?.settings as {
+        company.settings as {
           inventory: Array<{ name: string; onHand: number; reorderAt: number; unitCostCents: number }>;
         }
       ).inventory
@@ -331,22 +306,23 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         address: job.addressLine1 ?? "Address not set",
         city: job.city ?? "",
         zip: job.zip ?? "",
-        time: formatTime(job.scheduledStartTime),
+        time: formatTime(job.scheduledStartTime, "Time not set"),
       })),
     };
   });
 
-  const dateLabel = today.toLocaleDateString("en-US", {
+  const dateLabel = new Intl.DateTimeFormat("en-US", {
+    timeZone: company.timezone,
     weekday: "long",
     month: "long",
     day: "numeric",
-  });
+  }).format(new Date());
 
   const attentionOpenCount = attentionItems.reduce((sum, item) => sum + (item.value > 0 ? 1 : 0), 0);
 
   const statTiles = [
-    { label: "Weekly revenue", value: formatMoney(weeklyRevenue), note: `since ${formatDay(weekStart)}`, href: "/invoices", tone: "default" as const },
-    { label: "Overdue balance", value: formatMoney(overdueTotal), note: `${overdueRows.length} invoice${overdueRows.length === 1 ? "" : "s"}`, href: "/invoices?status=sent", tone: overdueRows.length > 0 ? ("danger" as const) : ("default" as const) },
+    { label: "Weekly revenue", value: money(weeklyRevenue), note: `since ${formatDay(weekStart)}`, href: "/invoices", tone: "default" as const },
+    { label: "Overdue balance", value: money(overdueTotal), note: `${overdueRows.length} invoice${overdueRows.length === 1 ? "" : "s"}`, href: "/invoices?status=sent", tone: overdueRows.length > 0 ? ("danger" as const) : ("default" as const) },
     { label: "New leads", value: String(leadCount[0]?.count ?? 0), note: "selected window", href: "/customers?status=lead", tone: "default" as const },
     { label: "Quotes sent", value: String(sent), note: "selected window", href: "/quotes", tone: "default" as const },
     { label: "Conversion rate", value: `${conversion}%`, note: `${accepted} accepted`, href: "/quotes?status=accepted", tone: "default" as const },
@@ -382,19 +358,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           top-of-page prominence, like shadcn's dashboard-01 section-card row. */}
       <section aria-label="Business pulse" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         {statTiles.map((tile) => (
-          <Link
+          <StatTile
             key={tile.label}
-            href={tile.href}
-            className={`co-card block rounded-[0.9rem] border px-4 py-3.5 transition hover:-translate-y-[1px] ${
-              tile.tone === "danger" ? "border-[var(--co-line)]" : "border-[var(--co-line)]"
-            }`}
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">{tile.label}</p>
-            <p className={`mt-1.5 text-2xl font-semibold tracking-[-0.04em] ${tile.tone === "danger" ? "text-[var(--co-danger)]" : "text-[var(--co-ink)]"}`}>
-              {tile.value}
-            </p>
-            <p className="mt-1 text-xs text-[var(--co-muted)]">{tile.note}</p>
-          </Link>
+            {...tile}
+            compact
+            className="co-card block rounded-[0.9rem] border border-[var(--co-line)] px-4 py-3.5 transition hover:-translate-y-[1px]"
+          />
         ))}
       </section>
 
@@ -418,7 +387,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                       <Link key={job.id} href={`/jobs/${job.id}`} className="block rounded-xl border border-[var(--co-line-soft)] px-4 py-3 hover:bg-[var(--co-surface-muted)]">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <p className="text-xs font-semibold text-[var(--co-muted)]">{formatTime(job.scheduledStartTime)}</p>
+                            <p className="text-xs font-semibold text-[var(--co-muted)]">{formatTime(job.scheduledStartTime, "Time not set")}</p>
                             <p className="mt-1 font-semibold text-[var(--co-ink)]">{job.customerFirstName} {job.customerLastName}</p>
                           </div>
                           <StatusBadge status={job.status} />
@@ -458,7 +427,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                         const assignedLabel = assigned.length ? assigned.map((person) => `${person.firstName} ${person.lastName}`).join(", ") : "Unassigned";
                         return (
                           <TableRow key={job.id} className="border-[var(--co-line-soft)] hover:bg-[var(--co-surface-muted)]/30">
-                            <TableCell className="px-4 py-4 text-[var(--co-muted)]">{formatTime(job.scheduledStartTime)}</TableCell>
+                            <TableCell className="px-4 py-4 text-[var(--co-muted)]">{formatTime(job.scheduledStartTime, "Time not set")}</TableCell>
                             <TableCell className="px-4 py-4">
                               <Link href={`/jobs/${job.id}`} className="font-medium text-[var(--co-ink)] hover:underline">
                                 {job.customerFirstName} {job.customerLastName}
@@ -545,11 +514,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <ol className="flex h-24 items-end gap-2" aria-label="Revenue received by day this week">
                   {revenueDays.map((day) => (
                     <li key={day.key} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
-                      <span className="sr-only">{day.label}: {formatMoney(day.amount)}</span>
+                      <span className="sr-only">{day.label}: {money(day.amount)}</span>
                       <span
                         className={`w-full rounded-t-lg ${day.amount > 0 ? "bg-[var(--co-evergreen)]" : "bg-[var(--co-surface-muted)]"}`}
                         style={{ height: `${Math.max((day.amount / maxRevenueDay) * 100, day.amount > 0 ? 8 : 3)}%` }}
-                        title={`${day.label}: ${formatMoney(day.amount)}`}
+                        title={`${day.label}: ${money(day.amount)}`}
                       />
                       <span className="text-[11px] font-medium text-[var(--co-muted)]">{day.label}</span>
                     </li>
@@ -578,7 +547,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                           </p>
                           <p className="mt-1 text-xs text-[var(--co-muted)]">Sent {formatDateTime(invoice.createdAt)}</p>
                         </div>
-                        <span className="font-semibold text-[var(--co-ink)]">{formatMoney(Math.max(invoice.totalCents - invoice.amountPaidCents, 0))}</span>
+                        <span className="font-semibold text-[var(--co-ink)]">{money(Math.max(invoice.totalCents - invoice.amountPaidCents, 0))}</span>
                       </div>
                     </div>
                   ))}
@@ -605,7 +574,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl border border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)]/35 p-4">
                   <p className="text-xs text-[var(--co-muted)]">Inventory value</p>
-                  <p className="mt-2 text-sm font-medium">{formatMoney(inventoryValue)}</p>
+                  <p className="mt-2 text-sm font-medium">{money(inventoryValue)}</p>
                 </div>
                 <div className="rounded-2xl border border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)]/35 p-4">
                   <p className="text-xs text-[var(--co-muted)]">Low stock</p>
@@ -657,7 +626,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   id="from"
                   type="date"
                   name="from"
-                  defaultValue={iso(rangeFrom)}
+                  defaultValue={range.fromIso}
                   aria-label="Performance start date"
                   className="h-[2.55rem] rounded-[0.65rem] border-[var(--co-input-border)] bg-[var(--co-surface)] px-[0.8rem] text-[var(--co-ink)]"
                 />
@@ -671,7 +640,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   id="to"
                   type="date"
                   name="to"
-                  defaultValue={iso(rangeTo)}
+                  defaultValue={range.toIso}
                   aria-label="Performance end date"
                   className="h-[2.55rem] rounded-[0.65rem] border-[var(--co-input-border)] bg-[var(--co-surface)] px-[0.8rem] text-[var(--co-ink)]"
                 />
