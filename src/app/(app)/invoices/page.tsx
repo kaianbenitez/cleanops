@@ -10,7 +10,7 @@ import { PaginationControls } from "@/components/ui/pagination";
 
 const PAGE_SIZE = 25;
 
-type SearchParams = { q?: string; status?: string; page?: string };
+type SearchParams = { q?: string; status?: string; overdue?: string; page?: string };
 
 function hrefForPage(params: SearchParams, page: number) {
   const next = new URLSearchParams();
@@ -58,6 +58,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const conditions = [eq(invoices.companyId, admin.companyId)];
   if (sp.status && sp.status !== "all") conditions.push(eq(invoices.status, sp.status as typeof invoices.status.enumValues[number]));
+  if (sp.overdue === "yes") conditions.push(overdueSqlCondition());
   if (sp.q?.trim()) {
     const query = `%${sp.q.trim()}%`;
     // invoices.id is a uuid column — ILIKE has no operator for uuid without an
@@ -152,6 +153,10 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
             <option value="paid">Paid</option>
             <option value="void">Void</option>
           </select>
+          <label className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium ${sp.overdue === "yes" ? "border-[var(--co-evergreen)] bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]" : "border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)]"}`}>
+            <input name="overdue" type="checkbox" value="yes" defaultChecked={sp.overdue === "yes"} className="h-4 w-4 accent-[var(--co-evergreen)]" />
+            Overdue
+          </label>
           <button type="submit" className="co-button-secondary">
             Filter invoices
           </button>
