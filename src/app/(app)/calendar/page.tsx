@@ -18,6 +18,7 @@ type SearchParams = {
   week?: string;
   day?: string;
   employeeId?: string;
+  assignment?: string;
   type?: string;
   recurring?: string;
   zip?: string;
@@ -166,7 +167,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const monthAssigned = new Set(assignments.map((assignment) => assignment.jobId));
   const monthUnassigned = monthRows.filter((job) => !monthAssigned.has(job.id) && !["cancelled", "no_show"].includes(job.status));
 
-  const filterParams: SearchParams = { view: sp.view, employeeId: sp.employeeId, type: sp.type, recurring: sp.recurring, zip: sp.zip };
+  const filterParams: SearchParams = { view: sp.view, employeeId: sp.employeeId, assignment: sp.assignment, type: sp.type, recurring: sp.recurring, zip: sp.zip };
   const prev = query({ ...filterParams, ...(view === "day" || view === "staff" ? { day: toISODate(addDays(dayAnchor, -1)) } : { week: toISODate(addDays(weekStart, -7)) }) });
   const next = query({ ...filterParams, ...(view === "day" || view === "staff" ? { day: toISODate(addDays(dayAnchor, 1)) } : { week: toISODate(addDays(weekStart, 7)) }) });
 
@@ -178,6 +179,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const unassigned = monthUnassigned;
   const todayRows = rows.filter((row) => row.scheduledDate === todayIso);
   const selectedJobs = selectedEmployee ? rows.filter((job) => (byJob.get(job.id) ?? []).some((assignment) => assignment.userId === selectedEmployee.id)) : rows;
+  const staffRows = sp.assignment === "unassigned" ? rows.filter((job) => !(byJob.get(job.id) ?? []).length) : rows;
 
   return (
     <div className="space-y-6">
@@ -188,15 +190,15 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           <p className="page-subtitle">Place every job with confidence, then publish the day.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/calendar${prev}`} className="co-button-secondary">
+          <a href={`/calendar${prev}`} className="co-button-secondary">
             ← Prev
-          </Link>
-          <Link href={`/calendar${query(filterParams)}`} className="co-button-secondary">
+          </a>
+          <a href={`/calendar${query(filterParams)}`} className="co-button-secondary">
             Today
-          </Link>
-          <Link href={`/calendar${next}`} className="co-button-secondary">
+          </a>
+          <a href={`/calendar${next}`} className="co-button-secondary">
             Next →
-          </Link>
+          </a>
           <Link href="/jobs/new" className="co-button-primary">
             + New job
           </Link>
@@ -265,8 +267,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
             <StaffBoard
               key={toISODate(dayAnchor)}
               dayLabel={formatDayLabel(dayAnchor)}
+              dayIso={toISODate(dayAnchor)}
               employees={sp.employeeId ? employees.filter((employee) => employee.id === sp.employeeId) : employees}
-              jobs={rows.map((job) => ({
+              jobs={staffRows.map((job) => ({
                 id: job.id,
                 type: job.type,
                 status: job.status,

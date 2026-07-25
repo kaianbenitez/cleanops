@@ -6,23 +6,27 @@ import { useRouter } from "next/navigation";
 
 type Employee = { id: string; firstName: string; lastName: string };
 type Assignment = { id: string; userId: string; role: string };
-type ChecklistItem = { id: string; label: string; done: boolean };
 type JobDetail = {
   id: string;
   type: string;
   status: string;
   scheduledDate: string;
   scheduledStartTime: string;
+  estimatedDurationMinutes: number | null;
   priceCents: number;
   completionNotes: string | null;
   customerId: string;
   customerFirstName: string;
   customerLastName: string;
+  customerEmail: string | null;
+  customerPhone: string | null;
   addressLine1: string | null;
   city: string | null;
   state: string | null;
   zip: string | null;
 };
+type Invoice = { id: string; status: string; totalCents: number; amountPaidCents: number } | null;
+type Quote = { id: string; status: string; totalCents: number; acceptedServiceType: string | null } | null;
 type TimeEntry = {
   id: string;
   userId: string;
@@ -61,15 +65,6 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled: "border-slate-200 bg-slate-50 text-slate-400",
   no_show: "border-rose-200 bg-rose-50 text-rose-700",
 };
-
-const CHECKLIST: ChecklistItem[] = [
-  { id: "arrival", label: "Arrival and access confirmed", done: false },
-  { id: "kitchen", label: "Kitchen and high-touch surfaces", done: false },
-  { id: "bathrooms", label: "Bathrooms completed", done: false },
-  { id: "floors", label: "Floors vacuumed and mopped", done: false },
-  { id: "trash", label: "Trash and supplies handled", done: false },
-  { id: "walkthrough", label: "Final walkthrough complete", done: false },
-];
 
 function readableError(body: { error?: unknown }) {
   if (!body.error) return "Something went wrong. Please try again.";
@@ -147,43 +142,6 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint?:
   );
 }
 
-function RoutePreview({ address }: { address: string }) {
-  return (
-    <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[linear-gradient(180deg,#f5f7f3,white)] p-4">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Route preview</p>
-          <p className="mt-1 text-sm font-semibold">Technician route snapshot</p>
-        </div>
-        <span className="rounded-full bg-[var(--co-surface-muted)] px-2.5 py-1 text-xs font-medium text-[var(--co-evergreen)]">Calendar-linked</span>
-      </div>
-      <div className="mt-4 rounded-2xl border border-[var(--co-line-soft)] bg-white p-4">
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--co-evergreen)] text-xs font-semibold text-white">1</span>
-            <div className="min-w-0">
-              <p className="text-sm font-medium">Assigned stop</p>
-              <p className="truncate text-xs text-[var(--co-muted)]">{address || "Address not recorded yet"}</p>
-            </div>
-          </div>
-          <div className="h-16 rounded-2xl border border-dashed border-[var(--co-line)] bg-[linear-gradient(135deg,#f7faf4,#eef3e8)]" />
-          <div className="flex items-center justify-between text-xs text-[var(--co-muted)]">
-            <span>Visual placeholder until full routing is connected.</span>
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--co-evergreen)] hover:underline"
-            >
-              Open Maps
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function JobDetailPage({ params }: { params: Promise<{ jobId: string }> }) {
   const { jobId } = use(params);
   const router = useRouter();
@@ -191,10 +149,11 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
   const [job, setJob] = useState<JobDetail | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [invoice, setInvoice] = useState<Invoice>(null);
+  const [quote, setQuote] = useState<Quote>(null);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [auditLogs, setAuditLogs] = useState<TimeEntryAudit[]>([]);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
-  const [checklist, setChecklist] = useState<ChecklistItem[]>(CHECKLIST);
   const [timeEmployeeId, setTimeEmployeeId] = useState("");
   const [clockIn, setClockIn] = useState("");
   const [clockOut, setClockOut] = useState("");
@@ -223,6 +182,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
     setJob(jobBody.job);
     setEmployees(employeeBody.employees ?? []);
     setAssignments(jobBody.assignments ?? []);
+    setInvoice(jobBody.invoice ?? null);
+    setQuote(jobBody.quote ?? null);
     setSelectedEmployeeIds((jobBody.assignments ?? []).map((assignment: Assignment) => assignment.userId));
     setTimeEntries(jobBody.timeEntries ?? []);
     setAuditLogs(
@@ -248,7 +209,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
   );
   const recordedHours = useMemo(() => timeEntries.reduce((total, entry) => total + (entry.minutesWorked ?? 0), 0) / 60, [timeEntries]);
   const openEntries = useMemo(() => timeEntries.filter((entry) => !entry.clockOut).length, [timeEntries]);
-  const auditCount = auditLogs.length;
   const completionState = job?.status === "completed" ? "Ready to invoice" : openEntries > 0 ? "Waiting on clock-out" : "Not yet completed";
   const jobLocation = job ? [job.addressLine1, job.city, job.state, job.zip].filter(Boolean).join(", ") : "";
   const jobDateTime = job ? `${job.scheduledDate} · ${job.scheduledStartTime?.slice(0, 5) ?? "No time"}` : "";
@@ -277,6 +237,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
     if (!body.job) return;
     setJob(body.job);
     setAssignments(body.assignments ?? []);
+    setInvoice(body.invoice ?? null);
+    setQuote(body.quote ?? null);
     setTimeEntries(body.timeEntries ?? []);
     setAuditLogs(
       [...(body.jobAuditLogs ?? []), ...(body.timeEntryAuditLogs ?? [])].sort(
@@ -404,7 +366,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
             Back to jobs
           </Link>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <p className="eyebrow">Operations / Job detail</p>
+            <p className="font-mono text-xs text-[var(--co-faint)]">#{job.id.slice(0, 8).toUpperCase()}</p>
             <StatusPill status={job.status} />
           </div>
           <h1 className="page-title mt-2">
@@ -416,6 +378,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <button type="button" className="co-button-secondary" onClick={() => document.getElementById("assigned-team")?.scrollIntoView({ behavior: "smooth" })}>Reassign</button>
+          <button type="button" className="co-button-secondary" onClick={() => document.getElementById("scheduling")?.scrollIntoView({ behavior: "smooth" })}>Reschedule</button>
+          {job.status !== "cancelled" && job.status !== "completed" ? <button disabled={saving} type="button" className="co-button-secondary text-rose-700" onClick={() => save({ status: "cancelled" })}>Cancel</button> : null}
           <Link href={`/customers/${job.customerId}`} className="co-button-secondary">
             Customer profile
           </Link>
@@ -453,8 +418,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
         <StatCard label="Invoice handoff" value={money(job.priceCents)} hint={job.status === "completed" ? "Ready to invoice" : "Complete the job first"} />
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.18fr_0.82fr]">
-        <div className="space-y-5">
+      <section className="grid gap-5 xl:grid-cols-3">
+        <div className="space-y-5 xl:col-span-2">
           <section className="co-card overflow-hidden">
             <div className="border-b border-[var(--co-line-soft)] px-5 py-5 sm:px-6">
               <p className="eyebrow">Job overview</p>
@@ -463,7 +428,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
                   <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--co-ink)]">Service record</h2>
                   <p className="mt-1 max-w-2xl text-sm text-[var(--co-muted)]">This is the office view for assignment, scheduling, payroll, and invoice handoff.</p>
                 </div>
-                <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/45 px-4 py-3 text-right">
+              <div className="rounded-lg border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/45 px-4 py-3 text-right">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Job ID</p>
                   <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{job.id.slice(0, 8).toUpperCase()}</p>
                 </div>
@@ -494,9 +459,13 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
                 <p className="mt-1 text-sm text-[var(--co-muted)]">Editable from this page</p>
               </div>
             </div>
+            <div className="grid gap-4 border-t border-[var(--co-line-soft)] p-5 sm:grid-cols-2 sm:p-6">
+              <div><p className="text-xs font-semibold text-[var(--co-muted)]">Customer</p><Link className="mt-1 block font-semibold text-[var(--co-evergreen)] hover:underline" href={`/customers/${job.customerId}`}>{job.customerFirstName} {job.customerLastName}</Link><p className="mt-1 text-sm text-[var(--co-muted)]">{job.customerEmail ?? "No email recorded"} · {job.customerPhone ?? "No phone recorded"}</p></div>
+              <div><p className="text-xs font-semibold text-[var(--co-muted)]">Commercial record</p><p className="mt-1 text-sm text-[var(--co-muted)]">{quote ? `Quote ${quote.status} · ${money(quote.totalCents)}` : "No related quote"}</p><p className="mt-1 text-sm text-[var(--co-muted)]">{invoice ? `Invoice ${invoice.status} · ${money(invoice.totalCents)}` : "No invoice created"}</p></div>
+            </div>
           </section>
 
-          <Panel eyebrow="Assigned crew" title="Who is cleaning this home?" description="Select the technicians now or save it for later from Calendar.">
+          <div id="assigned-team"><Panel eyebrow="Assigned crew" title="Who is cleaning this home?" description="Select the technicians now or save it for later from Calendar.">
             <div className="grid gap-2 sm:grid-cols-2">
               {employees.map((employee) => {
                 const selected = selectedEmployeeIds.includes(employee.id);
@@ -536,12 +505,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
               <button className="co-button-primary" type="button" onClick={() => save({ employeeIds: selectedEmployeeIds })}>
                 Save assignment
               </button>
-              <p className="text-sm text-[var(--co-muted)]">Crew selection updates the job, payroll, and route planning.</p>
+              <p className="text-sm text-[var(--co-muted)]">Crew selection updates the job and payroll records.</p>
             </div>
-          </Panel>
+          </Panel></div>
 
           <div className="grid gap-5 xl:grid-cols-2">
-            <Panel eyebrow="Scheduling assistant" title="Reschedule / place the visit" description="Keep the office in control of the appointment without giving up manual scheduling.">
+            <div id="scheduling"><Panel eyebrow="Scheduling assistant" title="Reschedule / place the visit" description="Keep the office in control of the appointment without giving up manual scheduling.">
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="block text-xs font-semibold text-[var(--co-muted)]">
                   Date
@@ -577,21 +546,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
               <p className="mt-3 text-xs text-[var(--co-muted)]">Use this as the manual scheduling assistant until drag-and-drop scheduling is connected.</p>
             </Panel>
 
-            <Panel eyebrow="Close-out" title="Checklist" description="Use this as the internal completion guide.">
-              <div className="space-y-1">
-                {checklist.map((item) => (
-                  <label key={item.id} className="flex items-center gap-3 rounded-xl px-2 py-2 text-sm hover:bg-[var(--co-surface-muted)]">
-                    <input
-                      type="checkbox"
-                      checked={item.done}
-                      onChange={() => setChecklist((current) => current.map((entry) => (entry.id === item.id ? { ...entry, done: !entry.done } : entry)))}
-                      className="h-4 w-4 accent-[var(--co-evergreen)]"
-                    />
-                    <span className={item.done ? "text-[var(--co-muted)] line-through" : "text-[var(--co-ink)]"}>{item.label}</span>
-                  </label>
-                ))}
-              </div>
-            </Panel>
+            <Panel eyebrow="Service value" title="Pricing and duration" description="Values are stored on the job record.">
+              <div className="grid gap-3 sm:grid-cols-2"><div><p className="text-xs text-[var(--co-muted)]">Job value</p><p className="mt-1 text-xl font-semibold">{money(job.priceCents)}</p></div><div><p className="text-xs text-[var(--co-muted)]">Estimated duration</p><p className="mt-1 text-xl font-semibold">{job.estimatedDurationMinutes ? `${(job.estimatedDurationMinutes / 60).toFixed(1)} hrs` : "Not set"}</p></div></div>
+              <label className="mt-4 block text-xs font-semibold text-[var(--co-muted)]">Price (cents)<input type="number" min="0" defaultValue={job.priceCents} onBlur={(event) => save({ priceCents: Number(event.target.value) })} className="co-input mt-1 w-full" /></label>
+            </Panel></div>
           </div>
 
           <Panel eyebrow="History" title="Change history" description="Job and time-entry edits are recorded here for review.">
@@ -726,10 +684,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
                 </div>
               </div>
             ) : null}
-          </Panel>
-
-          <Panel eyebrow="Route" title="Preview" description="A lightweight placeholder until maps are fully connected.">
-            <RoutePreview address={jobLocation} />
           </Panel>
 
           <Panel eyebrow="Completion notes" title="Close-out memo" description="Capture anything the next person needs to know.">

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -14,7 +13,6 @@ import {
   jobDuration,
   jobsOverlap,
   formatClockLabel,
-  isPlainClick,
 } from "./shared";
 import { commitJobPatch } from "./drag-commit";
 import { useUndoToast, UndoToast } from "./undo-toast";
@@ -43,7 +41,7 @@ function formatTime(totalMinutes: number) {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
 }
 
-export default function StaffBoard({ dayLabel, employees, jobs: initialJobs }: { dayLabel: string; employees: Employee[]; jobs: StaffJob[] }) {
+export default function StaffBoard({ dayLabel, dayIso, employees, jobs: initialJobs }: { dayLabel: string; dayIso: string; employees: Employee[]; jobs: StaffJob[] }) {
   const router = useRouter();
   const [jobs, setJobs] = useState(initialJobs);
   const [syncedJobs, setSyncedJobs] = useState(initialJobs);
@@ -52,6 +50,8 @@ export default function StaffBoard({ dayLabel, employees, jobs: initialJobs }: {
   const [dragOverRow, setDragOverRow] = useState<string | null>(null);
   const [detailJobId, setDetailJobId] = useState<string | null>(null);
   const { toast, showUndo, dismiss } = useUndoToast();
+
+  const unassignedJobs = jobs.filter((job) => job.assignedUserIds.length === 0 && !LOCKED_STATUSES.includes(job.status));
 
   if (initialJobs !== syncedJobs) {
     setSyncedJobs(initialJobs);
@@ -151,6 +151,48 @@ export default function StaffBoard({ dayLabel, employees, jobs: initialJobs }: {
         {error ? <p className="mt-2 text-xs font-medium text-rose-600">{error}</p> : null}
       </div>
 
+      <section className="border-b border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/20 px-5 py-4" aria-labelledby="unassigned-queue-title">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 id="unassigned-queue-title" className="text-sm font-semibold">Unassigned queue</h3>
+            <p className="mt-0.5 text-xs text-[var(--co-muted)]">Jobs needing a technician on {dayLabel}.</p>
+          </div>
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+            {unassignedJobs.length} job{unassignedJobs.length === 1 ? "" : "s"}
+          </span>
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {unassignedJobs.map((job) => (
+            <button
+              key={job.id}
+              data-testid="unassigned-job-card"
+              type="button"
+              onClick={() => setDetailJobId(job.id)}
+              className="rounded-lg border border-dashed border-amber-300 bg-amber-50/70 p-3 text-left text-sm transition hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
+              aria-label={`Open job details for ${job.customerFirstName} ${job.customerLastName}`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className="truncate font-semibold text-[var(--co-ink)]">
+                  {job.customerFirstName} {job.customerLastName}
+                </span>
+                <span className="shrink-0 text-[11px] font-medium text-amber-800">
+                  {job.scheduledStartTime?.slice(0, 5) ?? "No time"}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-[var(--co-muted)]">{job.customerZip ?? "No zip"} · Open details to assign</p>
+            </button>
+          ))}
+        </div>
+        {unassignedJobs.length === 0 ? <p className="mt-3 text-sm text-[var(--co-muted)]">No unassigned jobs for this day.</p> : null}
+        <a
+          data-testid="view-all-unassigned"
+          href={`/calendar?view=staff&day=${dayIso}&assignment=unassigned`}
+          className="mt-3 inline-flex text-xs font-semibold text-[var(--co-evergreen)] hover:underline focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
+        >
+          View all unassigned{unassignedJobs.length > 0 ? ` (${unassignedJobs.length})` : ""}
+        </a>
+      </section>
+
       <div className="overflow-x-auto">
         <div className="min-w-[1100px] p-4">
           <div className="grid" style={{ gridTemplateColumns: "180px repeat(12, minmax(0, 1fr))" }}>
@@ -197,14 +239,11 @@ export default function StaffBoard({ dayLabel, employees, jobs: initialJobs }: {
                     const conflict = !isUnassignedRow && row.jobsForRow.some((other) => other.id !== job.id && jobsOverlap(job, duration, other, jobDuration(other)));
                     const locked = LOCKED_STATUSES.includes(job.status);
                     return (
-                      <Link
+                      <button
                         key={job.id}
-                        href={`/jobs/${job.id}`}
-                        onClick={(event) => {
-                          if (!isPlainClick(event)) return;
-                          event.preventDefault();
-                          setDetailJobId(job.id);
-                        }}
+                        type="button"
+                        onClick={() => setDetailJobId(job.id)}
+                        aria-label={`Open job details for ${job.customerFirstName} ${job.customerLastName}`}
                         draggable={!locked}
                         onDragStart={(event) => {
                           if (locked) {
@@ -228,7 +267,7 @@ export default function StaffBoard({ dayLabel, employees, jobs: initialJobs }: {
                           </span>
                         </div>
                         <div className="truncate opacity-75">{job.customerZip ?? "No zip"}</div>
-                      </Link>
+                      </button>
                     );
                   })}
                 </div>
