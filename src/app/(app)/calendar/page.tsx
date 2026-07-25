@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { and, eq, gte, ilike, inArray, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { customers, jobAssignments, jobTypeEnum, jobs, recurringSeries, users } from "@/db/schema";
@@ -10,6 +11,25 @@ import StaffBoard from "./staff-board";
 import WeekBoard from "./week-board";
 import MonthBoard from "./month-board";
 import DatePicker from "./date-picker";
+import CalendarStateSync from "./state-sync";
+
+const CALENDAR_STATE_COOKIE = "co_calendar_state";
+
+function readCalendarStateCookie(raw: string | undefined): Partial<Record<"view" | "day" | "week" | "month", string>> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(decodeURIComponent(raw));
+    if (!parsed || typeof parsed !== "object") return {};
+    const result: Partial<Record<"view" | "day" | "week" | "month", string>> = {};
+    if (parsed.view === "week" || parsed.view === "month" || parsed.view === "staff") result.view = parsed.view;
+    if (typeof parsed.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(parsed.day)) result.day = parsed.day;
+    if (typeof parsed.week === "string" && /^\d{4}-\d{2}-\d{2}$/.test(parsed.week)) result.week = parsed.week;
+    if (typeof parsed.month === "string" && /^\d{4}-\d{2}$/.test(parsed.month)) result.month = parsed.month;
+    return result;
+  } catch {
+    return {};
+  }
+}
 
 type SearchParams = {
   view?: string;
@@ -68,12 +88,18 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   if (admin.role !== "admin") redirect("/my-day");
 
   const sp = await searchParams;
-  const view = sp.view === "week" || sp.view === "month" ? sp.view : "staff";
+  const cookieStore = await cookies();
+  const savedState = readCalendarStateCookie(cookieStore.get(CALENDAR_STATE_COOKIE)?.value);
+  const effectiveView = sp.view ?? savedState.view;
+  const view = effectiveView === "week" || effectiveView === "month" ? effectiveView : "staff";
   const today = new Date();
-  const dayAnchor = sp.day ? new Date(`${sp.day}T00:00:00.000Z`) : today;
-  const weekStart = startOfWeek(sp.week ? new Date(`${sp.week}T00:00:00.000Z`) : today);
+  const effectiveDay = sp.day ?? savedState.day;
+  const dayAnchor = effectiveDay ? new Date(`${effectiveDay}T00:00:00.000Z`) : today;
+  const effectiveWeek = sp.week ?? savedState.week;
+  const weekStart = startOfWeek(effectiveWeek ? new Date(`${effectiveWeek}T00:00:00.000Z`) : today);
   const weekDays = Array.from({ length: 5 }, (_, index) => addDays(weekStart, index + 1));
-  const monthAnchor = sp.month ? new Date(`${sp.month}-01T00:00:00.000Z`) : new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+  const effectiveMonth = sp.month ?? savedState.month;
+  const monthAnchor = effectiveMonth ? new Date(`${effectiveMonth}-01T00:00:00.000Z`) : new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
   const month = monthBounds(monthAnchor);
   const days = view === "staff" ? [dayAnchor] : view === "month" ? [] : weekDays;
   const start = view === "month" ? toISODate(month.start) : toISODate(days[0]);
@@ -141,8 +167,10 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const activities: CalendarActivity[] = [...displayedJobs].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()).slice(0, 5).map((job) => ({ id: job.id, tone: job.status === "completed" ? "success" : job.status === "in_progress" ? "info" : "warning", title: job.status === "completed" ? `Job completed - ${job.companyName || `${job.customerFirstName} ${job.customerLastName}`}` : job.status === "in_progress" ? `Job started - ${job.companyName || `${job.customerFirstName} ${job.customerLastName}`}` : `Schedule updated - ${job.companyName || `${job.customerFirstName} ${job.customerLastName}`}`, detail: `${job.customerCity ?? "No city"} - ${job.customerZip ?? "No ZIP"}` }));
   const currentDate = view === "month" ? monthAnchor : view === "staff" ? dayAnchor : weekStart;
   const dateLabel = view === "month" ? monthAnchor.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" }) : view === "staff" ? formatDayLabel(dayAnchor) : `${weekDays[0].toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })} to ${weekDays[4].toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`;
+  const stateAnchor = view === "month" ? toISODate(monthAnchor).slice(0, 7) : view === "staff" ? toISODate(dayAnchor) : toISODate(weekStart);
   return (
     <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
+      <CalendarStateSync view={view} anchor={stateAnchor} />
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-3 lg:px-6">
         <div className="flex flex-wrap items-center gap-2"><DatePicker view={view} value={currentDate} label={dateLabel} /><Link href={`/calendar${prev}`} className="co-button-secondary" aria-label="Previous period">Previous</Link><Link href={`/calendar${todayQuery}`} className="co-button-secondary">Today</Link><Link href={`/calendar${next}`} className="co-button-secondary" aria-label="Next period">Next</Link></div>
       </header>
