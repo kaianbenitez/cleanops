@@ -125,7 +125,7 @@ function Section({
 
 function InfoCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-[24px] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 p-4 shadow-[0_8px_24px_rgba(27,41,37,0.03)]">
+    <div className="rounded-[var(--co-radius-card)] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 p-4 shadow-[0_8px_24px_rgba(27,41,37,0.03)]">
       <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">{label}</p>
       <p className="mt-2 text-sm font-semibold">{value}</p>
       {sub ? <p className="mt-1 text-xs text-[var(--co-muted)]">{sub}</p> : null}
@@ -499,7 +499,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               sub={serviceArea?.detail ?? "Matched against configured zones"}
             />
           </div>
-          <div className="mt-5 grid gap-3 rounded-[24px] border border-[var(--co-line-soft)] bg-[linear-gradient(135deg,#f8fbf5,#eef5eb)] p-4 sm:grid-cols-2">
+          <div className="mt-5 grid gap-3 rounded-[var(--co-radius-card)] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4 sm:grid-cols-2">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Next visit</p>
               {nextJob ? (
@@ -616,7 +616,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
             </button>
           )}
 
-          <div className="mt-4 rounded-2xl border border-[var(--co-line-soft)] bg-[linear-gradient(135deg,#eef5eb,#f8faf5)] p-4">
+          <div className="mt-4 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Map preview</p>

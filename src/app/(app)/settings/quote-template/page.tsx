@@ -111,7 +111,7 @@ function PreviewCard({ title, url, fallback }: { title: string; url: string; fal
   const isImage = /^data:image\//.test(url) || /\.(png|jpg|jpeg|webp|gif|avif)$/i.test(url);
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--co-line-soft)] bg-white">
-      <div className="flex h-36 items-end bg-[linear-gradient(135deg,#e8e0d2,#faf7f2)] p-4">
+      <div className="flex h-36 items-end bg-[var(--co-surface-muted)] p-4">
         <span className="rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[var(--co-evergreen)]">{title}</span>
       </div>
       <div className="space-y-1 px-4 py-3">

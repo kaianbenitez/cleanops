@@ -141,7 +141,7 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint?:
 
 function RoutePreview({ address }: { address: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[linear-gradient(180deg,#f5f7f3,white)] p-4">
+    <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
       <div className="flex items-center justify-between gap-2">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Route preview</p>
@@ -158,7 +158,7 @@ function RoutePreview({ address }: { address: string }) {
               <p className="truncate text-xs text-[var(--co-muted)]">{address || "Address not recorded yet"}</p>
             </div>
           </div>
-          <div className="h-16 rounded-2xl border border-dashed border-[var(--co-line)] bg-[linear-gradient(135deg,#f7faf4,#eef3e8)]" />
+          <div className="h-16 rounded-2xl border border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)]" />
           <div className="flex items-center justify-between text-xs text-[var(--co-muted)]">
             <span>Visual placeholder until full routing is connected.</span>
             <a
@@ -535,24 +535,24 @@ export default function JobDetailPage({ params }: { params: Promise<{ jobId: str
             </div>
 
             <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-4 sm:p-6">
-              <div className="rounded-[24px] border border-[var(--co-line-soft)] bg-[linear-gradient(180deg,#fbfcfa,#f3f6ef)] p-4">
+              <div className="rounded-[var(--co-radius-card)] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Date / time</p>
                 <p className="mt-2 text-lg font-semibold text-[var(--co-ink)]">{job.scheduledDate}</p>
                 <p className="mt-1 text-sm text-[var(--co-muted)]">{job.scheduledStartTime?.slice(0, 5) ?? "No time"}</p>
               </div>
-              <div className="rounded-[24px] border border-[var(--co-line-soft)] bg-[linear-gradient(180deg,#fbfcfa,#f3f6ef)] p-4">
+              <div className="rounded-[var(--co-radius-card)] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Service type</p>
                 <p className="mt-2 text-lg font-semibold text-[var(--co-ink)]">{TYPE_LABELS[job.type] ?? job.type}</p>
                 <p className="mt-1 text-sm text-[var(--co-muted)]">Budgeted from the quote</p>
               </div>
-              <div className="rounded-[24px] border border-[var(--co-line-soft)] bg-[linear-gradient(180deg,#fbfcfa,#f3f6ef)] p-4">
+              <div className="rounded-[var(--co-radius-card)] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Location</p>
                 <p className="mt-2 text-lg font-semibold text-[var(--co-ink)]">{job.addressLine1 ?? "No address recorded"}</p>
                 <p className="mt-1 text-sm text-[var(--co-muted)]">
                   {job.city ?? ""}{job.state ? `, ${job.state}` : ""} {job.zip ?? ""}
                 </p>
               </div>
-              <div className="rounded-[24px] border border-[var(--co-line-soft)] bg-[linear-gradient(180deg,#fbfcfa,#f3f6ef)] p-4">
+              <div className="rounded-[var(--co-radius-card)] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Close-out</p>
                 <p className="mt-2 text-lg font-semibold text-[var(--co-ink)]">{job.completionNotes ? "Notes recorded" : "No notes yet"}</p>
                 <p className="mt-1 text-sm text-[var(--co-muted)]">Editable from this page</p>

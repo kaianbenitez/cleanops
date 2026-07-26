@@ -268,7 +268,7 @@ export default async function EmployeeBrowserPage({ searchParams }: { searchPara
         <div
           className="px-5 py-5 text-white"
           style={{
-            background: `linear-gradient(135deg, ${branding?.brandColor ?? "#14211f"}, #1c2f2a)`,
+            background: `linear-gradient(135deg, ${branding?.brandColor ?? "var(--co-evergreen)"}, var(--co-ink))`,
           }}
         >
           <div className="flex items-center justify-between gap-4">

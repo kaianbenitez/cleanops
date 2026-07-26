@@ -55,6 +55,9 @@
   --chart-4: #a43a3a;
   --chart-5: #4edea3;
   --radius: 0.5rem;
+  /* DESIGN.md: 8px for controls, 12px for cards and panels, pills for status. */
+  --co-radius-control: 0.5rem;
+  --co-radius-card: 0.75rem;
   --sidebar: #eef6ee;
   --sidebar-foreground: #161d19;
   --sidebar-primary: #006c49;
@@ -100,10 +103,11 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: 0.25rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.5rem;
+  --radius-sm: var(--co-radius-control);
+  --radius-md: var(--co-radius-control);
+  --radius-lg: var(--co-radius-card);
+  --radius-xl: var(--co-radius-card);
+  --radius-2xl: var(--co-radius-card);
   --radius-full: 9999px;
 }
 
@@ -122,7 +126,7 @@ body {
 
 .co-card {
   border: 1px solid var(--co-line-soft);
-  border-radius: 0.75rem;
+  border-radius: var(--co-radius-card);
   background: var(--co-surface);
   box-shadow: 0px 4px 12px rgba(15, 23, 42, 0.05);
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
@@ -158,7 +162,7 @@ body {
 .co-input {
   background: var(--co-input-bg);
   border: 1px solid var(--co-input-border);
-  border-radius: 0.5rem;
+  border-radius: var(--co-radius-control);
   color: var(--co-ink);
   min-height: 2.55rem;
   padding: 0.65rem 0.8rem;
@@ -173,7 +177,7 @@ body {
   background: var(--co-evergreen);
   border: 1px solid var(--co-evergreen);
   box-shadow: 0 8px 18px rgba(0, 108, 73, 0.2);
-  border-radius: 0.5rem;
+  border-radius: var(--co-radius-control);
   color: white;
   display: inline-flex;
   font-size: 0.8rem;
@@ -189,7 +193,7 @@ body {
   align-items: center;
   background: var(--co-surface);
   border: 1px solid var(--co-line);
-  border-radius: 0.5rem;
+  border-radius: var(--co-radius-control);
   color: var(--co-muted);
   display: inline-flex;
   font-size: 0.8rem;

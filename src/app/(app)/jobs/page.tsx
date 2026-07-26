@@ -217,7 +217,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
         </div>
       </header>
 
-      <nav className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] bg-[var(--co-surface-muted)]/80 p-4 sm:p-5" aria-label="Job views">
+      <nav className="flex flex-wrap items-center justify-between gap-4 rounded-[var(--co-radius-card)] bg-[var(--co-surface-muted)]/80 p-4 sm:p-5" aria-label="Job views">
         <div className="flex rounded-2xl bg-[var(--co-surface-muted-strong)] p-1.5">
           {[['active','Active'],['pending','Pending'],['history','History']].map(([tab, label]) => <Link key={tab} href={hrefWith(sp, { tab, status: "", page: "" })} className={`rounded-xl px-5 py-3 text-sm font-semibold ${activeTab === tab ? 'bg-white text-[var(--co-evergreen)] shadow-sm' : 'text-[var(--co-muted)] hover:text-[var(--co-ink)]'}`}>{label}</Link>)}
         </div>

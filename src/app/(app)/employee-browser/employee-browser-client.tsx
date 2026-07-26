@@ -180,7 +180,7 @@ export default function EmployeeBrowserClient({
         <div
           className="border-b border-[var(--co-line-soft)] px-5 py-4"
           style={{
-            background: `linear-gradient(135deg, ${brandColor}, #1c2f2a)`,
+            background: `linear-gradient(135deg, ${brandColor}, var(--co-ink))`,
           }}
         >
           <p className="eyebrow">Shift overview</p>

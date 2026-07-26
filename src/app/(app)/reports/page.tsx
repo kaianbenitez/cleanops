@@ -687,7 +687,7 @@ export default async function ReportsPage() {
               action={<Pill tone="ink">{formatDay(weekRange.startDate, company.timezone)} - {formatDay(weekRange.endDate, company.timezone)}</Pill>}
             >
               <div className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
-                <div className="rounded-[22px] border border-[var(--co-line-soft)] bg-[linear-gradient(180deg,#ffffff,#f8faf6)] p-5">
+                <div className="rounded-[var(--co-radius-card)] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--co-muted)]">Weekly revenue</p>
@@ -773,7 +773,7 @@ export default async function ReportsPage() {
                   ))}
                 </div>
 
-                <div className="rounded-[22px] border border-[var(--co-line-soft)] bg-white p-5">
+                <div className="rounded-[var(--co-radius-card)] border border-[var(--co-line-soft)] bg-white p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--co-muted)]">Recent quotes</p>
@@ -814,7 +814,7 @@ export default async function ReportsPage() {
               action={<Pill tone={monthUnassignedCount ? "warn" : "success"}>{monthUnassignedCount} unassigned this month</Pill>}
             >
               <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-                <div className="rounded-[22px] border border-[var(--co-line-soft)] bg-white p-5">
+                <div className="rounded-[var(--co-radius-card)] border border-[var(--co-line-soft)] bg-white p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--co-muted)]">Today&apos;s schedule</p>
@@ -881,7 +881,7 @@ export default async function ReportsPage() {
                     </div>
                   ))}
 
-                  <div className="rounded-[22px] border border-[var(--co-line-soft)] bg-white p-5">
+                  <div className="rounded-[var(--co-radius-card)] border border-[var(--co-line-soft)] bg-white p-5">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--co-muted)]">Attention required</p>
                     <div className="mt-4 space-y-2">
                       {[
@@ -925,7 +925,7 @@ export default async function ReportsPage() {
                   ))}
                 </div>
 
-                <div className="rounded-[22px] border border-[var(--co-line-soft)] bg-white p-5">
+                <div className="rounded-[var(--co-radius-card)] border border-[var(--co-line-soft)] bg-white p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--co-muted)]">Payroll detail</p>
