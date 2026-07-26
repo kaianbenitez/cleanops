@@ -162,7 +162,7 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentJobs, setRecentJobs] = useState<EmployeeJob[]>([]);
-  const [payTierBrackets, setPayTierBrackets] = useState<PayTierBracket[]>([]);
+  const [, setPayTierBrackets] = useState<PayTierBracket[]>([]);
   const [weeklySchedule, setWeeklySchedule] = useState<WeekDay[]>([]);
   const [serviceLocations, setServiceLocations] = useState<ServiceLocation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -276,7 +276,6 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
     fullName={fullName}
     initials={initials}
     tenure={tenure}
-    payTierBrackets={payTierBrackets}
     setPassword={setPassword}
     deleteEmployee={deleteEmployee}
     managementMessage={managementMessage}
@@ -300,7 +299,6 @@ type CompactProfileProps = {
   fullName: string;
   initials: string;
   tenure: string | null;
-  payTierBrackets: PayTierBracket[];
   setPassword: (password: string, confirmPassword: string) => Promise<void>;
   deleteEmployee: () => Promise<void>;
   managementMessage: string | null;
@@ -323,7 +321,6 @@ function CompactProfile({
   fullName,
   initials,
   tenure,
-  payTierBrackets,
   setPassword,
   deleteEmployee,
   managementMessage,
@@ -423,6 +420,15 @@ function CompactProfile({
 
         </div>
       </div>
+
+      <EmployeeAccountManagement
+        employeeName={fullName}
+        isActive={employee.isActive}
+        onSetPassword={setPassword}
+        onDelete={deleteEmployee}
+        message={managementMessage}
+        error={managementError}
+      />
     </div>
   );
 }
@@ -457,10 +463,10 @@ function EmployeeAccountManagement({
 
   return (
     <section className="co-card p-6">
-      <p className="eyebrow">Account access</p>
-      <h2 className="mt-2 text-lg font-semibold text-[var(--co-ink)]">Manage {employeeName}</h2>
+      <p className="eyebrow">Administration</p>
+      <h2 className="mt-2 text-lg font-semibold text-[var(--co-ink)]">Account access</h2>
       <p className="mt-1 text-sm leading-6 text-[var(--co-muted)]">
-        Set a new sign-in password or archive this employee when they leave. Archived employees stay in historical payroll and job records.
+        Manage sign-in access for {employeeName}, or archive this employee when they leave. Archived employees stay in historical payroll and job records.
       </p>
 
       <form onSubmit={submitPassword} className="mt-5 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
