@@ -141,6 +141,10 @@ Last updated: 2026-07-24 (post-migration).
   list pages — currently flagged, not implemented. Their stat cards read the entire filtered
   row set client-side, so real pagination means moving those into SQL aggregates first. Low
   urgency at current data volume; will matter as customer/invoice counts grow.
+- Dashboard exception counts use SQL aggregates. The Jobs page still applies `unassigned` and
+  `missingHours` filters after pagination, so its displayed count can temporarily disagree with
+  the dashboard. Fix the Jobs-page filter/pagination order separately; do not make the dashboard
+  mirror that incorrect count.
 
 ## Parallel-work note
 

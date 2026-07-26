@@ -21,6 +21,7 @@ type CompanySettings = {
   ghlWorkflowMap?: Record<string, string>;
   branding?: { logoUrl?: string | null; brandColor?: string | null; phone?: string | null; email?: string | null };
   mileageRateCents?: number;
+  revenueTargetCents?: number | null;
   inventory?: Array<{ id: string; name: string }>;
 };
 
@@ -73,6 +74,7 @@ export default function SettingsPage() {
   const [name, setName] = useState("");
   const [timezone, setTimezone] = useState("America/Chicago");
   const [mileageRate, setMileageRate] = useState("0.35");
+  const [revenueTarget, setRevenueTarget] = useState("");
   const [admins, setAdmins] = useState<AdminRow[]>([]);
   const [settings, setSettings] = useState<CompanySettings>({});
   const [apiConfig, setApiConfig] = useState<ApiConfig>({});
@@ -92,6 +94,7 @@ export default function SettingsPage() {
           setName(settingsData.company.name ?? "");
           setTimezone(settingsData.company.timezone ?? "America/Chicago");
           setMileageRate(((settingsData.company.settings?.mileageRateCents ?? 35) / 100).toFixed(2));
+          setRevenueTarget(settingsData.company.settings?.revenueTargetCents == null ? "" : (settingsData.company.settings.revenueTargetCents / 100).toFixed(2));
           setSettings(settingsData.company.settings ?? {});
           setApiConfig(settingsData.apiConfig ?? {});
         } else {
@@ -150,6 +153,20 @@ export default function SettingsPage() {
       body: JSON.stringify({ mileageRateCents: Math.round(Number(mileageRate || 0) * 100) }),
     });
     setPayrollMessage(response.ok ? "Payroll defaults saved." : "Could not save payroll defaults.");
+  }
+
+  async function saveRevenueTarget() {
+    const dollars = Number(revenueTarget);
+    if (revenueTarget.trim() !== "" && (!Number.isFinite(dollars) || dollars < 0)) {
+      setMessage("Enter a valid non-negative monthly revenue target.");
+      return;
+    }
+    const response = await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ revenueTargetCents: revenueTarget.trim() === "" ? null : Math.round(dollars * 100) }),
+    });
+    setMessage(response.ok ? "Monthly revenue target saved." : "Could not save monthly revenue target.");
   }
 
   async function testGhlConnection() {
@@ -245,7 +262,7 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+      <section className="grid gap-5 xl:grid-cols-3">
         <Panel eyebrow="Company profile" title="Identity and time" description="These values shape the app and payroll behavior.">
           <div className="grid gap-4">
             <label className="block text-sm">
@@ -272,6 +289,17 @@ export default function SettingsPage() {
             Save payroll defaults
           </button>
           {payrollMessage ? <p className="mt-3 text-sm text-[var(--co-evergreen)]">{payrollMessage}</p> : null}
+        </Panel>
+
+        <Panel eyebrow="Revenue goal" title="Monthly target" description="Used to compare paid revenue on the dashboard.">
+          <label className="block max-w-xs text-sm">
+            <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Monthly revenue target ($)</span>
+            <input type="number" step="0.01" min="0" className="co-input w-full" value={revenueTarget} onChange={(event) => setRevenueTarget(event.target.value)} placeholder="Not set" />
+            <span className="mt-2 block text-xs leading-5 text-[var(--co-muted)]">Leave blank and save to remove the target.</span>
+          </label>
+          <button onClick={saveRevenueTarget} className="co-button-secondary mt-5">
+            Save monthly target
+          </button>
         </Panel>
       </section>
 

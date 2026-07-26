@@ -1,0 +1,10 @@
+"use client";
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+export default function DateRangeControls({ todayIso, weekStartIso, monthStartIso, fromIso, toIso }: { todayIso: string; weekStartIso: string; monthStartIso: string; fromIso: string; toIso: string }) {
+ const router=useRouter(); const params=useSearchParams(); const [from,setFrom]=useState(fromIso); const [to,setTo]=useState(toIso);
+ function setRange(nextFrom:string,nextTo:string,preset:string){const next=new URLSearchParams(params.toString());next.set("from",nextFrom);next.set("to",nextTo);next.set("preset",preset);router.push("/dashboard?"+next.toString());}
+ return <section aria-label="Reporting date range" className="co-card p-4"><div className="flex flex-wrap gap-2"><Button type="button" onClick={()=>setRange(todayIso,todayIso,"today")} className="min-h-11">Today</Button><Button type="button" variant="outline" onClick={()=>setRange(weekStartIso,todayIso,"last_7_days")} className="min-h-11">Last 7 days</Button><Button type="button" variant="outline" onClick={()=>setRange(monthStartIso,todayIso,"last_30_days")} className="min-h-11">Last 30 days</Button><Button type="button" variant="outline" onClick={()=>setRange(from,to,"custom")} className="min-h-11">Custom</Button></div><div className="mt-3 flex flex-wrap gap-2"><label className="grid gap-1 text-xs"><span>From</span><Input type="date" value={from} onChange={(event)=>setFrom(event.target.value)} className="min-h-11" /></label><label className="grid gap-1 text-xs"><span>Through</span><Input type="date" value={to} onChange={(event)=>setTo(event.target.value)} className="min-h-11" /></label><Button type="button" variant="outline" onClick={()=>setRange(from,to,"custom")} className="min-h-11 self-end">Apply custom range</Button></div><p className="mt-3 text-xs text-[var(--co-muted)]">This range changes reporting metrics only. Today&apos;s run and exceptions stay anchored to today.</p></section>;
+}

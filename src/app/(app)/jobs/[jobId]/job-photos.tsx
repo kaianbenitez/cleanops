@@ -1,10 +1,28 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 type Photo = { id: string; caption: string | null; url: string | null; uploadedBy: string };
 export default function JobPhotos({ jobId }: { jobId: string }) {
   const input = useRef<HTMLInputElement>(null); const [photos, setPhotos] = useState<Photo[]>([]); const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false);
-  const load = async () => { const res = await fetch(`/api/jobs/${jobId}/photos`, { cache: "no-store" }); const body = await res.json().catch(() => ({})); if (res.ok) setPhotos(body.photos ?? []); };
-  useEffect(() => { void load(); }, [jobId]);
+  const load = useCallback(async () => {
+    const res = await fetch(`/api/jobs/${jobId}/photos`, { cache: "no-store" });
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) setPhotos(body.photos ?? []);
+  }, [jobId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadInitialPhotos() {
+      const res = await fetch(`/api/jobs/${jobId}/photos`, { cache: "no-store" });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok && !cancelled) setPhotos(body.photos ?? []);
+    }
+
+    void loadInitialPhotos();
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId]);
   async function upload(file: File) { setBusy(true); setError(null); const body = new FormData(); body.set("photo", file); body.set("slot", "extra"); const res = await fetch(`/api/jobs/${jobId}/photos`, { method: "POST", body }); const out = await res.json().catch(() => ({})); setBusy(false); if (!res.ok) return setError(out.error ?? "Could not upload photo."); await load(); }
   async function remove(photoId: string) { const res = await fetch(`/api/jobs/${jobId}/photos/${photoId}`, { method: "DELETE" }); if (res.ok) await load(); }
   return <section className="co-card p-5"><div className="flex items-center justify-between gap-3"><div><p className="eyebrow">Service photos</p><h2 className="mt-1 text-lg font-semibold">Job evidence</h2></div><button type="button" onClick={() => input.current?.click()} className="co-button-secondary text-xs" disabled={busy}>{busy ? "Uploading…" : "Upload photo"}</button></div><input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => e.target.files?.[0] && void upload(e.target.files[0])} />{error ? <p className="mt-3 text-xs text-rose-700">{error}</p> : null}{photos.length ? <div className="mt-4 grid grid-cols-2 gap-3">{photos.map((photo) => <div key={photo.id} className="group relative aspect-square overflow-hidden rounded-xl border border-[var(--co-line-soft)]">{photo.url ? <img src={photo.url} alt={photo.caption ?? "Job photo"} className="h-full w-full object-cover" /> : null}<button type="button" onClick={() => void remove(photo.id)} className="absolute right-2 top-2 rounded-full bg-black/65 px-2 py-1 text-xs font-semibold text-white opacity-0 transition group-hover:opacity-100">Delete</button><span className="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-1 text-[10px] text-white">{photo.uploadedBy}</span></div>)}</div> : <p className="mt-4 text-sm text-[var(--co-muted)]">No service photos yet.</p>}</section>;

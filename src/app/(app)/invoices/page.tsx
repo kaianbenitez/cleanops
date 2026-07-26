@@ -4,11 +4,13 @@ import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { customers, invoices, jobs } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { isOverdue, overdueSqlCondition } from "@/lib/invoices/overdue";
+import { formatDisplayDate } from "@/lib/scheduling/dates";
 import { PaginationControls } from "@/components/ui/pagination";
 
 const PAGE_SIZE = 25;
 
-type SearchParams = { q?: string; status?: string; page?: string };
+type SearchParams = { q?: string; status?: string; overdue?: string; page?: string };
 
 function hrefForPage(params: SearchParams, page: number) {
   const next = new URLSearchParams();
@@ -38,10 +40,6 @@ function dollars(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-function isOverdue(status: string, createdAt: Date) {
-  return status === "sent" && Date.now() - new Date(createdAt).getTime() > 14 * 24 * 60 * 60 * 1000;
-}
-
 function statsCard({ label, value, note, key }: { label: string; value: string; note: string; key?: string }) {
   return (
     <div key={key} className="co-card p-5">
@@ -60,6 +58,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const conditions = [eq(invoices.companyId, admin.companyId)];
   if (sp.status && sp.status !== "all") conditions.push(eq(invoices.status, sp.status as typeof invoices.status.enumValues[number]));
+  if (sp.overdue === "yes") conditions.push(overdueSqlCondition());
   if (sp.q?.trim()) {
     const query = `%${sp.q.trim()}%`;
     // invoices.id is a uuid column — ILIKE has no operator for uuid without an
@@ -68,7 +67,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
   }
 
   const page = Math.max(1, Math.floor(Number(sp.page)) || 1);
-  const overdueCondition = sql`${invoices.status} = 'sent' and ${invoices.createdAt} < now() - interval '14 days'`;
+  const overdueCondition = overdueSqlCondition();
 
   const [rows, [counts]] = await Promise.all([
     db
@@ -154,6 +153,10 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
             <option value="paid">Paid</option>
             <option value="void">Void</option>
           </select>
+          <label className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium ${sp.overdue === "yes" ? "border-[var(--co-evergreen)] bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]" : "border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)]"}`}>
+            <input name="overdue" type="checkbox" value="yes" defaultChecked={sp.overdue === "yes"} className="h-4 w-4 accent-[var(--co-evergreen)]" />
+            Overdue
+          </label>
           <button type="submit" className="co-button-secondary">
             Filter invoices
           </button>
@@ -192,7 +195,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
                         <Link href={`/invoices/${invoice.id}`} className="font-semibold text-[var(--co-evergreen)]">
                           INV-{invoice.id.slice(0, 6).toUpperCase()}
                         </Link>
-                        <span className="mt-1 block text-xs text-[var(--co-muted)]">{new Date(invoice.createdAt).toLocaleDateString()}</span>
+                        <span className="mt-1 block text-xs text-[var(--co-muted)]">{formatDisplayDate(invoice.createdAt)}</span>
                       </td>
                       <td className="px-5 py-4 font-medium">
                         <Link href={`/customers/${invoice.customerId}`} className="hover:underline">
@@ -201,7 +204,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
                       </td>
                       <td className="px-5 py-4 text-[var(--co-muted)]">
                         {invoice.jobType?.replaceAll("_", " ") ?? "—"}
-                        <span className="block text-xs">{invoice.jobScheduledDate ?? ""}</span>
+                        <span className="block text-xs">{formatDisplayDate(invoice.jobScheduledDate)}</span>
                       </td>
                       <td className="px-5 py-4">
                         <span className="font-semibold">{dollars(invoice.totalCents)}</span>
