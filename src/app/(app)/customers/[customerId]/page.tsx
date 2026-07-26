@@ -132,20 +132,6 @@ function InfoCard({ label, value, sub }: { label: string; value: string; sub?: s
   );
 }
 
-function PhotoTile({ title }: { title: string }) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-[var(--co-line-soft)] bg-white">
-      <div className="flex h-32 items-end bg-[linear-gradient(135deg,#f5f0e8,#ddd4c2)] p-3">
-        <span className="rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[var(--co-evergreen)]">Before / after</span>
-      </div>
-      <div className="flex items-center justify-between px-3 py-2 text-xs">
-        <span className="font-medium text-[var(--co-ink)]">{title}</span>
-        <span className="rounded-full bg-[var(--co-surface-muted)] px-2 py-0.5 text-[var(--co-muted)]">Before / after</span>
-      </div>
-    </div>
-  );
-}
-
 export default function CustomerProfilePage({ params }: { params: Promise<{ customerId: string }> }) {
   const { customerId } = use(params);
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -817,21 +803,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         </Section>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-        <Section eyebrow="Photos" title="Before / after" description="Use this section to show proof of quality and set expectations for future handoffs.">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <PhotoTile title="Kitchen" />
-            <PhotoTile title="Bathroom" />
-            <PhotoTile title="Living room" />
-          </div>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-[var(--co-muted)]">Photo upload and storage can be connected later. This block is here so the UI already tells the story.</p>
-            <button className="co-button-secondary" type="button">
-              View all photos
-            </button>
-          </div>
-        </Section>
-
+      <section>
         <Section eyebrow="Audit trail" title="Recent changes" description="Helpful when you inherit a job and need to see what changed.">
           {auditLogs.length === 0 ? (
             <p className="py-4 text-sm text-[var(--co-muted)]">No audit history recorded yet.</p>

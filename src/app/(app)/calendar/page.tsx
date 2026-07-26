@@ -67,7 +67,6 @@ export type CalendarJob = {
   updatedAt: Date;
 };
 
-export type CalendarActivity = { id: string; tone: "success" | "warning" | "info"; title: string; detail: string };
 
 function query(params: SearchParams) {
   const result = new URLSearchParams();
@@ -164,7 +163,6 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const next = query({ ...filterParams, ...(view === "month" ? { month: toISODate(nextDate).slice(0, 7) } : view === "staff" ? { day: toISODate(nextDate) } : { week: toISODate(nextDate) }) });
   const todayQuery = query({ ...filterParams, ...(view === "month" ? { month: todayIso.slice(0, 7) } : view === "staff" ? { day: todayIso } : { week: toISODate(startOfWeek(today)) }) });
 
-  const activities: CalendarActivity[] = [...displayedJobs].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()).slice(0, 5).map((job) => ({ id: job.id, tone: job.status === "completed" ? "success" : job.status === "in_progress" ? "info" : "warning", title: job.status === "completed" ? `Job completed - ${job.companyName || `${job.customerFirstName} ${job.customerLastName}`}` : job.status === "in_progress" ? `Job started - ${job.companyName || `${job.customerFirstName} ${job.customerLastName}`}` : `Schedule updated - ${job.companyName || `${job.customerFirstName} ${job.customerLastName}`}`, detail: `${job.customerCity ?? "No city"} - ${job.customerZip ?? "No ZIP"}` }));
   const currentDate = view === "month" ? monthAnchor : view === "staff" ? dayAnchor : weekStart;
   const dateLabel = view === "month" ? monthAnchor.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" }) : view === "staff" ? formatDayLabel(dayAnchor) : `${weekDays[0].toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })} to ${weekDays[weekDays.length - 1].toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`;
   const stateAnchor = view === "month" ? toISODate(monthAnchor).slice(0, 7) : view === "staff" ? toISODate(dayAnchor) : toISODate(weekStart);
@@ -179,7 +177,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
 
       <main className="p-3 sm:p-4 lg:p-5">
         {view === "week" ? <WeekBoard days={weekDays.map((day) => ({ iso: toISODate(day), label: formatDayLabel(day), dayNum: day.getDate(), isToday: toISODate(day) === todayIso }))} employees={employees} jobs={displayedJobs} /> : null}
-        {view === "staff" ? <StaffBoard dayIso={toISODate(dayAnchor)} dayLabel={formatDayLabel(dayAnchor)} employees={employees} jobs={displayedJobs} activities={activities} unassignedJobs={jobsWithAssignments.filter((job) => !job.assignedUserIds.length)} /> : null}
+        {view === "staff" ? <StaffBoard dayIso={toISODate(dayAnchor)} dayLabel={formatDayLabel(dayAnchor)} employees={employees} jobs={displayedJobs} unassignedJobs={jobsWithAssignments.filter((job) => !job.assignedUserIds.length)} /> : null}
         {view === "month" ? <MonthBoard month={monthAnchor} jobs={displayedJobs} /> : null}
       </main>
     </div>

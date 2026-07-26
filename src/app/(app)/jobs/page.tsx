@@ -38,7 +38,6 @@ type SearchParams = {
   type?: string;
   missingHours?: string;
   unassigned?: string;
-  jobId?: string;
   tab?: string;
   page?: string;
   start?: string;
@@ -103,35 +102,6 @@ function MetricCard({
 
 function Pill({ status }: { status: string }) {
   return <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[status] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>{STATUS_LABELS[status] ?? status}</span>;
-}
-
-function SideCard({
-  eyebrow,
-  title,
-  children,
-}: {
-  eyebrow: string;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="co-card overflow-hidden">
-      <div className="border-b border-[var(--co-line-soft)] px-5 py-4">
-        <p className="eyebrow">{eyebrow}</p>
-        <h2 className="mt-1 text-lg font-semibold">{title}</h2>
-      </div>
-      <div className="px-5 py-5">{children}</div>
-    </section>
-  );
-}
-
-function StatRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-3">
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">{label}</p>
-      <p className="text-sm font-semibold text-[var(--co-ink)]">{value}</p>
-    </div>
-  );
 }
 
 export default async function JobsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
@@ -209,7 +179,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
   const jobIds = rows.map((row) => row.id);
   const allJobIds = allJobs.map((job) => job.id);
 
-  const [assignments, entries, invoiceRows, allAssignments, allInvoiceRows] = await Promise.all([
+  const [assignments, entries, allAssignments, allInvoiceRows] = await Promise.all([
     jobIds.length
       ? db
           .select({ jobId: jobAssignments.jobId, userId: users.id, firstName: users.firstName, lastName: users.lastName })
@@ -219,9 +189,6 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
       : Promise.resolve([]),
     jobIds.length
       ? db.select({ jobId: timeEntries.jobId, minutesWorked: timeEntries.minutesWorked }).from(timeEntries).where(inArray(timeEntries.jobId, jobIds))
-      : Promise.resolve([]),
-    jobIds.length
-      ? db.select({ jobId: invoices.jobId, status: invoices.status }).from(invoices).where(inArray(invoices.jobId, jobIds))
       : Promise.resolve([]),
     allJobIds.length
       ? db.select({ jobId: jobAssignments.jobId }).from(jobAssignments).where(inArray(jobAssignments.jobId, allJobIds))
@@ -235,8 +202,6 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
   assignments.forEach((assignment) => assignmentsByJob.set(assignment.jobId, [...(assignmentsByJob.get(assignment.jobId) ?? []), assignment]));
   const minutesByJob = new Map<string, number>();
   entries.forEach((entry) => minutesByJob.set(entry.jobId, (minutesByJob.get(entry.jobId) ?? 0) + (entry.minutesWorked ?? 0)));
-  const invoiceByJob = new Map<string, string>();
-  invoiceRows.forEach((invoice) => invoice.jobId && invoiceByJob.set(invoice.jobId, invoice.status));
 
   const assignedIds = new Set(allAssignments.map((assignment) => assignment.jobId));
   const invoicedIds = new Set(allInvoiceRows.map((invoice) => invoice.jobId).filter((jobId): jobId is string => Boolean(jobId)));
@@ -252,11 +217,6 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
   const unassignedRows = rows.filter((row) => (assignmentsByJob.get(row.id) ?? []).length === 0);
   const visibleRows = sp.missingHours === "yes" ? rows.filter((row) => !minutesByJob.get(row.id)) : rows;
   const filteredRows = sp.unassigned === "yes" ? unassignedRows : visibleRows;
-  const selectedJob = rows.find((row) => row.id === sp.jobId) ?? filteredRows[0] ?? rows[0] ?? null;
-  const selectedAssignments = selectedJob ? assignmentsByJob.get(selectedJob.id) ?? [] : [];
-  const selectedMinutes = selectedJob ? minutesByJob.get(selectedJob.id) ?? 0 : 0;
-  const selectedInvoice = selectedJob ? invoiceByJob.get(selectedJob.id) : null;
-  const availableToday = employees.filter((employee) => rows.filter((job) => (assignmentsByJob.get(job.id) ?? []).some((assignment) => assignment.userId === employee.id)).length === 0);
 
   return (
     <div className="space-y-6">
@@ -274,7 +234,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
 
       <nav className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] bg-[var(--co-surface-muted)]/80 p-4 sm:p-5" aria-label="Job views">
         <div className="flex rounded-2xl bg-[var(--co-surface-muted-strong)] p-1.5">
-          {[['active','Active'],['pending','Pending'],['history','History']].map(([tab, label]) => <Link key={tab} href={hrefWith(sp, { tab, status: "", page: "", jobId: "" })} className={`rounded-xl px-5 py-3 text-sm font-semibold ${activeTab === tab ? 'bg-white text-[var(--co-evergreen)] shadow-sm' : 'text-[var(--co-muted)] hover:text-[var(--co-ink)]'}`}>{label}</Link>)}
+          {[['active','Active'],['pending','Pending'],['history','History']].map(([tab, label]) => <Link key={tab} href={hrefWith(sp, { tab, status: "", page: "" })} className={`rounded-xl px-5 py-3 text-sm font-semibold ${activeTab === tab ? 'bg-white text-[var(--co-evergreen)] shadow-sm' : 'text-[var(--co-muted)] hover:text-[var(--co-ink)]'}`}>{label}</Link>)}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
         <form className="flex flex-wrap items-center gap-2">
@@ -309,7 +269,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
               {["all", "scheduled", "in_progress", "completed", "cancelled"].map((status) => (
                 <Link
                   key={status}
-                  href={hrefWith(sp, { status, missingHours: "", unassigned: "", jobId: "" })}
+                  href={hrefWith(sp, { status, missingHours: "", unassigned: "" })}
                   className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${
                     !sp.missingHours && !sp.unassigned && (sp.status ?? "all") === status
                       ? "bg-[var(--co-evergreen)] text-white shadow-sm"
@@ -320,7 +280,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                 </Link>
               ))}
               <Link
-                href={hrefWith(sp, { missingHours: "yes", unassigned: "", status: "", jobId: "" })}
+                href={hrefWith(sp, { missingHours: "yes", unassigned: "", status: "" })}
                 className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${
                   sp.missingHours === "yes"
                     ? "bg-[var(--co-evergreen)] text-white shadow-sm"
@@ -331,7 +291,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                 {missingHoursCount ? <span className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-[11px]">{missingHoursCount}</span> : null}
               </Link>
               <Link
-                href={hrefWith(sp, { unassigned: "yes", missingHours: "", status: "", jobId: "" })}
+                href={hrefWith(sp, { unassigned: "yes", missingHours: "", status: "" })}
                 className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${
                   sp.unassigned === "yes"
                     ? "bg-[var(--co-evergreen)] text-white shadow-sm"
@@ -362,7 +322,6 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                 ))}
               </select>
               {sp.status ? <input type="hidden" name="status" value={sp.status} /> : null}
-              {sp.jobId ? <input type="hidden" name="jobId" value={sp.jobId} /> : null}
               {sp.tab ? <input type="hidden" name="tab" value={sp.tab} /> : null}
               <input type="hidden" name="start" value={rangeStart} />
               <input type="hidden" name="end" value={rangeEnd} />
@@ -394,12 +353,9 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                 <tbody className="divide-y divide-[var(--co-line-soft)]">
                   {filteredRows.map((row) => {
                     const assigned = assignmentsByJob.get(row.id) ?? [];
-                    const minutes = minutesByJob.get(row.id) ?? 0;
-                    const invoiceStatus = invoiceByJob.get(row.id);
-                    const selected = selectedJob?.id === row.id;
 
                     return (
-                      <tr key={row.id} className={`transition-colors hover:bg-[var(--co-surface-muted)]/55 ${selected ? "bg-[var(--co-surface-muted)]/40" : ""}`}>
+                      <tr key={row.id} className="transition-colors hover:bg-[var(--co-surface-muted)]/55">
                         <td className="px-5 py-4 font-mono font-semibold text-[var(--co-evergreen)]">
                           <Link href={`/jobs/${row.id}`} className="-mx-5 -my-4 block px-5 py-4 font-medium text-[var(--co-ink)] hover:text-[var(--co-evergreen)]">
                             #{row.id.slice(0, 8).toUpperCase()}
@@ -444,123 +400,6 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
             <div className="flex items-center gap-2"><Link aria-disabled={page === 1} href={hrefWith(sp, { page: page > 1 ? String(page - 1) : "1" })} className={`co-button-secondary px-3 py-1.5 ${page === 1 ? 'pointer-events-none opacity-40' : ''}`}>Previous</Link><span className="font-medium text-[var(--co-ink)]">Page {page} of {totalPages}</span><Link aria-disabled={page >= totalPages} href={hrefWith(sp, { page: page < totalPages ? String(page + 1) : String(totalPages) })} className={`co-button-secondary px-3 py-1.5 ${page >= totalPages ? 'pointer-events-none opacity-40' : ''}`}>Next</Link></div>
           </div>
         </section>
-
-        <aside className="hidden space-y-5">
-          <SideCard eyebrow="Job details" title={selectedJob ? `${selectedJob.customerFirstName} ${selectedJob.customerLastName}` : "Select a job"}>
-            {selectedJob ? (
-              <div className="space-y-4">
-                <div className="rounded-[24px] border border-[var(--co-line-soft)] bg-[linear-gradient(135deg,#f5f7f1,#ffffff)] p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Needs assignment</p>
-                      <p className="mt-2 text-sm font-semibold">{selectedAssignments.length ? `${selectedAssignments.length} technician${selectedAssignments.length === 1 ? "" : "s"} assigned` : "Unassigned"}</p>
-                      <p className="mt-1 text-xs text-[var(--co-muted)]">
-                        {selectedJob.scheduledDate} · {selectedJob.scheduledStartTime?.slice(0, 5) ?? "No time"}
-                      </p>
-                    </div>
-                    <Pill status={selectedJob.status} />
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <StatRow label="Customer" value={`${selectedJob.customerFirstName} ${selectedJob.customerLastName}`} />
-                  <StatRow label="Next action" value={selectedJob.status === "completed" ? "Invoice ready" : "Keep scheduled"} />
-                </div>
-
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <p className="text-[var(--co-muted)]">Address</p>
-                    <p className="mt-1 font-medium">
-                      {selectedJob.addressLine1 ?? "No address"}
-                      <br />
-                      {selectedJob.city ?? ""}
-                      {selectedJob.state ? `, ${selectedJob.state}` : ""} {selectedJob.zip ?? ""}
-                    </p>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <StatRow label="Type" value={TYPE_LABELS[selectedJob.type] ?? selectedJob.type} />
-                    <StatRow label="Budget hours" value={selectedJob.estimatedDurationMinutes ? (selectedJob.estimatedDurationMinutes / 60).toFixed(2) : "—"} />
-                    <StatRow label="Job value" value={money(selectedJob.priceCents)} />
-                    <StatRow label="Recorded hours" value={`${(selectedMinutes / 60).toFixed(2)} hrs`} />
-                    <StatRow label="Invoice" value={selectedInvoice === "paid" ? "Paid" : selectedInvoice === "sent" ? "Sent" : selectedJob.status === "completed" ? "Ready" : "Not ready"} />
-                    <StatRow label="Crew" value={selectedAssignments.length ? `${selectedAssignments.length} assigned` : "None"} />
-                  </div>
-                </div>
-
-                <div className="grid gap-2">
-                  <Link href={`/jobs/${selectedJob.id}`} className="co-button-primary justify-center">
-                    Open job
-                  </Link>
-                  <Link href={`/customers/${selectedJob.customerId}`} className="co-button-secondary justify-center">
-                    View customer
-                  </Link>
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                      [selectedJob.addressLine1, selectedJob.city, selectedJob.state].filter(Boolean).join(", ")
-                    )}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="co-button-secondary justify-center"
-                  >
-                    Open map
-                  </a>
-                  {selectedJob.status === "completed" ? (
-                    <Link href={`/invoices?jobId=${selectedJob.id}`} className="co-button-secondary justify-center">
-                      Review invoice
-                    </Link>
-                  ) : null}
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-[var(--co-muted)]">Select a row to inspect the job.</p>
-            )}
-          </SideCard>
-
-          <SideCard eyebrow="Team today" title="Availability">
-            <div className="space-y-3">
-              {employees.map((employee) => {
-                const count = rows.filter((job) => (assignmentsByJob.get(job.id) ?? []).some((assignment) => assignment.userId === employee.id)).length;
-                const available = count === 0;
-                return (
-                  <div key={employee.id} className="flex items-center justify-between rounded-2xl border border-[var(--co-line-soft)] px-3 py-3 text-sm">
-                    <div>
-                      <p className="font-medium">
-                        {employee.firstName} {employee.lastName}
-                      </p>
-                      <p className="text-xs text-[var(--co-muted)]">{available ? "Available today" : `${count} scheduled job${count === 1 ? "" : "s"}`}</p>
-                    </div>
-                    <span className={`h-2.5 w-2.5 rounded-full ${available ? "bg-emerald-500" : "bg-amber-500"}`} aria-label={available ? "Available" : "Scheduled"} />
-                  </div>
-                );
-              })}
-            </div>
-          </SideCard>
-
-          <SideCard eyebrow="Queue" title="Unassigned jobs">
-            <div className="space-y-2">
-              {unassignedRows.slice(0, 4).map((job) => (
-                <Link key={job.id} href={hrefWith(sp, { jobId: job.id, unassigned: "yes" })} className="block rounded-2xl border border-amber-200 bg-amber-50/60 p-3 text-sm hover:bg-amber-50">
-                  <div className="font-medium">
-                    {job.customerFirstName} {job.customerLastName}
-                  </div>
-                  <div className="mt-1 text-xs text-[var(--co-muted)]">
-                    {job.scheduledDate} &middot; {TYPE_LABELS[job.type] ?? job.type}
-                  </div>
-                </Link>
-              ))}
-              {unassignedRows.length === 0 ? <p className="text-sm text-[var(--co-muted)]">Everything is assigned.</p> : null}
-            </div>
-          </SideCard>
-
-          <SideCard eyebrow="Quick glance" title="This week">
-            <div className="space-y-2">
-              <StatRow label="Available" value={String(availableToday.length)} />
-              <StatRow label="Missing hours" value={String(missingHoursCount)} />
-              <StatRow label="Awaiting invoicing" value={String(metrics.awaiting)} />
-              <StatRow label="Unassigned jobs" value={String(metrics.unassigned)} />
-            </div>
-          </SideCard>
-        </aside>
       </section>
     </div>
   );

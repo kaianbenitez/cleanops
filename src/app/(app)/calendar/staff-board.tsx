@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { CalendarActivity, CalendarEmployee, CalendarJob } from "./page";
+import type { CalendarEmployee, CalendarJob } from "./page";
 import { commitJobPatch } from "./drag-commit";
 import { UndoToast, useUndoToast } from "./undo-toast";
 import JobCard from "./job-card";
@@ -21,7 +21,7 @@ function statusLabel(status: string) {
   return status === "cancelled" ? "Cancelled / on hold" : status === "no_show" ? "No show" : status === "in_progress" ? "In progress" : "Scheduled";
 }
 
-export default function StaffBoard({ dayIso, dayLabel, employees, jobs: initialJobs, activities, unassignedJobs }: { dayIso: string; dayLabel: string; employees: CalendarEmployee[]; jobs: CalendarJob[]; activities: CalendarActivity[]; unassignedJobs: CalendarJob[] }) {
+export default function StaffBoard({ dayIso, dayLabel, employees, jobs: initialJobs, unassignedJobs }: { dayIso: string; dayLabel: string; employees: CalendarEmployee[]; jobs: CalendarJob[]; unassignedJobs: CalendarJob[] }) {
   const [jobs, setJobs] = useState(initialJobs);
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +87,6 @@ export default function StaffBoard({ dayIso, dayLabel, employees, jobs: initialJ
         {unassignedJobs.length > 0 ? <button data-testid="view-all-unassigned" data-day={dayIso} type="button" onClick={() => setQueueExpanded((expanded) => !expanded)} className="mt-3 block w-full border-t border-[var(--co-line-soft)] pt-3 text-center text-xs font-semibold text-[var(--co-evergreen)] hover:underline">{queueExpanded ? "Show less" : `View all unassigned (${unassignedJobs.length})`}</button> : null}
         {unassignedJobs.length > 0 && !queueExpanded && hasMoreQueueJobs ? <p className="mt-2 text-center text-[10px] text-[var(--co-muted)]">Open a job to review its details or assign cleaners.</p> : null}
       </section>
-      <section className="border border-[var(--co-line)] bg-[var(--co-surface)] p-3"><div className="flex items-center justify-between"><h3 className="text-sm font-semibold">Live updates</h3><span className="h-2 w-2 rounded-full bg-[var(--co-evergreen)]" /></div><div className="mt-3 space-y-3">{activities.map((activity) => <div key={activity.id} className="flex gap-2 text-xs"><span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${activity.tone === "success" ? "bg-[var(--co-evergreen)]" : activity.tone === "warning" ? "bg-rose-500" : "bg-indigo-300"}`} /><div><p className="font-semibold text-[var(--co-ink)]">{activity.title}</p><p className="mt-0.5 text-[var(--co-muted)]">{activity.detail}</p></div></div>)}{activities.length === 0 ? <p className="py-4 text-xs text-[var(--co-muted)]">No recent updates for this day.</p> : null}</div></section>
     </aside>
     <UndoToast toast={toast} onDismiss={dismiss} />
     <UnassignedPanel jobId={openJobId} employees={employees} onClose={() => setOpenJobId(null)} />
