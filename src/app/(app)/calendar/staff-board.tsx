@@ -46,13 +46,40 @@ export default function StaffBoard({ dayIso, dayLabel, employees, laneEmployeeId
   }
 
   function dropOnEmployee(event: React.DragEvent<HTMLDivElement>, employeeId: string) {
-    event.preventDefault(); setDragOver(null);
-    const jobId = event.dataTransfer.getData("text/plain"); const job = jobs.find((entry) => entry.id === jobId);
+    event.preventDefault();
+    setDragOver(null);
+    const jobId = event.dataTransfer.getData("text/plain");
+    const job = jobs.find((entry) => entry.id === jobId);
     if (!job || ["completed", "cancelled", "no_show"].includes(job.status)) return;
-    const previous = job.assignedUserIds; const next = Array.from(new Set([...previous, employeeId]));
-    if (JSON.stringify(previous) === JSON.stringify(next)) return;
-    setJobs((current) => current.map((entry) => entry.id === job.id ? { ...entry, assignedUserIds: next } : entry));
-    commitJobPatch(job.id, { employeeIds: next }, { onOptimistic: () => undefined, onSuccess: () => { router.refresh(); showUndo("Technician added to the crew", () => commitJobPatch(job.id, { employeeIds: previous }, { onOptimistic: () => setJobs((current) => current.map((entry) => entry.id === job.id ? { ...entry, assignedUserIds: previous } : entry)), onSuccess: () => undefined, onError: setError })); }, onError: (message) => { setError(message); setJobs((current) => current.map((entry) => entry.id === job.id ? { ...entry, assignedUserIds: previous } : entry)); } });
+
+    const previousEmployees = job.assignedUserIds;
+    const nextEmployees = Array.from(new Set([...previousEmployees, employeeId]));
+    const isExistingLane = previousEmployees.includes(employeeId);
+    const previousTime = job.scheduledStartTime;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const rawMinutes = START + ((event.clientY - rect.top) / rect.height) * TOTAL;
+    const snappedMinutes = Math.round(rawMinutes / 15) * 15;
+    const nextTime = isExistingLane
+      ? `${String(Math.floor(Math.min(Math.max(snappedMinutes, START), START + TOTAL) / 60)).padStart(2, "0")}:${String(Math.min(Math.max(snappedMinutes, START), START + TOTAL) % 60).padStart(2, "0")}`
+      : previousTime;
+
+    if (JSON.stringify(previousEmployees) === JSON.stringify(nextEmployees) && previousTime === nextTime) return;
+    setJobs((current) => current.map((entry) => entry.id === job.id ? { ...entry, assignedUserIds: nextEmployees, scheduledStartTime: nextTime } : entry));
+    commitJobPatch(job.id, { employeeIds: nextEmployees, ...(nextTime ? { scheduledStartTime: nextTime } : {}) }, {
+      onOptimistic: () => undefined,
+      onSuccess: () => {
+        router.refresh();
+        showUndo(isExistingLane ? "Job time updated" : "Technician added to the crew", () => commitJobPatch(job.id, { employeeIds: previousEmployees, ...(previousTime ? { scheduledStartTime: previousTime } : {}) }, {
+          onOptimistic: () => setJobs((current) => current.map((entry) => entry.id === job.id ? { ...entry, assignedUserIds: previousEmployees, scheduledStartTime: previousTime } : entry)),
+          onSuccess: () => router.refresh(),
+          onError: setError,
+        }));
+      },
+      onError: (message) => {
+        setError(message);
+        setJobs((current) => current.map((entry) => entry.id === job.id ? { ...entry, assignedUserIds: previousEmployees, scheduledStartTime: previousTime } : entry));
+      },
+    });
   }
 
   function jobStyle(job: CalendarJob, lane: number, laneCount: number) {
