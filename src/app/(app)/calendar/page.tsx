@@ -7,6 +7,7 @@ import { companies, customers, jobAssignments, jobStatusEnum, jobTypeEnum, jobs,
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { addDays, formatDayLabel, startOfWeek, toISODate } from "@/lib/scheduling/dates";
 import { todayInTimeZone } from "@/lib/dashboard/range";
+import { listEmployeePto } from "@/lib/scheduling/pto";
 import FilterBar from "./filter-bar";
 import StaffBoard from "./staff-board";
 import WeekBoard from "./week-board";
@@ -173,7 +174,11 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
     .from(jobs)
     .where(and(eq(jobs.companyId, admin.companyId), sql`extract(dow from ${jobs.scheduledDate}) in (0, 6)`));
 
-  const [employees, rows, unassignedRows, [weekendOrphans]] = (await Promise.all([employeesQuery, rowsQuery, unassignedRowsQuery, weekendRowsQuery])) as [CalendarEmployee[], Omit<CalendarJob, "assignedUserIds">[], Omit<CalendarJob, "assignedUserIds">[], { count: number; firstDate: string | null }[]];
+  const ptoRowsQuery = view === "staff"
+    ? listEmployeePto({ companyId: admin.companyId, startDate: start, endDate: end })
+    : Promise.resolve([]);
+
+  const [employees, rows, unassignedRows, [weekendOrphans], ptoRows] = (await Promise.all([employeesQuery, rowsQuery, unassignedRowsQuery, weekendRowsQuery, ptoRowsQuery])) as [CalendarEmployee[], Omit<CalendarJob, "assignedUserIds">[], Omit<CalendarJob, "assignedUserIds">[], { count: number; firstDate: string | null }[], Awaited<ReturnType<typeof listEmployeePto>>];
 
   const assignments = rows.length
     ? await db.select({ jobId: jobAssignments.jobId, userId: users.id }).from(jobAssignments).innerJoin(users, eq(jobAssignments.userId, users.id)).where(inArray(jobAssignments.jobId, rows.map((row) => row.id)))
@@ -205,7 +210,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       <main className="p-3 sm:p-4 lg:p-5">
         {weekendOrphans?.count && weekendOrphans.firstDate ? <WeekendOrphanBanner count={weekendOrphans.count} firstDate={weekendOrphans.firstDate} /> : null}
         {view === "week" ? <WeekBoard days={weekDays.map((day) => ({ iso: toISODate(day), label: formatDayLabel(day), dayNum: day.getDate(), isToday: toISODate(day) === todayIso }))} employees={employees} jobs={displayedJobs} /> : null}
-        {view === "staff" ? <StaffBoard dayIso={toISODate(dayAnchor)} dayLabel={formatDayLabel(dayAnchor)} employees={employees} laneEmployeeId={sp.employeeId} jobs={displayedJobs} unassignedJobs={unassignedRows.map((row) => ({ ...row, assignedUserIds: [] }))} /> : null}
+        {view === "staff" ? <StaffBoard dayIso={toISODate(dayAnchor)} dayLabel={formatDayLabel(dayAnchor)} employees={employees} laneEmployeeId={sp.employeeId} jobs={displayedJobs} unassignedJobs={unassignedRows.map((row) => ({ ...row, assignedUserIds: [] }))} ptoRecords={ptoRows} /> : null}
         {view === "month" ? <MonthBoard month={monthAnchor} jobs={displayedJobs} /> : null}
       </main>
     </div>
