@@ -1,0 +1,5 @@
+type Series = { label: string; values: number[]; color: string };
+export function BarSeries({ series, categories, formatValue, height = 220, title, description }: { series: Series[]; categories: string[]; formatValue: (value: number) => string; height?: number; title: string; description: string }) {
+  const maximum = Math.max(0, ...series.flatMap((item) => item.values));
+  return <div><p className="sr-only">{title}: {description}</p>{maximum === 0 ? <p className="text-sm text-[var(--co-muted)]">No data for this period.</p> : <svg aria-hidden="true" className="w-full" height={height} viewBox={`0 0 ${Math.max(320, categories.length * 56)} ${height}`}>{categories.map((category, index) => <g key={category}>{series.map((item, seriesIndex) => { const value = item.values[index] ?? 0; const barHeight = ((value / maximum) * (height - 42)); const x = index * 56 + seriesIndex * 20 + 8; return <rect key={item.label} x={x} y={height - 26 - barHeight} width="16" height={barHeight} fill={item.color} />; })}<text x={index * 56 + 20} y={height - 6} textAnchor="middle" fontSize="10" fill="currentColor">{category}</text></g>)}</svg>}</div>;
+}
