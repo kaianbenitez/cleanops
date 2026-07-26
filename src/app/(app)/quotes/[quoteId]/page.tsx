@@ -190,14 +190,6 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
           <p className="page-subtitle">
             {locationName || "Service location not recorded"} - Q-{quote.id.slice(0, 6).toUpperCase()}
           </p>
-          <div className="mt-4 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full border border-[var(--co-line)] bg-[var(--co-surface-muted)] px-2.5 py-1 font-medium text-[var(--co-muted)]">
-              Viewed {quote.viewCount ?? 0} time{(quote.viewCount ?? 0) === 1 ? "" : "s"}
-            </span>
-            <span className="rounded-full border border-[var(--co-line)] bg-[var(--co-surface-muted)] px-2.5 py-1 font-medium text-[var(--co-muted)]">
-              Last viewed {quote.lastViewedAt ? new Date(quote.lastViewedAt).toLocaleString() : "—"}
-            </span>
-          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           {customerId ? (
@@ -208,11 +200,6 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
           <Link href={publicLink} target="_blank" className="co-button-secondary">
             Open proposal
           </Link>
-          {quote.status !== "accepted" ? (
-            <button className="co-button-secondary" onClick={() => convert(true)} disabled={!convertDate}>
-              Convert as job
-            </button>
-          ) : null}
           {quote.status === "draft" ? (
             <button className="co-button-primary" onClick={send} disabled={sending}>
               {sending ? "Sending..." : "Mark sent & get link"}
@@ -321,25 +308,33 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
             ) : null}
           </PageCard>
 
-          {quote.status === "accepted" ? (
-            <PageCard eyebrow="Next step" title="Convert into work" description="Choose the first service date. Recurring options create the series and initial jobs.">
-              <label className="block text-sm">
-                <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Start date</span>
-                <input type="date" value={convertDate} onChange={(event) => setConvertDate(event.target.value)} className="co-input w-full" />
-              </label>
-              <div className="mt-4 grid gap-2">
+          <PageCard
+            eyebrow="Next step"
+            title="Convert into work"
+            description={
+              quote.status === "accepted"
+                ? "Choose the first service date. Recurring options create the series and initial jobs."
+                : "This quote hasn't been accepted yet. You can still schedule it manually if you have approval elsewhere."
+            }
+          >
+            <label className="block text-sm">
+              <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Start date</span>
+              <input type="date" value={convertDate} onChange={(event) => setConvertDate(event.target.value)} className="co-input w-full" />
+            </label>
+            <div className="mt-4 grid gap-2">
+              {quote.status === "accepted" ? (
                 <button onClick={() => convert(false)} className="co-button-primary w-full">
                   Convert to scheduled work →
                 </button>
-                <button onClick={() => convert(true)} className="co-button-secondary w-full" type="button">
-                  Convert as job now
-                </button>
-              </div>
-              <p className="mt-3 text-xs text-[var(--co-muted)]">
-                “Convert as job now” skips the acceptance gate and is meant for internal scheduling when you already have approval elsewhere.
-              </p>
-            </PageCard>
-          ) : null}
+              ) : null}
+              <button onClick={() => convert(true)} className={`w-full ${quote.status === "accepted" ? "co-button-secondary" : "co-button-primary"}`} type="button">
+                Convert as job now
+              </button>
+            </div>
+            <p className="mt-3 text-xs text-[var(--co-muted)]">
+              “Convert as job now” skips the acceptance gate and is meant for internal scheduling when you already have approval elsewhere.
+            </p>
+          </PageCard>
 
           <PageCard eyebrow="Payment status" title="Quote state" description="This helps the office know what happened without opening the public page.">
             <div className="grid gap-3 sm:grid-cols-2">
