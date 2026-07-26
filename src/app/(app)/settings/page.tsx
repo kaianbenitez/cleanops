@@ -22,6 +22,7 @@ type CompanySettings = {
   branding?: { logoUrl?: string | null; brandColor?: string | null; phone?: string | null; email?: string | null };
   mileageRateCents?: number;
   revenueTargetCents?: number | null;
+  holidays?: string[];
   inventory?: Array<{ id: string; name: string }>;
 };
 
@@ -75,6 +76,7 @@ export default function SettingsPage() {
   const [timezone, setTimezone] = useState("America/Chicago");
   const [mileageRate, setMileageRate] = useState("0.35");
   const [revenueTarget, setRevenueTarget] = useState("");
+  const [holidays, setHolidays] = useState("");
   const [admins, setAdmins] = useState<AdminRow[]>([]);
   const [settings, setSettings] = useState<CompanySettings>({});
   const [apiConfig, setApiConfig] = useState<ApiConfig>({});
@@ -95,6 +97,7 @@ export default function SettingsPage() {
           setTimezone(settingsData.company.timezone ?? "America/Chicago");
           setMileageRate(((settingsData.company.settings?.mileageRateCents ?? 35) / 100).toFixed(2));
           setRevenueTarget(settingsData.company.settings?.revenueTargetCents == null ? "" : (settingsData.company.settings.revenueTargetCents / 100).toFixed(2));
+          setHolidays(Array.isArray(settingsData.company.settings?.holidays) ? settingsData.company.settings.holidays.join("\n") : "");
           setSettings(settingsData.company.settings ?? {});
           setApiConfig(settingsData.apiConfig ?? {});
         } else {
@@ -167,6 +170,20 @@ export default function SettingsPage() {
       body: JSON.stringify({ revenueTargetCents: revenueTarget.trim() === "" ? null : Math.round(dollars * 100) }),
     });
     setMessage(response.ok ? "Monthly revenue target saved." : "Could not save monthly revenue target.");
+  }
+
+  async function saveHolidays() {
+    const values = [...new Set(holidays.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean))].sort();
+    if (values.some((value) => !/^\d{4}-\d{2}-\d{2}$/.test(value))) {
+      setMessage("Enter holidays as YYYY-MM-DD, one date per line.");
+      return;
+    }
+    const response = await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ holidays: values }),
+    });
+    setMessage(response.ok ? "Calendar holidays saved." : "Could not save calendar holidays.");
   }
 
   async function testGhlConnection() {
@@ -300,6 +317,15 @@ export default function SettingsPage() {
           <button onClick={saveRevenueTarget} className="co-button-secondary mt-5">
             Save monthly target
           </button>
+        </Panel>
+
+        <Panel eyebrow="Calendar" title="Company holidays" description="Jobs remain visible for review, but dispatch capacity is marked closed on these dates.">
+          <label className="block text-sm">
+            <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Holiday dates</span>
+            <textarea className="co-input min-h-32 w-full font-mono text-xs" value={holidays} onChange={(event) => setHolidays(event.target.value)} placeholder={"2026-01-01\n2026-12-25"} />
+            <span className="mt-2 block text-xs leading-5 text-[var(--co-muted)]">One YYYY-MM-DD date per line. Leave empty if no closures are scheduled.</span>
+          </label>
+          <button onClick={saveHolidays} className="co-button-secondary mt-5">Save holidays</button>
         </Panel>
       </section>
 

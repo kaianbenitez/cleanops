@@ -11,6 +11,7 @@ export async function commitJobPatch(
   handlers: {
     onOptimistic: () => void;
     onSuccess?: () => void;
+    onWarning?: (message: string) => void;
     onError: (message: string) => void;
     onSettled?: () => void;
   }
@@ -26,6 +27,8 @@ export async function commitJobPatch(
       const body = await res.json().catch(() => null);
       throw new Error(res.status === 409 ? (body?.error ?? "That slot conflicts with another job.") : "Couldn't save that move.");
     }
+    const body = await res.json().catch(() => null);
+    if (Array.isArray(body?.warnings) && body.warnings.length) handlers.onWarning?.(body.warnings.join(" "));
     handlers.onSuccess?.();
     return true;
   } catch (err) {

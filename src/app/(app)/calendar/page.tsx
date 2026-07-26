@@ -161,11 +161,14 @@ export default async function CalendarPage({
       ? effectiveView
       : "staff";
   const [company] = await db
-    .select({ timezone: companies.timezone })
+    .select({ timezone: companies.timezone, settings: companies.settings })
     .from(companies)
     .where(eq(companies.id, admin.companyId))
     .limit(1);
   if (!company) redirect("/login");
+  const holidays = Array.isArray((company.settings as { holidays?: unknown } | null)?.holidays)
+    ? (company.settings as { holidays: unknown[] }).holidays.filter((value): value is string => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value))
+    : [];
 
   const todayIso = todayInTimeZone(new Date(), company.timezone);
   const today = new Date(`${todayIso}T00:00:00.000Z`);
@@ -530,6 +533,7 @@ export default async function CalendarPage({
               label: formatDayLabel(day),
               dayNum: day.getDate(),
               isToday: toISODate(day) === todayIso,
+              isHoliday: holidays.includes(toISODate(day)),
             }))}
             employees={employees}
             jobs={displayedJobs}
@@ -547,10 +551,11 @@ export default async function CalendarPage({
               assignedUserIds: [],
             }))}
             ptoRecords={ptoRows}
+            isHoliday={holidays.includes(toISODate(dayAnchor))}
           />
         ) : null}
         {view === "month" ? (
-          <MonthBoard month={monthAnchor} summaries={monthRows} />
+          <MonthBoard month={monthAnchor} summaries={monthRows} holidays={holidays} />
         ) : null}
       </main>
     </div>

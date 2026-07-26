@@ -46,11 +46,13 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [assigned, setAssigned] = useState(false);
 
   async function load(id: string, isCancelled: () => boolean) {
     setLoading(true);
     setError(null);
+    setWarning(null);
     setAssigned(false);
     setSelectedIds([]);
     try {
@@ -106,6 +108,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
         setAssigned(true);
         router.refresh();
       },
+      onWarning: setWarning,
       onError: (message) => setError(message),
       onSettled: () => setSaving(false),
     });
@@ -138,6 +141,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
         {job ? (
           <div className="flex-1 space-y-5 px-5 py-5">
             {error ? <p className="text-xs font-medium text-rose-600">{error}</p> : null}
+            {warning ? <p role="status" className="border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">Scheduling warning: {warning}</p> : null}
             {assigned ? <p className="rounded-xl bg-[var(--co-accent-tint)] px-3 py-2 text-xs font-medium text-[var(--co-evergreen)]">Assigned. This card will drop out of the unassigned queue on refresh.</p> : null}
 
             {history?.preferredCleaner ? (

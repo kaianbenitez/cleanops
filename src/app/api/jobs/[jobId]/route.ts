@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
 import { auditLog, jobs, jobAssignments, customers, timeEntries, users } from "@/db/schema";
-import { and, eq, inArray, desc } from "drizzle-orm";
+import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { syncToGhl } from "@/lib/ghl/sync";
 import { findPtoConflicts, ptoConflictMessage } from "@/lib/scheduling/pto";
 
@@ -116,7 +116,7 @@ export async function PATCH(
   }
 
   const [existing] = await db
-    .select({ id: jobs.id, type: jobs.type, status: jobs.status, customerId: jobs.customerId, scheduledDate: jobs.scheduledDate, scheduledStartTime: jobs.scheduledStartTime, priceCents: jobs.priceCents, completionNotes: jobs.completionNotes })
+    .select({ id: jobs.id, type: jobs.type, status: jobs.status, customerId: jobs.customerId, scheduledDate: jobs.scheduledDate, scheduledStartTime: jobs.scheduledStartTime, estimatedDurationMinutes: jobs.estimatedDurationMinutes, priceCents: jobs.priceCents, completionNotes: jobs.completionNotes })
     .from(jobs)
     .where(and(eq(jobs.id, jobId), eq(jobs.companyId, admin.companyId)))
     .limit(1);
@@ -205,5 +205,40 @@ export async function PATCH(
     });
   }
 
-  return NextResponse.json({ ok: true });
+  const scheduledDate = jobFields.scheduledDate ?? existing.scheduledDate;
+  const scheduledStartTime = jobFields.scheduledStartTime ?? existing.scheduledStartTime;
+  const warnings: string[] = [];
+  if (effectiveEmployeeIds.length > 0 && (employeeIds || jobFields.scheduledDate || jobFields.scheduledStartTime)) {
+    const overlappingJobs = await db
+      .select({
+        userId: jobAssignments.userId,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        scheduledStartTime: jobs.scheduledStartTime,
+        estimatedDurationMinutes: jobs.estimatedDurationMinutes,
+      })
+      .from(jobAssignments)
+      .innerJoin(jobs, eq(jobAssignments.jobId, jobs.id))
+      .innerJoin(users, eq(jobAssignments.userId, users.id))
+      .where(and(
+        eq(jobs.companyId, admin.companyId),
+        inArray(jobAssignments.userId, effectiveEmployeeIds),
+        eq(jobs.scheduledDate, scheduledDate),
+        inArray(jobs.status, ["scheduled", "in_progress"]),
+        ne(jobs.id, jobId),
+      ));
+    const duration = existing.estimatedDurationMinutes ?? 75;
+    const overlappingEmployees = new Set<string>();
+    for (const other of overlappingJobs) {
+      const targetStart = scheduledStartTime ? Number(scheduledStartTime.slice(0, 2)) * 60 + Number(scheduledStartTime.slice(3, 5)) : 9 * 60;
+      const otherStart = other.scheduledStartTime ? Number(other.scheduledStartTime.slice(0, 2)) * 60 + Number(other.scheduledStartTime.slice(3, 5)) : 9 * 60;
+      const otherDuration = other.estimatedDurationMinutes ?? 75;
+      if (targetStart < otherStart + otherDuration && otherStart < targetStart + duration) {
+        overlappingEmployees.add(`${other.firstName} ${other.lastName}`);
+      }
+    }
+    if (overlappingEmployees.size) warnings.push(`${[...overlappingEmployees].join(", ")} ${overlappingEmployees.size === 1 ? "has" : "have"} another job at this time.`);
+  }
+
+  return NextResponse.json({ ok: true, warnings });
 }

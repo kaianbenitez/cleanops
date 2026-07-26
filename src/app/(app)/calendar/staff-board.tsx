@@ -51,6 +51,7 @@ export default function StaffBoard({
   jobs: initialJobs,
   unassignedJobs,
   ptoRecords,
+  isHoliday,
 }: {
   dayIso: string;
   dayLabel: string;
@@ -59,12 +60,14 @@ export default function StaffBoard({
   jobs: CalendarJob[];
   unassignedJobs: CalendarJob[];
   ptoRecords: EmployeePtoRecord[];
+  isHoliday: boolean;
 }) {
   const router = useRouter();
   const [jobs, setJobs] = useState(initialJobs);
   const [syncedJobs, setSyncedJobs] = useState(initialJobs);
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [queueExpanded, setQueueExpanded] = useState(false);
   const [openJobId, setOpenJobId] = useState<string | null>(null);
   const { toast, showUndo, dismiss } = useUndoToast();
@@ -160,7 +163,7 @@ export default function StaffBoard({
       { employeeIds: nextEmployees, scheduledStartTime: nextTime ?? null },
       {
         onOptimistic: () => undefined,
-        onSuccess: () => {
+      onSuccess: () => {
           router.refresh();
           showUndo(
             isExistingLane
@@ -192,6 +195,7 @@ export default function StaffBoard({
               ),
           );
         },
+        onWarning: setWarning,
         onError: (message) => {
           setError(message);
           setJobs((current) =>
@@ -282,6 +286,7 @@ export default function StaffBoard({
               Employees are lanes. Drag a job between columns to add a
               technician.
             </p>
+            {isHoliday ? <p className="mt-1 text-xs font-semibold text-amber-800">Holiday — dispatch capacity is closed.</p> : null}
           </div>
           <span className="text-xs font-medium text-[var(--co-muted)]">
             {jobs.length} jobs
@@ -313,6 +318,11 @@ export default function StaffBoard({
             className="border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs font-medium text-rose-700"
           >
             {error}
+          </p>
+        ) : null}
+        {warning ? (
+          <p role="status" className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-900">
+            Scheduling warning: {warning}
           </p>
         ) : null}
         <div className="overflow-x-auto">

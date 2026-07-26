@@ -7,9 +7,11 @@ import type { CalendarDaySummary } from "./page";
 export default function MonthBoard({
   month,
   summaries,
+  holidays,
 }: {
   month: Date;
   summaries: CalendarDaySummary[];
+  holidays: string[];
 }) {
   const first = new Date(
     Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), 1),
@@ -74,6 +76,7 @@ export default function MonthBoard({
             unassigned: 0,
             needsReview: 0,
           };
+          const isHoliday = holidays.includes(iso);
           return (
             <Link
               key={iso}
@@ -107,6 +110,7 @@ export default function MonthBoard({
                     {summary.unassigned}
                   </span>
                 </div>
+                {isHoliday ? <div className="font-medium text-amber-800">Holiday — capacity closed</div> : null}
                 {summary.needsReview ? (
                   <div className="font-semibold text-rose-700">
                     {summary.needsReview} needs review
