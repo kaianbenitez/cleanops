@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { and, eq, gte, ilike, inArray, isNull, lte, notExists } from "drizzle-orm";
 import { db } from "@/db";
-import { companies, customers, jobAssignments, jobTypeEnum, jobs, recurringSeries, users } from "@/db/schema";
+import { companies, customers, jobAssignments, jobStatusEnum, jobTypeEnum, jobs, recurrenceEnum, recurringSeries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { addDays, formatDayLabel, startOfWeek, toISODate } from "@/lib/scheduling/dates";
 import { todayInTimeZone } from "@/lib/dashboard/range";
@@ -104,7 +104,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const dayAnchor = effectiveDay ? new Date(`${effectiveDay}T00:00:00.000Z`) : today;
   const effectiveWeek = sp.week ?? savedState.week;
   const weekStart = startOfWeek(effectiveWeek ? new Date(`${effectiveWeek}T00:00:00.000Z`) : today);
-  const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
+  const weekDays = Array.from({ length: 5 }, (_, index) => addDays(weekStart, index));
   const effectiveMonth = sp.month ?? savedState.month;
   const monthAnchor = effectiveMonth ? new Date(`${effectiveMonth}-01T00:00:00.000Z`) : new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
   const month = monthBounds(monthAnchor);
@@ -120,10 +120,10 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
 
   const conditions = [eq(jobs.companyId, admin.companyId), gte(jobs.scheduledDate, start), lte(jobs.scheduledDate, end)];
   if (sp.type && (jobTypeEnum as readonly string[]).includes(sp.type)) conditions.push(eq(jobs.type, sp.type as typeof jobs.type.enumValues[number]));
-  if (sp.status) conditions.push(eq(jobs.status, sp.status as typeof jobs.status.enumValues[number]));
+  if (sp.status && (jobStatusEnum as readonly string[]).includes(sp.status)) conditions.push(eq(jobs.status, sp.status as typeof jobs.status.enumValues[number]));
   if (sp.zip) conditions.push(ilike(customers.zip, `${sp.zip}%`));
   if (sp.recurrence === "none") conditions.push(isNull(recurringSeries.id));
-  if (sp.recurrence && sp.recurrence !== "none") conditions.push(eq(recurringSeries.frequency, sp.recurrence as typeof recurringSeries.frequency.enumValues[number]));
+  if (sp.recurrence && sp.recurrence !== "none" && (recurrenceEnum as readonly string[]).includes(sp.recurrence)) conditions.push(eq(recurringSeries.frequency, sp.recurrence as typeof recurringSeries.frequency.enumValues[number]));
 
   const base = db
     .select({

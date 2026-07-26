@@ -30,7 +30,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ job
     })
     .from(customers)
     .leftJoin(users, eq(users.id, customers.preferredCleanerId))
-    .where(eq(customers.id, job.customerId))
+    .where(and(eq(customers.id, job.customerId), eq(customers.companyId, admin.companyId)))
     .limit(1);
 
   const preferredCleaner =
@@ -44,6 +44,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ job
     .where(
       and(
         eq(jobs.customerId, job.customerId),
+        eq(jobs.companyId, admin.companyId),
         eq(jobs.status, "completed"),
         ne(jobs.id, jobId),
         lt(jobs.scheduledDate, job.scheduledDate)
