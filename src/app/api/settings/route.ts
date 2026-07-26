@@ -93,6 +93,7 @@ const schema = z.object({
   ghlTagMap: ghlTagMapSchema.optional(),
   ghlWorkflowMap: ghlWorkflowMapSchema.optional(),
   mileageRateCents: z.number().int().nonnegative().max(500).optional(),
+  revenueTargetCents: z.number().int().nonnegative().nullable().optional(),
   payTierBrackets: z.array(payTierBracketSchema).min(1).max(12).optional(),
   inventory: z.array(inventoryItemSchema).max(500).optional(),
   branding: z
@@ -135,6 +136,7 @@ export async function PATCH(req: NextRequest) {
     ...(parsed.data.ghlTagMap ? { ghlTagMap: parsed.data.ghlTagMap } : {}),
     ...(parsed.data.ghlWorkflowMap ? { ghlWorkflowMap: parsed.data.ghlWorkflowMap } : {}),
     ...(parsed.data.mileageRateCents !== undefined ? { mileageRateCents: parsed.data.mileageRateCents } : {}),
+    ...(parsed.data.revenueTargetCents !== undefined ? { revenueTargetCents: parsed.data.revenueTargetCents } : {}),
     ...(parsed.data.payTierBrackets ? { payTierBrackets: parsed.data.payTierBrackets } : {}),
     ...(parsed.data.inventory ? { inventory: parsed.data.inventory } : {}),
     ...(parsed.data.branding ? { branding: parsed.data.branding } : {}),

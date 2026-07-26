@@ -2,8 +2,19 @@ import { and, asc, eq, gte, inArray, lt, lte, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { companies, customers, employeePto, ghlSyncLog, invoices, jobAssignments, jobs, quotes, users } from "@/db/schema";
 import { overdueSqlCondition } from "@/lib/invoices/overdue";
-import type { CashToCollect, CrewCoverage, DashboardRange, ExceptionCounts, PulseMetrics, TodayRun } from "./types";
+import type { CashToCollect, CrewCoverage, DashboardRange, ExceptionCounts, PulseMetrics, RevenueSeries, TodayRun } from "./types";
+import { addDaysIso } from "./range";
 const n = (value: unknown) => Number(value ?? 0);
+
+function paidRangeCondition(companyId: string, fromIso: string, toIsoInclusive: string, timeZone: string) {
+  const toExclusiveIso = addDaysIso(toIsoInclusive, 1);
+  return and(
+    eq(invoices.companyId, companyId),
+    eq(invoices.status, "paid"),
+    gte(invoices.paidAt, sql`(${fromIso}::date::timestamp AT TIME ZONE ${timeZone})`),
+    lt(invoices.paidAt, sql`(${toExclusiveIso}::date::timestamp AT TIME ZONE ${timeZone})`),
+  );
+}
 export async function getTodaysRun(companyId: string, todayIso: string): Promise<TodayRun> {
   const rows = await db.select({ id: jobs.id, status: jobs.status, type: jobs.type, scheduledStartTime: jobs.scheduledStartTime, firstName: customers.firstName, lastName: customers.lastName, address: customers.addressLine1, city: customers.city }).from(jobs).innerJoin(customers, eq(jobs.customerId, customers.id)).where(and(eq(jobs.companyId, companyId), eq(customers.companyId, companyId), eq(jobs.scheduledDate, todayIso))).orderBy(jobs.scheduledStartTime);
   const assignments = rows.length ? await db.select({ jobId: jobAssignments.jobId, firstName: users.firstName, lastName: users.lastName }).from(jobAssignments).innerJoin(users, eq(jobAssignments.userId, users.id)).innerJoin(jobs, eq(jobAssignments.jobId, jobs.id)).where(and(eq(jobs.companyId, companyId), eq(users.companyId, companyId), inArray(jobAssignments.jobId, rows.map((row) => row.id)))) : [];
@@ -23,9 +34,30 @@ export async function getExceptionCounts(companyId: string, todayIso: string): P
   return { unassigned: n(jobRows[0]?.unassigned), missingHours: n(jobRows[0]?.missingHours), awaitingInvoice: n(jobRows[0]?.awaitingInvoice), paymentMethod: n(customerRows[0]?.paymentMethod), incompleteNotes: n(customerRows[0]?.incompleteNotes), sync: n(syncRows[0]?.count), lowSupplies: inventory.filter((item) => item.onHand <= item.reorderAt).length };
 }
 export async function getPulseMetrics(companyId: string, range: DashboardRange): Promise<PulseMetrics> {
-  const from = new Date(range.fromIso + "T00:00:00.000Z"); const to = new Date(range.toIso + "T00:00:00.000Z"); to.setUTCDate(to.getUTCDate() + 1); const previousFrom = new Date(range.prevFromIso + "T00:00:00.000Z"); const previousTo = new Date(range.prevToIso + "T00:00:00.000Z"); previousTo.setUTCDate(previousTo.getUTCDate() + 1);
-  const [today, revenue, previous, conversion, collections] = await Promise.all([getTodaysRun(companyId, range.todayIso), db.select({ amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)`, count: sql<number>`count(*)` }).from(invoices).where(and(eq(invoices.companyId, companyId), eq(invoices.status, "paid"), gte(invoices.paidAt, from), lt(invoices.paidAt, to))), db.select({ amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)` }).from(invoices).where(and(eq(invoices.companyId, companyId), eq(invoices.status, "paid"), gte(invoices.paidAt, previousFrom), lt(invoices.paidAt, previousTo))), db.select({ sent: sql<number>`count(*) filter (where ${quotes.status} <> 'draft')`, accepted: sql<number>`count(*) filter (where ${quotes.status} = 'accepted')` }).from(quotes).where(and(eq(quotes.companyId, companyId), gte(quotes.createdAt, from), lt(quotes.createdAt, to))), db.select({ count: sql<number>`count(*)`, amount: sql<number>`coalesce(sum(greatest(${invoices.totalCents} - ${invoices.amountPaidCents}, 0)), 0)` }).from(invoices).where(and(eq(invoices.companyId, companyId), overdueSqlCondition()))]);
+  const from = new Date(range.fromIso + "T00:00:00.000Z"); const to = new Date(range.toIso + "T00:00:00.000Z"); to.setUTCDate(to.getUTCDate() + 1);
+  const [today, revenue, previous, conversion, collections] = await Promise.all([getTodaysRun(companyId, range.todayIso), db.select({ amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)`, count: sql<number>`count(*)` }).from(invoices).where(paidRangeCondition(companyId, range.fromIso, range.toIso, range.timeZone)), db.select({ amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)` }).from(invoices).where(paidRangeCondition(companyId, range.prevFromIso, range.prevToIso, range.timeZone)), db.select({ sent: sql<number>`count(*) filter (where ${quotes.status} <> 'draft')`, accepted: sql<number>`count(*) filter (where ${quotes.status} = 'accepted')` }).from(quotes).where(and(eq(quotes.companyId, companyId), gte(quotes.createdAt, from), lt(quotes.createdAt, to))), db.select({ count: sql<number>`count(*)`, amount: sql<number>`coalesce(sum(greatest(${invoices.totalCents} - ${invoices.amountPaidCents}, 0)), 0)` }).from(invoices).where(and(eq(invoices.companyId, companyId), overdueSqlCondition()))]);
   return { jobsToday: { scheduled: today.scheduled, completed: today.completed, atRisk: today.atRisk }, revenue: { receivedCents: n(revenue[0]?.amount), previousCents: n(previous[0]?.amount), hasData: n(revenue[0]?.count) > 0 }, conversion: { sent: n(conversion[0]?.sent), accepted: n(conversion[0]?.accepted), hasData: n(conversion[0]?.sent) > 0 }, collections: { overdueCents: n(collections[0]?.amount), overdueCount: n(collections[0]?.count) } };
+}
+
+function daysInMonth(isoDate: string) {
+  const [year, month] = isoDate.slice(0, 7).split("-").map(Number);
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+export async function getRevenueSeries(companyId: string, range: DashboardRange, targetCents: number | null | undefined): Promise<RevenueSeries> {
+  const dates = Array.from({ length: Math.round((new Date(`${range.toIso}T00:00:00.000Z`).getTime() - new Date(`${range.fromIso}T00:00:00.000Z`).getTime()) / 86400000) + 1 }, (_, index) => addDaysIso(range.fromIso, index));
+  const bucket = sql<string>`to_char(${invoices.paidAt} AT TIME ZONE ${range.timeZone}, 'YYYY-MM-DD')`;
+  const [currentRows, priorRows] = await Promise.all([
+    db.select({ day: bucket, amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)` }).from(invoices).where(paidRangeCondition(companyId, range.fromIso, range.toIso, range.timeZone)).groupBy(bucket),
+    db.select({ day: bucket, amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)` }).from(invoices).where(paidRangeCondition(companyId, range.prevFromIso, range.prevToIso, range.timeZone)).groupBy(bucket),
+  ]);
+  const currentByDay = new Map(currentRows.map((row) => [row.day, n(row.amount)]));
+  const priorByDay = new Map(priorRows.map((row) => [row.day, n(row.amount)]));
+  const actualCents = dates.map((date) => currentByDay.get(date) ?? 0);
+  const priorDates = dates.map((_, index) => addDaysIso(range.prevFromIso, index));
+  const priorCents = priorDates.map((date) => priorByDay.get(date) ?? 0);
+  const target = typeof targetCents === "number" ? dates.map((date) => targetCents / daysInMonth(date)) : null;
+  return { dates, actualCents, priorCents, targetCents: target, actualTotalCents: actualCents.reduce((sum, amount) => sum + amount, 0), priorTotalCents: priorCents.reduce((sum, amount) => sum + amount, 0), targetTotalCents: target?.reduce((sum, amount) => sum + amount, 0) ?? null };
 }
 
 export async function getCashToCollect(companyId: string): Promise<CashToCollect> {
