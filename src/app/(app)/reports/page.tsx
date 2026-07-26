@@ -15,7 +15,6 @@ import {
 } from "@/lib/reports/queries";
 import { Sparkline } from "@/components/ui/sparkline";
 import { StatTile } from "@/components/ui/stat-tile";
-import ReportsMotion from "./reports-motion";
 
 type PayrollRow = {
   id: string;
@@ -99,7 +98,7 @@ function SectionPanel({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} data-report-reveal className="co-card overflow-hidden">
+    <section id={id} className="co-card overflow-hidden">
       <div className="flex flex-col gap-3 border-b border-[var(--co-line-soft)] px-5 py-4 sm:px-6 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <p className="eyebrow">{eyebrow}</p>
@@ -589,8 +588,7 @@ export default async function ReportsPage() {
   ];
 
   return (
-    <ReportsMotion>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
             <p className="eyebrow">Operations desk</p>
@@ -606,7 +604,7 @@ export default async function ReportsPage() {
           </div>
         </header>
 
-        <section data-report-reveal className="co-card overflow-hidden">
+        <section className="co-card overflow-hidden">
           <div className="grid gap-0 xl:grid-cols-[1.25fr_0.75fr]">
             <div className="p-6 sm:p-8 xl:p-10">
               <div className="flex flex-wrap items-center gap-3">
@@ -1105,6 +1103,5 @@ export default async function ReportsPage() {
           </aside>
         </div>
       </div>
-    </ReportsMotion>
   );
 }
