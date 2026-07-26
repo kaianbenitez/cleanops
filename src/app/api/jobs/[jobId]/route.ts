@@ -9,7 +9,7 @@ import { findPtoConflicts, ptoConflictMessage } from "@/lib/scheduling/pto";
 
 const updateJobSchema = z.object({
   scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  scheduledStartTime: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).optional(),
+  scheduledStartTime: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).nullable().optional(),
   priceCents: z.number().int().nonnegative().optional(),
   status: z.enum(["scheduled", "in_progress", "completed", "cancelled", "no_show"]).optional(),
   employeeIds: z.array(z.string().uuid()).optional(),

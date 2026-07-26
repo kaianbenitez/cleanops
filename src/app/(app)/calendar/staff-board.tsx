@@ -65,11 +65,11 @@ export default function StaffBoard({ dayIso, dayLabel, employees, laneEmployeeId
 
     if (JSON.stringify(previousEmployees) === JSON.stringify(nextEmployees) && previousTime === nextTime) return;
     setJobs((current) => current.map((entry) => entry.id === job.id ? { ...entry, assignedUserIds: nextEmployees, scheduledStartTime: nextTime } : entry));
-    commitJobPatch(job.id, { employeeIds: nextEmployees, ...(nextTime ? { scheduledStartTime: nextTime } : {}) }, {
+    commitJobPatch(job.id, { employeeIds: nextEmployees, scheduledStartTime: nextTime ?? null }, {
       onOptimistic: () => undefined,
       onSuccess: () => {
         router.refresh();
-        showUndo(isExistingLane ? "Job time updated" : "Technician added to the crew", () => commitJobPatch(job.id, { employeeIds: previousEmployees, ...(previousTime ? { scheduledStartTime: previousTime } : {}) }, {
+        showUndo(isExistingLane ? "Job time updated" : "Technician added to the crew", () => commitJobPatch(job.id, { employeeIds: previousEmployees, scheduledStartTime: previousTime ?? null }, {
           onOptimistic: () => setJobs((current) => current.map((entry) => entry.id === job.id ? { ...entry, assignedUserIds: previousEmployees, scheduledStartTime: previousTime } : entry)),
           onSuccess: () => router.refresh(),
           onError: setError,
