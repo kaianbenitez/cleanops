@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { displayCustomer, formatClockLabel, recurrenceLabel, TYPE_LABELS } from "./shared";
+import { statusLabel } from "@/components/ui/status-pill";
 
 type Employee = { id: string; firstName: string; lastName: string };
 export type CardJob = {
@@ -21,7 +22,6 @@ export type CardJob = {
   assignedUserIds: string[];
 };
 
-const STATUS_LABELS: Record<string, string> = { scheduled: "Scheduled", in_progress: "In progress", completed: "Completed", cancelled: "Cancelled", no_show: "No show" };
 const STATUS_TONES: Record<string, string> = {
   scheduled: "border-[var(--co-line)] bg-white",
   in_progress: "border-amber-300 bg-amber-50/60",
@@ -46,7 +46,7 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
         <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-[var(--co-muted)]"><span>{formatClockLabel(job.scheduledStartTime)}</span><span className="rounded bg-[var(--co-surface-muted)] px-1.5 py-0.5 text-[10px]">{job.clientType === "commercial" ? "Commercial" : "Residential"}</span></div>
         <p className="mt-1 truncate text-[13px] font-semibold text-[var(--co-ink)]">{label}</p>
         <p className="mt-0.5 truncate text-[11px] text-[var(--co-muted)]">{TYPE_LABELS[job.type] ?? job.type} · {job.customerZip ?? "No ZIP"}</p>
-        <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px]"><span className="truncate text-[var(--co-muted)]">{crew.length ? crew.join(", ") : "Unassigned"}</span><span className="shrink-0 font-medium text-[var(--co-evergreen)]">{STATUS_LABELS[job.status] ?? job.status}</span></div>
+        <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px]"><span className="truncate text-[var(--co-muted)]">{crew.length ? crew.join(", ") : "Unassigned"}</span><span className="shrink-0 font-medium text-[var(--co-evergreen)]">{statusLabel("job", job.status)}</span></div>
         {job.recurringSeriesId ? <p className="mt-1 text-[10px] font-medium text-[var(--co-faint)]">↻ {recurrenceLabel(job.recurrenceFrequency)}</p> : null}
       </Link>
     </>

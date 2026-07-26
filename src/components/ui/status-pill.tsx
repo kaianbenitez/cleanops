@@ -64,6 +64,11 @@ export function statusLabel(domain: StatusDomain, status: string) {
   return entryFor(domain, status).label;
 }
 
+/** Ordered status values and labels for filter controls. */
+export function statusOptions(domain: StatusDomain): Array<{ value: string; label: string }> {
+  return Object.entries(STATUSES[domain]).map(([value, entry]) => ({ value, label: entry.label }));
+}
+
 export function StatusPill({
   domain,
   status,

@@ -4,17 +4,8 @@ import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { db } from "@/db";
 import { customers, quotes } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { StatusPill } from "@/components/ui/status-pill";
+import { StatusPill, statusOptions } from "@/components/ui/status-pill";
 import { LocalDateTime } from "@/components/local-date-time";
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Draft",
-  sent: "Sent",
-  viewed: "Viewed",
-  accepted: "Accepted",
-  declined: "Declined",
-  expired: "Expired",
-};
 
 type SearchParams = { q?: string; status?: string };
 
@@ -113,7 +104,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
           <input name="q" defaultValue={sp.q} placeholder="Search customer or quote" className="co-input min-w-[240px] flex-1" />
           <select name="status" defaultValue={sp.status ?? "all"} className="co-input w-full sm:w-auto">
             <option value="all">All statuses</option>
-            {Object.entries(STATUS_LABELS).map(([value, label]) => (
+            {statusOptions("quote").map(({ value, label }) => (
               <option key={value} value={value}>
                 {label}
               </option>

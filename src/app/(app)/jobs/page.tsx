@@ -5,7 +5,7 @@ import { and, count, desc, eq, gte, ilike, inArray, lte, or, sql } from "drizzle
 import { db } from "@/db";
 import { customers, invoices, jobAssignments, jobs, timeEntries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { StatusPill } from "@/components/ui/status-pill";
+import { StatusPill, statusLabel, statusOptions } from "@/components/ui/status-pill";
 import { RecalculateEstimatesButton } from "./recalculate-estimates-button";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -14,14 +14,6 @@ const TYPE_LABELS: Record<string, string> = {
   one_time: "One-time",
   deep_clean: "Deep clean",
   move_out: "Move in/out",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  scheduled: "Scheduled",
-  in_progress: "In progress",
-  completed: "Completed",
-  cancelled: "Cancelled",
-  no_show: "No show",
 };
 
 type SearchParams = {
@@ -116,7 +108,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
   const weekEndText = dateOnly(addDays(weekStart, 6));
 
   const conditions = [eq(jobs.companyId, admin.companyId), gte(jobs.scheduledDate, rangeStart), lte(jobs.scheduledDate, rangeEnd)];
-  if (sp.status && sp.status !== "all" && STATUS_LABELS[sp.status]) conditions.push(eq(jobs.status, sp.status as typeof jobs.status.enumValues[number]));
+  if (sp.status && sp.status !== "all" && statusOptions("job").some(({ value }) => value === sp.status)) conditions.push(eq(jobs.status, sp.status as typeof jobs.status.enumValues[number]));
   if (!sp.status && activeTab === "active") conditions.push(inArray(jobs.status, ["scheduled", "in_progress"]));
   if (!sp.status && activeTab === "pending") conditions.push(and(eq(jobs.status, "completed"), sql`not exists (select 1 from invoices where invoices.job_id = ${jobs.id})`)!);
   if (!sp.status && activeTab === "history") conditions.push(inArray(jobs.status, ["completed", "cancelled", "no_show"]));
@@ -269,7 +261,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                       : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"
                   }`}
                 >
-                  {status === "all" ? "All jobs" : STATUS_LABELS[status]}
+                  {status === "all" ? "All jobs" : statusLabel("job", status)}
                 </Link>
               ))}
               <Link

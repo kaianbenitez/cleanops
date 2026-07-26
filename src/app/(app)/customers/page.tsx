@@ -5,21 +5,12 @@ import { db } from "@/db";
 import { customers, invoices, jobs } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { PaginationControls } from "@/components/ui/pagination";
-import { StatusPill, statusToneClass } from "@/components/ui/status-pill";
+import { StatusPill, statusLabel, statusOptions, statusToneClass } from "@/components/ui/status-pill";
 import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { BulkArchiveTable, type EligibleCustomerRow } from "./bulk-archive-bar";
 import { formatDisplayDate } from "@/lib/scheduling/dates";
 
 const PAGE_SIZE = 25;
-
-const STATUS_LABELS: Record<string, string> = {
-  lead: "Lead",
-  quoted: "Quoted",
-  first_clean_booked: "First clean booked",
-  client: "Active client",
-  lost: "Lost",
-  moved: "Moved",
-};
 
 const TYPE_LABELS: Record<string, string> = {
   first_clean: "First clean",
@@ -298,7 +289,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         name: row.companyName || `${row.firstName} ${row.lastName}`,
         clientTypeLabel: row.clientType === "commercial" ? "Commercial" : "Residential",
         status: row.status,
-        statusLabel: STATUS_LABELS[row.status] ?? row.status,
+        statusLabel: statusLabel("customer", row.status),
         statusClassName: statusToneClass("customer", row.status),
         address: [row.addressLine1, row.city].filter(Boolean).join(", ") || "Address missing",
       }))
@@ -361,7 +352,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
             <input name="q" defaultValue={sp.q} placeholder="Search customers, email, or address" className="co-input min-w-[240px] flex-1" />
             <select name="status" defaultValue={sp.status ?? "all"} className="co-input w-full sm:w-auto">
               <option value="all">All statuses</option>
-              {Object.entries(STATUS_LABELS).map(([value, label]) => (
+              {statusOptions("customer").map(({ value, label }) => (
                 <option key={value} value={value}>
                   {label}
                 </option>

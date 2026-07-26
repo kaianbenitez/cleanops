@@ -7,6 +7,7 @@ import { emailToUsername } from "@/lib/auth/username";
 import PtoEditor, { type EmployeePto } from "./pto-editor";
 import PhotoUpload from "./photo-upload";
 import { ComingSoonStat } from "@/components/ui/coming-soon-stat";
+import { statusLabel } from "@/components/ui/status-pill";
 
 type PayTier = { minHours: number; maxHours: number | null; rateCents: number };
 type Employee = {
@@ -60,14 +61,6 @@ const JOB_TYPE_LABELS: Record<EmployeeJob["type"], string> = {
   one_time: "One time",
   deep_clean: "Deep clean",
   move_out: "Move out",
-};
-
-const JOB_STATUS_LABELS: Record<EmployeeJob["status"], string> = {
-  scheduled: "Scheduled",
-  in_progress: "In progress",
-  completed: "Completed",
-  cancelled: "Cancelled",
-  no_show: "No show",
 };
 
 const JOB_STATUS_CLASSES: Record<EmployeeJob["status"], string> = {
@@ -596,7 +589,7 @@ function JobRow({ job, compact = false }: { job: EmployeeJob; compact?: boolean 
           </div>
         </div>
         <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${JOB_STATUS_CLASSES[job.status]}`}>
-          {JOB_STATUS_LABELS[job.status]}
+          {statusLabel("job", job.status)}
         </span>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--co-muted)]">
