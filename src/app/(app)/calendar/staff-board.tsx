@@ -68,6 +68,8 @@ export default function StaffBoard({
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState("");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [queueExpanded, setQueueExpanded] = useState(false);
   const [openJobId, setOpenJobId] = useState<string | null>(null);
   const { toast, showUndo, dismiss } = useUndoToast();
@@ -163,7 +165,7 @@ export default function StaffBoard({
       { employeeIds: nextEmployees, scheduledStartTime: nextTime ?? null },
       {
         onOptimistic: () => undefined,
-      onSuccess: () => {
+        onSuccess: () => {
           router.refresh();
           showUndo(
             isExistingLane
@@ -206,6 +208,68 @@ export default function StaffBoard({
                     assignedUserIds: previousEmployees,
                     scheduledStartTime: previousTime,
                   }
+                : entry,
+            ),
+          );
+        },
+      },
+    );
+  }
+
+  function addTechnician(jobId: string, employeeId: string) {
+    const job = jobs.find((entry) => entry.id === jobId);
+    if (
+      !job ||
+      !employeeId ||
+      ["completed", "cancelled", "no_show"].includes(job.status)
+    )
+      return;
+    if (job.assignedUserIds.includes(employeeId)) {
+      setWarning("That technician is already assigned to this job.");
+      return;
+    }
+    const previousEmployees = job.assignedUserIds;
+    const nextEmployees = [...previousEmployees, employeeId];
+    setJobs((current) =>
+      current.map((entry) =>
+        entry.id === job.id
+          ? { ...entry, assignedUserIds: nextEmployees }
+          : entry,
+      ),
+    );
+    commitJobPatch(
+      job.id,
+      { employeeIds: nextEmployees },
+      {
+        onOptimistic: () => undefined,
+        onSuccess: () => {
+          router.refresh();
+          showUndo("Technician added to the crew", () =>
+            commitJobPatch(
+              job.id,
+              { employeeIds: previousEmployees },
+              {
+                onOptimistic: () =>
+                  setJobs((current) =>
+                    current.map((entry) =>
+                      entry.id === job.id
+                        ? { ...entry, assignedUserIds: previousEmployees }
+                        : entry,
+                    ),
+                  ),
+                onSuccess: () => router.refresh(),
+                onError: setError,
+              },
+            ),
+          );
+        },
+        onWarning: setWarning,
+        onError: (message) => {
+          setError(message);
+          setJobs((current) =>
+            current.map((entry) =>
+              entry.id === job.id
+                ? { ...entry, assignedUserIds: previousEmployees }
                 : entry,
             ),
           );
@@ -286,12 +350,66 @@ export default function StaffBoard({
               Employees are lanes. Drag a job between columns to add a
               technician.
             </p>
-            {isHoliday ? <p className="mt-1 text-xs font-semibold text-amber-800">Holiday — dispatch capacity is closed.</p> : null}
+            {isHoliday ? (
+              <p className="mt-1 text-xs font-semibold text-amber-800">
+                Holiday — dispatch capacity is closed.
+              </p>
+            ) : null}
           </div>
           <span className="text-xs font-medium text-[var(--co-muted)]">
             {jobs.length} jobs
           </span>
         </div>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            addTechnician(selectedJobId, selectedEmployeeId);
+          }}
+          className="flex flex-wrap items-center gap-2 border-b border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-4 py-2.5"
+        >
+          <span className="text-xs font-semibold text-[var(--co-ink)]">
+            Assign by touch or keyboard
+          </span>
+          <select
+            value={selectedJobId}
+            onChange={(event) => setSelectedJobId(event.target.value)}
+            aria-label="Select job to assign"
+            className="co-input min-w-44 flex-1 py-1.5 text-xs"
+          >
+            <option value="">Choose a job</option>
+            {jobs
+              .filter(
+                (job) =>
+                  !["completed", "cancelled", "no_show"].includes(job.status),
+              )
+              .map((job) => (
+                <option key={job.id} value={job.id}>
+                  {customerName(job)} ·{" "}
+                  {job.scheduledStartTime?.slice(0, 5) ?? "No time"}
+                </option>
+              ))}
+          </select>
+          <select
+            value={selectedEmployeeId}
+            onChange={(event) => setSelectedEmployeeId(event.target.value)}
+            aria-label="Select technician to add"
+            className="co-input min-w-40 flex-1 py-1.5 text-xs"
+          >
+            <option value="">Choose a technician</option>
+            {employees.map((employee) => (
+              <option key={employee.id} value={employee.id}>
+                {employee.firstName} {employee.lastName}
+              </option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            disabled={!selectedJobId || !selectedEmployeeId}
+            className="co-button-secondary py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Add technician
+          </button>
+        </form>
         {unscheduledJobs.length ? (
           <div className="border-b border-amber-200 bg-amber-50 px-4 py-3">
             <p className="text-xs font-semibold text-amber-900">
@@ -321,7 +439,10 @@ export default function StaffBoard({
           </p>
         ) : null}
         {warning ? (
-          <p role="status" className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-900">
+          <p
+            role="status"
+            className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-900"
+          >
             Scheduling warning: {warning}
           </p>
         ) : null}
@@ -393,7 +514,7 @@ export default function StaffBoard({
                     (a.scheduledStartTime ?? "99").localeCompare(
                       b.scheduledStartTime ?? "99",
                     ),
-                );
+                  );
                 const lanes = assignDayLanes(employeeJobs);
                 const ptoPeriod = ptoByEmployee.get(employee.id);
                 return (
