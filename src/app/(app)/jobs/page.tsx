@@ -5,6 +5,7 @@ import { and, count, desc, eq, gte, ilike, inArray, lte, or, sql } from "drizzle
 import { db } from "@/db";
 import { customers, invoices, jobAssignments, jobs, timeEntries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { StatusPill } from "@/components/ui/status-pill";
 import { RecalculateEstimatesButton } from "./recalculate-estimates-button";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -21,14 +22,6 @@ const STATUS_LABELS: Record<string, string> = {
   completed: "Completed",
   cancelled: "Cancelled",
   no_show: "No show",
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  scheduled: "border-slate-200 bg-slate-50 text-slate-600",
-  in_progress: "border-amber-200 bg-amber-50 text-amber-700",
-  completed: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  cancelled: "border-slate-200 bg-slate-50 text-slate-400",
-  no_show: "border-rose-200 bg-rose-50 text-rose-700",
 };
 
 type SearchParams = {
@@ -101,7 +94,7 @@ function MetricCard({
 }
 
 function Pill({ status }: { status: string }) {
-  return <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[status] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>{STATUS_LABELS[status] ?? status}</span>;
+  return <StatusPill domain="job" status={status} />;
 }
 
 export default async function JobsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {

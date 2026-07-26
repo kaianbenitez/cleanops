@@ -1,11 +1,11 @@
 "use client";
 
+import { StatusPill } from "@/components/ui/status-pill";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   TYPE_LABELS,
-  STATUS_STYLES,
   hourLabel,
   minutesFromTime,
   employeeColor,
@@ -45,7 +45,7 @@ function formatTime(totalMinutes: number) {
 }
 
 function Pill({ status }: { status: string }) {
-  return <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[status] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>{status.replaceAll("_", " ")}</span>;
+  return <StatusPill domain="job" status={status} />;
 }
 
 export default function DayBoard({ dayLabel, employees, jobs: initialJobs }: { dayLabel: string; employees: Employee[]; jobs: DayJob[] }) {

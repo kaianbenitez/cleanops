@@ -4,6 +4,7 @@ import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { db } from "@/db";
 import { customers, quotes } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { StatusPill } from "@/components/ui/status-pill";
 import { LocalDateTime } from "@/components/local-date-time";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -13,15 +14,6 @@ const STATUS_LABELS: Record<string, string> = {
   accepted: "Accepted",
   declined: "Declined",
   expired: "Expired",
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  draft: "border-slate-200 bg-slate-50 text-slate-600",
-  sent: "border-blue-200 bg-blue-50 text-blue-700",
-  viewed: "border-amber-200 bg-amber-50 text-amber-700",
-  accepted: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  declined: "border-rose-200 bg-rose-50 text-rose-700",
-  expired: "border-slate-200 bg-slate-50 text-slate-400",
 };
 
 type SearchParams = { q?: string; status?: string };
@@ -169,9 +161,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
                     <td className="px-5 py-4 text-[var(--co-muted)]">{quote.acceptedServiceType?.replaceAll("_", " ") ?? "—"}</td>
                     <td className="px-5 py-4 font-semibold">{quote.acceptedServiceType || quote.requestedServiceType ? dollars(quote.totalCents) : "—"}</td>
                     <td className="px-5 py-4">
-                      <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[quote.status] ?? "border-slate-200 bg-slate-50"}`}>
-                        {STATUS_LABELS[quote.status] ?? quote.status}
-                      </span>
+                      <StatusPill domain="quote" status={quote.status} />
                     </td>
                     <td className="whitespace-nowrap px-5 py-4 text-xs text-[var(--co-muted)]">
                       <LocalDateTime value={quote.createdAt} options={{ month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }} />

@@ -1,5 +1,6 @@
 "use client";
 
+import { StatusPill as SharedStatusPill } from "@/components/ui/status-pill";
 import Link from "next/link";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -61,14 +62,6 @@ const TYPE_LABELS: Record<string, string> = {
   move_out: "Move in/out",
 };
 
-const STATUS_STYLES: Record<string, string> = {
-  scheduled: "border-slate-200 bg-slate-50 text-slate-600",
-  in_progress: "border-amber-200 bg-amber-50 text-amber-700",
-  completed: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  cancelled: "border-slate-200 bg-slate-50 text-slate-400",
-  no_show: "border-rose-200 bg-rose-50 text-rose-700",
-};
-
 function readableError(body: { error?: unknown }) {
   if (!body.error) return "Something went wrong. Please try again.";
   return typeof body.error === "string" ? body.error : JSON.stringify(body.error);
@@ -110,11 +103,7 @@ function statusLabel(status: string) {
 }
 
 function StatusPill({ status }: { status: string }) {
-  return (
-    <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[status] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>
-      {statusLabel(status)}
-    </span>
-  );
+  return <SharedStatusPill domain="job" status={status} />;
 }
 
 function Panel({

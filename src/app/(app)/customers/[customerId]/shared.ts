@@ -66,15 +66,6 @@ export type AuditEntry = {
   editorLastName: string | null;
 };
 
-export const STATUS_STYLES: Record<string, string> = {
-  lead: "border-slate-200 bg-slate-50 text-slate-600",
-  quoted: "border-blue-200 bg-blue-50 text-blue-700",
-  first_clean_booked: "border-amber-200 bg-amber-50 text-amber-700",
-  client: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  lost: "border-rose-200 bg-rose-50 text-rose-700",
-  moved: "border-slate-200 bg-slate-50 text-slate-400",
-};
-
 export const TYPE_LABELS: Record<string, string> = {
   first_clean: "First clean",
   recurring: "Recurring",

@@ -1,3 +1,4 @@
+import { StatusPill } from "@/components/ui/status-pill";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
@@ -21,20 +22,6 @@ function hrefForPage(params: SearchParams, page: number) {
   const query = next.toString();
   return query ? `/invoices?${query}` : "/invoices";
 }
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Draft",
-  sent: "Pending",
-  paid: "Paid",
-  void: "Void",
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  draft: "border-slate-200 bg-slate-50 text-slate-600",
-  sent: "border-amber-200 bg-amber-50 text-amber-700",
-  paid: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  void: "border-slate-200 bg-slate-50 text-slate-400",
-};
 
 function dollars(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
@@ -213,9 +200,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
                         ) : null}
                       </td>
                       <td className="px-5 py-4">
-                        <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[invoice.status] ?? "border-slate-200 bg-slate-50"}`}>
-                          {overdue ? "Overdue" : STATUS_LABELS[invoice.status] ?? invoice.status}
-                        </span>
+                        <StatusPill domain="invoice" status={invoice.status} label={overdue ? "Overdue" : undefined} />
                       </td>
                       <td className="px-5 py-4 text-[var(--co-muted)]">{invoice.method ?? "—"}</td>
                       <td className="px-5 py-4 text-right">

@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { customers, invoices, jobs } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { PaginationControls } from "@/components/ui/pagination";
+import { StatusPill, statusToneClass } from "@/components/ui/status-pill";
 import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { BulkArchiveTable, type EligibleCustomerRow } from "./bulk-archive-bar";
 
@@ -17,15 +18,6 @@ const STATUS_LABELS: Record<string, string> = {
   client: "Active client",
   lost: "Lost",
   moved: "Moved",
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  lead: "border-slate-200 bg-slate-50 text-slate-600",
-  quoted: "border-blue-200 bg-blue-50 text-blue-700",
-  first_clean_booked: "border-amber-200 bg-amber-50 text-amber-700",
-  client: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  lost: "border-rose-200 bg-rose-50 text-rose-700",
-  moved: "border-slate-200 bg-slate-50 text-slate-400",
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -306,7 +298,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         clientTypeLabel: row.clientType === "commercial" ? "Commercial" : "Residential",
         status: row.status,
         statusLabel: STATUS_LABELS[row.status] ?? row.status,
-        statusClassName: STATUS_STYLES[row.status] ?? "border-slate-200 bg-slate-50 text-slate-600",
+        statusClassName: statusToneClass("customer", row.status),
         address: [row.addressLine1, row.city].filter(Boolean).join(", ") || "Address missing",
       }))
     : [];
@@ -457,9 +449,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                       </td>
                       <td className="p-0">
                         <Link href={`/customers/${row.id}`} className="block px-5 py-4">
-                        <span className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[row.status] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>
-                          {STATUS_LABELS[row.status] ?? row.status}
-                        </span>
+                        <StatusPill domain="customer" status={row.status} />
                         </Link>
                       </td>
                       <td className="p-0 text-[var(--co-muted)]">

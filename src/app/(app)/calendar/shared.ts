@@ -6,14 +6,6 @@ export const TYPE_LABELS: Record<string, string> = {
   move_out: "Move in/out",
 };
 
-export const STATUS_STYLES: Record<string, string> = {
-  scheduled: "border-slate-200 bg-slate-50 text-slate-600",
-  in_progress: "border-amber-200 bg-amber-50 text-amber-700",
-  completed: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  cancelled: "border-slate-200 bg-slate-50 text-slate-400",
-  no_show: "border-rose-200 bg-rose-50 text-rose-700",
-};
-
 export const TYPE_COLORS: Record<string, string> = {
   first_clean: "border-sky-300 bg-sky-50 text-sky-700",
   recurring: "border-emerald-300 bg-emerald-50 text-emerald-700",

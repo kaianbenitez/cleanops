@@ -1,12 +1,13 @@
 "use client";
 
+import { StatusPill } from "@/components/ui/status-pill";
 import Link from "next/link";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pencil, Plus } from "lucide-react";
 import AddressAutocomplete from "../address-autocomplete";
 import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { CustomerViewCards } from "./view-cards";
-import { STATUS_STYLES, TYPE_LABELS, money, type Customer, type Location, type CustomerJob, type AuditEntry } from "./shared";
+import { TYPE_LABELS, money, type Customer, type Location, type CustomerJob, type AuditEntry } from "./shared";
 
 type EmployeeOption = { id: string; firstName: string; lastName: string };
 
@@ -376,9 +377,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               ← Customers
             </Link>
             <div className="mt-1 flex flex-wrap items-center gap-3">
-            <span className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[customer.status] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>
-              {STATUS_OPTIONS.find((option) => option.value === customer.status)?.label ?? customer.status}
-            </span>
+            <StatusPill domain="customer" status={customer.status} />
             {customer.isArchived ? (
               <span className="whitespace-nowrap rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-500">
                 Archived{customer.archivedAt ? ` ${new Date(customer.archivedAt).toLocaleDateString()}` : ""}

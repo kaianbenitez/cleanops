@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { TYPE_LABELS, STATUS_STYLES } from "./shared";
+import { TYPE_LABELS } from "./shared";
+import { StatusPill } from "@/components/ui/status-pill";
 import { commitJobPatch } from "./drag-commit";
 import AssigneePicker from "./assignee-picker";
 
@@ -123,9 +124,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
             {error ? <p className="text-xs font-medium text-rose-600">{error}</p> : null}
 
             <div className="flex flex-wrap items-center gap-2">
-              <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[job.status] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>
-                {job.status.replaceAll("_", " ")}
-              </span>
+              <StatusPill domain="job" status={job.status} />
               <span className="text-xs text-[var(--co-muted)]">{TYPE_LABELS[job.type] ?? job.type}</span>
               {saving ? <span className="text-xs text-[var(--co-muted)]">Saving...</span> : null}
             </div>
