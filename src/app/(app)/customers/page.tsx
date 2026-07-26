@@ -430,37 +430,39 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                   const clientTypeLabel = row.clientType === "commercial" ? "Commercial" : "Residential";
 
                   return (
-                    <tr key={row.id} className="transition-colors hover:bg-[var(--co-surface-muted)]/50">
-                      <td className="p-0">
-                        <Link href={`/customers/${row.id}`} className="group block px-5 py-4">
+                    // One link per row, stretched over the whole row by its ::after. Each cell
+                    // used to carry its own <Link> to the same href, so a screen reader
+                    // announced six identical links per row (150 on a full page).
+                    <tr
+                      key={row.id}
+                      className="group relative transition-colors hover:bg-[var(--co-surface-muted)]/50 focus-within:bg-[var(--co-surface-muted)]/50 focus-within:outline focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-[var(--co-evergreen)]"
+                    >
+                      <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <InitialsAvatar firstName={row.firstName} lastName={row.lastName} companyName={row.companyName} className="h-10 w-10 rounded-full text-sm" />
                           <div className="min-w-0">
-                            <span className="font-semibold text-[var(--co-ink)] group-hover:text-[var(--co-evergreen)]">
+                            <Link
+                              href={`/customers/${row.id}`}
+                              className="font-semibold text-[var(--co-ink)] outline-none after:absolute after:inset-0 after:content-[''] group-hover:text-[var(--co-evergreen)]"
+                            >
                               {row.companyName ? row.companyName : `${row.firstName} ${row.lastName}`}
-                            </span>
+                            </Link>
                             {row.isArchived ? <span className="ml-2 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-500">Archived</span> : null}
                             <p className="text-xs text-[var(--co-muted)]">
                               {clientTypeLabel} · {planLabel}
                             </p>
                           </div>
                         </div>
-                        </Link>
                       </td>
-                      <td className="p-0">
-                        <Link href={`/customers/${row.id}`} className="block px-5 py-4">
+                      <td className="px-5 py-4">
                         <StatusPill domain="customer" status={row.status} />
-                        </Link>
                       </td>
-                      <td className="p-0 text-[var(--co-muted)]">
-                        <Link href={`/customers/${row.id}`} className="block px-5 py-4">
+                      <td className="px-5 py-4 text-[var(--co-muted)]">
                         {row.addressLine1 ?? "Address missing"}
                         {row.city ? ` · ${row.city}` : ""}
                         {row.zip ? <span className="block text-xs">Area: {row.zip}</span> : null}
-                        </Link>
                       </td>
-                      <td className="p-0">
-                        <Link href={`/customers/${row.id}`} className="block px-5 py-4">
+                      <td className="px-5 py-4">
                         {lastJob ? (
                           <>
                             <p className="font-medium">{formatDate(lastJob.scheduledDate)}</p>
@@ -469,20 +471,15 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                         ) : (
                           <span className="text-[var(--co-muted)]">—</span>
                         )}
-                        </Link>
                       </td>
-                      <td className="p-0">
-                        <Link href={`/customers/${row.id}`} className="block px-5 py-4">
-                          {nextJob ? (
-                            <span className="font-medium text-[var(--co-evergreen)]">{formatDate(nextJob.scheduledDate)}</span>
-                          ) : (
-                            <span className="text-[var(--co-muted)]">—</span>
-                          )}
-                        </Link>
+                      <td className="px-5 py-4">
+                        {nextJob ? (
+                          <span className="font-medium text-[var(--co-evergreen)]">{formatDate(nextJob.scheduledDate)}</span>
+                        ) : (
+                          <span className="text-[var(--co-muted)]">—</span>
+                        )}
                       </td>
-                      <td className="p-0 font-semibold">
-                        <Link href={`/customers/${row.id}`} className={`block px-5 py-4 ${payment.className}`}>{payment.label}</Link>
-                      </td>
+                      <td className={`px-5 py-4 font-semibold ${payment.className}`}>{payment.label}</td>
                     </tr>
                   );
                 })}
