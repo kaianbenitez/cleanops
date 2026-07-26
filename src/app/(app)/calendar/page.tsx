@@ -97,7 +97,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const dayAnchor = effectiveDay ? new Date(`${effectiveDay}T00:00:00.000Z`) : today;
   const effectiveWeek = sp.week ?? savedState.week;
   const weekStart = startOfWeek(effectiveWeek ? new Date(`${effectiveWeek}T00:00:00.000Z`) : today);
-  const weekDays = Array.from({ length: 5 }, (_, index) => addDays(weekStart, index + 1));
+  const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
   const effectiveMonth = sp.month ?? savedState.month;
   const monthAnchor = effectiveMonth ? new Date(`${effectiveMonth}-01T00:00:00.000Z`) : new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
   const month = monthBounds(monthAnchor);
@@ -166,7 +166,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
 
   const activities: CalendarActivity[] = [...displayedJobs].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()).slice(0, 5).map((job) => ({ id: job.id, tone: job.status === "completed" ? "success" : job.status === "in_progress" ? "info" : "warning", title: job.status === "completed" ? `Job completed - ${job.companyName || `${job.customerFirstName} ${job.customerLastName}`}` : job.status === "in_progress" ? `Job started - ${job.companyName || `${job.customerFirstName} ${job.customerLastName}`}` : `Schedule updated - ${job.companyName || `${job.customerFirstName} ${job.customerLastName}`}`, detail: `${job.customerCity ?? "No city"} - ${job.customerZip ?? "No ZIP"}` }));
   const currentDate = view === "month" ? monthAnchor : view === "staff" ? dayAnchor : weekStart;
-  const dateLabel = view === "month" ? monthAnchor.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" }) : view === "staff" ? formatDayLabel(dayAnchor) : `${weekDays[0].toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })} to ${weekDays[4].toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`;
+  const dateLabel = view === "month" ? monthAnchor.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" }) : view === "staff" ? formatDayLabel(dayAnchor) : `${weekDays[0].toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })} to ${weekDays[weekDays.length - 1].toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`;
   const stateAnchor = view === "month" ? toISODate(monthAnchor).slice(0, 7) : view === "staff" ? toISODate(dayAnchor) : toISODate(weekStart);
   return (
     <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
