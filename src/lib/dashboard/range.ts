@@ -1,4 +1,8 @@
-type RangeSearchParams = { from?: string; to?: string; preset?: string };
+type RangeSearchParams = {
+  from?: string;
+  to?: string;
+  preset?: string;
+};
 
 function isIsoDate(value: string | undefined): value is string {
   return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
@@ -18,6 +22,7 @@ export function todayInTimeZone(now: Date, timeZone: string): string {
     day: "2-digit",
   }).formatToParts(now);
   const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
   return `${values.year}-${values.month}-${values.day}`;
 }
 
@@ -32,7 +37,11 @@ export function startOfMonthIso(value: string): string {
   return `${value.slice(0, 7)}-01`;
 }
 
-export function resolveRange(sp: RangeSearchParams, timeZone: string, now = new Date()) {
+export function resolveRange(
+  sp: RangeSearchParams,
+  timeZone: string,
+  now = new Date(),
+) {
   const todayIso = todayInTimeZone(now, timeZone);
   const preset = sp.preset ?? (sp.from || sp.to ? "custom" : "last_30_days");
   const presetRange =
@@ -40,12 +49,25 @@ export function resolveRange(sp: RangeSearchParams, timeZone: string, now = new 
       ? { fromIso: addDaysIso(todayIso, -6), toIso: todayIso }
       : preset === "last_30_days" || preset === "month"
         ? { fromIso: addDaysIso(todayIso, -29), toIso: todayIso }
-        : preset === "today"
-          ? { fromIso: todayIso, toIso: todayIso }
-          : null;
-  const fromIso = isIsoDate(sp.from) ? sp.from : presetRange?.fromIso ?? addDaysIso(todayIso, -29);
+        : preset === "last_90_days"
+          ? { fromIso: addDaysIso(todayIso, -89), toIso: todayIso }
+          : preset === "this_month"
+            ? { fromIso: startOfMonthIso(todayIso), toIso: todayIso }
+            : preset === "today"
+              ? { fromIso: todayIso, toIso: todayIso }
+              : null;
+  const fromIso = isIsoDate(sp.from)
+    ? sp.from
+    : presetRange?.fromIso ?? addDaysIso(todayIso, -29);
   const toIso = isIsoDate(sp.to) ? sp.to : presetRange?.toIso ?? todayIso;
-  const rangeDays = Math.max(1, Math.round((new Date(`${toIso}T00:00:00.000Z`).getTime() - new Date(`${fromIso}T00:00:00.000Z`).getTime()) / 86400000) + 1);
+  const rangeDays = Math.max(
+    1,
+    Math.round(
+      (new Date(`${toIso}T00:00:00.000Z`).getTime() -
+        new Date(`${fromIso}T00:00:00.000Z`).getTime()) /
+        86400000,
+    ) + 1,
+  );
 
   return {
     preset,
@@ -54,7 +76,20 @@ export function resolveRange(sp: RangeSearchParams, timeZone: string, now = new 
     todayIso,
     prevFromIso: addDaysIso(fromIso, -rangeDays),
     prevToIso: addDaysIso(fromIso, -1),
-    label: preset === "today" ? "Today" : preset === "last_7_days" || preset === "week" ? "Last 7 days" : preset === "last_30_days" || preset === "month" ? "Last 30 days" : preset === "custom" ? "Custom range" : "Last 30 days",
+    label:
+      preset === "today"
+        ? "Today"
+        : preset === "last_7_days" || preset === "week"
+          ? "Last 7 days"
+          : preset === "last_30_days" || preset === "month"
+            ? "Last 30 days"
+            : preset === "last_90_days"
+              ? "Last 90 days"
+              : preset === "this_month"
+                ? "This month"
+                : preset === "custom"
+                  ? "Custom range"
+                  : "Last 30 days",
     timeZone,
   };
 }
