@@ -2,11 +2,17 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { and, desc, eq, gte, inArray, lt } from "drizzle-orm";
 import { db } from "@/db";
-import { companies, customers, ghlSyncLog, invoices, jobs, jobAssignments, payrollLines, payrollPeriods, quotes, timeEntries, users, webhookEvents } from "@/db/schema";
+import { companies, customers, ghlSyncLog, invoices, jobs, jobAssignments, payrollLines, payrollPeriods, quotes, timeEntries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { todayInTimeZone } from "@/lib/dashboard/range";
-import { compactMoney, formatDateTime, formatTime, money, percent } from "@/lib/format";
+import { compactMoney, formatTime, money, percent } from "@/lib/format";
 import { payrollWeekRangeForDate } from "@/lib/payroll/periods";
+import {
+  getCashToCollect,
+  getCustomerHealthCounts,
+  getReportOperationsCounts,
+  getRevenueSeries,
+} from "@/lib/reports/queries";
 import { Sparkline } from "@/components/ui/sparkline";
 import { StatTile } from "@/components/ui/stat-tile";
 import ReportsMotion from "./reports-motion";
@@ -228,7 +234,6 @@ export default async function ReportsPage() {
     customerRows,
     overdueInvoiceRows,
     ghlSyncRows,
-    webhookRows,
     payrollPeriodRows,
   ] = await Promise.all([
     db
@@ -285,7 +290,8 @@ export default async function ReportsPage() {
       })
       .from(customers)
       .where(and(eq(customers.companyId, user.companyId), eq(customers.isArchived, false)))
-      .orderBy(customers.firstName),
+      .orderBy(customers.firstName)
+      .limit(8),
     db
       .select({
         id: invoices.id,
@@ -315,19 +321,6 @@ export default async function ReportsPage() {
       .from(ghlSyncLog)
       .where(eq(ghlSyncLog.companyId, user.companyId))
       .orderBy(desc(ghlSyncLog.createdAt))
-      .limit(8),
-    db
-      .select({
-        id: webhookEvents.id,
-        source: webhookEvents.source,
-        signatureValid: webhookEvents.signatureValid,
-        payload: webhookEvents.payload,
-        processedAt: webhookEvents.processedAt,
-        error: webhookEvents.error,
-        createdAt: webhookEvents.createdAt,
-      })
-      .from(webhookEvents)
-      .orderBy(desc(webhookEvents.createdAt))
       .limit(8),
     db
       .select()
@@ -362,6 +355,23 @@ export default async function ReportsPage() {
       : Promise.resolve([] as Array<{ jobId: string; userId: string; minutesWorked: number | null }>),
   ]);
 
+  const [revenueSeries, cashToCollect, weeklyOperations, monthlyOperations, customerHealth] =
+    await Promise.all([
+      getRevenueSeries(user.companyId, {
+        fromIso: weekRange.startDate,
+        toIso: weekRange.endDate,
+        timeZone: company.timezone,
+      }),
+      getCashToCollect(user.companyId),
+      getReportOperationsCounts(
+        user.companyId,
+        weekRange.startDate,
+        weekRange.endDate,
+      ),
+      getReportOperationsCounts(user.companyId, monthStart, addDaysIso(monthEnd, -1)),
+      getCustomerHealthCounts(user.companyId),
+    ]);
+
   const assignmentsByJob = new Map<string, Array<(typeof jobAssignmentRows)[number]>>();
   jobAssignmentRows.forEach((row) => {
     assignmentsByJob.set(row.jobId, [...(assignmentsByJob.get(row.jobId) ?? []), row]);
@@ -378,9 +388,10 @@ export default async function ReportsPage() {
   const previousWeeklyRevenue = prevWeekPaidInvoices.reduce((sum, row) => sum + (row.amountPaidCents ?? 0), 0);
   const revenueTrend = previousWeeklyRevenue > 0 ? (weeklyRevenue - previousWeeklyRevenue) / previousWeeklyRevenue : null;
   const weekDays = Array.from({ length: 7 }, (_, index) => addDaysIso(weekRange.startDate, index));
-  const revenueSparkline = weekDays.map((day) =>
-    weekPaidInvoices.filter((row) => row.paidAt && new Date(row.paidAt).toISOString().slice(0, 10) === day).reduce((sum, row) => sum + (row.amountPaidCents ?? 0), 0),
+  const revenueByDay = new Map(
+    revenueSeries.map((row) => [row.day, row.amountCents]),
   );
+  const revenueSparkline = weekDays.map((day) => revenueByDay.get(day) ?? 0);
 
   const openQuotesCount = openQuotesRows.length;
   const leadsCount = leadsRows.length;
@@ -389,21 +400,17 @@ export default async function ReportsPage() {
   const conversionRate = quotesSentCount > 0 ? quotesAcceptedCount / quotesSentCount : 0;
   const recurringConversionsCount = recurringRows.length;
   const completedJobsCount = weekJobsRows.filter((job) => job.status === "completed").length;
-  const overdueInvoiceTotal = overdueInvoiceRows.reduce((sum, row) => sum + Math.max((row.totalCents ?? 0) - (row.amountPaidCents ?? 0), 0), 0);
-  const overdueInvoiceCount = overdueInvoiceRows.length;
+  const overdueInvoiceTotal = cashToCollect.amountCents;
+  const overdueInvoiceCount = cashToCollect.count;
   const todayJobsRows = weekJobsRows.filter((job) => job.scheduledDate === todayIso);
-  const monthUnassignedCount = monthJobsRows.filter((job) => job.status !== "cancelled" && job.status !== "no_show" && !(assignmentsByJob.get(job.id)?.length ?? 0)).length;
-  const jobsWithoutHoursCount = weekJobsRows.filter((job) => job.status === "completed" && !(minutesByJob.get(job.id) ?? 0)).length;
-  const jobsAwaitingInvoicingCount = weekJobsRows.filter((job) => job.status === "completed" && !overdueInvoiceRows.some((invoice) => invoice.customerId === job.customerId)).length;
+  const monthUnassignedCount = monthlyOperations.unassigned;
+  const jobsWithoutHoursCount = weeklyOperations.missingHours;
+  const jobsAwaitingInvoicingCount = weeklyOperations.awaitingInvoicing;
   const missedTimeEntriesCount = todayJobsRows.filter((job) => !(minutesByJob.get(job.id) ?? 0)).length;
 
   const customerNoShowById = new Map<string, number>();
-  const customerRescheduleById = new Map<string, number>();
   monthJobsRows.forEach((job) => {
     if (job.status === "no_show") customerNoShowById.set(job.customerId, (customerNoShowById.get(job.customerId) ?? 0) + 1);
-    if (job.status === "scheduled" && job.updatedAt.getTime() - job.createdAt.getTime() > 60_000) {
-      customerRescheduleById.set(job.customerId, (customerRescheduleById.get(job.customerId) ?? 0) + 1);
-    }
   });
 
   const overdueByCustomer = new Map<string, number>();
@@ -411,22 +418,12 @@ export default async function ReportsPage() {
     if (row.customerId) overdueByCustomer.set(row.customerId, (overdueByCustomer.get(row.customerId) ?? 0) + 1);
   });
 
-  const declinedCardById = new Map<string, number>();
-  customerRows.forEach((customer) => {
-    const value = customer.paymentMethods?.join(" ").toLowerCase() ?? "";
-    if (value.includes("declin") || value.includes("fail") || value.includes("invalid")) {
-      declinedCardById.set(customer.id, 1);
-    }
-  });
-
   const customerRowsFlagged = customerRows
     .map((customer) => {
       const flags: string[] = [];
       if (!customer.paymentMethods?.length) flags.push("Missing payment method");
-      if (declinedCardById.has(customer.id)) flags.push("Declined card");
       if (!customer.generalNotes?.trim()) flags.push("Incomplete notes");
       if ((customerNoShowById.get(customer.id) ?? 0) > 0) flags.push(`${customerNoShowById.get(customer.id)} no-show${customerNoShowById.get(customer.id) === 1 ? "" : "s"}`);
-      if ((customerRescheduleById.get(customer.id) ?? 0) > 0) flags.push(`${customerRescheduleById.get(customer.id)} reschedule${customerRescheduleById.get(customer.id) === 1 ? "" : "s"}`);
       if ((overdueByCustomer.get(customer.id) ?? 0) > 0) flags.push(`${overdueByCustomer.get(customer.id)} overdue invoice${overdueByCustomer.get(customer.id) === 1 ? "" : "s"}`);
       return {
         id: customer.id,
@@ -441,8 +438,7 @@ export default async function ReportsPage() {
 
   const retryingCount = ghlSyncRows.filter((row) => row.status === "retrying").length;
   const failedCount = ghlSyncRows.filter((row) => row.status === "failed").length;
-  const webhookIssueCount = webhookRows.filter((row) => row.error || !row.processedAt).length;
-  const syncHealthCount = retryingCount + failedCount + webhookIssueCount;
+  const syncHealthCount = retryingCount + failedCount;
 
   const payrollPeriod = payrollPeriodRows[0] ?? null;
   let payrollRows: PayrollRow[] = [];
@@ -574,16 +570,14 @@ export default async function ReportsPage() {
     {
       label: "Sync health",
       value: String(syncHealthCount),
-      note: `${retryingCount} retrying, ${failedCount} failed, ${webhookIssueCount} webhook issues`,
-      trend: "GHL, Square, webhooks",
+      note: `${retryingCount} retrying, ${failedCount} failed`,
+      trend: "GHL sync log",
       tone: syncHealthCount ? "warn" : "good",
     },
   ];
 
-  const missingPaymentCount = customerRows.filter((row) => !row.paymentMethods?.length).length;
-  const declinedCardCount = declinedCardById.size;
-  const incompleteNotesCount = customerRows.filter((row) => !row.generalNotes?.trim()).length;
-  const rescheduleCount = customerRows.filter((row) => (customerRescheduleById.get(row.id) ?? 0) > 0).length;
+  const missingPaymentCount = customerHealth.missingPaymentMethod;
+  const incompleteNotesCount = customerHealth.incompleteNotes;
   const noShowCount = customerRows.filter((row) => (customerNoShowById.get(row.id) ?? 0) > 0).length;
 
   const navigationButtons = [
@@ -989,10 +983,8 @@ export default async function ReportsPage() {
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                 {[
                   { label: "Missing payment methods", value: missingPaymentCount },
-                  { label: "Declined cards", value: declinedCardCount },
                   { label: "Incomplete notes", value: incompleteNotesCount },
                   { label: "No-show history", value: noShowCount },
-                  { label: "Recent reschedules", value: rescheduleCount },
                   { label: "Past due invoices", value: overdueByCustomer.size },
                 ].map((item) => (
                   <div key={item.label} className="rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/30 p-4">
@@ -1037,10 +1029,9 @@ export default async function ReportsPage() {
             >
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                 {[
-                  { label: "Failed webhooks", value: webhookIssueCount },
                   { label: "Retry log", value: retryingCount + failedCount },
                   { label: "Workflow enrollment status", value: ghlSyncRows.filter((row) => row.status === "ok").length },
-                  { label: "API errors", value: retryingCount + failedCount + webhookIssueCount },
+                  { label: "API errors", value: retryingCount + failedCount },
                 ].map((item) => (
                   <div key={item.label} className="rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/30 p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--co-muted)]">{item.label}</p>
@@ -1110,21 +1101,6 @@ export default async function ReportsPage() {
                 </div>
               </div>
 
-              <div className="mt-4 rounded-[20px] border border-[var(--co-line-soft)] bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--co-muted)]">Raw webhook inbox</p>
-                <div className="mt-3 space-y-2">
-                  {webhookRows.map((row) => (
-                    <div key={row.id} className="flex items-center justify-between gap-3 rounded-[16px] bg-[var(--co-surface-muted)]/35 px-4 py-3">
-                      <div>
-                        <p className="text-sm font-medium text-[var(--co-ink)]">{row.source.toUpperCase()}</p>
-                        <p className="text-xs text-[var(--co-muted)]">{formatDateTime(row.createdAt)}</p>
-                      </div>
-                      <Pill tone={row.error ? "warn" : row.processedAt ? "success" : "warn"}>{row.error ? "error" : row.processedAt ? "processed" : "pending"}</Pill>
-                    </div>
-                  ))}
-                  {webhookRows.length === 0 ? <p className="text-sm text-[var(--co-muted)]">No webhook issues are waiting right now.</p> : null}
-                </div>
-              </div>
             </SectionPanel>
           </aside>
         </div>
