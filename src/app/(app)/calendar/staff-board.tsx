@@ -278,6 +278,61 @@ export default function StaffBoard({
     );
   }
 
+  function removeTechnician(jobId: string, employeeId: string) {
+    const job = jobs.find((entry) => entry.id === jobId);
+    if (!job || !employeeId || !job.assignedUserIds.includes(employeeId)) {
+      setWarning("That technician is not assigned to this job.");
+      return;
+    }
+    const previousEmployees = job.assignedUserIds;
+    const nextEmployees = previousEmployees.filter((id) => id !== employeeId);
+    setJobs((current) =>
+      current.map((entry) =>
+        entry.id === job.id
+          ? { ...entry, assignedUserIds: nextEmployees }
+          : entry,
+      ),
+    );
+    commitJobPatch(
+      job.id,
+      { employeeIds: nextEmployees },
+      {
+        onOptimistic: () => undefined,
+        onSuccess: () => {
+          router.refresh();
+          showUndo("Technician removed from the crew", () =>
+            commitJobPatch(
+              job.id,
+              { employeeIds: previousEmployees },
+              {
+                onOptimistic: () =>
+                  setJobs((current) =>
+                    current.map((entry) =>
+                      entry.id === job.id
+                        ? { ...entry, assignedUserIds: previousEmployees }
+                        : entry,
+                    ),
+                  ),
+                onSuccess: () => router.refresh(),
+                onError: setError,
+              },
+            ),
+          );
+        },
+        onError: (message) => {
+          setError(message);
+          setJobs((current) =>
+            current.map((entry) =>
+              entry.id === job.id
+                ? { ...entry, assignedUserIds: previousEmployees }
+                : entry,
+            ),
+          );
+        },
+      },
+    );
+  }
+
   function jobStyle(job: CalendarJob, lane: number, laneCount: number) {
     const [hour, minute] = (job.scheduledStartTime ?? "09:00")
       .slice(0, 5)
@@ -305,6 +360,10 @@ export default function StaffBoard({
       <button
         key={job.id}
         type="button"
+        draggable={!retained}
+        onDragStart={(event) =>
+          event.dataTransfer.setData("text/plain", job.id)
+        }
         data-testid="unassigned-job-card"
         onClick={() => setOpenJobId(job.id)}
         aria-label={`Assign a cleaner for ${customerName(job)}`}
@@ -408,6 +467,14 @@ export default function StaffBoard({
             className="co-button-secondary py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
           >
             Add technician
+          </button>
+          <button
+            type="button"
+            onClick={() => removeTechnician(selectedJobId, selectedEmployeeId)}
+            disabled={!selectedJobId || !selectedEmployeeId}
+            className="co-button-secondary py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Remove technician
           </button>
         </form>
         {unscheduledJobs.length ? (
