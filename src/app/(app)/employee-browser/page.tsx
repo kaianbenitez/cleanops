@@ -6,6 +6,7 @@ import { companies, customers, jobAssignments, jobs, payrollLines, payrollPeriod
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { payrollWeekRangeForDate } from "@/lib/payroll/periods";
 import EmployeeBrowserClient from "./employee-browser-client";
+import { formatDisplayDate } from "@/lib/scheduling/dates";
 
 type TimeEntryPreview = {
   id: string;
@@ -30,9 +31,7 @@ function isoDate(date: Date) {
 }
 
 function friendlyPeriod(startDate: string, endDate: string) {
-  const start = new Date(`${startDate}T00:00:00.000Z`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  const end = new Date(`${endDate}T00:00:00.000Z`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return `${start} - ${end}`;
+  return `${formatDisplayDate(startDate)} - ${formatDisplayDate(endDate)}`;
 }
 
 export default async function EmployeeBrowserPage({ searchParams }: { searchParams: Promise<{ employeeId?: string }> }) {

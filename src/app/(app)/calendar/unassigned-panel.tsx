@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { commitJobPatch } from "./drag-commit";
 import TeamSearchPicker from "@/components/team-search-picker";
+import { formatDisplayDate } from "@/lib/scheduling/dates";
 
 type Employee = { id: string; firstName: string; lastName: string };
 
@@ -26,7 +27,7 @@ type History = {
 };
 
 function formatVisitDate(iso: string) {
-  return new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return formatDisplayDate(iso);
 }
 
 function names(people: Employee[]) {

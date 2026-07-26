@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useMemo, useState } from "react";
+import { formatDayLabel } from "@/lib/scheduling/dates";
 
 type Job = {
   id: string;
@@ -64,11 +65,7 @@ function timeLabel(value: string | null) {
 }
 
 function dateLabel(value: string) {
-  return new Date(`${value}T00:00:00.000Z`).toLocaleDateString([], {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+  return formatDayLabel(new Date(`${value}T00:00:00.000Z`));
 }
 
 function roleLabel(role: "lead" | "helper") {

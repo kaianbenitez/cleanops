@@ -8,6 +8,7 @@ import { PaginationControls } from "@/components/ui/pagination";
 import { StatusPill, statusToneClass } from "@/components/ui/status-pill";
 import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { BulkArchiveTable, type EligibleCustomerRow } from "./bulk-archive-bar";
+import { formatDisplayDate } from "@/lib/scheduling/dates";
 
 const PAGE_SIZE = 25;
 
@@ -97,7 +98,7 @@ function paymentStatus(invoices: InvoiceRow[]) {
 }
 
 function formatDate(date: string) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
+  return formatDisplayDate(date);
 }
 
 function hrefWith(params: SearchParams, key: keyof SearchParams, value: string) {

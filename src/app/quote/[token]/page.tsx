@@ -3,6 +3,7 @@
 import { use, useEffect, useMemo, useState } from "react";
 import { Sparkles, Droplet, Star, Truck, PanelsTopLeft, Flame, Refrigerator, Ruler, LayoutGrid, Shirt, type LucideIcon } from "lucide-react";
 import { ADD_ONS, MOVE_IN_OUT_DEFAULT_ADD_ONS, type AddOnKey } from "@/lib/pricing/add-ons";
+import { formatDisplayDate } from "@/lib/scheduling/dates";
 
 type TierBreakdown = {
   roomLines: Array<{ roomTypeName: string; count: number; subtotalCents: number }>;
@@ -125,10 +126,7 @@ function addOnPriceLabel(item: (typeof ADD_ONS)[number]) {
 }
 
 function formatValidUntil(value: string | null) {
-  if (!value) return null;
-  const parsed = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  return value ? formatDisplayDate(value) : null;
 }
 
 function expectedCrewSize(laborHours: number) {

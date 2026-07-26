@@ -4,6 +4,7 @@ import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ADD_ONS } from "@/lib/pricing/add-ons";
+import { LocalDateTime } from "@/components/local-date-time";
 
 type Tier = {
   roomSubtotalCents: number;
@@ -248,7 +249,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
             {quote.signatureName ? (
               <div className="mt-5 rounded-xl bg-[var(--co-surface-muted)] p-4 text-sm">
                 Accepted by <span className="font-semibold">{quote.signatureName}</span>
-                {quote.acceptedAt ? ` on ${new Date(quote.acceptedAt).toLocaleString()}` : ""}.
+                {quote.acceptedAt ? <> on <LocalDateTime value={quote.acceptedAt} /></> : ""}.
               </div>
             ) : null}
 
@@ -340,11 +341,11 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Sent</p>
-                <p className="mt-2 text-sm font-medium">{quote.sentAt ? new Date(quote.sentAt).toLocaleString() : "Not sent"}</p>
+                <p className="mt-2 text-sm font-medium"><LocalDateTime value={quote.sentAt} fallback="Not sent" /></p>
               </div>
               <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Viewed / accepted</p>
-                <p className="mt-2 text-sm font-medium">{quote.acceptedAt ? new Date(quote.acceptedAt).toLocaleString() : "No response yet"}</p>
+                <p className="mt-2 text-sm font-medium"><LocalDateTime value={quote.acceptedAt} fallback="No response yet" /></p>
               </div>
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -354,7 +355,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
               </div>
               <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Last viewed</p>
-                <p className="mt-2 text-sm font-medium">{quote.lastViewedAt ? new Date(quote.lastViewedAt).toLocaleString() : "Not viewed yet"}</p>
+                <p className="mt-2 text-sm font-medium"><LocalDateTime value={quote.lastViewedAt} fallback="Not viewed yet" /></p>
               </div>
             </div>
           </PageCard>
