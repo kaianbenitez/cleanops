@@ -7,8 +7,13 @@ import { auditLog, companies } from "@/db/schema";
 
 export async function GET() {
   const admin = await requireAdmin();
-  const [company] = await db.select().from(companies).where(eq(companies.id, admin.companyId)).limit(1);
-  if (!company) return NextResponse.json({ error: "Company not found" }, { status: 404 });
+  const [company] = await db
+    .select()
+    .from(companies)
+    .where(eq(companies.id, admin.companyId))
+    .limit(1);
+  if (!company)
+    return NextResponse.json({ error: "Company not found" }, { status: 404 });
   return NextResponse.json({
     company,
     apiConfig: {
@@ -94,7 +99,11 @@ const schema = z.object({
   ghlWorkflowMap: ghlWorkflowMapSchema.optional(),
   mileageRateCents: z.number().int().nonnegative().max(500).optional(),
   revenueTargetCents: z.number().int().nonnegative().nullable().optional(),
-  holidays: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).max(366).optional(),
+  holidays: z
+    .array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    .max(366)
+    .optional(),
+  workingDays: z.array(z.number().int().min(0).max(6)).min(1).max(7).optional(),
   payTierBrackets: z.array(payTierBracketSchema).min(1).max(12).optional(),
   inventory: z.array(inventoryItemSchema).max(500).optional(),
   branding: z
@@ -107,7 +116,13 @@ const schema = z.object({
       city: z.string().trim().max(100).nullable().optional(),
       state: z.string().trim().max(50).nullable().optional(),
       zip: z.string().trim().max(20).nullable().optional(),
-      brandColor: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional().or(z.literal("")),
+      brandColor: z
+        .string()
+        .trim()
+        .regex(/^#[0-9a-fA-F]{6}$/)
+        .nullable()
+        .optional()
+        .or(z.literal("")),
       website: z.string().trim().max(500).nullable().optional(),
       reviewUrl: z.string().trim().max(50000).nullable().optional(),
     })
@@ -121,33 +136,66 @@ const schema = z.object({
 export async function PATCH(req: NextRequest) {
   const admin = await requireAdmin();
   const parsed = schema.safeParse(await req.json());
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success)
+    return NextResponse.json(
+      { error: parsed.error.flatten() },
+      { status: 400 },
+    );
 
   const [company] = await db
-    .select({ name: companies.name, timezone: companies.timezone, settings: companies.settings })
+    .select({
+      name: companies.name,
+      timezone: companies.timezone,
+      settings: companies.settings,
+    })
     .from(companies)
     .where(eq(companies.id, admin.companyId))
     .limit(1);
-  if (!company) return NextResponse.json({ error: "Company not found" }, { status: 404 });
+  if (!company)
+    return NextResponse.json({ error: "Company not found" }, { status: 404 });
 
-  const existingSettings = (company.settings as Record<string, unknown> | null) ?? {};
+  const existingSettings =
+    (company.settings as Record<string, unknown> | null) ?? {};
   const nextSettings = {
     ...existingSettings,
-    ...(parsed.data.quoteTemplate ? { quoteTemplate: parsed.data.quoteTemplate } : {}),
+    ...(parsed.data.quoteTemplate
+      ? { quoteTemplate: parsed.data.quoteTemplate }
+      : {}),
     ...(parsed.data.ghlTagMap ? { ghlTagMap: parsed.data.ghlTagMap } : {}),
-    ...(parsed.data.ghlWorkflowMap ? { ghlWorkflowMap: parsed.data.ghlWorkflowMap } : {}),
-    ...(parsed.data.mileageRateCents !== undefined ? { mileageRateCents: parsed.data.mileageRateCents } : {}),
-    ...(parsed.data.revenueTargetCents !== undefined ? { revenueTargetCents: parsed.data.revenueTargetCents } : {}),
-    ...(parsed.data.holidays !== undefined ? { holidays: parsed.data.holidays } : {}),
-    ...(parsed.data.payTierBrackets ? { payTierBrackets: parsed.data.payTierBrackets } : {}),
+    ...(parsed.data.ghlWorkflowMap
+      ? { ghlWorkflowMap: parsed.data.ghlWorkflowMap }
+      : {}),
+    ...(parsed.data.mileageRateCents !== undefined
+      ? { mileageRateCents: parsed.data.mileageRateCents }
+      : {}),
+    ...(parsed.data.revenueTargetCents !== undefined
+      ? { revenueTargetCents: parsed.data.revenueTargetCents }
+      : {}),
+    ...(parsed.data.holidays !== undefined
+      ? { holidays: parsed.data.holidays }
+      : {}),
+    ...(parsed.data.workingDays !== undefined
+      ? { workingDays: parsed.data.workingDays }
+      : {}),
+    ...(parsed.data.payTierBrackets
+      ? { payTierBrackets: parsed.data.payTierBrackets }
+      : {}),
     ...(parsed.data.inventory ? { inventory: parsed.data.inventory } : {}),
     ...(parsed.data.branding ? { branding: parsed.data.branding } : {}),
   };
 
   const changedFields: Record<string, unknown> = {};
-  if (parsed.data.name !== undefined && parsed.data.name !== company.name) changedFields.name = parsed.data.name;
-  if (parsed.data.timezone !== undefined && parsed.data.timezone !== company.timezone) changedFields.timezone = parsed.data.timezone;
-  if (Object.keys(nextSettings).length !== Object.keys(existingSettings).length || JSON.stringify(nextSettings) !== JSON.stringify(existingSettings)) {
+  if (parsed.data.name !== undefined && parsed.data.name !== company.name)
+    changedFields.name = parsed.data.name;
+  if (
+    parsed.data.timezone !== undefined &&
+    parsed.data.timezone !== company.timezone
+  )
+    changedFields.timezone = parsed.data.timezone;
+  if (
+    Object.keys(nextSettings).length !== Object.keys(existingSettings).length ||
+    JSON.stringify(nextSettings) !== JSON.stringify(existingSettings)
+  ) {
     changedFields.settings = nextSettings;
   }
 
@@ -169,8 +217,16 @@ export async function PATCH(req: NextRequest) {
       action: "settings.updated",
       entityType: "company",
       entityId: admin.companyId,
-      before: { name: company.name, timezone: company.timezone, settings: existingSettings },
-      after: { name: updated.name, timezone: updated.timezone, settings: updated.settings },
+      before: {
+        name: company.name,
+        timezone: company.timezone,
+        settings: existingSettings,
+      },
+      after: {
+        name: updated.name,
+        timezone: updated.timezone,
+        settings: updated.settings,
+      },
     });
   }
 

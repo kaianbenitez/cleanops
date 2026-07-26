@@ -4,7 +4,13 @@ import { useMemo, useState } from "react";
 import type { CalendarEmployee, CalendarJob } from "./page";
 import JobCard from "./job-card";
 
-type DayMeta = { iso: string; label: string; dayNum: number; isToday: boolean; isHoliday: boolean };
+type DayMeta = {
+  iso: string;
+  label: string;
+  dayNum: number;
+  isToday: boolean;
+  isHoliday: boolean;
+};
 
 function customerName(job: CalendarJob) {
   return (
@@ -56,16 +62,21 @@ export default function WeekBoard({
         </p>
       </div>
       <div className="overflow-x-auto">
-        <div className="grid divide-x divide-[var(--co-line-soft)] [grid-template-columns:repeat(5,minmax(200px,1fr))]">
+        <div
+          className="grid divide-x divide-[var(--co-line-soft)]"
+          style={{
+            gridTemplateColumns: `repeat(${days.length}, minmax(200px, 1fr))`,
+          }}
+        >
           {days.map((day) => {
             const dayJobs = byDate.get(day.iso) ?? [];
             const scheduledMinutes = dayJobs.reduce(
               (total, job) => total + (job.estimatedDurationMinutes ?? 75),
               0,
             );
-            const capacity = day.isHoliday ? 0 : Math.round(
-              (scheduledMinutes / availableMinutes) * 100,
-            );
+            const capacity = day.isHoliday
+              ? 0
+              : Math.round((scheduledMinutes / availableMinutes) * 100);
             const tone =
               capacity > 100
                 ? "bg-rose-50 text-rose-700"
@@ -107,12 +118,18 @@ export default function WeekBoard({
                       {day.isHoliday ? "Closed" : `${Math.min(capacity, 999)}%`}
                     </span>
                   </div>
-                  {day.isHoliday ? <p className="mt-3 text-xs font-medium text-amber-800">Holiday — no dispatch capacity</p> : <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--co-line-soft)]">
-                    <div
-                      className={`h-full ${capacity > 100 ? "bg-rose-600" : capacity >= 90 ? "bg-amber-500" : "bg-[var(--co-evergreen)]"}`}
-                      style={{ width: `${Math.min(capacity, 100)}%` }}
-                    />
-                  </div>}
+                  {day.isHoliday ? (
+                    <p className="mt-3 text-xs font-medium text-amber-800">
+                      Holiday — no dispatch capacity
+                    </p>
+                  ) : (
+                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--co-line-soft)]">
+                      <div
+                        className={`h-full ${capacity > 100 ? "bg-rose-600" : capacity >= 90 ? "bg-amber-500" : "bg-[var(--co-evergreen)]"}`}
+                        style={{ width: `${Math.min(capacity, 100)}%` }}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-3 p-2.5">
                   {Array.from(grouped.entries()).map(([key, group]) => {

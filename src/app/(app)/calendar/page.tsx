@@ -166,9 +166,32 @@ export default async function CalendarPage({
     .where(eq(companies.id, admin.companyId))
     .limit(1);
   if (!company) redirect("/login");
-  const holidays = Array.isArray((company.settings as { holidays?: unknown } | null)?.holidays)
-    ? (company.settings as { holidays: unknown[] }).holidays.filter((value): value is string => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value))
+  const holidays = Array.isArray(
+    (company.settings as { holidays?: unknown } | null)?.holidays,
+  )
+    ? (company.settings as { holidays: unknown[] }).holidays.filter(
+        (value): value is string =>
+          typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value),
+      )
     : [];
+  const configuredWorkingDays = Array.isArray(
+    (company.settings as { workingDays?: unknown } | null)?.workingDays,
+  )
+    ? [
+        ...new Set(
+          (company.settings as { workingDays: unknown[] }).workingDays.filter(
+            (value): value is number =>
+              typeof value === "number" &&
+              Number.isInteger(value) &&
+              value >= 0 &&
+              value <= 6,
+          ),
+        ),
+      ].sort()
+    : [];
+  const workingDays = configuredWorkingDays.length
+    ? configuredWorkingDays
+    : [1, 2, 3, 4, 5];
 
   const todayIso = todayInTimeZone(new Date(), company.timezone);
   const today = new Date(`${todayIso}T00:00:00.000Z`);
@@ -180,9 +203,9 @@ export default async function CalendarPage({
   const weekStart = startOfWeek(
     effectiveWeek ? new Date(`${effectiveWeek}T00:00:00.000Z`) : today,
   );
-  const weekDays = Array.from({ length: 5 }, (_, index) =>
+  const weekDays = Array.from({ length: 7 }, (_, index) =>
     addDays(weekStart, index),
-  );
+  ).filter((day) => workingDays.includes(day.getUTCDay()));
   const effectiveMonth = sp.month ?? savedState.month;
   const monthAnchor = effectiveMonth
     ? new Date(`${effectiveMonth}-01T00:00:00.000Z`)
@@ -555,7 +578,12 @@ export default async function CalendarPage({
           />
         ) : null}
         {view === "month" ? (
-          <MonthBoard month={monthAnchor} summaries={monthRows} holidays={holidays} />
+          <MonthBoard
+            month={monthAnchor}
+            summaries={monthRows}
+            holidays={holidays}
+            workingDays={workingDays}
+          />
         ) : null}
       </main>
     </div>

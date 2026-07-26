@@ -8,10 +8,12 @@ export default function MonthBoard({
   month,
   summaries,
   holidays,
+  workingDays,
 }: {
   month: Date;
   summaries: CalendarDaySummary[];
   holidays: string[];
+  workingDays: number[];
 }) {
   const first = new Date(
     Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), 1),
@@ -34,8 +36,8 @@ export default function MonthBoard({
     summaries.map((summary) => [summary.scheduledDate, summary]),
   );
   const firstWeekday = first.getUTCDay();
-  const leading =
-    firstWeekday === 0 || firstWeekday === 6 ? 0 : firstWeekday - 1;
+  const leading = Math.max(workingDays.indexOf(firstWeekday), 0);
+  const weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   return (
     <section className="overflow-hidden border border-[var(--co-line)] bg-[var(--co-surface)]">
       <div className="border-b border-[var(--co-line-soft)] px-4 py-3">
@@ -51,13 +53,18 @@ export default function MonthBoard({
           Monday–Friday workload overview. Select a day to open dispatch.
         </p>
       </div>
-      <div className="grid grid-cols-5 divide-x divide-y divide-[var(--co-line-soft)]">
-        {["Mon", "Tue", "Wed", "Thu", "Fri"].map((label) => (
+      <div
+        className="grid divide-x divide-y divide-[var(--co-line-soft)]"
+        style={{
+          gridTemplateColumns: `repeat(${workingDays.length}, minmax(0, 1fr))`,
+        }}
+      >
+        {workingDays.map((weekday) => (
           <div
-            key={label}
+            key={weekday}
             className="bg-[var(--co-surface-muted)] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-faint)]"
           >
-            {label}
+            {weekdayLabels[weekday]}
           </div>
         ))}
         {Array.from({ length: leading }, (_, index) => (
@@ -69,7 +76,7 @@ export default function MonthBoard({
         {cells.map((date) => {
           const iso = date.toISOString().slice(0, 10);
           const day = date.getUTCDay();
-          if (day === 0 || day === 6) return null;
+          if (!workingDays.includes(day)) return null;
           const summary = byDate.get(iso) ?? {
             scheduledDate: iso,
             jobs: 0,
@@ -110,7 +117,11 @@ export default function MonthBoard({
                     {summary.unassigned}
                   </span>
                 </div>
-                {isHoliday ? <div className="font-medium text-amber-800">Holiday — capacity closed</div> : null}
+                {isHoliday ? (
+                  <div className="font-medium text-amber-800">
+                    Holiday — capacity closed
+                  </div>
+                ) : null}
                 {summary.needsReview ? (
                   <div className="font-semibold text-rose-700">
                     {summary.needsReview} needs review
