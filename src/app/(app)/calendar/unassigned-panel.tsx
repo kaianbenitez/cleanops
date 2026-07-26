@@ -55,7 +55,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
     setSelectedIds([]);
     try {
       const [jobBody, historyBody] = await Promise.all([
-        fetch(`/api/jobs/${id}`).then((res) => res.json()),
+        fetch(`/api/jobs/${id}/summary`).then((res) => res.json()),
         fetch(`/api/jobs/${id}/history`).then((res) => res.json()),
       ]);
       if (isCancelled()) return;

@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { and, eq, gte, ilike, inArray, isNull, lte } from "drizzle-orm";
+import { and, eq, gte, ilike, inArray, isNull, lte, notExists } from "drizzle-orm";
 import { db } from "@/db";
-import { customers, jobAssignments, jobTypeEnum, jobs, recurringSeries, users } from "@/db/schema";
+import { companies, customers, jobAssignments, jobTypeEnum, jobs, recurringSeries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { addDays, formatDayLabel, startOfWeek, toISODate } from "@/lib/scheduling/dates";
+import { todayInTimeZone } from "@/lib/dashboard/range";
 import FilterBar from "./filter-bar";
 import StaffBoard from "./staff-board";
 import WeekBoard from "./week-board";
@@ -64,7 +65,6 @@ export type CalendarJob = {
   customerCity: string | null;
   customerAddress: string | null;
   assignedUserIds: string[];
-  updatedAt: Date;
 };
 
 
@@ -91,7 +91,15 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const savedState = readCalendarStateCookie(cookieStore.get(CALENDAR_STATE_COOKIE)?.value);
   const effectiveView = sp.view ?? savedState.view;
   const view = effectiveView === "week" || effectiveView === "month" ? effectiveView : "staff";
-  const today = new Date();
+  const [company] = await db
+    .select({ timezone: companies.timezone })
+    .from(companies)
+    .where(eq(companies.id, admin.companyId))
+    .limit(1);
+  if (!company) redirect("/login");
+
+  const todayIso = todayInTimeZone(new Date(), company.timezone);
+  const today = new Date(`${todayIso}T00:00:00.000Z`);
   const effectiveDay = sp.day ?? savedState.day;
   const dayAnchor = effectiveDay ? new Date(`${effectiveDay}T00:00:00.000Z`) : today;
   const effectiveWeek = sp.week ?? savedState.week;
@@ -103,7 +111,6 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const days = view === "staff" ? [dayAnchor] : view === "month" ? [] : weekDays;
   const start = view === "month" ? toISODate(month.start) : toISODate(days[0]);
   const end = view === "month" ? toISODate(month.end) : toISODate(days[days.length - 1]);
-  const todayIso = toISODate(today);
 
   const employeesQuery = db
     .select({ id: users.id, firstName: users.firstName, lastName: users.lastName })
@@ -136,7 +143,6 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       customerZip: customers.zip,
       customerCity: customers.city,
       customerAddress: customers.addressLine1,
-      updatedAt: jobs.updatedAt,
     })
     .from(jobs)
     .innerJoin(customers, eq(jobs.customerId, customers.id))
@@ -146,7 +152,20 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
     ? base.innerJoin(jobAssignments, and(eq(jobAssignments.jobId, jobs.id), eq(jobAssignments.userId, sp.employeeId))).where(and(...conditions)).orderBy(jobs.scheduledDate, jobs.scheduledStartTime)
     : base.where(and(...conditions)).orderBy(jobs.scheduledDate, jobs.scheduledStartTime);
 
-  const [employees, rows] = (await Promise.all([employeesQuery, rowsQuery])) as [CalendarEmployee[], Omit<CalendarJob, "assignedUserIds">[]];
+  const unassignedRowsQuery = view === "staff"
+    ? base
+      .where(and(
+        ...conditions,
+        notExists(
+          db.select({ jobId: jobAssignments.jobId })
+            .from(jobAssignments)
+            .where(eq(jobAssignments.jobId, jobs.id))
+        )
+      ))
+      .orderBy(jobs.scheduledDate, jobs.scheduledStartTime)
+    : Promise.resolve([]);
+
+  const [employees, rows, unassignedRows] = (await Promise.all([employeesQuery, rowsQuery, unassignedRowsQuery])) as [CalendarEmployee[], Omit<CalendarJob, "assignedUserIds">[], Omit<CalendarJob, "assignedUserIds">[]];
 
   const assignments = rows.length
     ? await db.select({ jobId: jobAssignments.jobId, userId: users.id }).from(jobAssignments).innerJoin(users, eq(jobAssignments.userId, users.id)).where(inArray(jobAssignments.jobId, rows.map((row) => row.id)))
@@ -177,7 +196,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
 
       <main className="p-3 sm:p-4 lg:p-5">
         {view === "week" ? <WeekBoard days={weekDays.map((day) => ({ iso: toISODate(day), label: formatDayLabel(day), dayNum: day.getDate(), isToday: toISODate(day) === todayIso }))} employees={employees} jobs={displayedJobs} /> : null}
-        {view === "staff" ? <StaffBoard dayIso={toISODate(dayAnchor)} dayLabel={formatDayLabel(dayAnchor)} employees={employees} jobs={displayedJobs} unassignedJobs={jobsWithAssignments.filter((job) => !job.assignedUserIds.length)} /> : null}
+        {view === "staff" ? <StaffBoard dayIso={toISODate(dayAnchor)} dayLabel={formatDayLabel(dayAnchor)} employees={employees} laneEmployeeId={sp.employeeId} jobs={displayedJobs} unassignedJobs={unassignedRows.map((row) => ({ ...row, assignedUserIds: [] }))} /> : null}
         {view === "month" ? <MonthBoard month={monthAnchor} jobs={displayedJobs} /> : null}
       </main>
     </div>

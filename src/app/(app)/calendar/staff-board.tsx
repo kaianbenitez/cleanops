@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { CalendarEmployee, CalendarJob } from "./page";
 import { commitJobPatch } from "./drag-commit";
 import { UndoToast, useUndoToast } from "./undo-toast";
@@ -21,19 +22,26 @@ function statusLabel(status: string) {
   return status === "cancelled" ? "Cancelled / on hold" : status === "no_show" ? "No show" : status === "in_progress" ? "In progress" : "Scheduled";
 }
 
-export default function StaffBoard({ dayIso, dayLabel, employees, jobs: initialJobs, unassignedJobs }: { dayIso: string; dayLabel: string; employees: CalendarEmployee[]; jobs: CalendarJob[]; unassignedJobs: CalendarJob[] }) {
+export default function StaffBoard({ dayIso, dayLabel, employees, laneEmployeeId, jobs: initialJobs, unassignedJobs }: { dayIso: string; dayLabel: string; employees: CalendarEmployee[]; laneEmployeeId?: string; jobs: CalendarJob[]; unassignedJobs: CalendarJob[] }) {
+  const router = useRouter();
   const [jobs, setJobs] = useState(initialJobs);
+  const [syncedJobs, setSyncedJobs] = useState(initialJobs);
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [queueExpanded, setQueueExpanded] = useState(false);
   const [openJobId, setOpenJobId] = useState<string | null>(null);
   const { toast, showUndo, dismiss } = useUndoToast();
-  const sortedEmployees = useMemo(() => [...employees], [employees]);
+  const sortedEmployees = useMemo(() => laneEmployeeId ? employees.filter((employee) => employee.id === laneEmployeeId) : [...employees], [employees, laneEmployeeId]);
   const activeUnassignedJobs = useMemo(() => unassignedJobs.filter((job) => !RETAINED_STATUSES.includes(job.status) && job.status !== "completed"), [unassignedJobs]);
   const retainedUnassignedJobs = useMemo(() => unassignedJobs.filter((job) => RETAINED_STATUSES.includes(job.status)), [unassignedJobs]);
   const visibleActiveJobs = queueExpanded ? activeUnassignedJobs : activeUnassignedJobs.slice(0, 4);
   const visibleRetainedJobs = queueExpanded ? retainedUnassignedJobs : retainedUnassignedJobs.slice(0, 2);
   const hasMoreQueueJobs = activeUnassignedJobs.length > visibleActiveJobs.length || retainedUnassignedJobs.length > visibleRetainedJobs.length;
+
+  if (initialJobs !== syncedJobs) {
+    setSyncedJobs(initialJobs);
+    setJobs(initialJobs);
+  }
 
   function dropOnEmployee(event: React.DragEvent<HTMLDivElement>, employeeId: string) {
     event.preventDefault(); setDragOver(null);
@@ -42,7 +50,7 @@ export default function StaffBoard({ dayIso, dayLabel, employees, jobs: initialJ
     const previous = job.assignedUserIds; const next = Array.from(new Set([...previous, employeeId]));
     if (JSON.stringify(previous) === JSON.stringify(next)) return;
     setJobs((current) => current.map((entry) => entry.id === job.id ? { ...entry, assignedUserIds: next } : entry));
-    commitJobPatch(job.id, { employeeIds: next }, { onOptimistic: () => undefined, onSuccess: () => showUndo("Technician added to the crew", () => commitJobPatch(job.id, { employeeIds: previous }, { onOptimistic: () => setJobs((current) => current.map((entry) => entry.id === job.id ? { ...entry, assignedUserIds: previous } : entry)), onSuccess: () => undefined, onError: setError })), onError: (message) => { setError(message); setJobs((current) => current.map((entry) => entry.id === job.id ? { ...entry, assignedUserIds: previous } : entry)); } });
+    commitJobPatch(job.id, { employeeIds: next }, { onOptimistic: () => undefined, onSuccess: () => { router.refresh(); showUndo("Technician added to the crew", () => commitJobPatch(job.id, { employeeIds: previous }, { onOptimistic: () => setJobs((current) => current.map((entry) => entry.id === job.id ? { ...entry, assignedUserIds: previous } : entry)), onSuccess: () => undefined, onError: setError })); }, onError: (message) => { setError(message); setJobs((current) => current.map((entry) => entry.id === job.id ? { ...entry, assignedUserIds: previous } : entry)); } });
   }
 
   function jobStyle(job: CalendarJob, lane: number, laneCount: number) {

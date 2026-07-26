@@ -182,24 +182,26 @@ export async function PATCH(
   }
 
   if (employeeIds) {
-    await db.delete(jobAssignments).where(eq(jobAssignments.jobId, jobId));
-    if (employeeIds.length > 0) {
-      await db.insert(jobAssignments).values(
-        employeeIds.map((userId, i) => ({
-          jobId,
-          userId,
-          role: i === 0 ? ("lead" as const) : ("helper" as const),
-        }))
-      );
-    }
-    await db.insert(auditLog).values({
-      companyId: admin.companyId,
-      userId: admin.id,
-      action: "job.assignments_updated",
-      entityType: "job",
-      entityId: jobId,
-      before: beforeAssignments,
-      after: employeeIds,
+    await db.transaction(async (tx) => {
+      await tx.delete(jobAssignments).where(eq(jobAssignments.jobId, jobId));
+      if (employeeIds.length > 0) {
+        await tx.insert(jobAssignments).values(
+          employeeIds.map((userId, i) => ({
+            jobId,
+            userId,
+            role: i === 0 ? ("lead" as const) : ("helper" as const),
+          }))
+        );
+      }
+      await tx.insert(auditLog).values({
+        companyId: admin.companyId,
+        userId: admin.id,
+        action: "job.assignments_updated",
+        entityType: "job",
+        entityId: jobId,
+        before: beforeAssignments,
+        after: employeeIds,
+      });
     });
   }
 
