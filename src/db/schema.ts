@@ -297,6 +297,10 @@ export const quotes = pgTable("quotes", {
   serviceLocationId: uuid("service_location_id").references(() => serviceLocations.id),
   requestedServiceType: text("requested_service_type", { enum: serviceTypeEnum }), // admin's suggested/default tier
   acceptedServiceType: text("accepted_service_type", { enum: serviceTypeEnum }), // set when the customer accepts
+  // When a customer accepts a one-time visit and also opts into an ongoing
+  // cadence, keep that separately from the visit they accepted. The scheduler
+  // can then set its start date deliberately rather than losing the consent.
+  acceptedRecurringServiceType: text("accepted_recurring_service_type", { enum: serviceTypeEnum }),
   travelZoneId: uuid("travel_zone_id").references(() => travelZones.id),
   dirtyCodeLevel: integer("dirty_code_level"), // 1-4, matches serviceLocations.dirtyCodeTiers[].level
   roomCounts: jsonb("room_counts").notNull().default([]), // [{ roomTypeId, count }]

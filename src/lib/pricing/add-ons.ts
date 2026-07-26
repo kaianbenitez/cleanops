@@ -42,8 +42,9 @@ export const ADD_ONS: AddOn[] = [
   { key: "laundry", label: "Laundry / folding", priceCents: 5000, keywords: ["laundry", "fold"] },
 ];
 
-/** Add-ons a Move In/Out quote auto-selects by default — the customer can still opt out. */
-export const MOVE_IN_OUT_DEFAULT_ADD_ONS: AddOnKey[] = ["oven_interior", "fridge_interior", "inside_windows"];
+/** Add-ons included in a Move In/Out quote. Window cleaning remains separately
+ * priced per window, so it must always be an explicit customer selection. */
+export const MOVE_IN_OUT_DEFAULT_ADD_ONS: AddOnKey[] = ["oven_interior", "fridge_interior"];
 
 /** Loose keyword match against free-text customer notes (e.g. a GHL intake form
  * submission) so the admin doesn't have to re-read notes to notice an add-on request. */

@@ -7,10 +7,13 @@ import { SERVICE_TYPES, type PricingBreakdown, type ServiceType } from "@/lib/pr
 import { ADD_ONS } from "@/lib/pricing/add-ons";
 import { syncToGhl } from "@/lib/ghl/sync";
 
+const RECURRING_SERVICE_TYPES = ["weekly", "biweekly", "four_weeks"] as const;
+
 const acceptSchema = z.object({
   serviceType: z.enum(SERVICE_TYPES),
   signatureName: z.string().trim().min(1, "Signature name is required"),
   addOns: z.array(z.string().trim().min(1)).default([]),
+  recurringServiceType: z.enum(RECURRING_SERVICE_TYPES).nullable().optional(),
 });
 
 /** POST /api/public/quotes/[token]/accept — unauthenticated customer-facing accept action.
@@ -36,11 +39,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   if (quote.status === "declined" || quote.status === "expired") {
     return NextResponse.json({ error: "This quote can no longer be accepted" }, { status: 400 });
   }
+  if (quote.validUntil && quote.validUntil < new Date().toISOString().slice(0, 10)) {
+    await db
+      .update(quotes)
+      .set({ status: "expired" })
+      .where(eq(quotes.id, quote.id));
+    return NextResponse.json({ error: "This quote has expired" }, { status: 400 });
+  }
 
   const allTierPricing = quote.allTierPricing as Record<ServiceType, PricingBreakdown> | null;
   const chosenTier = allTierPricing?.[parsed.data.serviceType];
   if (!chosenTier) {
     return NextResponse.json({ error: "Selected service type is not priced on this quote" }, { status: 400 });
+  }
+  if (parsed.data.recurringServiceType && !allTierPricing?.[parsed.data.recurringServiceType]) {
+    return NextResponse.json({ error: "Selected recurring service is not priced on this quote" }, { status: 400 });
   }
 
   const addOnEntries = parsed.data.addOns
@@ -59,6 +72,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       status: "accepted",
       acceptedAt: new Date(),
       acceptedServiceType: parsed.data.serviceType,
+      acceptedRecurringServiceType: parsed.data.recurringServiceType ?? null,
       acceptedAddOns: addOnEntries.map((addon) => addon.key),
       totalCents: finalTotalCents,
       signatureName: parsed.data.signatureName,

@@ -93,7 +93,7 @@ const SERVICE_BULLETS: Record<string, string[]> = {
   supreme_deep: ["Hand wipe fixtures & vents", "Steam mop all hard floors", "Interior fridge & oven detail", "Full kitchen sanitizing"],
   deep: ["Hand wipe fixtures & surfaces", "Spot clean doors & handles", "Vacuum & mop all floors", "Detailed bathroom clean"],
   first_time: ["General dusting throughout", "Vacuum & mop all floors", "Wipe down kitchen counters", "Fresh baseline for recurring service"],
-  move_in_out: ["Full top-to-bottom deep clean", "Oven clean out included by default", "Fridge clean out included by default", "Windows included by default"],
+  move_in_out: ["Full top-to-bottom deep clean", "Oven clean out included by default", "Fridge clean out included by default", "Window cleaning available as an add-on"],
 };
 
 const ADD_ON_STYLES: Record<AddOnKey, { icon: LucideIcon; color: string }> = {
@@ -258,8 +258,13 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
 
   async function accept() {
     setError(null);
-    if (!selectedType) {
+    const serviceType = selectedType ?? recurringFrequency;
+    if (!serviceType) {
       setError("Choose a service option first.");
+      return;
+    }
+    if (recurringInterest && !recurringFrequency) {
+      setError("Choose a recurring cleaning frequency.");
       return;
     }
     if (!signatureName.trim()) {
@@ -271,7 +276,14 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
     const response = await fetch(`/api/public/quotes/${token}/accept`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ serviceType: selectedType, signatureName, addOns: selectedAddOns }),
+      body: JSON.stringify({
+        serviceType,
+        signatureName,
+        addOns: selectedAddOns,
+        // A recurring tier accepted on its own is the accepted service. When it
+        // accompanies a one-time visit, preserve the separate ongoing choice.
+        recurringServiceType: selectedType && recurringInterest ? recurringFrequency : undefined,
+      }),
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {

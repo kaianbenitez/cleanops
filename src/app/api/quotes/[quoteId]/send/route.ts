@@ -25,6 +25,9 @@ export async function POST(
   if (!quote) {
     return NextResponse.json({ error: "Quote not found" }, { status: 404 });
   }
+  if (quote.status === "accepted") {
+    return NextResponse.json({ error: "Accepted quotes cannot be resent or regenerated." }, { status: 409 });
+  }
 
   const [customer] = await db
     .select({ id: customers.id, firstName: customers.firstName, lastName: customers.lastName, email: customers.email })
