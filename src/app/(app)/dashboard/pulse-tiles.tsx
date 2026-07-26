@@ -1,3 +1,13 @@
 import Link from "next/link";
-import { getPulseMetrics } from "@/lib/dashboard/queries"; import type { DashboardRange } from "@/lib/dashboard/types"; import { money } from "@/lib/format";
-export default async function PulseTiles({companyId,range}:{companyId:string;range:DashboardRange}){const m=await getPulseMetrics(companyId,range);return <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><div className="co-card p-4">Jobs today: {m.jobsToday.scheduled+m.jobsToday.completed}</div><div className="co-card p-4">Revenue: {m.revenue.hasData?money(m.revenue.receivedCents):"No revenue in this range"}</div><div className="co-card p-4">Quotes: {m.conversion.hasData?m.conversion.accepted+" accepted of "+m.conversion.sent:"No quotes in this range"}</div><Link href="/invoices?overdue=yes" className="co-card p-4 hover:border-[var(--co-evergreen)]">Cash to collect: {m.collections.overdueCount?money(m.collections.overdueCents):"No overdue balance"}</Link></section>;}
+import { DeltaChip } from "@/components/ui/delta-chip";
+import { KpiTile } from "@/components/ui/kpi-tile";
+import { getPulseMetrics } from "@/lib/dashboard/queries";
+import type { DashboardRange } from "@/lib/dashboard/types";
+import { money, percent } from "@/lib/format";
+
+export default async function PulseTiles({ companyId, range }: { companyId: string; range: DashboardRange }) {
+  const metrics = await getPulseMetrics(companyId, range);
+  const revenueDelta = metrics.revenue.previousCents > 0 ? ((metrics.revenue.receivedCents - metrics.revenue.previousCents) / metrics.revenue.previousCents) * 100 : null;
+  const conversion = metrics.conversion.sent > 0 ? metrics.conversion.accepted / metrics.conversion.sent : 0;
+  return <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><KpiTile label="Total revenue" value={metrics.revenue.hasData ? money(metrics.revenue.receivedCents) : "—"} note="Received in selected range" delta={<DeltaChip value={revenueDelta} />} /><KpiTile label="Conversion rate" value={metrics.conversion.hasData ? percent(conversion) : "—"} note={`${metrics.conversion.accepted} accepted of ${metrics.conversion.sent} sent`} /><KpiTile label="Active jobs" value={String(metrics.jobsToday.scheduled + metrics.jobsToday.completed)} note={`${metrics.jobsToday.atRisk} need attention today`} /><Link href="/invoices?overdue=yes"><KpiTile label="Cash to collect" value={metrics.collections.overdueCount ? money(metrics.collections.overdueCents) : "—"} note={`${metrics.collections.overdueCount} overdue invoice${metrics.collections.overdueCount === 1 ? "" : "s"}`} /></Link></section>;
+}
