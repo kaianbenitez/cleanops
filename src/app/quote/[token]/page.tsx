@@ -6,11 +6,8 @@ import { ADD_ONS, MOVE_IN_OUT_DEFAULT_ADD_ONS, type AddOnKey } from "@/lib/prici
 import { formatDisplayDate } from "@/lib/scheduling/dates";
 
 type TierBreakdown = {
-  roomLines: Array<{ roomTypeName: string; count: number; subtotalCents: number }>;
-  roomSubtotalCents: number;
-  travelFeeCents: number;
+  roomLines: Array<{ roomTypeName: string; count: number }>;
   finalCents: number;
-  discountPercent: number;
 };
 
 type PublicQuote = {
@@ -36,7 +33,6 @@ type PublicQuote = {
   companyBrandColor: string | null;
   companyReviewUrl: string | null;
   locationName: string | null;
-  hourlyRateCents: number | null;
   travelZoneName: string | null;
   allTierPricing: Record<string, TierBreakdown> | null;
   quoteTemplate: {
@@ -273,25 +269,25 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
     }
 
     setAccepting(true);
-    const response = await fetch(`/api/public/quotes/${token}/accept`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        serviceType,
-        signatureName,
-        addOns: selectedAddOns,
-        // A recurring tier accepted on its own is the accepted service. When it
-        // accompanies a one-time visit, preserve the separate ongoing choice.
-        recurringServiceType: selectedType && recurringInterest ? recurringFrequency : undefined,
-      }),
-    });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setError(body.error ? JSON.stringify(body.error) : "This proposal could not be accepted.");
-    } else {
-      setAccepted(true);
+    try {
+      const response = await fetch(`/api/public/quotes/${token}/accept`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          serviceType,
+          signatureName,
+          addOns: selectedAddOns,
+          recurringServiceType: selectedType && recurringInterest ? recurringFrequency : undefined,
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) setError(typeof body.error === "string" ? body.error : "This proposal could not be accepted.");
+      else setAccepted(true);
+    } catch {
+      setError("We could not reach the server. Your proposal was not accepted; please try again.");
+    } finally {
+      setAccepting(false);
     }
-    setAccepting(false);
   }
 
   function toggleRecurring(checked: boolean) {
@@ -425,8 +421,6 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                 {mainTiers.map(([type, tier], index) => {
                   const selected = selectedType === type;
                   const Icon = SERVICE_ICONS[type];
-                  const laborHours = data.hourlyRateCents ? tier.finalCents / data.hourlyRateCents : null;
-                  const crewSize = laborHours !== null ? expectedCrewSize(laborHours) : null;
                   return (
                     <button
                       key={type}
@@ -470,9 +464,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                       <p className="mt-5 text-2xl font-semibold text-[var(--co-ink)]">{dollars(tier.finalCents)}</p>
                       <p className="mt-1 text-xs text-[var(--co-muted)]">
                         Per scheduled visit
-                        {laborHours !== null && crewSize !== null
-                          ? ` · Expected: ${crewSize} cleaning pro${crewSize === 1 ? "" : "s"} for about ${formatVisitDuration(laborHours, crewSize)} in your home`
-                          : " · Your team and visit time will be confirmed before booking"}
+                        {" · Your team and visit time will be confirmed before booking"}
                       </p>
                     </button>
                   );
@@ -624,43 +616,35 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                 photoSets.map((set) => (
                   <PhotoSetCard key={set.title} title={set.title} beforeUrl={set.beforePhotoUrl} afterUrl={set.afterPhotoUrl} />
                 ))
-              ) : (
-                <>
-                  <PhotoSetCard title="Kitchen" beforeUrl={""} afterUrl={""} fallback="Add a kitchen comparison set." />
-                  <PhotoSetCard title="Bathroom" beforeUrl={""} afterUrl={""} fallback="Add a bathroom comparison set." />
-                  <PhotoSetCard title="Living area" beforeUrl={""} afterUrl={""} fallback="Add a living space comparison set." />
-                </>
-              )}
+              ) : null}
             </section>
 
             <section className="grid gap-6 md:grid-cols-2">
+              {(data.quoteTemplate?.insuranceUrl || data.quoteTemplate?.w9Url) ? (
               <div className="min-w-0 rounded-[28px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-6 shadow-[0_12px_40px_rgba(15,23,42,0.05)]">
                 <p className="eyebrow">Insurance & W-9</p>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  {data.quoteTemplate?.insuranceUrl ? (
                   <div className="min-w-0 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
                     <p className="eyebrow">Insurance certificate</p>
                     <p className="mt-2 text-sm leading-6 text-[var(--co-muted)]">Your certificate is available for review before you accept.</p>
-                    {data.quoteTemplate?.insuranceUrl ? (
                       <a href={data.quoteTemplate.insuranceUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-medium text-[var(--co-evergreen)]">
                         View certificate
                       </a>
-                    ) : (
-                      <p className="mt-3 text-xs text-[var(--co-muted)]">Certificate not configured</p>
-                    )}
                   </div>
+                  ) : null}
+                  {data.quoteTemplate?.w9Url ? (
                   <div className="min-w-0 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
                     <p className="eyebrow">W-9 available</p>
                     <p className="mt-2 text-sm leading-6 text-[var(--co-muted)]">Business information is available when requested.</p>
-                    {data.quoteTemplate?.w9Url ? (
                       <a href={data.quoteTemplate.w9Url} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-medium text-[var(--co-evergreen)]">
                         View W-9
                       </a>
-                    ) : (
-                      <p className="mt-3 text-xs text-[var(--co-muted)]">W-9 not configured</p>
-                    )}
                   </div>
+                  ) : null}
                 </div>
               </div>
+              ) : null}
 
               <div className="min-w-0 rounded-[28px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-6 shadow-[0_12px_40px_rgba(15,23,42,0.05)]">
                 <p className="eyebrow">Common questions</p>
@@ -680,6 +664,14 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                 </div>
               </div>
             </section>
+
+            {data.quote.notesToCustomer || data.quoteTemplate?.terms ? (
+              <section className="rounded-[28px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-6">
+                <p className="eyebrow">Service terms</p>
+                {data.quote.notesToCustomer ? <p className="mt-3 whitespace-pre-line text-sm leading-6 text-[var(--co-ink)]">{data.quote.notesToCustomer}</p> : null}
+                {data.quoteTemplate?.terms ? <p className="mt-3 whitespace-pre-line text-sm leading-6 text-[var(--co-muted)]">{data.quoteTemplate.terms}</p> : null}
+              </section>
+            ) : null}
           </main>
 
           <aside className="space-y-5 lg:sticky lg:top-6 lg:self-start">

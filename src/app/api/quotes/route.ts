@@ -3,7 +3,7 @@ import { z } from "zod";
 import { randomBytes } from "crypto";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { quotes, customers, customerLocations } from "@/db/schema";
+import { quotes, customers, customerLocations, serviceLocations, travelZones } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { calculateAllTierPrices, SERVICE_TYPES } from "@/lib/pricing/calculate";
 import { resolveAddressServiceArea, resolveCustomerServiceArea } from "@/lib/service-area";
@@ -69,6 +69,12 @@ export async function POST(req: NextRequest) {
   if (!customer) {
     return NextResponse.json({ error: "Customer not found" }, { status: 404 });
   }
+  const [location] = await db.select({ id: serviceLocations.id }).from(serviceLocations).where(and(eq(serviceLocations.id, data.serviceLocationId), eq(serviceLocations.companyId, admin.companyId))).limit(1);
+  if (!location) return NextResponse.json({ error: "Service location not found" }, { status: 404 });
+  if (data.travelZoneId) {
+    const [zone] = await db.select({ id: travelZones.id }).from(travelZones).where(and(eq(travelZones.id, data.travelZoneId), eq(travelZones.serviceLocationId, location.id))).limit(1);
+    if (!zone) return NextResponse.json({ error: "Travel zone does not belong to the selected service location" }, { status: 400 });
+  }
 
   const [selectedAddress] = data.serviceAddressLocationId
     ? await db.select({ addressLine1: customerLocations.addressLine1, city: customerLocations.city, state: customerLocations.state, zip: customerLocations.zip, subdivision: customerLocations.subdivision, label: customerLocations.label }).from(customerLocations).where(and(eq(customerLocations.id, data.serviceAddressLocationId), eq(customerLocations.customerId, data.customerId), eq(customerLocations.companyId, admin.companyId))).limit(1)
@@ -80,7 +86,7 @@ export async function POST(req: NextRequest) {
   if (serviceArea.status === "missing_address") {
     return NextResponse.json({ error: "This customer is missing an address. Add city or ZIP before quoting." }, { status: 400 });
   }
-  if (serviceArea.status === "outside_area") {
+  if (serviceArea.status === "outside_area" || serviceArea.status === "no_service_zones") {
     return NextResponse.json({ error: "This customer is outside the selected service area." }, { status: 400 });
   }
 
