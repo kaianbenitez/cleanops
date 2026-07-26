@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { and, eq, gte, ilike, inArray, isNull, lte, notExists } from "drizzle-orm";
+import { and, eq, gte, ilike, inArray, isNull, lte, notExists, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { companies, customers, jobAssignments, jobStatusEnum, jobTypeEnum, jobs, recurrenceEnum, recurringSeries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -13,6 +13,7 @@ import WeekBoard from "./week-board";
 import MonthBoard from "./month-board";
 import DatePicker from "./date-picker";
 import CalendarStateSync from "./state-sync";
+import WeekendOrphanBanner from "./weekend-orphan-banner";
 
 const CALENDAR_STATE_COOKIE = "co_calendar_state";
 
@@ -165,7 +166,14 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       .orderBy(jobs.scheduledDate, jobs.scheduledStartTime)
     : Promise.resolve([]);
 
-  const [employees, rows, unassignedRows] = (await Promise.all([employeesQuery, rowsQuery, unassignedRowsQuery])) as [CalendarEmployee[], Omit<CalendarJob, "assignedUserIds">[], Omit<CalendarJob, "assignedUserIds">[]];
+  // Month and week deliberately omit weekends. Keep any imported weekend work
+  // visible so a dispatcher can still reach it from the Staff view.
+  const weekendRowsQuery = db
+    .select({ count: sql<number>`count(*)`, firstDate: sql<string | null>`min(${jobs.scheduledDate})` })
+    .from(jobs)
+    .where(and(eq(jobs.companyId, admin.companyId), sql`extract(dow from ${jobs.scheduledDate}) in (0, 6)`));
+
+  const [employees, rows, unassignedRows, [weekendOrphans]] = (await Promise.all([employeesQuery, rowsQuery, unassignedRowsQuery, weekendRowsQuery])) as [CalendarEmployee[], Omit<CalendarJob, "assignedUserIds">[], Omit<CalendarJob, "assignedUserIds">[], { count: number; firstDate: string | null }[]];
 
   const assignments = rows.length
     ? await db.select({ jobId: jobAssignments.jobId, userId: users.id }).from(jobAssignments).innerJoin(users, eq(jobAssignments.userId, users.id)).where(inArray(jobAssignments.jobId, rows.map((row) => row.id)))
@@ -195,6 +203,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       <FilterBar employees={employees} />
 
       <main className="p-3 sm:p-4 lg:p-5">
+        {weekendOrphans?.count && weekendOrphans.firstDate ? <WeekendOrphanBanner count={weekendOrphans.count} firstDate={weekendOrphans.firstDate} /> : null}
         {view === "week" ? <WeekBoard days={weekDays.map((day) => ({ iso: toISODate(day), label: formatDayLabel(day), dayNum: day.getDate(), isToday: toISODate(day) === todayIso }))} employees={employees} jobs={displayedJobs} /> : null}
         {view === "staff" ? <StaffBoard dayIso={toISODate(dayAnchor)} dayLabel={formatDayLabel(dayAnchor)} employees={employees} laneEmployeeId={sp.employeeId} jobs={displayedJobs} unassignedJobs={unassignedRows.map((row) => ({ ...row, assignedUserIds: [] }))} /> : null}
         {view === "month" ? <MonthBoard month={monthAnchor} jobs={displayedJobs} /> : null}
