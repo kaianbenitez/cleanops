@@ -48,8 +48,8 @@ export async function getRevenueSeries(companyId: string, range: DashboardRange,
   const dates = Array.from({ length: Math.round((new Date(`${range.toIso}T00:00:00.000Z`).getTime() - new Date(`${range.fromIso}T00:00:00.000Z`).getTime()) / 86400000) + 1 }, (_, index) => addDaysIso(range.fromIso, index));
   const bucket = sql<string>`to_char(${invoices.paidAt} AT TIME ZONE ${range.timeZone}, 'YYYY-MM-DD')`;
   const [currentRows, priorRows] = await Promise.all([
-    db.select({ day: bucket, amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)` }).from(invoices).where(paidRangeCondition(companyId, range.fromIso, range.toIso, range.timeZone)).groupBy(bucket),
-    db.select({ day: bucket, amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)` }).from(invoices).where(paidRangeCondition(companyId, range.prevFromIso, range.prevToIso, range.timeZone)).groupBy(bucket),
+    db.select({ day: bucket, amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)` }).from(invoices).where(paidRangeCondition(companyId, range.fromIso, range.toIso, range.timeZone)).groupBy(sql`1`),
+    db.select({ day: bucket, amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)` }).from(invoices).where(paidRangeCondition(companyId, range.prevFromIso, range.prevToIso, range.timeZone)).groupBy(sql`1`),
   ]);
   const currentByDay = new Map(currentRows.map((row) => [row.day, n(row.amount)]));
   const priorByDay = new Map(priorRows.map((row) => [row.day, n(row.amount)]));
