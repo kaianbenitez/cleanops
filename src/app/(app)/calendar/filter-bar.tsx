@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 
 type Employee = { id: string; firstName: string; lastName: string };
 
@@ -41,12 +41,13 @@ export default function FilterBar({ employees }: { employees: Employee[] }) {
   const searchParams = useSearchParams();
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [zipDraft, setZipDraft] = useState(searchParams.get("zip") ?? "");
+  const [isPending, startTransition] = useTransition();
 
   function setParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
-    router.push(`${pathname}?${params.toString()}`);
+    startTransition(() => router.push(`${pathname}?${params.toString()}`));
   }
 
   function clearAll() {
@@ -55,7 +56,7 @@ export default function FilterBar({ employees }: { employees: Employee[] }) {
       const value = searchParams.get(key);
       if (value) params.set(key, value);
     }
-    router.push(`${pathname}?${params.toString()}`);
+    startTransition(() => router.push(`${pathname}?${params.toString()}`));
     setZipDraft("");
   }
 
@@ -64,10 +65,11 @@ export default function FilterBar({ employees }: { employees: Employee[] }) {
   const type = searchParams.get("type") ?? "";
   const recurrence = searchParams.get("recurrence") ?? "";
   const status = searchParams.get("status") ?? "";
-  const hasFilters = employeeId || type || recurrence || status || searchParams.get("zip");
+  const assignment = searchParams.get("assignment") ?? "";
+  const hasFilters = employeeId || type || recurrence || status || assignment || searchParams.get("zip");
 
   return (
-    <section className="border-y border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-3 sm:px-4">
+    <section aria-busy={isPending} className="border-y border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-3 sm:px-4">
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex overflow-hidden rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-0.5">
           {VIEWS.map((entry) => (
@@ -93,12 +95,18 @@ export default function FilterBar({ employees }: { employees: Employee[] }) {
           {STATUSES.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}
         </select>
 
+        <button type="button" aria-pressed={assignment === "unassigned"} onClick={() => setParam("assignment", assignment === "unassigned" ? "" : "unassigned")} className={`co-button-secondary py-2 text-xs ${assignment === "unassigned" ? "border-[var(--co-evergreen)] text-[var(--co-evergreen)]" : ""}`}>
+          Unassigned only
+        </button>
+
         <button type="button" onClick={() => setAdvancedOpen((open) => !open)} aria-expanded={advancedOpen} className={`co-button-secondary py-2 text-xs ${advancedOpen ? "border-[var(--co-evergreen)] text-[var(--co-evergreen)]" : ""}`}>
-          More filters{hasFilters ? ` (${[employeeId, type, recurrence, status, searchParams.get("zip")].filter(Boolean).length})` : ""}
+          More filters{hasFilters ? ` (${[employeeId, type, recurrence, status, assignment, searchParams.get("zip")].filter(Boolean).length})` : ""}
         </button>
 
         {hasFilters ? <button type="button" onClick={clearAll} className="ml-auto text-xs font-semibold text-[var(--co-evergreen)] hover:underline">Clear filters</button> : null}
       </div>
+
+      {isPending ? <p role="status" className="mt-2 text-xs text-[var(--co-muted)]">Updating calendar…</p> : null}
 
       {advancedOpen ? (
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[var(--co-line-soft)] pt-3">
