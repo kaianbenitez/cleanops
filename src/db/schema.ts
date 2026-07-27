@@ -166,6 +166,8 @@ export const customers = pgTable("customers", {
   companyIdx: index("customers_company_idx").on(t.companyId),
   ghlContactIdx: uniqueIndex("customers_ghl_contact_idx").on(t.ghlContactId),
   archivedIdx: index("customers_archived_idx").on(t.companyId, t.isArchived),
+  // Matches the customers-list sort order (GET /api/customers orderBy lastName, firstName).
+  companyNameIdx: index("customers_company_name_idx").on(t.companyId, t.lastName, t.firstName),
 }));
 
 // A customer may have more than one service location. The first location is
@@ -320,6 +322,8 @@ export const quotes = pgTable("quotes", {
 }, (t) => ({
   publicTokenIdx: uniqueIndex("quotes_public_token_idx").on(t.publicToken),
   companyIdx: index("quotes_company_idx").on(t.companyId),
+  // Matches the quotes-list sort order (GET /api/quotes orderBy desc(createdAt)).
+  companyCreatedIdx: index("quotes_company_created_idx").on(t.companyId, t.createdAt),
 }));
 
 // ---------- recurring series ----------
@@ -499,6 +503,10 @@ export const payrollLines = pgTable("payroll_lines", {
   ...timestamps,
 }, (t) => ({
   periodUserIdx: uniqueIndex("payroll_lines_period_user_idx").on(t.payrollPeriodId, t.userId),
+  // Per-employee cross-period lookups (e.g. GET /api/employees/[employeeId] YTD pay,
+  // profile payroll-line counts) filter by userId alone, which periodUserIdx can't serve
+  // since userId isn't its leading column.
+  userIdx: index("payroll_lines_user_idx").on(t.userId),
 }));
 
 // ---------- ghl sync log ----------

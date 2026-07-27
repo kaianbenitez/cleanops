@@ -9,6 +9,28 @@ Last updated: 2026-07-28.
 
 ## Done
 
+- **Three missing indexes added for pasted design-review finding, not yet applied to hosted DB
+  (2026-07-28).** A design review of query/indexing patterns flagged three list-page sorts/filters
+  with no matching index: `GET /api/customers` orders by `lastName, firstName`
+  (`src/app/api/customers/route.ts:23`) with only `companyIdx`/`ghlContactIdx`/`archivedIdx` on
+  `customers` (schema.ts); `GET /api/quotes` orders by `desc(createdAt)`
+  (`src/app/api/quotes/route.ts:44`) with only a bare `companyIdx` on `quotes`; and
+  `payrollLines` had no index usable by a userId-only filter (confirmed real usage at
+  `src/app/api/employees/[employeeId]/route.ts:101` and `:372`, cross-period per-employee
+  lookups) — the existing `periodUserIdx` is `(payrollPeriodId, userId)`, useless when userId
+  isn't the leading column. Added `customers_company_name_idx (company_id, last_name,
+  first_name)`, `quotes_company_created_idx (company_id, created_at)`, and
+  `payroll_lines_user_idx (user_id)` to `src/db/schema.ts` and generated
+  `drizzle/0016_query_performance_indexes.sql` via `drizzle-kit generate` (renamed from the
+  auto-assigned `0015` to `0016` to avoid colliding with `0015_employee_photos_catchup.sql`,
+  which deliberately has no journal entry — fixed up `drizzle/meta/_journal.json`'s idx/tag to
+  match; `prevId` chain confirmed intact). Made the generated `CREATE INDEX` statements
+  `IF NOT EXISTS` to match this repo's idempotent-migration convention. `verify` and
+  `check:drift` both pass — `check:drift` only compares tables/columns, not indexes, so it
+  won't flag this migration as pending; that's expected. **Not yet applied to the hosted DB —
+  needs explicit approval per AGENTS.md**, then re-run `check:drift` isn't sufficient to confirm
+  application (it doesn't check indexes); confirm via `\di` in the Supabase SQL editor or
+  `mcp__supabase__list_tables` (indexes.) instead.
 - **Admin-to-admin password reset added; login rate-limiting gap identified (2026-07-28).**
   A pasted design review of `/login` (4/5) flagged two items: no visible rate-limiting/lockout,
   and no forgot-password path. Investigation found both real but not what they first looked
