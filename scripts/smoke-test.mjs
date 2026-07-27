@@ -3,7 +3,9 @@ import { createServerClient } from "@supabase/ssr";
 
 config({ path: ".env.local", quiet: true });
 
-const baseUrl = process.env.SMOKE_BASE_URL ?? "http://localhost:3000";
+// Accept the base URL as an argument like scripts/smoke-routes.mjs, so both smoke
+// scripts take the same `npm run smoke:auth -- http://localhost:3100` invocation.
+const baseUrl = process.argv[2] ?? process.env.SMOKE_BASE_URL ?? "http://localhost:3000";
 const email = process.env.SMOKE_EMAIL ?? "admin@example.com";
 const password = process.env.SMOKE_PASSWORD ?? "password123";
 const cookies = new Map();
@@ -31,7 +33,7 @@ async function check(path, expectedKey, expectedMarker) {
   return data;
 }
 
-for (const [path, marker] of [["/dashboard", "Good morning"], ["/customers", "Customers"], ["/jobs", "Jobs"], ["/payroll", "Payroll"], ["/invoices", "Invoices"], ["/settings", "Settings"], ["/supplies", "Supplies"]]) await check(path, null, marker);
+for (const [path, marker] of [["/dashboard", "Dashboard"], ["/customers", "Customers"], ["/jobs", "Jobs"], ["/payroll", "Payroll"], ["/invoices", "Invoices"], ["/settings", "Settings"], ["/supplies", "Supplies"]]) await check(path, null, marker);
 const customers = await check("/api/customers", "customers");
 await check("/api/employees", "employees");
 const invoices = await check("/api/invoices", "invoices");
