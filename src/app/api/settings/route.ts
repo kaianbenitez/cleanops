@@ -72,8 +72,8 @@ const inventoryItemSchema = z.object({
 
 const quotePhotoSetSchema = z.object({
   label: z.string().trim().max(100).optional().or(z.literal("")),
-  beforePhotoUrl: z.string().trim().max(50000).nullable().optional(),
-  afterPhotoUrl: z.string().trim().max(50000).nullable().optional(),
+  beforePhotoUrl: z.string().trim().max(2000).nullable().optional(),
+  afterPhotoUrl: z.string().trim().max(2000).nullable().optional(),
 });
 
 const schema = z.object({
@@ -85,13 +85,13 @@ const schema = z.object({
       terms: z.string().max(10000).optional(),
       ownerName: z.string().max(200).optional(),
       ownerTitle: z.string().max(200).optional(),
-      logoUrl: z.string().trim().max(50000).nullable().optional(),
-      reviewUrl: z.string().trim().max(50000).nullable().optional(),
-      beforePhotoUrl: z.string().trim().max(50000).nullable().optional(),
-      afterPhotoUrl: z.string().trim().max(50000).nullable().optional(),
+      logoUrl: z.string().trim().max(2000).nullable().optional(),
+      reviewUrl: z.string().trim().max(2000).nullable().optional(),
+      beforePhotoUrl: z.string().trim().max(2000).nullable().optional(),
+      afterPhotoUrl: z.string().trim().max(2000).nullable().optional(),
       photoSets: z.array(quotePhotoSetSchema).max(3).optional(),
-      insuranceUrl: z.string().trim().max(50000).nullable().optional(),
-      w9Url: z.string().trim().max(50000).nullable().optional(),
+      insuranceUrl: z.string().trim().max(2000).nullable().optional(),
+      w9Url: z.string().trim().max(2000).nullable().optional(),
       preferredDatePrompt: z.string().max(500).optional(),
       contactPhone: z.string().trim().max(50).nullable().optional(),
     })

@@ -81,6 +81,7 @@ function AssetField({
   onUpload,
   placeholder,
   accept,
+  uploading,
 }: {
   label: string;
   value: string;
@@ -88,6 +89,7 @@ function AssetField({
   onUpload: (file: File | null) => void | Promise<void>;
   placeholder?: string;
   accept?: string;
+  uploading?: boolean;
 }) {
   return (
     <label className="block text-sm">
@@ -96,10 +98,16 @@ function AssetField({
         <input className="co-input w-full" value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} />
         <div className="flex flex-wrap items-center gap-3">
           <label className="co-button-secondary cursor-pointer">
-            Upload
-            <input type="file" accept={accept} className="hidden" onChange={(event) => void onUpload(event.target.files?.[0] ?? null)} />
+            {uploading ? "Uploading…" : "Upload"}
+            <input
+              type="file"
+              accept={accept}
+              className="hidden"
+              disabled={uploading}
+              onChange={(event) => void onUpload(event.target.files?.[0] ?? null)}
+            />
           </label>
-          <p className="text-[11px] leading-5 text-[var(--co-muted)]">Stored inline in CleanOps settings for now.</p>
+          <p className="text-[11px] leading-5 text-[var(--co-muted)]">Uploaded files are stored securely; only the link is saved here.</p>
         </div>
       </div>
     </label>
@@ -143,6 +151,8 @@ function PhotoSetCard({
   onAfterChange,
   onBeforeUpload,
   onAfterUpload,
+  beforeUploading,
+  afterUploading,
 }: {
   index: number;
   label: string;
@@ -153,6 +163,8 @@ function PhotoSetCard({
   onAfterChange: (value: string) => void;
   onBeforeUpload: (file: File | null) => void | Promise<void>;
   onAfterUpload: (file: File | null) => void | Promise<void>;
+  beforeUploading?: boolean;
+  afterUploading?: boolean;
 }) {
   return (
     <div className="rounded-3xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/25 p-4">
@@ -179,6 +191,7 @@ function PhotoSetCard({
           onUpload={onBeforeUpload}
           placeholder="https://... or upload an image"
           accept="image/*"
+          uploading={beforeUploading}
         />
         <AssetField
           label="After photo"
@@ -187,19 +200,21 @@ function PhotoSetCard({
           onUpload={onAfterUpload}
           placeholder="https://... or upload an image"
           accept="image/*"
+          uploading={afterUploading}
         />
       </div>
     </div>
   );
 }
 
-function fileToDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(new Error("File upload failed"));
-    reader.readAsDataURL(file);
-  });
+async function uploadAsset(file: File, kind: "image" | "document") {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("kind", kind);
+  const response = await fetch("/api/settings/quote-assets", { method: "POST", body: formData });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : "Upload failed.");
+  return data.url as string;
 }
 
 export default function QuoteTemplateSettingsPage() {
@@ -207,6 +222,7 @@ export default function QuoteTemplateSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [uploadingKeys, setUploadingKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetch("/api/settings")
@@ -267,15 +283,29 @@ export default function QuoteTemplateSettingsPage() {
 
   const update = (field: keyof QuoteTemplate, value: string) => setTemplate((current) => ({ ...current, [field]: value }));
 
-  async function upload(field: keyof QuoteTemplate, file: File | null) {
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage("Please keep uploads under 5 MB for the current inline storage mode.");
-      return;
+  async function withUploading(key: string, run: () => Promise<void>) {
+    setUploadingKeys((current) => new Set(current).add(key));
+    setMessage("");
+    try {
+      await run();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Upload failed.");
+    } finally {
+      setUploadingKeys((current) => {
+        const next = new Set(current);
+        next.delete(key);
+        return next;
+      });
     }
-    const dataUrl = await fileToDataUrl(file);
-    update(field, dataUrl);
-    setMessage(`${file.name} attached.`);
+  }
+
+  async function upload(field: keyof QuoteTemplate, kind: "image" | "document", file: File | null) {
+    if (!file) return;
+    await withUploading(field, async () => {
+      const url = await uploadAsset(file, kind);
+      update(field, url);
+      setMessage(`${file.name} attached.`);
+    });
   }
 
   function updatePhotoSet(index: number, field: "label" | "beforePhotoUrl" | "afterPhotoUrl", value: string) {
@@ -289,13 +319,11 @@ export default function QuoteTemplateSettingsPage() {
 
   async function uploadPhotoSet(index: number, field: "beforePhotoUrl" | "afterPhotoUrl", file: File | null) {
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage("Please keep uploads under 5 MB for the current inline storage mode.");
-      return;
-    }
-    const dataUrl = await fileToDataUrl(file);
-    updatePhotoSet(index, field, dataUrl);
-    setMessage(`${file.name} attached.`);
+    await withUploading(`photoSet-${index}-${field}`, async () => {
+      const url = await uploadAsset(file, "image");
+      updatePhotoSet(index, field, url);
+      setMessage(`${file.name} attached.`);
+    });
   }
 
   if (loading) return <div className="co-card p-8 text-sm text-[var(--co-muted)]">Loading quote content…</div>;
@@ -344,9 +372,10 @@ export default function QuoteTemplateSettingsPage() {
                 label="Quote logo"
                 value={template.logoUrl}
                 onChange={(value) => update("logoUrl", value)}
-                onUpload={(file) => upload("logoUrl", file)}
+                onUpload={(file) => upload("logoUrl", "image", file)}
                 placeholder="https://... or upload an image"
                 accept="image/*"
+                uploading={uploadingKeys.has("logoUrl")}
               />
               <Field label="Company phone on quote" value={template.contactPhone} onChange={(value) => update("contactPhone", value)} placeholder="(555) 123-4567" />
             </div>
@@ -372,6 +401,8 @@ export default function QuoteTemplateSettingsPage() {
                     onAfterChange={(value) => updatePhotoSet(index, "afterPhotoUrl", value)}
                     onBeforeUpload={(file) => uploadPhotoSet(index, "beforePhotoUrl", file)}
                     onAfterUpload={(file) => uploadPhotoSet(index, "afterPhotoUrl", file)}
+                    beforeUploading={uploadingKeys.has(`photoSet-${index}-beforePhotoUrl`)}
+                    afterUploading={uploadingKeys.has(`photoSet-${index}-afterPhotoUrl`)}
                   />
                 ))}
               </div>
@@ -382,17 +413,19 @@ export default function QuoteTemplateSettingsPage() {
                 label="Insurance certificate (JPG/PDF)"
                 value={template.insuranceUrl}
                 onChange={(value) => update("insuranceUrl", value)}
-                onUpload={(file) => upload("insuranceUrl", file)}
+                onUpload={(file) => upload("insuranceUrl", "document", file)}
                 placeholder="https://... or upload a JPG/PDF"
                 accept="image/*,.pdf,application/pdf"
+                uploading={uploadingKeys.has("insuranceUrl")}
               />
               <AssetField
                 label="W-9"
                 value={template.w9Url}
                 onChange={(value) => update("w9Url", value)}
-                onUpload={(file) => upload("w9Url", file)}
+                onUpload={(file) => upload("w9Url", "image", file)}
                 placeholder="https://... or upload an image"
                 accept="image/*"
+                uploading={uploadingKeys.has("w9Url")}
               />
             </div>
           </div>
@@ -452,7 +485,7 @@ export default function QuoteTemplateSettingsPage() {
               <PreviewCard title="W-9" url={template.w9Url} fallback="No W-9 link" />
             </div>
             <p className="mt-4 text-xs text-[var(--co-muted)]">
-              {hasTrustAssets ? "Trust assets are ready for the proposal page." : "Add links now; storage can be upgraded later without changing the proposal layout."}
+              {hasTrustAssets ? "Trust assets are ready for the proposal page." : "Add links now, or upload files above."}
             </p>
           </section>
         </aside>
