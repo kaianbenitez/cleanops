@@ -9,6 +9,19 @@ Last updated: 2026-07-28.
 
 ## Done
 
+- **Settings → GHL integration: de-duped save code, blocked ambiguous tag reuse
+  (2026-07-28, `fd49f7a`).** Audit of the page found the tag/workflow save handlers were
+  copy-pasted PATCH boilerplate and nothing stopped two different CleanOps statuses from
+  being mapped to the same GHL tag — since GHL just sees "tag applied," a duplicate makes
+  the two statuses indistinguishable to any automation filtering on it. `saveTags`/
+  `saveWorkflows` now share one `saveMap` helper; the tag map computes duplicate values
+  live, highlights the conflicting fields, and disables Save until they're fixed (workflows
+  weren't restricted — reusing one workflow across statuses is a legitimate choice). Also
+  moved the existing `/api/integrations/ghl/test` smoke test inline onto this page (it
+  previously only lived on the parent `/settings` page), with a note that it only checks
+  the API connection, not that the specific tag/workflow IDs exist in GHL. Verified with
+  `verify`, both smoke scripts, and a throwaway authenticated Playwright spec — never
+  clicked Save.
 - **Quote-template uploads moved off base64-in-JSONB (2026-07-28, `f62834a`).** Logo,
   before/after photos, insurance certificate, and W-9 on Settings → Quote page content were
   read client-side as base64 and saved straight into `companies.settings`, so `GET
@@ -275,6 +288,13 @@ Last updated: 2026-07-28.
   `missingHours` filters after pagination, so its displayed count can temporarily disagree with
   the dashboard. Fix the Jobs-page filter/pagination order separately; do not make the dashboard
   mirror that incorrect count.
+- **Settings → GHL still has no validation that a tag or workflow ID actually exists in
+  GHL.** A typo silently breaks an automation until a customer notices a missed step. The
+  2026-07-28 fix above stops the case where two CleanOps statuses collide on the same tag,
+  but doesn't check any value against the real GHL account. Would need a new GHL API call
+  (list tags / list workflows for the location) — `src/lib/ghl/client.ts` has no such
+  method today, only contact-level operations and the location health check. Not attempted
+  since it's a real integration addition, not a UI fix.
 
 ## Parallel-work note
 
