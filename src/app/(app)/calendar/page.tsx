@@ -361,7 +361,10 @@ export default async function CalendarPage({
       : Promise.resolve([]);
 
   // Month and week deliberately omit weekends. Keep any imported weekend work
-  // visible so a dispatcher can still reach it from the Staff view.
+  // visible so a dispatcher can still reach it from the Staff view. Bounded to
+  // today-forward: past weekend jobs are already done and don't need dispatch
+  // attention, and the lower bound lets this use the (companyId, scheduledDate)
+  // index instead of scanning every weekend job the company has ever had.
   const weekendRowsQuery = db
     .select({
       count: sql<number>`count(*)`,
@@ -371,6 +374,7 @@ export default async function CalendarPage({
     .where(
       and(
         eq(jobs.companyId, admin.companyId),
+        gte(jobs.scheduledDate, todayIso),
         sql`extract(dow from ${jobs.scheduledDate}) in (0, 6)`,
       ),
     );
