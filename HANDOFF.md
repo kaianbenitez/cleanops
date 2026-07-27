@@ -5,10 +5,25 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-07-24 (post-migration).
+Last updated: 2026-07-27.
 
 ## Done
 
+- **Job Detail converted to a server component and split up (2026-07-27, commit `7a92fcf`).**
+  It was the last operational screen still doing `useEffect` + `fetch` on mount, at 829 lines
+  in one client file. Now: `page.tsx` is an async server component (auth + direct DB read,
+  non-admins redirect to My Day), the query lives in `src/lib/jobs/job-detail.ts` shared with
+  `GET /api/jobs/[jobId]` (the calendar's job panel still fetches it, so they must not drift),
+  mutations `PATCH` then `router.refresh()` like the calendar does, and the interactive parts
+  are `job-detail-client.tsx` + `team-panel` / `time-entries-panel` / `handoff-panel`. The
+  `loaded` flag became a real route-level `loading.tsx`.
+  Two things to know: (1) the pre-redesign layout behind `?legacyJobLayout` was deleted, and
+  it held the *only* UI for editing an already-logged time entry — manual time entry and
+  time-entry editing were moved into the live layout rather than lost, so a
+  previously-hidden feature is now reachable; (2) **this was pushed without an authenticated
+  click-through** — no admin credentials in that session, so `verify` + `smoke:routes` +
+  the Playwright suite all passed but nobody rendered the page logged in. Open one job and
+  check the crew picker, schedule fields, time entries, and Mark completed.
 - User-facing date convention is now **MM/DD/YY**. Use
   `formatDisplayDate` from `src/lib/scheduling/dates.ts` for date-only text;
   database/API values and native `<input type="date">` controls deliberately
@@ -182,6 +197,10 @@ Last updated: 2026-07-24 (post-migration).
 - Create real pilot cleaner accounts (only admin/test accounts exist today).
 - Test the My Day workflow on an actual phone.
 - Run `npm run smoke:routes` against a local production build this cycle.
+- `PATCH /api/jobs/[jobId]` returns a `warnings` array when an assignment double-books a
+  technician or collides with PTO, and **every caller discards it silently** — Job Detail did
+  before the 2026-07-27 refactor and still does after, since that refactor was deliberately
+  behavior-preserving. Surfacing it is a small change with real dispatch value.
 - Full pagination + SQL-aggregate rewrite for the `customers`, `invoices`, and `sync-issues`
   list pages — currently flagged, not implemented. Their stat cards read the entire filtered
   row set client-side, so real pagination means moving those into SQL aggregates first. Low
