@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
 import { customers, customerLocations } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 /** GET /api/customers — minimal list for pickers (full Customers screen is a later phase). */
 export async function GET() {
@@ -50,7 +50,12 @@ export async function POST(req: NextRequest) {
     const [existing] = await db
       .select({ id: customers.id, firstName: customers.firstName, lastName: customers.lastName })
       .from(customers)
-      .where(eq(customers.ghlContactId, data.ghlContactId))
+      .where(
+        and(
+          eq(customers.companyId, admin.companyId),
+          eq(customers.ghlContactId, data.ghlContactId)
+        )
+      )
       .limit(1);
     if (existing) {
       return NextResponse.json(
