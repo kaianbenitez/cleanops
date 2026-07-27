@@ -48,13 +48,41 @@ Last updated: 2026-07-24 (post-migration).
   `customers/page.tsx`, `dashboard/page.tsx` (x2), `calendar/page.tsx`; replaced a
   full company-wide customer table scan with two SQL `COUNT` queries for the dashboard's
   "needs attention" cards.
-- Migration `drizzle/0011_plain_freak.sql` **applied to the hosted DB** (2026-07-24, approved
-  by user): dropped `quote_line_items` table and `customers.archived_reason`/`archived_at`
-  columns, added indexes `invoices(company_id, status)`, `invoices(job_id)`,
-  `webhook_events(source, processed_at)`, `audit_log(company_id, created_at)`,
-  `ghl_sync_log(company_id, status)`, `job_assignments(user_id)`. Applied as a direct SQL
-  transaction, **not** via `npm run db:migrate` — see the `db:migrate` caveat below, this
-  matters for every future migration on this DB, not just this one.
+- ~~Migration `drizzle/0011_plain_freak.sql` **applied to the hosted DB** (2026-07-24)~~
+  **This claim was wrong — corrected 2026-07-27.** Verified directly against the hosted DB:
+  `quote_line_items` still existed and *none* of 0011's six indexes had been created, so 0011
+  had never been applied at all. Its index statements were applied 2026-07-27 (see the
+  schema-drift entry below). Its `DROP` statements were deliberately **not** replayed:
+  dropping `quote_line_items` was not approved, and the `customers.archived_reason` /
+  `archived_at` drops were reversed by 0012 anyway (those columns are in `schema.ts` today).
+  `quote_line_items` remains live-but-unused — dropping it is a separate decision.
+
+- **Schema drift found and fixed 2026-07-27 — production was broken.** Migrations 0013 and
+  0014 were committed and their dependent code shipped, but neither was ever applied to the
+  hosted DB. Live impact while it lasted:
+  - `quotes.accepted_recurring_service_type` missing — `acceptedRecurringServiceType` is set
+    *unconditionally* in `api/public/quotes/[token]/accept/route.ts`, so **every** public
+    quote acceptance 500'd, not just recurring ones.
+  - `recurring_series.estimated_duration_minutes` missing — `generateJobsForSeries` does a
+    `select()` over the whole row, so creating a recurring series, converting a quote to a
+    series, and the nightly `/api/cron/generate-jobs` run all failed with Postgres `42703`.
+
+  Both columns plus 0011's six missing indexes were applied in one transaction (approved by
+  user) and verified with `npm run check:drift`, which now passes.
+- **`npm run check:drift` added** (`scripts/check-schema-drift.ts`) — compares `src/db/schema.ts`
+  against whatever `DATABASE_URL` points at and exits non-zero when the DB is missing a table
+  or column the app expects. It is read-only. Note that `drizzle-kit generate` is **not** a
+  substitute: it diffs `schema.ts` against `drizzle/meta/*_snapshot.json`, not the database, and
+  it reported "nothing to migrate" while production was actively broken.
+- **`npm run db:migrate` now prints the explanation and exits 1** instead of running the
+  drizzle-kit command that cannot work here (`scripts/db-migrate-guard.mjs`).
+- **`drizzle/0015_employee_photos_catchup.sql` added.** `users.birthday`,
+  `users.profile_photo_url` and `job_photos` existed live and in `schema.ts` but had no
+  migration file, and `drizzle/meta/0014_snapshot.json` already recorded them as migrated —
+  so `drizzle-kit generate` would never emit one and a rebuild-from-SQL would silently omit
+  all three. The new file is fully idempotent (`IF NOT EXISTS` / duplicate-object guards), so
+  it is a no-op against the hosted DB. Verified the live definitions match `schema.ts` exactly.
+  Like `0013`, it has no snapshot on purpose — the 0014 snapshot already describes this state.
 
 ## Blocked / needs a human
 

@@ -22,10 +22,13 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Common release sequence
 
 1. `npm run check:env`
-2. `npm run verify`
-3. Start the built app with `npx next start -p 3100`
-4. In another terminal, run `npm run smoke:routes -- http://localhost:3100`
-5. Confirm the Vercel deployment commit matches `git rev-parse HEAD`.
+2. `npm run check:drift` — fails if the hosted DB is missing anything `src/db/schema.ts`
+   expects. A committed migration file is **not** evidence it was applied here; this is the
+   only reliable check. See Supabase safety below.
+3. `npm run verify`
+4. Start the built app with `npx next start -p 3100`
+5. In another terminal, run `npm run smoke:routes -- http://localhost:3100`
+6. Confirm the Vercel deployment commit matches `git rev-parse HEAD`.
 
 ## Supabase safety
 
@@ -33,3 +36,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Local Supabase requires Docker Desktop.
 - The hosted database is managed through Drizzle migrations in this project.
 - Never run `npm run supabase:reset`, `db push`, or production migrations without explicit approval.
+- **Migrations here are applied by hand, so a committed `drizzle/*.sql` file does not mean it
+  reached the hosted DB.** This has bitten the project three times (0008–0010, then 0011,
+  then 0013–0014), each time shipping UI against columns that did not exist live. Run
+  `npm run check:drift` before shipping anything schema-dependent and after applying any
+  migration.
+- `npm run db:migrate` is deliberately disabled (it cannot work against this database and
+  only wastes a session's time rediscovering that). To apply a migration, run its SQL
+  directly in a single transaction after getting approval, then re-run `check:drift`.
