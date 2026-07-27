@@ -44,3 +44,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `npm run db:migrate` is deliberately disabled (it cannot work against this database and
   only wastes a session's time rediscovering that). To apply a migration, run its SQL
   directly in a single transaction after getting approval, then re-run `check:drift`.
+- `.github/workflows/schema-drift.yml` runs `check:drift` on every push to `main`, daily, and
+  on demand. It does **not** run on pull requests: adding a migration before applying it is
+  the normal workflow, so a PR check would fail on exactly the PRs doing it right. A red
+  Schema drift run means code on `main` is probably erroring in production — treat it as
+  urgent, not as a flaky check.

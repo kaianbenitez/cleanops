@@ -1,0 +1,80 @@
+# Fails when the live database is missing something src/db/schema.ts expects.
+#
+# Why this exists: migrations on this project are applied to the hosted database
+# by hand (drizzle-kit migrate does not work here -- see AGENTS.md). A committed
+# drizzle/*.sql file is therefore NOT evidence that it reached the database.
+# Three times now, migrations were committed and the dependent UI shipped while
+# the columns did not exist live, most recently breaking every public quote
+# acceptance in production. Both earlier incidents were found by accident.
+#
+# Deliberately NOT run on pull_request:
+#   1. Adding a migration before applying it is the normal workflow, so a PR
+#      check would fail by design on exactly the PRs that are doing it right.
+#   2. It keeps DATABASE_URL away from pull_request runs entirely.
+# The question this answers is "does main expect schema the live DB lacks?",
+# which is a property of main and the database, not of a PR.
+
+name: Schema drift
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Daily at 13:00 UTC. Catches drift introduced from the database side
+    # (a column dropped or an environment rebuilt) with no matching commit.
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+
+# A queued run would only repeat the newer one's result.
+concurrency:
+  group: schema-drift
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: schema.ts vs hosted database
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Fail with an actionable message rather than the script's generic
+      # "DATABASE_URL is not set" exit code.
+      - name: Require DATABASE_URL secret
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::The DATABASE_URL repository secret is not set, so schema drift cannot be checked."
+            echo "Add it under Settings -> Secrets and variables -> Actions."
+            echo "Use the Supabase *Session pooler* connection string: GitHub runners are"
+            echo "IPv4-only and Supabase direct connections are IPv6, which is what broke"
+            echo "the nightly backup workflow before it was switched to the pooler."
+            exit 1
+          fi
+
+      - run: npm ci
+
+      - name: npm run check:drift
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm run check:drift
+
+      - name: Explain a failure
+        if: failure()
+        run: |
+          echo "::notice::If check:drift reported missing tables or columns, the hosted"
+          echo "database is behind src/db/schema.ts and code on main is likely erroring"
+          echo "in production right now."
+          echo "Fix: apply the matching drizzle/*.sql directly in a single transaction"
+          echo "after getting approval, then re-run this workflow. Do NOT run"
+          echo "npm run db:migrate -- it cannot work against this database."

@@ -76,6 +76,10 @@ Last updated: 2026-07-24 (post-migration).
   it reported "nothing to migrate" while production was actively broken.
 - **`npm run db:migrate` now prints the explanation and exits 1** instead of running the
   drizzle-kit command that cannot work here (`scripts/db-migrate-guard.mjs`).
+- **CI added: `.github/workflows/schema-drift.yml`** — runs `check:drift` on every push to
+  `main`, daily at 13:00 UTC, and on demand. This is the repo's only workflow (the old
+  `db-backup.yml` was removed 2026-07-24). **It needs a `DATABASE_URL` repository secret that
+  is not yet set** — see Blocked below.
 - **`drizzle/0015_employee_photos_catchup.sql` added.** `users.birthday`,
   `users.profile_photo_url` and `job_photos` existed live and in `schema.ts` but had no
   migration file, and `drizzle/meta/0014_snapshot.json` already recorded them as migrated —
@@ -85,6 +89,15 @@ Last updated: 2026-07-24 (post-migration).
   Like `0013`, it has no snapshot on purpose — the 0014 snapshot already describes this state.
 
 ## Blocked / needs a human
+
+- **`DATABASE_URL` repository secret is not set, so the Schema drift workflow cannot run.**
+  Add it in `kaianbenitez/cleanops` under Settings → Secrets and variables → Actions. Use the
+  Supabase **Session pooler** connection string, not the direct one: GitHub runners are
+  IPv4-only and Supabase direct connections are IPv6, which is exactly what broke the nightly
+  backup workflow until `BACKUP_DATABASE_URL` was switched to the pooler (see Resolved below).
+  Until the secret exists the workflow fails fast with that instruction. The check itself is
+  read-only (`information_schema` queries only), but the secret grants full DB access, so it
+  is deliberately never exposed to `pull_request` runs.
 
 - **Square invoicing is running in silent mock mode in production.**
   `SQUARE_ACCESS_TOKEN` / `SQUARE_ENVIRONMENT` / `SQUARE_WEBHOOK_SIGNATURE_KEY` are not set
