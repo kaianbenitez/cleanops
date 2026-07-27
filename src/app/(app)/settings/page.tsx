@@ -729,24 +729,7 @@ export default function SettingsPage() {
         >
           <div className="divide-y divide-[var(--co-line-soft)]">
             {admins.map((admin) => (
-              <div
-                key={admin.id}
-                className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm"
-              >
-                <div>
-                  <p className="font-medium">
-                    {admin.firstName} {admin.lastName}
-                  </p>
-                  <p className="text-xs text-[var(--co-muted)]">
-                    {emailToUsername(admin.email)}
-                  </p>
-                </div>
-                <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${admin.isActive ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}
-                >
-                  {admin.isActive ? "Active" : "Inactive"}
-                </span>
-              </div>
+              <AdminRow key={admin.id} admin={admin} />
             ))}
             {admins.length === 0 ? (
               <p className="py-3 text-sm text-[var(--co-muted)]">
@@ -754,8 +737,113 @@ export default function SettingsPage() {
               </p>
             ) : null}
           </div>
+          <p className="mt-4 text-xs leading-5 text-[var(--co-muted)]">
+            Login is by username, not email, so there is no self-service
+            &quot;forgot password&quot; link. Any admin can reset another
+            admin&apos;s password here and share it with them directly.
+          </p>
         </Panel>
       </section>
+    </div>
+  );
+}
+
+function AdminRow({ admin }: { admin: AdminRow }) {
+  const [resetting, setResetting] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setMessage(null);
+    setError(null);
+    const response = await fetch(`/api/employees/${admin.id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password, confirmPassword }),
+    });
+    const data = await response.json().catch(() => ({}));
+    setSaving(false);
+    if (!response.ok) {
+      setError(data.error ?? "Could not change the password.");
+      return;
+    }
+    setPassword("");
+    setConfirmPassword("");
+    setMessage("Password changed. Share the new password securely.");
+  }
+
+  return (
+    <div className="py-3 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="font-medium">
+            {admin.firstName} {admin.lastName}
+          </p>
+          <p className="text-xs text-[var(--co-muted)]">
+            {emailToUsername(admin.email)}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className={`rounded-full px-2.5 py-1 text-xs font-medium ${admin.isActive ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}
+          >
+            {admin.isActive ? "Active" : "Inactive"}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setResetting((value) => !value);
+              setMessage(null);
+              setError(null);
+            }}
+            className="co-button-secondary text-xs"
+          >
+            {resetting ? "Cancel" : "Reset password"}
+          </button>
+        </div>
+      </div>
+
+      {resetting ? (
+        <form onSubmit={submit} className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          <label className="block text-xs font-semibold text-[var(--co-muted)]">
+            New password
+            <input
+              aria-label={`New password for ${admin.firstName} ${admin.lastName}`}
+              type="password"
+              minLength={8}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="co-input mt-1.5 w-full text-sm"
+              placeholder="At least 8 characters"
+              required
+            />
+          </label>
+          <label className="block text-xs font-semibold text-[var(--co-muted)]">
+            Confirm password
+            <input
+              aria-label={`Confirm password for ${admin.firstName} ${admin.lastName}`}
+              type="password"
+              minLength={8}
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              className="co-input mt-1.5 w-full text-sm"
+              placeholder="Repeat password"
+              required
+            />
+          </label>
+          <button type="submit" className="co-button-primary text-xs" disabled={saving}>
+            {saving ? "Saving..." : "Save"}
+          </button>
+        </form>
+      ) : null}
+
+      {message ? <p className="mt-2 text-xs font-semibold text-[var(--co-evergreen)]">{message}</p> : null}
+      {error ? <p className="mt-2 text-xs font-semibold text-rose-600">{error}</p> : null}
     </div>
   );
 }

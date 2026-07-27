@@ -9,6 +9,35 @@ Last updated: 2026-07-28.
 
 ## Done
 
+- **Admin-to-admin password reset added; login rate-limiting gap identified (2026-07-28).**
+  A pasted design review of `/login` (4/5) flagged two items: no visible rate-limiting/lockout,
+  and no forgot-password path. Investigation found both real but not what they first looked
+  like:
+  - **Forgot-password**: login emails are synthetic (`<username>@cleanops.local`, see
+    `src/lib/auth/username.ts`) and there is no SMTP configured, so a standard "email me a
+    reset link" flow cannot deliver mail — confirmed via `mcp__supabase__search_docs`, Supabase
+    Auth's password-sign-in endpoint isn't even in the rate-limited/email-triggered endpoint
+    list. The admin-sets-password flow for *employees* already existed
+    (`POST /api/employees/[employeeId]`, driven from the employee profile page), but that
+    endpoint explicitly rejected non-employee roles, and admin accounts have no profile page of
+    their own (the `/employees` directory query filters `role = 'employee'`) — so if an admin
+    forgot their password, there was no recovery path at all, even with 5 active admins on the
+    company. Fixed by dropping the role restriction on that endpoint (all roles in this schema
+    are `admin`/`employee`, both already full-trust once authenticated, so this adds no new
+    privilege) and adding a "Reset password" action per row in the existing (previously
+    read-only) Settings → Administrators panel. Verified with `verify`, `smoke:routes`,
+    `smoke:auth` (22/22), the full Playwright suite (5/5), and a throwaway authenticated spec
+    that expanded the form and asserted the fields/button render — **never submitted it**,
+    since that would overwrite a real admin's password on the hosted DB.
+  - **Rate-limiting**: confirmed via Supabase's security advisors + docs that
+    `/auth/v1/token?grant_type=password` has no built-in attempt-lockout, and this app has no
+    CAPTCHA wired in (`captcha`/`turnstile`/`recaptcha` don't appear anywhere in `src/`).
+    User chose Cloudflare Turnstile as the fix — **not yet implemented**, blocked on the user
+    creating a free Turnstile site and providing the site key + secret key. See Blocked below.
+  - Side finding while checking the advisors, unrelated to this task: **every public table has
+    Row Level Security disabled** (`customers`, `users`, `jobs`, `invoices`, `payroll_lines`,
+    20+ tables) and **leaked-password protection is off** on the hosted project. Flagged for the
+    user, not acted on — see Blocked below.
 - **Settings → GHL integration: de-duped save code, blocked ambiguous tag reuse
   (2026-07-28, `fd49f7a`).** Audit of the page found the tag/workflow save handlers were
   copy-pasted PATCH boilerplate and nothing stopped two different CleanOps statuses from
@@ -185,6 +214,24 @@ Last updated: 2026-07-28.
 
 ## Blocked / needs a human
 
+- **Login CAPTCHA (Cloudflare Turnstile) needs a site key + secret key from the user
+  (2026-07-28).** Confirmed Supabase Auth does not rate-limit or lock out repeated password
+  sign-in attempts (`/auth/v1/token?grant_type=password` isn't in its rate-limited endpoint
+  list — only signup/recover/OTP/token-refresh/MFA are), and this app has no CAPTCHA today.
+  User picked Turnstile. Next step: user creates a free Turnstile site (no card required) and
+  provides the site key + secret key; then wire the site key into the login form's widget and
+  the secret key into Supabase Auth's CAPTCHA setting (Authentication → Providers → enable
+  CAPTCHA protection) or verify it server-side before calling `signInWithPassword`.
+- **Hosted DB: RLS disabled on every public table, and leaked-password protection off
+  (found 2026-07-28 via `mcp__supabase__get_advisors`).** All 20+ `public.*` tables
+  (`users`, `customers`, `jobs`, `invoices`, `payroll_lines`, etc.) show `rls_disabled_in_public`
+  at ERROR level, and `auth_leaked_password_protection` is WARN. This app enforces
+  company-scoped authorization at the Next.js/API layer (Drizzle + `requireAdmin`/`requireUser`),
+  not via Postgres RLS + PostgREST, so this may be intentional-by-architecture rather than a
+  live hole — but it means any direct PostgREST/anon-key access to these tables would bypass
+  every app-level check. Needs a user decision: confirm nothing talks to these tables via the
+  Supabase client library with the anon key outside this app's own server code, or add RLS
+  policies. Not touched — this was a side finding, not the task.
 - **Confirm the Schema drift workflow is green — the `DATABASE_URL` secret is probably already
   there.** The removed `.github/workflows/db-backup.yml` in this repo used
   `${{ secrets.DATABASE_URL }}`, and its runs failed on a `pg_dump` server-version mismatch,
@@ -272,6 +319,11 @@ Last updated: 2026-07-28.
 
 ## Still open (decisions for the user)
 
+- `/privacy-policy` (`src/app/(app)/privacy-policy/page.tsx`) is explicitly a placeholder — auth-gated
+  correctly, but the page body just says a real policy hasn't been written yet. App collects customer
+  PII (addresses, payroll, job photos), so this is a real pre-general-availability gap, not a nitpick.
+  User decision needed (business entity/address, retention periods, which third parties to disclose —
+  Supabase, Square, Google Maps, Sentry) before this can be more than a stub; deferred for now.
 - Delete test/demo accounts (QA Tester, Test Cleaner, Maria Gomez — from `src/db/seed.ts`)?
 - Create real pilot cleaner accounts (only admin/test accounts exist today).
 - Test the My Day workflow on an actual phone.

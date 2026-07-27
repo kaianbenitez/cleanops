@@ -299,8 +299,14 @@ export async function PATCH(
   return NextResponse.json({ ok: true });
 }
 
-/** POST /api/employees/[employeeId]/password â€” lets an admin set a new
- * password without ever returning or recording the password itself. */
+/** POST /api/employees/[employeeId]/password â€” lets an admin set a new password
+ * for any user in their company (employee or admin), without ever returning or
+ * recording the password itself. This is CleanOps's only account-recovery path:
+ * login emails are synthetic (`<username>@cleanops.local`, see
+ * src/lib/auth/username.ts) with no SMTP configured, so a self-service
+ * "email me a reset link" flow can't deliver mail. Admin accounts have no
+ * profile page of their own; the Settings â†’ Administrators panel drives this
+ * endpoint directly for those. */
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ employeeId: string }> }
@@ -320,9 +326,6 @@ export async function POST(
     .limit(1);
 
   if (!employee) return NextResponse.json({ error: "Employee not found" }, { status: 404 });
-  if (employee.role !== "employee") {
-    return NextResponse.json({ error: "Only employee passwords can be changed here." }, { status: 400 });
-  }
 
   const { error } = await createAdminClient().auth.admin.updateUserById(employeeId, {
     password: parsed.data.password,
