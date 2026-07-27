@@ -7,7 +7,7 @@ import { and, eq } from "drizzle-orm";
 
 const updateWeightSchema = z.object({
   serviceType: z.enum(serviceTypeEnum),
-  weightHours: z.number().nonnegative(),
+  weightHours: z.number().nonnegative().max(24),
 });
 
 /** PATCH /api/room-types/[roomTypeId]/weights — set the hours-per-room weight
