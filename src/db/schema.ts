@@ -363,6 +363,10 @@ export const jobs = pgTable("jobs", {
   ...timestamps,
 }, (t) => ({
   companyDateIdx: index("jobs_company_date_idx").on(t.companyId, t.scheduledDate),
+  // Postgres unique indexes treat NULL as distinct from every other NULL, so
+  // this only de-dupes same-day visits *within* a recurring series — one-off
+  // (recurringSeriesId null) jobs on the same date are intentionally
+  // unrestricted. Don't "fix" this by making recurringSeriesId non-null-aware.
   seriesDateIdx: uniqueIndex("jobs_series_date_idx").on(t.recurringSeriesId, t.scheduledDate),
 }));
 
@@ -518,6 +522,9 @@ export const ghlSyncLog = pgTable("ghl_sync_log", {
 }));
 
 // ---------- webhook events (raw inbox) ----------
+// No companyId by design: this is the raw pre-processing inbox, and which
+// company a payload belongs to is only resolved during processing (e.g. by
+// matching contact IDs against `customers`), not known at ingestion time.
 export const webhookSourceEnum = ["ghl", "square"] as const;
 
 export const webhookEvents = pgTable("webhook_events", {

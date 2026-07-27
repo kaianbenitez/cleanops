@@ -366,11 +366,12 @@ export async function DELETE(
   if (employee.role !== "employee") return NextResponse.json({ error: "Only employees can be deleted here." }, { status: 400 });
   if (employee.id === admin.id) return NextResponse.json({ error: "You cannot delete your own account." }, { status: 400 });
 
-  const [assignmentCount, timeEntryCount, payrollLineCount, auditCount] = await Promise.all([
+  const [assignmentCount, timeEntryCount, payrollLineCount, auditCount, preferredCleanerCount] = await Promise.all([
     db.select({ count: sql<number>`count(*)` }).from(jobAssignments).where(eq(jobAssignments.userId, employeeId)),
     db.select({ count: sql<number>`count(*)` }).from(timeEntries).where(eq(timeEntries.userId, employeeId)),
     db.select({ count: sql<number>`count(*)` }).from(payrollLines).where(eq(payrollLines.userId, employeeId)),
     db.select({ count: sql<number>`count(*)` }).from(auditLog).where(eq(auditLog.userId, employeeId)),
+    db.select({ count: sql<number>`count(*)` }).from(customers).where(eq(customers.preferredCleanerId, employeeId)),
   ]);
 
   const linkedRecords = {
@@ -378,6 +379,7 @@ export async function DELETE(
     timeEntries: Number(timeEntryCount[0]?.count ?? 0),
     payrollLines: Number(payrollLineCount[0]?.count ?? 0),
     auditEntries: Number(auditCount[0]?.count ?? 0),
+    preferredByCustomers: Number(preferredCleanerCount[0]?.count ?? 0),
   };
 
   if (Object.values(linkedRecords).some((count) => count > 0)) {
