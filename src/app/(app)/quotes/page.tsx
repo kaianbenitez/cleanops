@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { and, desc, eq, ilike, or } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { customers, quotes } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -37,7 +37,9 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
 
   if (sp.q?.trim()) {
     const query = `%${sp.q.trim()}%`;
-    conditions.push(or(ilike(customers.firstName, query), ilike(customers.lastName, query), ilike(quotes.id, query))!);
+    // quotes.id is a uuid column — ILIKE has no operator for uuid without an
+    // explicit text cast, so this previously threw a SQL error on every search.
+    conditions.push(or(ilike(customers.firstName, query), ilike(customers.lastName, query), sql`${quotes.id}::text ilike ${query}`)!);
   }
 
   const rows = await db
