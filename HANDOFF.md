@@ -30,10 +30,26 @@ Last updated: 2026-07-28.
     that expanded the form and asserted the fields/button render — **never submitted it**,
     since that would overwrite a real admin's password on the hosted DB.
   - **Rate-limiting**: confirmed via Supabase's security advisors + docs that
-    `/auth/v1/token?grant_type=password` has no built-in attempt-lockout, and this app has no
-    CAPTCHA wired in (`captcha`/`turnstile`/`recaptcha` don't appear anywhere in `src/`).
-    User chose Cloudflare Turnstile as the fix — **not yet implemented**, blocked on the user
-    creating a free Turnstile site and providing the site key + secret key. See Blocked below.
+    `/auth/v1/token?grant_type=password` has no built-in attempt-lockout, and this app had no
+    CAPTCHA wired in (`captcha`/`turnstile`/`recaptcha` didn't appear anywhere in `src/`).
+    User chose Cloudflare Turnstile. **Widget added to `/login`** (`@marsidev/react-turnstile`,
+    site key in `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `.env.local` + `.env.local.example` +
+    `scripts/check-env.mjs` updated). First pass disabled the Sign In button until the widget
+    resolved — reverted that: Turnstile does not auto-resolve for headless/automated Chromium,
+    which hung the login-driven Playwright spec (`employee-management.spec.ts`) until its
+    45s timeout, and worse, it meant **any Turnstile load failure — ad-blocker, network blip,
+    a Cloudflare outage — would have permanently locked every admin and employee out of
+    CleanOps**, a single point of failure this app cannot afford (no other way in once locked
+    out). The button now stays enabled regardless of `captchaToken`; the token is passed to
+    `signInWithPassword` when present, so enforcement happens server-side once CAPTCHA
+    protection is turned on in Supabase (see Blocked below) rather than client-side. Verified
+    the widget itself renders correctly (visible "Verify you are human" Cloudflare checkbox,
+    screenshot-checked) and that the full Playwright suite (4/4) and `smoke:auth` (22/22) still
+    pass with it present. **Known follow-up, not yet done**: once CAPTCHA protection is
+    actually enabled in Supabase's dashboard, `employee-management.spec.ts`'s real login click
+    will start failing again in headless CI, because Playwright can't solve a real Turnstile
+    challenge — fixing that needs a second, test-only Turnstile widget using Cloudflare's
+    documented dummy test keys, which isn't wired up.
   - Side finding while checking the advisors, unrelated to this task: **every public table has
     Row Level Security disabled** (`customers`, `users`, `jobs`, `invoices`, `payroll_lines`,
     20+ tables) and **leaked-password protection is off** on the hosted project. Flagged for the
@@ -214,14 +230,16 @@ Last updated: 2026-07-28.
 
 ## Blocked / needs a human
 
-- **Login CAPTCHA (Cloudflare Turnstile) needs a site key + secret key from the user
-  (2026-07-28).** Confirmed Supabase Auth does not rate-limit or lock out repeated password
-  sign-in attempts (`/auth/v1/token?grant_type=password` isn't in its rate-limited endpoint
-  list — only signup/recover/OTP/token-refresh/MFA are), and this app has no CAPTCHA today.
-  User picked Turnstile. Next step: user creates a free Turnstile site (no card required) and
-  provides the site key + secret key; then wire the site key into the login form's widget and
-  the secret key into Supabase Auth's CAPTCHA setting (Authentication → Providers → enable
-  CAPTCHA protection) or verify it server-side before calling `signInWithPassword`.
+- **Login CAPTCHA: widget is live, but Supabase-side enforcement still needs the user
+  (2026-07-28).** The Turnstile widget now renders on `/login` and `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+  is set locally, but nothing currently *requires* a solved challenge — the secret key was
+  pasted into chat by the user (not written to any file, per the "never print/commit secret
+  values" rule; recommend rotating it in Cloudflare's dashboard since it was in a chat log) and
+  still needs to be pasted into the actual Supabase Dashboard: **Project Settings →
+  Authentication → Bot and Abuse Protection → Enable CAPTCHA protection → Turnstile → paste
+  secret key → Save.** Also still needed: add `NEXT_PUBLIC_TURNSTILE_SITE_KEY` to Vercel's
+  Production + Preview environment variables (no MCP tool available to do this — user must add
+  it directly in the Vercel dashboard). Until both are done, the widget is cosmetic only.
 - **Hosted DB: RLS disabled on every public table, and leaked-password protection off
   (found 2026-07-28 via `mcp__supabase__get_advisors`).** All 20+ `public.*` tables
   (`users`, `customers`, `jobs`, `invoices`, `payroll_lines`, etc.) show `rls_disabled_in_public`

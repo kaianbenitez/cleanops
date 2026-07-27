@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { createClient } from "@/lib/supabase/client";
 import { usernameToEmail } from "@/lib/auth/username";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
@@ -20,6 +23,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -27,11 +32,19 @@ export default function LoginPage() {
     setError(null);
 
     const email = usernameToEmail(username.trim().toLowerCase());
-    const { error: signInError } = await createClient().auth.signInWithPassword({ email, password });
+    const { error: signInError } = await createClient().auth.signInWithPassword({
+      email,
+      password,
+      options: captchaToken ? { captchaToken } : undefined,
+    });
 
     if (signInError) {
       setError(signInError.message);
       setLoading(false);
+      // Turnstile tokens are single-use — clear it and force a fresh challenge
+      // before the next attempt.
+      turnstileRef.current?.reset();
+      setCaptchaToken(null);
       return;
     }
 
@@ -112,6 +125,17 @@ export default function LoginPage() {
                 <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
                   {error}
                 </p>
+              ) : null}
+
+              {TURNSTILE_SITE_KEY ? (
+                <Turnstile
+                  ref={turnstileRef}
+                  siteKey={TURNSTILE_SITE_KEY}
+                  onSuccess={setCaptchaToken}
+                  onExpire={() => setCaptchaToken(null)}
+                  onError={() => setCaptchaToken(null)}
+                  options={{ size: "flexible" }}
+                />
               ) : null}
 
               <button type="submit" disabled={loading} className="co-button-primary w-full justify-center py-3">
