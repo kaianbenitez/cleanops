@@ -9,6 +9,24 @@ Last updated: 2026-07-28.
 
 ## Done
 
+- **Quote-template uploads moved off base64-in-JSONB (2026-07-28, `f62834a`).** Logo,
+  before/after photos, insurance certificate, and W-9 on Settings → Quote page content were
+  read client-side as base64 and saved straight into `companies.settings`, so `GET
+  /api/settings` — called across the whole app — fetched a row that could balloon to tens of
+  MB, and there was no server-side check that an uploaded "insurance PDF" was actually a PDF
+  (only the `accept` attribute, client-side and trivially bypassed). New `POST
+  /api/settings/quote-assets` follows the same Supabase Storage pattern already used for
+  employee/job photos: admin-gated, magic-byte-sniffed against the declared MIME type, 5 MB
+  cap, uploads to a new **public** `quote-assets` bucket (public because these assets render
+  on the unauthenticated `/quote/[token]` proposal page) and returns a public URL — only that
+  URL is saved to `settings` now. Tightened the `quoteTemplate` URL fields in the
+  `/api/settings` zod schema from 50000 chars (sized for base64) to 2000 (real URLs);
+  confirmed via a read-only query against the hosted DB that the one existing company had no
+  base64 data in these fields, so this was not a breaking change. Verified with `verify` and
+  a throwaway authenticated Playwright spec that uploaded a real file (asserted the value
+  input fills with a `supabase.co/storage/v1/object/public/quote-assets/...` URL) and a
+  mislabeled fake PDF (asserted the server rejects it) — both against a local production
+  build, without touching the `companies` row (never clicked Save).
 - **Settings → Payroll Tiers restyled and given real bracket validation (2026-07-28).** It was
   the only Settings page still on raw `bg-white`/`text-gray-500`/`bg-blue-600` instead of
   `co-card`/`co-input`/`co-button-primary`; now matches its siblings. More importantly the
