@@ -1,5 +1,6 @@
 import { config } from "dotenv";
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 
 config({ path: ".env.local", quiet: true });
 
@@ -11,7 +12,6 @@ const baseUrl = process.argv[2] ?? process.env.SMOKE_BASE_URL ?? "http://localho
 // default, admin@example.com, was deleted in the username-auth migration.
 const username = process.env.SMOKE_USERNAME ?? "kaianbenitez";
 const email = process.env.SMOKE_EMAIL ?? `${username}@cleanops.local`;
-const password = process.env.SMOKE_PASSWORD ?? "password123";
 const cookies = new Map();
 
 const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
@@ -21,7 +21,21 @@ const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL, proces
   },
 });
 
-const login = await supabase.auth.signInWithPassword({ email, password });
+// Password sign-in now requires a solved Turnstile challenge (CAPTCHA protection
+// enabled 2026-07-28), which this script — deliberately, like a bot — cannot
+// solve. Establish the session the same way a trusted server-side script should:
+// service-role admin.generateLink() mints a one-time magic-link token, then a
+// normal (anon-key) verifyOtp() redeems it. Neither endpoint is CAPTCHA-gated
+// (only sign-in/sign-up/password-reset are), so this bypasses the bot check
+// without weakening it — it still requires the service role key to run.
+const adminClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const { data: link, error: linkError } = await adminClient.auth.admin.generateLink({ type: "magiclink", email });
+if (linkError) throw new Error(`Could not generate a login link: ${linkError.message}`);
+
+const login = await supabase.auth.verifyOtp({
+  token_hash: link.properties.hashed_token,
+  type: "magiclink",
+});
 if (login.error) throw new Error(`Authentication failed: ${login.error.message}`);
 
 const cookieHeader = [...cookies.entries()].map(([name, value]) => `${name}=${value}`).join("; ");

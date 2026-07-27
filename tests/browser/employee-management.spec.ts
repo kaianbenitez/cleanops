@@ -1,16 +1,16 @@
 import { expect, test } from "@playwright/test";
+import { signInAsAdmin } from "./helpers/admin-session";
 
 const adminUsername = process.env.BROWSER_ADMIN_USERNAME;
 const adminPassword = process.env.BROWSER_ADMIN_PASSWORD;
 
-test("admin employee profile exposes password, archive, and delete controls", async ({ page }) => {
+test("admin employee profile exposes password, archive, and delete controls", async ({ page, context, baseURL }) => {
   test.skip(!adminUsername || !adminPassword, "Set BROWSER_ADMIN_USERNAME and BROWSER_ADMIN_PASSWORD for the authenticated employee-management check.");
 
-  await page.goto("/login");
-  await page.getByLabel("Username").fill(adminUsername!);
-  await page.getByLabel("Password").fill(adminPassword!);
-  await page.getByRole("button", { name: /sign in/i }).click();
-  await page.waitForURL(/\/dashboard|\/employees/);
+  // Signs in via a service-role session bypass rather than the login form —
+  // password sign-in now requires solving a Turnstile challenge, which
+  // headless Chromium cannot do (see helpers/admin-session.ts).
+  await signInAsAdmin(context, baseURL!, adminUsername!);
 
   await page.goto("/employees");
   const employeeLink = page.getByRole("link", { name: /view profile/i }).first();
