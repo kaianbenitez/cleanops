@@ -544,7 +544,7 @@ export default async function CalendarPage({
         </div>
       </header>
 
-      <FilterBar employees={employees} />
+      <FilterBar employees={employees} resolvedView={view} />
 
       <main className="p-3 sm:p-4 lg:p-5">
         {weekendOrphans?.count && weekendOrphans.firstDate ? (

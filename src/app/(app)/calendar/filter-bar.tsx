@@ -35,7 +35,13 @@ const STATUSES = [
   { value: "no_show", label: "No show" },
 ] as const;
 
-export default function FilterBar({ employees }: { employees: Employee[] }) {
+export default function FilterBar({
+  employees,
+  resolvedView,
+}: {
+  employees: Employee[];
+  resolvedView: "staff" | "week" | "month";
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -60,7 +66,7 @@ export default function FilterBar({ employees }: { employees: Employee[] }) {
     setZipDraft("");
   }
 
-  const view = searchParams.get("view") ?? "staff";
+  const view = searchParams.get("view") ?? resolvedView;
   const employeeId = searchParams.get("employeeId") ?? "";
   const type = searchParams.get("type") ?? "";
   const recurrence = searchParams.get("recurrence") ?? "";
@@ -77,7 +83,7 @@ export default function FilterBar({ employees }: { employees: Employee[] }) {
               key={entry.value}
               type="button"
               aria-pressed={view === entry.value}
-              onClick={() => setParam("view", entry.value === "staff" ? "" : entry.value)}
+              onClick={() => setParam("view", entry.value)}
               className={`px-3 py-1.5 text-xs font-semibold transition-colors ${view === entry.value ? "bg-[var(--co-evergreen)] text-white" : "text-[var(--co-muted)] hover:bg-white hover:text-[var(--co-ink)]"}`}
             >
               {entry.label}
