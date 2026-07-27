@@ -9,7 +9,7 @@ Last updated: 2026-07-28.
 
 ## Done
 
-- **Three missing indexes added for pasted design-review finding, not yet applied to hosted DB
+- **Three missing indexes added for pasted design-review finding, applied to hosted DB
   (2026-07-28).** A design review of query/indexing patterns flagged three list-page sorts/filters
   with no matching index: `GET /api/customers` orders by `lastName, firstName`
   (`src/app/api/customers/route.ts:23`) with only `companyIdx`/`ghlContactIdx`/`archivedIdx` on
@@ -27,10 +27,12 @@ Last updated: 2026-07-28.
   match; `prevId` chain confirmed intact). Made the generated `CREATE INDEX` statements
   `IF NOT EXISTS` to match this repo's idempotent-migration convention. `verify` and
   `check:drift` both pass — `check:drift` only compares tables/columns, not indexes, so it
-  won't flag this migration as pending; that's expected. **Not yet applied to the hosted DB —
-  needs explicit approval per AGENTS.md**, then re-run `check:drift` isn't sufficient to confirm
-  application (it doesn't check indexes); confirm via `\di` in the Supabase SQL editor or
-  `mcp__supabase__list_tables` (indexes.) instead.
+  never flagged this migration either way. User approved applying it to the hosted DB; the
+  Supabase MCP connection is read-only (`apply_migration`/`execute_sql` both refused DDL with
+  "cannot execute CREATE INDEX in a read-only transaction"), so applied it the sanctioned way
+  per this doc's existing guidance — a throwaway node script using the app's own `postgres`
+  client and `DATABASE_URL`, run in a single transaction, then deleted. Confirmed live via
+  `pg_indexes` query (all three present) immediately after.
 - **Admin-to-admin password reset added; login rate-limiting gap identified (2026-07-28).**
   A pasted design review of `/login` (4/5) flagged two items: no visible rate-limiting/lockout,
   and no forgot-password path. Investigation found both real but not what they first looked
