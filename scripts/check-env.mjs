@@ -19,11 +19,13 @@ const optionalForIntegrations = [
   "SENTRY_DSN",
 ];
 
-const source = fs.existsSync(".env.local") ? ".env.local" : ".env.local.example";
+const source = fs.existsSync(".env.local") ? ".env.local" : null;
 const fileValues = new Map();
-for (const line of fs.readFileSync(source, "utf8").split(/\r?\n/)) {
-  const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-  if (match) fileValues.set(match[1], match[2].replace(/^['"]|['"]$/g, ""));
+if (source) {
+  for (const line of fs.readFileSync(source, "utf8").split(/\r?\n/)) {
+    const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+    if (match) fileValues.set(match[1], match[2].replace(/^['"]|['"]$/g, ""));
+  }
 }
 
 function value(name) {
@@ -34,7 +36,7 @@ const missing = required.filter((name) => !value(name).trim());
 const configured = [...required, ...optionalForIntegrations].filter((name) => Boolean(value(name).trim()));
 const unsafe = ["DATABASE_URL", ...optionalForIntegrations].filter((name) => /[\r\n]/.test(value(name)));
 
-console.log(`Environment source: ${source}`);
+console.log(`Environment source: ${source ?? "process environment only"}`);
 console.log(`Configured: ${configured.length}/${required.length + optionalForIntegrations.length}`);
 if (missing.length) {
   console.error(`Missing required variables: ${missing.join(", ")}`);
