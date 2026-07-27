@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import { and, eq, gte, lte, isNotNull, or, sql } from "drizzle-orm";
 import { refreshJobTicketHours } from "./job-ticket-hours";
+import { DEFAULT_PAY_TIER_BRACKETS, type PayTierBracket } from "./brackets";
 
 type CalculationLine = {
   jobId: string;
@@ -26,20 +27,11 @@ type CalculationLine = {
 };
 
 export type PayTier = { minHours: number; maxHours: number | null; rateCents: number };
-export type PayTierBracket = { minHours: number; maxHours: number | null; label: string };
 
-/** Default hour brackets — Simply Maid's original 4-bracket structure
- * (confirmed with the user 2026-07-14). Every company gets this as a
- * starting point, but the bracket count and cutoffs are configurable per
- * company via companies.settings.payTierBrackets (Settings → Payroll
- * Tiers) — different businesses use different commission structures, so
- * this must not be hardcoded company-wide. */
-export const DEFAULT_PAY_TIER_BRACKETS: PayTierBracket[] = [
-  { minHours: 0, maxHours: 25.99, label: "Under 26 hrs" },
-  { minHours: 26, maxHours: 29.99, label: "26–29.99 hrs" },
-  { minHours: 30, maxHours: 33.99, label: "30–33.99 hrs" },
-  { minHours: 34, maxHours: null, label: "34+ hrs" },
-];
+// The bracket shape and defaults live in ./brackets so the Settings client
+// component can import them without pulling in the database.
+export { DEFAULT_PAY_TIER_BRACKETS };
+export type { PayTierBracket };
 
 /** Reads this company's configured pay-tier brackets, falling back to the
  * default 4-bracket structure if the company hasn't customized them. */

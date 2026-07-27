@@ -149,6 +149,10 @@ Learned the hard way while testing `/recurring/new`:
 - `window.confirm` guards "Delete permanently" on the employee profile. Browser
   dialogs freeze the Claude Chrome extension — do not click it from an agent
   session.
+- **`getByRole("alert")` never returns zero matches.** Next renders its own
+  always-present route announcer with `role="alert"`, so asserting
+  `toHaveCount(0)` on a page's error banner fails even when no banner is shown.
+  Filter to your own element: `getByRole("alert").filter({ hasText: /…/ })`.
 
 ## Never do this
 

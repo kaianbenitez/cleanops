@@ -5,10 +5,31 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-07-27.
+Last updated: 2026-07-28.
 
 ## Done
 
+- **Settings → Payroll Tiers restyled and given real bracket validation (2026-07-28).** It was
+  the only Settings page still on raw `bg-white`/`text-gray-500`/`bg-blue-600` instead of
+  `co-card`/`co-input`/`co-button-primary`; now matches its siblings. More importantly the
+  bracket ladder had **no validation anywhere** — `resolveTierRateCents` sorts by `minHours`,
+  returns the first match, and falls back to the *highest* bracket's rate when nothing
+  matches, so an overlapping, backwards, or gapped ladder never errors, it just quietly pays
+  the wrong rate. New `src/lib/payroll/brackets.ts` holds the shape, the defaults, and
+  `validatePayTierBrackets`; it is imported by both the page (blocks Save, lists what to fix)
+  and `PATCH /api/settings` (`superRefine`, so the API is the authority, not just the form).
+  `calculate.ts` now re-exports the type/defaults from there instead of defining them.
+  Also: Remove is a two-step inline confirm rather than an unguarded click (inline, not
+  `window.confirm`, which freezes the Chrome extension), and a warning fires when the bracket
+  *count* changes because per-employee tier rates zip against brackets **by position**.
+  **Found and fixed a real pre-existing bug while testing:** `addBracket` computed the next
+  bracket start as `(last.maxHours ?? last.minHours) + 1`, so adding a bracket to the default
+  ladder capped tier 4 at `34–34` (max equal to min) and left an uncovered 34–35 hr band.
+  Cutovers now use the ladder's `.01` convention, and the capped tier gets a range label
+  instead of a stale `34+ hrs`. Verified with `verify`, both smoke scripts, the full
+  Playwright suite (5/5), and a throwaway authenticated spec that exercised overlap, the
+  removal confirm, and add/remove round-tripping — **without ever clicking Save**, since that
+  writes `companies.settings` on the hosted DB. No schema change.
 - **`TESTING.md` added and the browser suite actually works now (2026-07-27).** The one
   authenticated Playwright spec had been **silently skipping** since it was written:
   it reads `BROWSER_ADMIN_USERNAME`/`BROWSER_ADMIN_PASSWORD`, those were never set, and

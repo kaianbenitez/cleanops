@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
 import { auditLog, companies } from "@/db/schema";
+import { validatePayTierBrackets } from "@/lib/payroll/brackets";
 
 export async function GET() {
   const admin = await requireAdmin();
@@ -104,7 +105,19 @@ const schema = z.object({
     .max(366)
     .optional(),
   workingDays: z.array(z.number().int().min(0).max(6)).min(1).max(7).optional(),
-  payTierBrackets: z.array(payTierBracketSchema).min(1).max(12).optional(),
+  // Bracket ladders that overlap, run backwards, or have no open-ended top
+  // don't fail at payroll time — resolveTierRateCents() just returns the wrong
+  // rate. Reject them here so the API is the authority, not just the UI form.
+  payTierBrackets: z
+    .array(payTierBracketSchema)
+    .min(1)
+    .max(12)
+    .superRefine((brackets, ctx) => {
+      for (const message of validatePayTierBrackets(brackets).errors) {
+        ctx.addIssue({ code: "custom", message });
+      }
+    })
+    .optional(),
   inventory: z.array(inventoryItemSchema).max(500).optional(),
   branding: z
     .object({
