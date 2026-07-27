@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { auditLog, jobs, jobAssignments, customers, timeEntries, users } from "@/db/schema";
-import { and, desc, eq, inArray, ne } from "drizzle-orm";
+import { auditLog, jobs, jobAssignments, users } from "@/db/schema";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { syncToGhl } from "@/lib/ghl/sync";
+import { loadJobDetail } from "@/lib/jobs/job-detail";
 import { findPtoConflicts, ptoConflictMessage } from "@/lib/scheduling/pto";
 
 const updateJobSchema = z.object({
@@ -16,6 +17,8 @@ const updateJobSchema = z.object({
   completionNotes: z.string().optional(),
 });
 
+/** Shared with the `/jobs/[jobId]` server component via `loadJobDetail` — the
+ * calendar's job panel still fetches this endpoint, so the two must not drift. */
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ jobId: string }> }
@@ -23,83 +26,13 @@ export async function GET(
   const admin = await requireAdmin();
   const { jobId } = await params;
 
-  const [job] = await db
-    .select({
-      id: jobs.id,
-      type: jobs.type,
-      status: jobs.status,
-      scheduledDate: jobs.scheduledDate,
-      scheduledStartTime: jobs.scheduledStartTime,
-      estimatedDurationMinutes: jobs.estimatedDurationMinutes,
-      priceCents: jobs.priceCents,
-      completionNotes: jobs.completionNotes,
-      customerId: jobs.customerId,
-      customerFirstName: customers.firstName,
-      customerLastName: customers.lastName,
-      customerEmail: customers.email,
-      customerPhone: customers.phone,
-      customerNotes: customers.generalNotes,
-      addressLine1: customers.addressLine1,
-      city: customers.city,
-      state: customers.state,
-      zip: customers.zip,
-    })
-    .from(jobs)
-    .innerJoin(customers, eq(jobs.customerId, customers.id))
-    .where(and(eq(jobs.id, jobId), eq(jobs.companyId, admin.companyId)))
-    .limit(1);
+  const detail = await loadJobDetail(jobId, admin.companyId);
 
-  if (!job) {
+  if (!detail) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  const assignments = await db
-    .select()
-    .from(jobAssignments)
-    .where(eq(jobAssignments.jobId, jobId));
-
-  const entries = await db
-    .select({ id: timeEntries.id, userId: timeEntries.userId, firstName: users.firstName, lastName: users.lastName, clockIn: timeEntries.clockIn, clockOut: timeEntries.clockOut, minutesWorked: timeEntries.minutesWorked, recordedByAdmin: timeEntries.recordedByAdmin, notes: timeEntries.notes })
-    .from(timeEntries)
-    .innerJoin(users, eq(timeEntries.userId, users.id))
-    .where(eq(timeEntries.jobId, jobId));
-
-  const entryIds = entries.map((entry) => entry.id);
-  const timeEntryAuditLogs = entryIds.length === 0 ? [] : await db
-    .select({
-      id: auditLog.id,
-      entityType: auditLog.entityType,
-      entityId: auditLog.entityId,
-      action: auditLog.action,
-      before: auditLog.before,
-      after: auditLog.after,
-      createdAt: auditLog.createdAt,
-      editorFirstName: users.firstName,
-      editorLastName: users.lastName,
-    })
-    .from(auditLog)
-    .leftJoin(users, eq(auditLog.userId, users.id))
-    .where(and(eq(auditLog.companyId, admin.companyId), eq(auditLog.entityType, "time_entry"), inArray(auditLog.entityId, entryIds)))
-    .orderBy(desc(auditLog.createdAt));
-
-  const jobAuditLogs = await db
-    .select({
-      id: auditLog.id,
-      entityType: auditLog.entityType,
-      entityId: auditLog.entityId,
-      action: auditLog.action,
-      before: auditLog.before,
-      after: auditLog.after,
-      createdAt: auditLog.createdAt,
-      editorFirstName: users.firstName,
-      editorLastName: users.lastName,
-    })
-    .from(auditLog)
-    .leftJoin(users, eq(auditLog.userId, users.id))
-    .where(and(eq(auditLog.companyId, admin.companyId), eq(auditLog.entityType, "job"), eq(auditLog.entityId, jobId)))
-    .orderBy(desc(auditLog.createdAt));
-
-  return NextResponse.json({ job, assignments, timeEntries: entries, timeEntryAuditLogs, jobAuditLogs });
+  return NextResponse.json(detail);
 }
 
 export async function PATCH(

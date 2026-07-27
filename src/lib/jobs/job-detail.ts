@@ -1,0 +1,104 @@
+import { and, desc, eq, inArray } from "drizzle-orm";
+import { db } from "@/db";
+import { auditLog, customers, jobAssignments, jobs, timeEntries, users } from "@/db/schema";
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const auditColumns = {
+  id: auditLog.id,
+  entityType: auditLog.entityType,
+  entityId: auditLog.entityId,
+  action: auditLog.action,
+  before: auditLog.before,
+  after: auditLog.after,
+  createdAt: auditLog.createdAt,
+  editorFirstName: users.firstName,
+  editorLastName: users.lastName,
+};
+
+/**
+ * Everything the job detail screen needs, in one company-scoped read.
+ *
+ * Two callers share this: the `/jobs/[jobId]` server component (first paint) and
+ * `GET /api/jobs/[jobId]`, which the calendar's job panel still fetches. Keep the
+ * returned shape stable — the API response is that shape JSON-serialised.
+ *
+ * `companyId` is required and applied to every query; do not add a caller that
+ * skips it. Returns null when the job does not exist in that company, or when
+ * `jobId` isn't a uuid at all (Postgres would otherwise raise 22P02 on the cast).
+ */
+export async function loadJobDetail(jobId: string, companyId: string) {
+  if (!UUID_PATTERN.test(jobId)) return null;
+
+  const [job] = await db
+    .select({
+      id: jobs.id,
+      type: jobs.type,
+      status: jobs.status,
+      scheduledDate: jobs.scheduledDate,
+      scheduledStartTime: jobs.scheduledStartTime,
+      estimatedDurationMinutes: jobs.estimatedDurationMinutes,
+      priceCents: jobs.priceCents,
+      completionNotes: jobs.completionNotes,
+      customerId: jobs.customerId,
+      customerFirstName: customers.firstName,
+      customerLastName: customers.lastName,
+      customerEmail: customers.email,
+      customerPhone: customers.phone,
+      customerNotes: customers.generalNotes,
+      addressLine1: customers.addressLine1,
+      city: customers.city,
+      state: customers.state,
+      zip: customers.zip,
+    })
+    .from(jobs)
+    .innerJoin(customers, eq(jobs.customerId, customers.id))
+    .where(and(eq(jobs.id, jobId), eq(jobs.companyId, companyId)))
+    .limit(1);
+
+  if (!job) return null;
+
+  const [assignments, entries, jobAuditLogs] = await Promise.all([
+    db.select().from(jobAssignments).where(eq(jobAssignments.jobId, jobId)),
+    db
+      .select({
+        id: timeEntries.id,
+        userId: timeEntries.userId,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        clockIn: timeEntries.clockIn,
+        clockOut: timeEntries.clockOut,
+        minutesWorked: timeEntries.minutesWorked,
+        recordedByAdmin: timeEntries.recordedByAdmin,
+        notes: timeEntries.notes,
+      })
+      .from(timeEntries)
+      .innerJoin(users, eq(timeEntries.userId, users.id))
+      .where(eq(timeEntries.jobId, jobId)),
+    db
+      .select(auditColumns)
+      .from(auditLog)
+      .leftJoin(users, eq(auditLog.userId, users.id))
+      .where(and(eq(auditLog.companyId, companyId), eq(auditLog.entityType, "job"), eq(auditLog.entityId, jobId)))
+      .orderBy(desc(auditLog.createdAt)),
+  ]);
+
+  const entryIds = entries.map((entry) => entry.id);
+  const timeEntryAuditLogs = entryIds.length === 0 ? [] : await db
+    .select(auditColumns)
+    .from(auditLog)
+    .leftJoin(users, eq(auditLog.userId, users.id))
+    .where(and(eq(auditLog.companyId, companyId), eq(auditLog.entityType, "time_entry"), inArray(auditLog.entityId, entryIds)))
+    .orderBy(desc(auditLog.createdAt));
+
+  return { job, assignments, timeEntries: entries, timeEntryAuditLogs, jobAuditLogs };
+}
+
+/** Active employees available to assign, same shape as `GET /api/employees`. */
+export async function loadAssignableEmployees(companyId: string) {
+  return db
+    .select({ id: users.id, firstName: users.firstName, lastName: users.lastName })
+    .from(users)
+    .where(and(eq(users.companyId, companyId), eq(users.role, "employee"), eq(users.isActive, true)))
+    .orderBy(users.firstName);
+}
