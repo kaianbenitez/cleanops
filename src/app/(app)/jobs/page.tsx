@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { formatDisplayDate } from "@/lib/scheduling/dates";
 import { redirect } from "next/navigation";
-import { and, count, desc, eq, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, ilike, inArray, lte, notExists, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { customers, invoices, jobAssignments, jobs, timeEntries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -107,6 +107,9 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
   const weekStartText = dateOnly(weekStart);
   const weekEndText = dateOnly(addDays(weekStart, 6));
 
+  const missingHoursCondition = sql`coalesce((select sum(minutes_worked) from time_entries where time_entries.job_id = ${jobs.id}), 0) = 0`;
+  const unassignedCondition = notExists(db.select({ jobId: jobAssignments.jobId }).from(jobAssignments).where(eq(jobAssignments.jobId, jobs.id)));
+
   const conditions = [eq(jobs.companyId, admin.companyId), gte(jobs.scheduledDate, rangeStart), lte(jobs.scheduledDate, rangeEnd)];
   if (sp.status && sp.status !== "all" && statusOptions("job").some(({ value }) => value === sp.status)) conditions.push(eq(jobs.status, sp.status as typeof jobs.status.enumValues[number]));
   if (!sp.status && activeTab === "active") conditions.push(inArray(jobs.status, ["scheduled", "in_progress"]));
@@ -117,13 +120,18 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
     const query = `%${sp.q.trim()}%`;
     conditions.push(or(ilike(customers.firstName, query), ilike(customers.lastName, query), ilike(customers.addressLine1, query))!);
   }
-
   if (sp.employeeId) {
-    const assigned = await db.select({ jobId: jobAssignments.jobId }).from(jobAssignments).where(eq(jobAssignments.userId, sp.employeeId));
-    conditions.push(assigned.length ? inArray(jobs.id, assigned.map((row) => row.jobId)) : inArray(jobs.id, ["00000000-0000-0000-0000-000000000000"]));
+    conditions.push(inArray(jobs.id, db.select({ jobId: jobAssignments.jobId }).from(jobAssignments).where(eq(jobAssignments.userId, sp.employeeId))));
+  }
+  if (sp.unassigned === "yes") {
+    conditions.push(unassignedCondition);
+  } else if (sp.missingHours === "yes") {
+    conditions.push(missingHoursCondition);
   }
 
-  const [rows, totalRowsResult, employees, allJobs] = await Promise.all([
+  const metricsConditions = [eq(jobs.companyId, admin.companyId), gte(jobs.scheduledDate, rangeStart), lte(jobs.scheduledDate, rangeEnd)];
+
+  const [rows, totalRowsResult, employees, metricsRows] = await Promise.all([
     db
       .select({
         id: jobs.id,
@@ -154,17 +162,23 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
       .where(and(eq(users.companyId, admin.companyId), eq(users.role, "employee")))
       .orderBy(users.firstName),
     db
-      .select({ id: jobs.id, status: jobs.status, scheduledDate: jobs.scheduledDate })
+      .select({
+        today: sql<number>`count(*) filter (where ${jobs.scheduledDate} = ${todayText})`,
+        completedToday: sql<number>`count(*) filter (where ${jobs.status} = 'completed' and ${jobs.scheduledDate} = ${todayText})`,
+        week: sql<number>`count(*) filter (where ${jobs.scheduledDate} >= ${weekStartText} and ${jobs.scheduledDate} <= ${weekEndText})`,
+        unassigned: sql<number>`count(*) filter (where ${jobs.status} not in ('cancelled', 'no_show') and not exists (select 1 from job_assignments where job_assignments.job_id = ${jobs.id}))`,
+        awaiting: sql<number>`count(*) filter (where ${jobs.status} = 'completed' and not exists (select 1 from invoices where invoices.job_id = ${jobs.id}))`,
+        missingHours: sql<number>`count(*) filter (where coalesce((select sum(minutes_worked) from time_entries where time_entries.job_id = ${jobs.id}), 0) = 0)`,
+      })
       .from(jobs)
-      .where(and(eq(jobs.companyId, admin.companyId), gte(jobs.scheduledDate, rangeStart), lte(jobs.scheduledDate, rangeEnd))),
+      .where(and(...metricsConditions)),
   ]);
   const totalRows = Number(totalRowsResult[0]?.total ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
 
   const jobIds = rows.map((row) => row.id);
-  const allJobIds = allJobs.map((job) => job.id);
 
-  const [assignments, entries, allAssignments, allInvoiceRows] = await Promise.all([
+  const [assignments, entries] = await Promise.all([
     jobIds.length
       ? db
           .select({ jobId: jobAssignments.jobId, userId: users.id, firstName: users.firstName, lastName: users.lastName })
@@ -175,12 +189,6 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
     jobIds.length
       ? db.select({ jobId: timeEntries.jobId, minutesWorked: timeEntries.minutesWorked }).from(timeEntries).where(inArray(timeEntries.jobId, jobIds))
       : Promise.resolve([]),
-    allJobIds.length
-      ? db.select({ jobId: jobAssignments.jobId }).from(jobAssignments).where(inArray(jobAssignments.jobId, allJobIds))
-      : Promise.resolve([]),
-    allJobIds.length
-      ? db.select({ jobId: invoices.jobId }).from(invoices).where(inArray(invoices.jobId, allJobIds))
-      : Promise.resolve([]),
   ]);
 
   const assignmentsByJob = new Map<string, typeof assignments>();
@@ -188,20 +196,16 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
   const minutesByJob = new Map<string, number>();
   entries.forEach((entry) => minutesByJob.set(entry.jobId, (minutesByJob.get(entry.jobId) ?? 0) + (entry.minutesWorked ?? 0)));
 
-  const assignedIds = new Set(allAssignments.map((assignment) => assignment.jobId));
-  const invoicedIds = new Set(allInvoiceRows.map((invoice) => invoice.jobId).filter((jobId): jobId is string => Boolean(jobId)));
-
   const metrics = {
-    today: allJobs.filter((job) => job.scheduledDate === todayText).length,
-    week: allJobs.filter((job) => job.scheduledDate >= weekStartText && job.scheduledDate <= weekEndText).length,
-    unassigned: allJobs.filter((job) => !assignedIds.has(job.id) && !["cancelled", "no_show"].includes(job.status)).length,
-    awaiting: allJobs.filter((job) => job.status === "completed" && !invoicedIds.has(job.id)).length,
+    today: Number(metricsRows[0]?.today ?? 0),
+    completedToday: Number(metricsRows[0]?.completedToday ?? 0),
+    week: Number(metricsRows[0]?.week ?? 0),
+    unassigned: Number(metricsRows[0]?.unassigned ?? 0),
+    awaiting: Number(metricsRows[0]?.awaiting ?? 0),
+    missingHours: Number(metricsRows[0]?.missingHours ?? 0),
   };
 
-  const missingHoursCount = rows.filter((row) => !minutesByJob.get(row.id)).length;
-  const unassignedRows = rows.filter((row) => (assignmentsByJob.get(row.id) ?? []).length === 0);
-  const visibleRows = sp.missingHours === "yes" ? rows.filter((row) => !minutesByJob.get(row.id)) : rows;
-  const filteredRows = sp.unassigned === "yes" ? unassignedRows : visibleRows;
+  const filteredRows = rows;
 
   return (
     <div className="space-y-6">
@@ -212,7 +216,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
           <p className="page-subtitle max-w-[34rem]">Real-time management of residential cleaning services across all zones.</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <MetricCard label="Completed today" value={String(allJobs.filter((job) => job.status === "completed" && job.scheduledDate === todayText).length)} hint="services closed today" tone="good" />
+          <MetricCard label="Completed today" value={String(metrics.completedToday)} hint="services closed today" tone="good" />
           <MetricCard label="Pending review" value={String(metrics.awaiting)} hint="completed, awaiting invoice" tone={metrics.awaiting ? "warning" : "good"} />
         </div>
       </header>
@@ -273,7 +277,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                 }`}
               >
                 Missing hours
-                {missingHoursCount ? <span className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-[11px]">{missingHoursCount}</span> : null}
+                {metrics.missingHours ? <span className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-[11px]">{metrics.missingHours}</span> : null}
               </Link>
               <Link
                 href={hrefWith(sp, { unassigned: "yes", missingHours: "", status: "" })}
