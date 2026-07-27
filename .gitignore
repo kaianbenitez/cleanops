@@ -26,6 +26,10 @@
 .DS_Store
 *.pem
 
+# local dev/smoke server logs left in the repo root by background runs
+/*.log
+/.*.log
+
 # debug
 npm-debug.log*
 yarn-debug.log*

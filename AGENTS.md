@@ -8,6 +8,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 - Run `npm run verify` before presenting a change as ready.
 - Run `npm run smoke:routes` when a local production server is available.
+- **Read `TESTING.md` before running any browser/smoke check.** It covers the port-collision
+  trap (Playwright silently reuses a stale server on 3100), why authenticated browser specs
+  skip silently and still report green, Chrome-extension setup, and the selector/scripting
+  gotchas specific to this repo. `npm run smoke:auth -- <baseUrl>` is the highest-value
+  runtime check and is not in the release sequence below — run it anyway.
 - By user preference, commit and push each completed, verified feature by default. Before
   staging, inspect `git status` and the per-file diff; stop and ask before pushing if any
   unrelated/shared change, merge state, or unapproved production migration would be included.
@@ -26,8 +31,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
    expects. A committed migration file is **not** evidence it was applied here; this is the
    only reliable check. See Supabase safety below.
 3. `npm run verify`
-4. Start the built app with `npx next start -p 3100`
+4. Start the built app with `npx next start -p 3100` — **check the port is free first**;
+   a stale server there is common. Any free port works, see `TESTING.md`.
 5. In another terminal, run `npm run smoke:routes -- http://localhost:3100`
+   and `npm run smoke:auth -- http://localhost:3100`.
 6. Confirm the Vercel deployment commit matches `git rev-parse HEAD`.
 
 ## Supabase safety

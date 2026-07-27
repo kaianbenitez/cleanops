@@ -13,12 +13,17 @@ test("admin employee profile exposes password, archive, and delete controls", as
   await page.waitForURL(/\/dashboard|\/employees/);
 
   await page.goto("/employees");
-  const employeeLink = page.getByRole("link", { name: /view details/i }).first();
+  const employeeLink = page.getByRole("link", { name: /view profile/i }).first();
   await expect(employeeLink).toBeVisible();
   await employeeLink.click();
 
-  await expect(page.getByRole("heading", { name: /account access/i })).toBeVisible();
+  // The employee profile is a client component that fetches on mount, so the
+  // admin controls appear well after navigation — the 5s default is not enough.
+  await expect(page.getByRole("heading", { name: /account access/i })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByRole("button", { name: /change password/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /delete permanently/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /archive employee|restore employee/i }).first()).toBeVisible();
+  // The archive toggle lives in the profile header, labelled just "Archive" /
+  // "Restore" — not inside the Account access card, whose "Archive employee"
+  // text is a description rather than the control.
+  await expect(page.getByRole("button", { name: /^(archive|restore)$/i }).first()).toBeVisible();
 });

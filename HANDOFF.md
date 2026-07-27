@@ -9,6 +9,33 @@ Last updated: 2026-07-27.
 
 ## Done
 
+- **`TESTING.md` added and the browser suite actually works now (2026-07-27).** The one
+  authenticated Playwright spec had been **silently skipping** since it was written:
+  it reads `BROWSER_ADMIN_USERNAME`/`BROWSER_ADMIN_PASSWORD`, those were never set, and
+  `test.skip` means the run still printed `3 passed`. Once the credentials were supplied it
+  failed on three stale selectors that had drifted through UI redesigns (`View details` →
+  `View profile`; the Account access heading needing a 20s timeout because
+  `/employees/[employeeId]` is a 695-line client component that fetches on mount; and
+  `Archive employee` being descriptive text, with the real control labelled just
+  `Archive`/`Restore` in the header). All three fixed — the suite is genuinely 4/4 green.
+  `playwright.config.ts` now loads `.env.local`, and setting `BROWSER_BASE_URL` makes it use
+  your server instead of starting/reusing one on 3100 (`reuseExistingServer` was silently
+  attaching to whatever stale server happened to be on that port).
+  **Action for the user:** add `BROWSER_ADMIN_USERNAME` / `BROWSER_ADMIN_PASSWORD` to
+  `.env.local`, or the authenticated spec goes back to skipping. Also note
+  `scripts/smoke-test.mjs` hardcodes a fallback admin username/password as defaults that
+  authenticate against the **hosted** Supabase project — that should become env-only.
+- **`/recurring/new` converted to a server component with searchable pickers (2026-07-27,
+  commit `38eab42`).** Was a 23-line client file fetching customers/employees/services on
+  mount and rendering all 231 customers into a `<select>`. Now server-rendered in one
+  company-scoped query (`src/lib/recurring/new-series-data.ts`) with `loading.tsx`, split
+  into page/form/cadence/visit-details/team/summary, and using a new
+  `CustomerSearchPicker` plus the existing `TeamSearchPicker`. That last swap exposed real
+  behaviour: `generateJobsForSeries` treats `defaultEmployeeIds[0]` as the **lead**, which
+  the old checkbox grid set invisibly. Also added the admin gate the page was missing.
+  Verified with `verify`, both smoke scripts, and a throwaway Playwright click-through.
+  **`/jobs/new` still has the identical pattern** (same three-fetch mount, same full-list
+  select, same checkbox grid) — both components now exist to convert it cheaply.
 - **Job Detail converted to a server component and split up (2026-07-27, commit `7a92fcf`).**
   It was the last operational screen still doing `useEffect` + `fetch` on mount, at 829 lines
   in one client file. Now: `page.tsx` is an async server component (auth + direct DB read,
