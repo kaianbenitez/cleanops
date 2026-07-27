@@ -81,19 +81,35 @@ started; another session may be using 3100 deliberately.
 
 ## Chrome (claude-in-chrome)
 
-As of 2026-07-27 the extension is **not connected** — `tabs_context_mcp` returns
-"Browser extension is not connected", so an agent cannot drive your real browser.
-To enable it:
+Connected and working as of 2026-07-27. If a session reports "Browser extension
+is not connected": install from <https://claude.ai/chrome>, sign into claude.ai
+in Chrome with the **same account** as Claude Code, restart Chrome, and grant the
+extension site permission for `localhost` (it is permissioned per site). Verify
+with `tabs_context_mcp` before assuming it works; if it errors twice, fall back
+to Playwright rather than retrying.
 
-1. Install the extension from <https://claude.ai/chrome>.
-2. Sign into claude.ai in Chrome with the **same account** as Claude Code.
-3. Restart Chrome (required on first install).
-4. Grant the extension site permission for `localhost` — it is permissioned per
-   site, and localhost is not granted by default.
+**An agent cannot log you in.** Typing a password into a field is off-limits, so
+the flow is:
 
-Verify with `tabs_context_mcp` before assuming it works; if it errors, fall back
-to Playwright rather than retrying. Headless Playwright is usually the better
-tool anyway — it asserts, it reruns, and it does not need your browser open.
+1. The agent starts a server and opens the page; protected routes bounce to
+   `/login`.
+2. **You sign in manually in that tab**, once.
+3. The agent drives everything after that — the Chrome profile keeps the session,
+   so later sessions usually land already authenticated.
+
+Do not click controls guarded by `window.confirm` (e.g. "Delete permanently" on
+the employee profile) from an agent session — a browser dialog blocks the
+extension until it is dismissed by hand.
+
+Batch coordinates go stale within a batch. `browser_batch` resolves every
+coordinate against the screenshot taken *before* the call, but closing a
+search-picker dropdown reflows the page by 100px or more. Re-screenshot between
+a click that closes an overlay and the next click, rather than batching through
+it.
+
+Use Chrome for "show me what this looks like" and for one-off exploration. For
+anything you want to re-run or assert on, write a Playwright spec instead — it
+does not need your browser open and it fails loudly.
 
 ## Writing a throwaway check script
 
