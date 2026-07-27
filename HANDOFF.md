@@ -78,8 +78,9 @@ Last updated: 2026-07-24 (post-migration).
   drizzle-kit command that cannot work here (`scripts/db-migrate-guard.mjs`).
 - **CI added: `.github/workflows/schema-drift.yml`** — runs `check:drift` on every push to
   `main`, daily at 13:00 UTC, and on demand. This is the repo's only workflow (the old
-  `db-backup.yml` was removed 2026-07-24). **It needs a `DATABASE_URL` repository secret that
-  is not yet set** — see Blocked below.
+  `db-backup.yml` was removed 2026-07-24). It reads the `DATABASE_URL` repository secret, which
+  the old `db-backup.yml` also used and which is very likely still present — confirm via the
+  Actions tab, see Blocked below.
 - **`drizzle/0015_employee_photos_catchup.sql` added.** `users.birthday`,
   `users.profile_photo_url` and `job_photos` existed live and in `schema.ts` but had no
   migration file, and `drizzle/meta/0014_snapshot.json` already recorded them as migrated —
@@ -90,14 +91,17 @@ Last updated: 2026-07-24 (post-migration).
 
 ## Blocked / needs a human
 
-- **`DATABASE_URL` repository secret is not set, so the Schema drift workflow cannot run.**
-  Add it in `kaianbenitez/cleanops` under Settings → Secrets and variables → Actions. Use the
-  Supabase **Session pooler** connection string, not the direct one: GitHub runners are
-  IPv4-only and Supabase direct connections are IPv6, which is exactly what broke the nightly
-  backup workflow until `BACKUP_DATABASE_URL` was switched to the pooler (see Resolved below).
-  Until the secret exists the workflow fails fast with that instruction. The check itself is
-  read-only (`information_schema` queries only), but the secret grants full DB access, so it
-  is deliberately never exposed to `pull_request` runs.
+- **Confirm the Schema drift workflow is green — the `DATABASE_URL` secret is probably already
+  there.** The removed `.github/workflows/db-backup.yml` in this repo used
+  `${{ secrets.DATABASE_URL }}`, and its runs failed on a `pg_dump` server-version mismatch,
+  which only occurs *after* a successful connection — so that secret existed and worked from a
+  GitHub runner. Deleting a workflow does not delete repo secrets, so `schema-drift.yml` should
+  pick it up with no action needed. Just check the Actions tab: green means nothing to do; a
+  failure on the "Require DATABASE_URL secret" step means it really is absent, and it should be
+  added as the Supabase **Session pooler** string (GitHub runners are IPv4-only; Supabase direct
+  connections are IPv6 — the trap that broke `BACKUP_DATABASE_URL` in the other repo).
+  The check is read-only (`information_schema` only), but the secret grants full DB access, so
+  it is deliberately never exposed to `pull_request` runs.
 
 - **Square invoicing is running in silent mock mode in production.**
   `SQUARE_ACCESS_TOKEN` / `SQUARE_ENVIRONMENT` / `SQUARE_WEBHOOK_SIGNATURE_KEY` are not set
