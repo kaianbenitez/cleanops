@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type TagMap = {
   quoteGiven: string;
@@ -75,6 +75,42 @@ const WORKFLOW_LABELS: Array<{ key: keyof WorkflowMap; label: string; hint: stri
   { key: "invoiceSent", label: "Invoice sent", hint: "Workflow that emails the invoice to the customer." },
 ];
 
+type GhlTestStatus = {
+  ok: boolean;
+  reason?: string;
+  status?: number;
+};
+
+/** Values that appear on more than one status are ambiguous once GHL applies
+ * the tag — an automation filtering on it can no longer tell which CleanOps
+ * status triggered it. */
+function findDuplicateValues<T extends Record<string, string>>(
+  map: T,
+  labels: Array<{ key: keyof T; label: string }>
+): Map<keyof T, string> {
+  const labelsByValue = new Map<string, Array<{ key: keyof T; label: string }>>();
+  for (const entry of labels) {
+    const value = map[entry.key].trim();
+    if (!value) continue;
+    const list = labelsByValue.get(value) ?? [];
+    list.push(entry);
+    labelsByValue.set(value, list);
+  }
+
+  const conflicts = new Map<keyof T, string>();
+  for (const [value, entries] of labelsByValue) {
+    if (entries.length < 2) continue;
+    for (const entry of entries) {
+      const otherLabels = entries
+        .filter((other) => other.key !== entry.key)
+        .map((other) => other.label)
+        .join(", ");
+      conflicts.set(entry.key, `"${value}" is also used by ${otherLabels}`);
+    }
+  }
+  return conflicts;
+}
+
 export default function GhlSettingsPage() {
   const [tagMap, setTagMap] = useState<TagMap>(DEFAULT_TAG_MAP);
   const [workflowMap, setWorkflowMap] = useState<WorkflowMap>(DEFAULT_WORKFLOW_MAP);
@@ -82,6 +118,11 @@ export default function GhlSettingsPage() {
   const [savingTags, setSavingTags] = useState(false);
   const [savingWorkflows, setSavingWorkflows] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageIsError, setMessageIsError] = useState(false);
+  const [ghlTest, setGhlTest] = useState<GhlTestStatus | null>(null);
+  const [testingGhl, setTestingGhl] = useState(false);
+
+  const tagConflicts = useMemo(() => findDuplicateValues(tagMap, FIELD_LABELS), [tagMap]);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -95,32 +136,53 @@ export default function GhlSettingsPage() {
       })
       .catch(() => {
         setMessage("Could not load GHL settings.");
+        setMessageIsError(true);
         setLoading(false);
       });
   }, []);
 
-  async function saveTags() {
-    setSavingTags(true);
+  async function saveMap(
+    field: "ghlTagMap" | "ghlWorkflowMap",
+    value: TagMap | WorkflowMap,
+    setSaving: (saving: boolean) => void,
+    successMessage: string
+  ) {
+    setSaving(true);
     setMessage("");
+    setMessageIsError(false);
     const response = await fetch("/api/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ghlTagMap: tagMap }),
+      body: JSON.stringify({ [field]: value }),
     });
-    setSavingTags(false);
-    setMessage(response.ok ? "GHL tag map saved." : "Could not save GHL settings.");
+    setSaving(false);
+    setMessage(response.ok ? successMessage : "Could not save GHL settings.");
+    setMessageIsError(!response.ok);
+  }
+
+  async function saveTags() {
+    if (tagConflicts.size > 0) {
+      setMessage("Fix duplicate tags before saving — see the highlighted fields below.");
+      setMessageIsError(true);
+      return;
+    }
+    await saveMap("ghlTagMap", tagMap, setSavingTags, "GHL tag map saved.");
   }
 
   async function saveWorkflows() {
-    setSavingWorkflows(true);
-    setMessage("");
-    const response = await fetch("/api/settings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ghlWorkflowMap: workflowMap }),
-    });
-    setSavingWorkflows(false);
-    setMessage(response.ok ? "GHL workflow map saved." : "Could not save GHL settings.");
+    await saveMap("ghlWorkflowMap", workflowMap, setSavingWorkflows, "GHL workflow map saved.");
+  }
+
+  async function testGhlConnection() {
+    setTestingGhl(true);
+    setGhlTest(null);
+    try {
+      const response = await fetch("/api/integrations/ghl/test");
+      const body = (await response.json().catch(() => ({}))) as GhlTestStatus;
+      setGhlTest(body);
+    } finally {
+      setTestingGhl(false);
+    }
   }
 
   if (loading) {
@@ -154,25 +216,74 @@ export default function GhlSettingsPage() {
           <h2 className="mt-1 text-lg font-semibold">Status → tag</h2>
         </div>
         <div className="divide-y divide-[var(--co-line-soft)]">
-          {FIELD_LABELS.map(({ key, label, hint }) => (
-            <label key={key} className="grid gap-3 px-5 py-4 md:grid-cols-[180px_1fr]">
-              <span>
-                <span className="block text-sm font-semibold">{label}</span>
-                <span className="mt-1 block text-xs leading-5 text-[var(--co-muted)]">{hint}</span>
-              </span>
-              <input
-                className="co-input w-full font-mono text-sm"
-                value={tagMap[key]}
-                onChange={(event) => setTagMap((current) => ({ ...current, [key]: event.target.value }))}
-              />
-            </label>
-          ))}
+          {FIELD_LABELS.map(({ key, label, hint }) => {
+            const conflict = tagConflicts.get(key);
+            return (
+              <label key={key} className="grid gap-3 px-5 py-4 md:grid-cols-[180px_1fr]">
+                <span>
+                  <span className="block text-sm font-semibold">{label}</span>
+                  <span className="mt-1 block text-xs leading-5 text-[var(--co-muted)]">{hint}</span>
+                </span>
+                <span>
+                  <input
+                    className={`co-input w-full font-mono text-sm ${conflict ? "border-rose-300 bg-rose-50" : ""}`}
+                    value={tagMap[key]}
+                    onChange={(event) => setTagMap((current) => ({ ...current, [key]: event.target.value }))}
+                  />
+                  {conflict ? <span className="mt-1 block text-xs text-rose-700">{conflict}</span> : null}
+                </span>
+              </label>
+            );
+          })}
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 px-5 py-4">
-          <p className="text-xs text-[var(--co-muted)]">Changes affect future outbound sync events.</p>
-          <button onClick={saveTags} disabled={savingTags} className="co-button-primary">
+          <p className="text-xs text-[var(--co-muted)]">
+            {tagConflicts.size > 0
+              ? "Duplicate tags make status transitions ambiguous in GHL — each status needs its own tag."
+              : "Changes affect future outbound sync events."}
+          </p>
+          <button onClick={saveTags} disabled={savingTags || tagConflicts.size > 0} className="co-button-primary">
             {savingTags ? "Saving…" : "Save tag map"}
           </button>
+        </div>
+      </section>
+
+      <section className="co-card overflow-hidden">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
+          <div>
+            <p className="eyebrow">GHL smoke test</p>
+            <h2 className="mt-1 text-lg font-semibold">Verify the test subaccount</h2>
+            <p className="mt-1 text-sm text-[var(--co-muted)]">
+              Confirms CleanOps can reach GHL with the configured API key and location ID — run
+              it here after editing tags or workflows above.
+            </p>
+          </div>
+          <button onClick={testGhlConnection} disabled={testingGhl} className="co-button-primary">
+            {testingGhl ? "Testing…" : "Test GHL connection"}
+          </button>
+        </div>
+        <div className="px-5 py-5 text-sm">
+          {ghlTest ? (
+            <div
+              className={`rounded-2xl border px-4 py-3 ${ghlTest.ok ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-700"}`}
+            >
+              <p className="font-semibold">
+                {ghlTest.ok ? "GHL connection looks good." : "GHL connection needs attention."}
+              </p>
+              <p className="mt-1 text-xs leading-5 opacity-80">
+                {ghlTest.reason ??
+                  (ghlTest.ok
+                    ? "The configured API key and location responded successfully."
+                    : "The test request did not succeed.")}
+              </p>
+              {ghlTest.status ? <p className="mt-2 text-xs opacity-70">Status: {ghlTest.status}</p> : null}
+            </div>
+          ) : (
+            <p className="text-[var(--co-muted)]">
+              This only confirms the connection — it does not verify that the tag names and
+              workflow IDs below exist in your GHL account. Check GHL directly for that.
+            </p>
+          )}
         </div>
       </section>
 
@@ -205,7 +316,11 @@ export default function GhlSettingsPage() {
         </div>
       </section>
 
-      {message ? <p className="text-sm font-medium text-[var(--co-evergreen)]">{message}</p> : null}
+      {message ? (
+        <p className={`text-sm font-medium ${messageIsError ? "text-rose-700" : "text-[var(--co-evergreen)]"}`}>
+          {message}
+        </p>
+      ) : null}
     </div>
   );
 }
