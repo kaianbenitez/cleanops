@@ -1,23 +1,33 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth/current-user";
+import { loadNewSeriesOptions } from "@/lib/recurring/new-series-data";
+import NewSeriesForm from "./new-series-form";
 
-type Customer = { id: string; firstName: string; lastName: string; status: string };
-type Employee = { id: string; firstName: string; lastName: string };
-type Service = { id: string; name: string; defaultPriceCents: number };
-const FREQUENCIES = ["weekly", "biweekly", "every4weeks", "monthly"] as const;
-const FREQUENCY_LABELS: Record<string, string> = { weekly: "Every week", biweekly: "Every 2 weeks", every4weeks: "Every 4 weeks", monthly: "Monthly" };
-const DAYS = [{ value: 1, label: "Monday" }, { value: 2, label: "Tuesday" }, { value: 3, label: "Wednesday" }, { value: 4, label: "Thursday" }, { value: 5, label: "Friday" }, { value: 6, label: "Saturday" }, { value: 0, label: "Sunday" }];
+export default async function NewRecurringSeriesPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  // Creating a series is an office action — `POST /api/recurring-series` is
+  // admin-only, so gate the form the same way rather than letting a technician
+  // fill it in and fail on submit.
+  if (user.role !== "admin") redirect("/my-day");
 
-export default function NewRecurringSeriesPage() {
-  const router = useRouter(); const [customers, setCustomers] = useState<Customer[]>([]); const [employees, setEmployees] = useState<Employee[]>([]); const [services, setServices] = useState<Service[]>([]); const [customerId, setCustomerId] = useState(""); const [frequency, setFrequency] = useState<(typeof FREQUENCIES)[number]>("weekly"); const [dayOfWeek, setDayOfWeek] = useState(1); const [startDate, setStartDate] = useState(""); const [priceCents, setPriceCents] = useState(0); const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]); const [error, setError] = useState<string | null>(null); const [result, setResult] = useState<{ created: number; skipped: number } | null>(null); const [submitting, setSubmitting] = useState(false);
-  useEffect(() => { Promise.all([fetch("/api/customers").then((response) => response.json()), fetch("/api/employees").then((response) => response.json()), fetch("/api/services").then((response) => response.json())]).then(([customerData, employeeData, serviceData]) => { setCustomers(customerData.customers ?? []); setEmployees(employeeData.employees ?? []); setServices(serviceData.services ?? []); }); }, []);
-  function toggleEmployee(id: string) { setSelectedEmployeeIds((current) => current.includes(id) ? current.filter((entry) => entry !== id) : [...current, id]); }
-  async function submit(event: React.FormEvent) { event.preventDefault(); setError(null); setResult(null); if (!customerId || !startDate || priceCents <= 0) { setError("Customer, start date, and a price greater than $0 are required."); return; } setSubmitting(true); const response = await fetch("/api/recurring-series", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customerId, frequency, dayOfWeek: frequency === "monthly" ? undefined : dayOfWeek, startDate, priceCents, employeeIds: selectedEmployeeIds }) }); if (!response.ok) { const body = await response.json().catch(() => ({})); setError(body.error ? JSON.stringify(body.error) : "Failed to create series."); setSubmitting(false); return; } const data = await response.json(); setResult(data.generation); setSubmitting(false); }
-  const customer = customers.find((entry) => entry.id === customerId);
-  return <div className="space-y-6"><header className="flex flex-wrap items-end justify-between gap-3"><div><p className="eyebrow">Operations / Schedule</p><h1 className="page-title mt-2">New recurring series</h1><p className="page-subtitle">Set the repeat pattern once, then let CleanOps generate the upcoming visits.</p></div><Link href="/calendar" className="co-button-secondary">← Back to calendar</Link></header><form onSubmit={submit} className="grid gap-5 xl:grid-cols-[1fr_360px]"><div className="space-y-5"><section className="co-card p-5"><p className="eyebrow">Customer</p><h2 className="mt-1 text-lg font-semibold">Who is on the recurring schedule?</h2><label className="mt-5 block text-sm"><span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Customer</span><select required className="co-input w-full" value={customerId} onChange={(event) => setCustomerId(event.target.value)}><option value="">Select a customer</option>{customers.map((entry) => <option key={entry.id} value={entry.id}>{entry.firstName} {entry.lastName} · {entry.status}</option>)}</select></label></section><section className="co-card p-5"><p className="eyebrow">Cadence</p><h2 className="mt-1 text-lg font-semibold">How often should we visit?</h2><div className="mt-5 grid gap-2 sm:grid-cols-2">{FREQUENCIES.map((entry) => <label key={entry} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm ${frequency === entry ? "border-[var(--co-evergreen)] bg-[var(--co-surface-muted)]" : "border-[var(--co-line)]"}`}><input type="radio" name="frequency" checked={frequency === entry} onChange={() => setFrequency(entry)} className="accent-[#14211f]" /><span className="font-medium">{FREQUENCY_LABELS[entry]}</span></label>)}</div>{frequency !== "monthly" && <label className="mt-5 block text-sm"><span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Preferred day</span><select className="co-input w-full" value={dayOfWeek} onChange={(event) => setDayOfWeek(Number(event.target.value))}>{DAYS.map((day) => <option key={day.value} value={day.value}>{day.label}</option>)}</select></label>}<label className="mt-4 block text-sm"><span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">First visit</span><input required type="date" className="co-input w-full" value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label></section><section className="co-card p-5"><p className="eyebrow">Visit details</p><h2 className="mt-1 text-lg font-semibold">Price and default team</h2><label className="mt-5 block text-sm"><span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Prefill from service</span><select className="co-input w-full" onChange={(event) => { const service = services.find((entry) => entry.id === event.target.value); if (service) setPriceCents(service.defaultPriceCents); }}><option value="">None</option>{services.map((service) => <option key={service.id} value={service.id}>{service.name} · ${(service.defaultPriceCents / 100).toFixed(2)}</option>)}</select></label><label className="mt-4 block text-sm"><span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Price per visit</span><div className="relative"><span className="absolute left-3 top-2.5 text-sm text-[var(--co-muted)]">$</span><input required type="number" min="0" step="0.01" className="co-input w-full pl-7" value={(priceCents / 100).toFixed(2)} onChange={(event) => setPriceCents(Math.round(Number(event.target.value || 0) * 100))} /></div></label><div className="mt-5 grid gap-2 sm:grid-cols-2">{employees.map((employee) => <label key={employee.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm ${selectedEmployeeIds.includes(employee.id) ? "border-[var(--co-evergreen)] bg-[var(--co-surface-muted)]" : "border-[var(--co-line)]"}`}><input type="checkbox" checked={selectedEmployeeIds.includes(employee.id)} onChange={() => toggleEmployee(employee.id)} className="accent-[#14211f]" /><span className="font-medium">{employee.firstName} {employee.lastName}</span></label>)}</div></section></div><aside className="xl:sticky xl:top-5 xl:self-start"><section className="co-card p-5"><p className="eyebrow">Series summary</p><h2 className="mt-1 text-xl font-semibold">Ready to generate</h2><div className="mt-5 space-y-4 border-y border-[var(--co-line-soft)] py-5 text-sm"><Summary label="Customer" value={customer ? `${customer.firstName} ${customer.lastName}` : "Not selected"} /><Summary label="Frequency" value={FREQUENCY_LABELS[frequency]} /><Summary label="First visit" value={startDate || "Not selected"} /><Summary label="Price / visit" value={`$${(priceCents / 100).toFixed(2)}`} /><Summary label="Default team" value={selectedEmployeeIds.length ? `${selectedEmployeeIds.length} assigned` : "Assign later"} /></div>{error && <p className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}{result && <div className="mt-4 rounded-xl bg-[var(--co-surface-muted)] px-3 py-3 text-sm text-[var(--co-success)]">Generated {result.created} visit{result.created === 1 ? "" : "s"}. {result.skipped ? `${result.skipped} already existed.` : ""}</div>}<button type="submit" disabled={submitting} className="co-button-primary mt-5 w-full py-3">{submitting ? "Generating…" : "Create recurring series →"}</button>{result && <button type="button" onClick={() => router.push("/calendar")} className="co-button-secondary mt-2 w-full">View calendar</button>}</section></aside></form></div>;
+  const options = await loadNewSeriesOptions(user.companyId);
+
+  return (
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="eyebrow">Operations / Schedule</p>
+          <h1 className="page-title mt-2">New recurring series</h1>
+          <p className="page-subtitle">Set the repeat pattern once, then let CleanOps generate the upcoming visits.</p>
+        </div>
+        <Link href="/calendar" className="co-button-secondary">
+          ← Back to calendar
+        </Link>
+      </header>
+
+      <NewSeriesForm {...options} />
+    </div>
+  );
 }
-
-function Summary({ label, value }: { label: string; value: string }) { return <div className="flex items-start justify-between gap-4"><span className="text-[var(--co-muted)]">{label}</span><span className="text-right font-medium">{value}</span></div>; }
