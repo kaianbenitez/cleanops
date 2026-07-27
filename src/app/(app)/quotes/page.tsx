@@ -29,45 +29,62 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
   if (admin.role !== "admin") redirect("/my-day");
 
   const sp = await searchParams;
-  const conditions = [eq(quotes.companyId, admin.companyId)];
 
-  if (sp.status && sp.status !== "all") {
-    conditions.push(eq(quotes.status, sp.status as typeof quotes.status.enumValues[number]));
-  }
+  // The stat tiles are status-filter links, so they must stay independent of the
+  // status filter currently applied — otherwise selecting "Accepted" zeroes every
+  // other tile and there is no way to navigate back. They do follow the search
+  // box, so the breakdown stays scoped to whatever the admin is looking at.
+  const baseConditions = [eq(quotes.companyId, admin.companyId)];
 
   if (sp.q?.trim()) {
     const query = `%${sp.q.trim()}%`;
     // quotes.id is a uuid column — ILIKE has no operator for uuid without an
     // explicit text cast, so this previously threw a SQL error on every search.
-    conditions.push(or(ilike(customers.firstName, query), ilike(customers.lastName, query), sql`${quotes.id}::text ilike ${query}`)!);
+    baseConditions.push(or(ilike(customers.firstName, query), ilike(customers.lastName, query), sql`${quotes.id}::text ilike ${query}`)!);
   }
 
-  const rows = await db
-    .select({
-      id: quotes.id,
-      status: quotes.status,
-      totalCents: quotes.totalCents,
-      requestedServiceType: quotes.requestedServiceType,
-      acceptedServiceType: quotes.acceptedServiceType,
-      customerFirstName: customers.firstName,
-      customerLastName: customers.lastName,
-      createdAt: quotes.createdAt,
-      sentAt: quotes.sentAt,
-      viewedAt: quotes.viewedAt,
-      acceptedAt: quotes.acceptedAt,
-      publicToken: quotes.publicToken,
-    })
-    .from(quotes)
-    .innerJoin(customers, eq(quotes.customerId, customers.id))
-    .where(and(...conditions))
-    .orderBy(desc(quotes.createdAt));
+  const conditions = [...baseConditions];
+  if (sp.status && sp.status !== "all") {
+    conditions.push(eq(quotes.status, sp.status as typeof quotes.status.enumValues[number]));
+  }
+
+  const [rows, [countRow]] = await Promise.all([
+    db
+      .select({
+        id: quotes.id,
+        status: quotes.status,
+        totalCents: quotes.totalCents,
+        requestedServiceType: quotes.requestedServiceType,
+        acceptedServiceType: quotes.acceptedServiceType,
+        customerFirstName: customers.firstName,
+        customerLastName: customers.lastName,
+        createdAt: quotes.createdAt,
+        sentAt: quotes.sentAt,
+        viewedAt: quotes.viewedAt,
+        acceptedAt: quotes.acceptedAt,
+        publicToken: quotes.publicToken,
+      })
+      .from(quotes)
+      .innerJoin(customers, eq(quotes.customerId, customers.id))
+      .where(and(...conditions))
+      .orderBy(desc(quotes.createdAt)),
+    db
+      .select({
+        all: sql<number>`count(*)`,
+        draft: sql<number>`count(*) filter (where ${quotes.status} = 'draft')`,
+        sent: sql<number>`count(*) filter (where ${quotes.status} in ('sent', 'viewed'))`,
+        accepted: sql<number>`count(*) filter (where ${quotes.status} = 'accepted')`,
+      })
+      .from(quotes)
+      .innerJoin(customers, eq(quotes.customerId, customers.id))
+      .where(and(...baseConditions)),
+  ]);
 
   const counts = {
-    all: rows.length,
-    draft: rows.filter((row) => row.status === "draft").length,
-    sent: rows.filter((row) => row.status === "sent" || row.status === "viewed").length,
-    accepted: rows.filter((row) => row.status === "accepted").length,
-    stale: rows.filter((row) => row.status === "sent" || row.status === "viewed").length,
+    all: Number(countRow.all),
+    draft: Number(countRow.draft),
+    sent: Number(countRow.sent),
+    accepted: Number(countRow.accepted),
   };
 
   return (
