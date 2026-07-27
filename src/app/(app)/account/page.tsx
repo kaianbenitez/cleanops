@@ -15,8 +15,8 @@ export default function AccountPage() {
     setError("");
     setMessage("");
 
-    if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters.");
+    if (newPassword.length < 10) {
+      setError("Password must be at least 10 characters.");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -55,7 +55,7 @@ export default function AccountPage() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             autoComplete="new-password"
-            minLength={8}
+            minLength={10}
           />
         </label>
         <label className="block text-sm">
@@ -66,7 +66,7 @@ export default function AccountPage() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             autoComplete="new-password"
-            minLength={8}
+            minLength={10}
           />
         </label>
 
