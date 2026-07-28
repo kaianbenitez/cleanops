@@ -2,6 +2,7 @@ export type JobPatch = Partial<{
   scheduledDate: string;
   scheduledStartTime: string | null;
   estimatedDurationMinutes: number;
+  priceCents: number;
   employeeIds: string[];
   status: string;
 }>;

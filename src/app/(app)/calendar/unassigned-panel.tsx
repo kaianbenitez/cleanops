@@ -6,13 +6,16 @@ import { useRouter } from "next/navigation";
 import { commitJobPatch } from "./drag-commit";
 import TeamSearchPicker from "@/components/team-search-picker";
 import { formatDisplayDate } from "@/lib/scheduling/dates";
+import { StatusPill } from "@/components/ui/status-pill";
 
 type Employee = { id: string; firstName: string; lastName: string };
 
 type JobDetail = {
   id: string;
+  status: string;
   scheduledDate: string;
   scheduledStartTime: string | null;
+  priceCents: number;
   customerFirstName: string;
   customerLastName: string;
   addressLine1: string | null;
@@ -48,6 +51,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [assigned, setAssigned] = useState(false);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
 
   async function load(id: string, isCancelled: () => boolean) {
     setLoading(true);
@@ -55,6 +59,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
     setWarning(null);
     setAssigned(false);
     setSelectedIds([]);
+    setConfirmingCancel(false);
     try {
       const [jobBody, historyBody] = await Promise.all([
         fetch(`/api/jobs/${id}/summary`).then((res) => res.json()),
@@ -92,26 +97,31 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
 
   if (!jobId) return null;
 
-  function assignQuick(ids: string[]) {
-    setSelectedIds(ids);
-    save(ids);
-  }
-
-  function save(ids: string[]) {
+  function patch(fields: Parameters<typeof commitJobPatch>[1]) {
     if (!job) return;
-    commitJobPatch(job.id, { employeeIds: ids }, {
+    commitJobPatch(job.id, fields, {
       onOptimistic: () => {
+        setJob((current) => (current ? { ...current, ...fields } : current));
         setSaving(true);
         setError(null);
+        setWarning(null);
       },
       onSuccess: () => {
-        setAssigned(true);
+        if (fields.employeeIds) setAssigned(true);
         router.refresh();
       },
       onWarning: setWarning,
-      onError: (message) => setError(message),
+      onError: (message) => {
+        setError(message);
+        router.refresh();
+      },
       onSettled: () => setSaving(false),
     });
+  }
+
+  function assignQuick(ids: string[]) {
+    setSelectedIds(ids);
+    patch({ employeeIds: ids });
   }
 
   const location = job ? [job.addressLine1, job.city, job.state, job.zip].filter(Boolean).join(", ") : "";
@@ -188,9 +198,89 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
               <div className="mt-2">
                 <TeamSearchPicker employees={employees} selectedIds={selectedIds} onChange={setSelectedIds} />
               </div>
-              <button type="button" disabled={saving || !selectedIds.length} onClick={() => save(selectedIds)} className="co-button-primary mt-3 w-full disabled:opacity-50">
+              <button type="button" disabled={saving || !selectedIds.length} onClick={() => patch({ employeeIds: selectedIds })} className="co-button-primary mt-3 w-full disabled:opacity-50">
                 {saving ? "Saving…" : "Save assignment"}
               </button>
+            </div>
+
+            <div className="border-t border-[var(--co-line-soft)] pt-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Reschedule</p>
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                <label className="block text-xs font-semibold text-[var(--co-muted)]">
+                  Date
+                  <input
+                    key={`date-${job.scheduledDate}`}
+                    type="date"
+                    disabled={saving}
+                    defaultValue={job.scheduledDate}
+                    onBlur={(event) => event.target.value && event.target.value !== job.scheduledDate && patch({ scheduledDate: event.target.value })}
+                    className="co-input mt-1 w-full disabled:opacity-60"
+                  />
+                </label>
+                <label className="block text-xs font-semibold text-[var(--co-muted)]">
+                  Time
+                  <input
+                    key={`time-${job.scheduledStartTime}`}
+                    type="time"
+                    disabled={saving}
+                    defaultValue={job.scheduledStartTime?.slice(0, 5) ?? ""}
+                    onBlur={(event) => {
+                      if (!event.target.value) return;
+                      const withSeconds = `${event.target.value}:00`;
+                      if (withSeconds !== job.scheduledStartTime) patch({ scheduledStartTime: withSeconds });
+                    }}
+                    className="co-input mt-1 w-full disabled:opacity-60"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <label className="block text-xs font-semibold text-[var(--co-muted)]">
+              Amount
+              <div className="relative mt-1">
+                <span className="pointer-events-none absolute left-3 top-2.5 text-sm text-[var(--co-muted)]">$</span>
+                <input
+                  key={`price-${job.priceCents}`}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  disabled={saving}
+                  defaultValue={(job.priceCents / 100).toFixed(2)}
+                  onBlur={(event) => {
+                    const nextCents = Math.round(Number(event.target.value || 0) * 100);
+                    if (Number.isFinite(nextCents) && nextCents >= 0 && nextCents !== job.priceCents) patch({ priceCents: nextCents });
+                  }}
+                  className="co-input w-full pl-7 disabled:opacity-60"
+                />
+              </div>
+            </label>
+
+            <div className="border-t border-[var(--co-line-soft)] pt-4">
+              {job.status === "cancelled" ? (
+                <StatusPill domain="job" status="cancelled" />
+              ) : confirmingCancel ? (
+                <div className="flex items-center gap-2">
+                  <p className="flex-1 text-xs font-medium text-rose-700">Cancel this appointment?</p>
+                  <button type="button" disabled={saving} onClick={() => setConfirmingCancel(false)} className="co-button-secondary py-1 text-xs disabled:opacity-50">
+                    Keep job
+                  </button>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => {
+                      patch({ status: "cancelled" });
+                      setConfirmingCancel(false);
+                    }}
+                    className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                  >
+                    Confirm cancel
+                  </button>
+                </div>
+              ) : (
+                <button type="button" disabled={saving} onClick={() => setConfirmingCancel(true)} className="text-xs font-semibold text-rose-700 hover:underline disabled:opacity-50">
+                  Cancel this job / appointment
+                </button>
+              )}
             </div>
 
             <Link href={`/jobs/${job.id}`} className="block text-center text-xs font-semibold text-[var(--co-evergreen)] hover:underline">

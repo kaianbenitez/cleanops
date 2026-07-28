@@ -14,8 +14,10 @@ export async function GET(
   const [job] = await db
     .select({
       id: jobs.id,
+      status: jobs.status,
       scheduledDate: jobs.scheduledDate,
       scheduledStartTime: jobs.scheduledStartTime,
+      priceCents: jobs.priceCents,
       customerFirstName: customers.firstName,
       customerLastName: customers.lastName,
       addressLine1: customers.addressLine1,
