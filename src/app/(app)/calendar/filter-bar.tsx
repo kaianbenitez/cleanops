@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 
-type Employee = { id: string; firstName: string; lastName: string };
+type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
 const VIEWS = [
   { value: "week", label: "Week" },
@@ -94,7 +94,7 @@ export default function FilterBar({
 
         <select value={employeeId} onChange={(event) => setParam("employeeId", event.target.value)} aria-label="Filter by employee" className="co-input min-w-[150px] py-2 text-xs">
           <option value="">All technicians</option>
-          {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}</option>)}
+          {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}{employee.isActive === false ? " (Inactive)" : ""}</option>)}
         </select>
 
         <select value={status} onChange={(event) => setParam("status", event.target.value)} aria-label="Filter by status" className="co-input min-w-[130px] py-2 text-xs">

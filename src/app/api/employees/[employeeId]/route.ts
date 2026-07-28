@@ -346,15 +346,21 @@ export async function POST(
   return NextResponse.json({ ok: true });
 }
 
-/** DELETE /api/employees/[employeeId] â€” permanently removes only an
- * employee with no operational or audit history. Historical employees should
- * be archived with PATCH { isActive: false } instead. */
+/** DELETE /api/employees/[employeeId] â€” with no `force` param, permanently
+ * removes only an employee with no operational or audit history (unchanged
+ * behavior). Pass `?force=true` to delete an employee who *does* have
+ * history: their CleanOps profile row is kept (so job assignments, time
+ * entries, and payroll lines still resolve a name) and just marked inactive,
+ * and their Supabase login is revoked so they can no longer sign in or be
+ * assigned to new work. Historical jobs/payroll continue to show their name
+ * with an "Inactive" badge â€” see `isActive` on assignment/team-panel reads. */
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ employeeId: string }> }
 ) {
   const admin = await requireAdmin();
   const { employeeId } = await params;
+  const force = req.nextUrl.searchParams.get("force") === "true";
 
   const [employee] = await db
     .select({ id: users.id, role: users.role, companyId: users.companyId })
@@ -381,12 +387,37 @@ export async function DELETE(
     auditEntries: Number(auditCount[0]?.count ?? 0),
     preferredByCustomers: Number(preferredCleanerCount[0]?.count ?? 0),
   };
+  const hasHistory = Object.values(linkedRecords).some((count) => count > 0);
 
-  if (Object.values(linkedRecords).some((count) => count > 0)) {
+  if (hasHistory && !force) {
     return NextResponse.json(
       { error: "This employee has history in CleanOps. Archive the employee instead of permanently deleting them.", linkedRecords },
       { status: 409 }
     );
+  }
+
+  if (hasHistory && force) {
+    const [existing] = await db.select().from(users).where(eq(users.id, employeeId)).limit(1);
+    await db.update(users).set({ isActive: false }).where(eq(users.id, employeeId));
+    await db.insert(auditLog).values({
+      companyId: admin.companyId,
+      userId: admin.id,
+      action: "employee.force_deleted",
+      entityType: "employee",
+      entityId: employeeId,
+      before: existing ? JSON.parse(JSON.stringify(existing)) : null,
+      after: { isActive: false, linkedRecords },
+    });
+
+    const { error } = await createAdminClient().auth.admin.deleteUser(employeeId);
+    if (error) {
+      return NextResponse.json(
+        { error: `Employee marked inactive, but login revocation failed: ${error.message}`, linkedRecords },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ ok: true, hardDeleted: false, linkedRecords });
   }
 
   await db.delete(users).where(eq(users.id, employeeId));
@@ -395,5 +426,5 @@ export async function DELETE(
     return NextResponse.json({ error: `Profile deleted, but auth cleanup failed: ${error.message}` }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, hardDeleted: true });
 }

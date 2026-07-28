@@ -96,6 +96,7 @@ export type CalendarEmployee = {
   id: string;
   firstName: string;
   lastName: string;
+  isActive: boolean;
 };
 
 export type CalendarJob = {
@@ -226,18 +227,23 @@ export default async function CalendarPage({
   const end =
     view === "month" ? toISODate(month.end) : toISODate(days[days.length - 1]);
 
+  // Includes inactive/force-deleted employees so a job's crew still resolves
+  // a name (and an "Inactive" badge) for someone no longer on the active
+  // roster. Components that offer employees as *new* assignment targets
+  // (Staff board lanes, technician pickers) filter this down to active-only
+  // themselves rather than this query excluding inactive people outright.
   const employeesQuery = db
     .select({
       id: users.id,
       firstName: users.firstName,
       lastName: users.lastName,
+      isActive: users.isActive,
     })
     .from(users)
     .where(
       and(
         eq(users.companyId, admin.companyId),
         eq(users.role, "employee"),
-        eq(users.isActive, true),
       ),
     )
     .orderBy(users.firstName);

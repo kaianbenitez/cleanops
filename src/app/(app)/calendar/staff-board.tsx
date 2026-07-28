@@ -6,7 +6,7 @@ import type { CalendarEmployee, CalendarJob } from "./page";
 import { commitJobPatch } from "./drag-commit";
 import { UndoToast, useUndoToast } from "./undo-toast";
 import JobCard from "./job-card";
-import { assignDayLanes } from "./shared";
+import { assignDayLanes, formatEstimatedTime } from "./shared";
 import UnassignedPanel from "./unassigned-panel";
 import type { EmployeePtoRecord, PtoPeriod } from "@/lib/scheduling/pto";
 
@@ -97,12 +97,20 @@ export default function StaffBoard({
     previewDuration: number;
   } | null>(null);
   const { toast, showUndo, dismiss } = useUndoToast();
+  // Lanes are assignment targets, so only active employees get a column —
+  // an inactive/force-deleted employee's past jobs still render (via
+  // JobCard, which receives the full `employees` list below), just not as
+  // a lane you can drop new work onto.
+  const activeEmployees = useMemo(
+    () => employees.filter((employee) => employee.isActive),
+    [employees],
+  );
   const sortedEmployees = useMemo(
     () =>
       laneEmployeeId
-        ? employees.filter((employee) => employee.id === laneEmployeeId)
-        : [...employees],
-    [employees, laneEmployeeId],
+        ? activeEmployees.filter((employee) => employee.id === laneEmployeeId)
+        : [...activeEmployees],
+    [activeEmployees, laneEmployeeId],
   );
   const activeUnassignedJobs = useMemo(
     () =>
@@ -245,6 +253,10 @@ export default function StaffBoard({
       return;
     if (job.assignedUserIds.includes(employeeId)) {
       setWarning("That technician is already assigned to this job.");
+      return;
+    }
+    if (!employees.find((candidate) => candidate.id === employeeId)?.isActive) {
+      setWarning("That technician is inactive and can't be assigned to new jobs.");
       return;
     }
     const previousEmployees = job.assignedUserIds;
@@ -487,9 +499,7 @@ export default function StaffBoard({
           <span
             className={`shrink-0 text-[10px] font-semibold ${retained ? "text-[var(--co-muted)]" : "text-[var(--co-evergreen)]"}`}
           >
-            {job.estimatedDurationMinutes
-              ? `${Math.round((job.estimatedDurationMinutes / 60) * 10) / 10} hrs`
-              : "-"}
+            {formatEstimatedTime(job.estimatedDurationMinutes)}
           </span>
         </div>
         <p className="mt-1 text-[11px] text-[var(--co-muted)]">
@@ -571,6 +581,7 @@ export default function StaffBoard({
             {employees.map((employee) => (
               <option key={employee.id} value={employee.id}>
                 {employee.firstName} {employee.lastName}
+                {employee.isActive ? "" : " (Inactive)"}
               </option>
             ))}
           </select>

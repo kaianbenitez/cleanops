@@ -46,7 +46,14 @@ export default function TeamPanel({
                 {employee.lastName[0]}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="font-semibold">{employee.firstName} {employee.lastName}</p>
+                <p className="flex items-center gap-1.5 font-semibold">
+                  {employee.firstName} {employee.lastName}
+                  {employee.isActive === false ? (
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-slate-500">
+                      Inactive
+                    </span>
+                  ) : null}
+                </p>
                 <p className="text-xs text-[var(--co-muted)]">
                   {assignments.find((assignment) => assignment.userId === employee.id)?.role === "lead"
                     ? "Team lead"

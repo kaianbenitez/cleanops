@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-type Employee = { id: string; firstName: string; lastName: string };
+type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
 export default function AssigneePicker({
   employees,
@@ -77,7 +77,9 @@ export default function AssigneePicker({
         <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-2xl border border-[var(--co-line)] bg-white p-2 shadow-[0_12px_32px_rgba(15,23,20,0.18)]">
           <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Assign crew</p>
           <div className="max-h-64 space-y-0.5 overflow-y-auto">
-            {employees.map((employee) => {
+            {employees
+              .filter((employee) => employee.isActive !== false || assignedUserIds.includes(employee.id))
+              .map((employee) => {
               const checked = assignedUserIds.includes(employee.id);
               const isLead = assignedUserIds[0] === employee.id;
               return (
@@ -86,6 +88,7 @@ export default function AssigneePicker({
                     <input type="checkbox" checked={checked} onChange={() => toggle(employee.id)} className="h-3.5 w-3.5 accent-[var(--co-evergreen)]" />
                     <span className="truncate">
                       {employee.firstName} {employee.lastName}
+                      {employee.isActive === false ? <span className="ml-1 text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--co-muted)]">Inactive</span> : null}
                     </span>
                   </label>
                   {checked ? (

@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { loadAssignableEmployees, loadJobDetail } from "@/lib/jobs/job-detail";
+import { loadJobDetail, loadJobTeamEmployees } from "@/lib/jobs/job-detail";
 import JobDetailClient from "./job-detail-client";
 import type { AuditEntry } from "./types";
 
@@ -14,7 +14,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ jobI
 
   const [detail, employees] = await Promise.all([
     loadJobDetail(jobId, user.companyId),
-    loadAssignableEmployees(user.companyId),
+    loadJobTeamEmployees(user.companyId),
   ]);
 
   if (!detail) notFound();

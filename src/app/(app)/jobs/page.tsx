@@ -181,7 +181,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
   const [assignments, entries] = await Promise.all([
     jobIds.length
       ? db
-          .select({ jobId: jobAssignments.jobId, userId: users.id, firstName: users.firstName, lastName: users.lastName })
+          .select({ jobId: jobAssignments.jobId, userId: users.id, firstName: users.firstName, lastName: users.lastName, isActive: users.isActive })
           .from(jobAssignments)
           .innerJoin(users, eq(jobAssignments.userId, users.id))
           .where(inArray(jobAssignments.jobId, jobIds))
@@ -364,6 +364,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                               {assigned.map((person) => (
                                 <span key={person.userId} className="rounded-full bg-[var(--co-surface-muted)] px-2 py-1 text-xs text-[var(--co-evergreen)]">
                                   {person.firstName} {person.lastName[0]}.
+                                  {!person.isActive ? <span className="ml-1 text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--co-muted)]">Inactive</span> : null}
                                 </span>
                               ))}
                             </div>

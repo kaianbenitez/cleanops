@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { displayCustomer, formatClockLabel } from "./shared";
+import { displayCustomer, formatClockLabel, formatEstimatedTime } from "./shared";
 import { commitJobPatch } from "./drag-commit";
 import { useUndoToast, UndoToast } from "./undo-toast";
 import AssigneePicker from "./assignee-picker";
 import { StatusPill } from "@/components/ui/status-pill";
 import { formatElapsed } from "@/lib/my-day/job-format";
 
-type Employee = { id: string; firstName: string; lastName: string };
+type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
 type ListJob = {
   id: string;
@@ -24,6 +24,7 @@ type ListJob = {
   customerZip: string | null;
   customerCity: string | null;
   customerAddress: string | null;
+  estimatedDurationMinutes: number | null;
   assignedUserIds: string[];
 };
 
@@ -249,6 +250,7 @@ export default function TodayListBoard({
                       className="co-input mt-1.5 py-1.5 text-xs"
                       aria-label={`Time for ${job.customerFirstName} ${job.customerLastName}`}
                     />
+                    <p className="mt-1.5 text-[10px] text-[var(--co-muted)]">{formatEstimatedTime(job.estimatedDurationMinutes)}</p>
                   </td>
                   <td className="px-5 py-3 font-medium">
                     <Link href={`/jobs/${job.id}`} className="text-[var(--co-evergreen)] hover:underline">
@@ -294,7 +296,10 @@ export default function TodayListBoard({
                           const state = clockStatus(entriesFor(job.id, employee.id), now);
                           return (
                             <li key={employee.id} className="text-xs">
-                              <span className="text-[var(--co-muted)]">{employee.firstName} {employee.lastName}: </span>
+                              <span className="text-[var(--co-muted)]">
+                                {employee.firstName} {employee.lastName}
+                                {employee.isActive === false ? " (Inactive): " : ": "}
+                              </span>
                               <span className={`inline-block whitespace-nowrap rounded-full border px-2 py-0.5 font-medium ${state.className}`}>{state.label}</span>
                             </li>
                           );

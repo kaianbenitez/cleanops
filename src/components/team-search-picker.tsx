@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-type Employee = { id: string; firstName: string; lastName: string };
+type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
 /** Search-to-add multi-select for assigning a crew. Replaces a plain checkbox
  * grid with a filterable combobox + removable chips, since scanning a long
@@ -38,6 +38,7 @@ export default function TeamSearchPicker({
   const matches = useMemo(() => {
     const term = query.trim().toLowerCase();
     return employees
+      .filter((employee) => employee.isActive !== false)
       .filter((employee) => !selectedIds.includes(employee.id))
       .filter((employee) => !term || `${employee.firstName} ${employee.lastName}`.toLowerCase().includes(term))
       .slice(0, 8);
@@ -75,6 +76,7 @@ export default function TeamSearchPicker({
           {selectedEmployees.map((employee, index) => (
             <span key={employee.id} className="flex items-center gap-1.5 rounded-full border border-[var(--co-line)] bg-[var(--co-surface-muted)] py-1 pl-3 pr-1.5 text-xs font-medium">
               {index === 0 ? <span className="rounded-full bg-[var(--co-evergreen)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">Lead</span> : null}
+              {employee.isActive === false ? <span className="rounded-full border border-slate-300 bg-white px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">Inactive</span> : null}
               {employee.firstName} {employee.lastName}
               {index !== 0 ? (
                 <button type="button" onClick={() => makeLead(employee.id)} className="rounded-full px-1.5 py-0.5 text-[10px] text-[var(--co-muted)] hover:text-[var(--co-evergreen)]">

@@ -116,3 +116,16 @@ export async function loadAssignableEmployees(companyId: string) {
     .where(and(eq(users.companyId, companyId), eq(users.role, "employee"), eq(users.isActive, true)))
     .orderBy(users.firstName);
 }
+
+/** Every employee (active or archived/force-deleted), for the Job Detail team
+ * panel: a job's crew must still resolve names for employees who left after
+ * being assigned, not just currently-active ones. Callers picking crew for
+ * *new* work should keep using `loadAssignableEmployees` instead — this list
+ * intentionally includes inactive people, tagged via `isActive`. */
+export async function loadJobTeamEmployees(companyId: string) {
+  return db
+    .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, isActive: users.isActive })
+    .from(users)
+    .where(and(eq(users.companyId, companyId), eq(users.role, "employee")))
+    .orderBy(users.firstName);
+}

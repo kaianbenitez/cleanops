@@ -3,7 +3,7 @@
 // before handing them across the client boundary, so every field here is
 // JSON-primitive.
 
-export type Employee = { id: string; firstName: string; lastName: string };
+export type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
 export type Assignment = { id: string; userId: string; role: string };
 

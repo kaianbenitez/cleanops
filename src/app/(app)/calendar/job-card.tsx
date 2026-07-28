@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { displayCustomer, formatClockLabel, recurrenceLabel, TYPE_LABELS } from "./shared";
+import { displayCustomer, formatClockLabel, formatEstimatedTime, recurrenceLabel, TYPE_LABELS } from "./shared";
 import { statusLabel } from "@/components/ui/status-pill";
 
-type Employee = { id: string; firstName: string; lastName: string };
+type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 export type CardJob = {
   id: string;
   type: string;
@@ -31,7 +31,10 @@ const STATUS_TONES: Record<string, string> = {
 };
 
 export default function JobCard({ job, employees, draggable = false, onDragStart }: { job: CardJob; employees: Employee[]; draggable?: boolean; onDragStart?: (event: React.DragEvent<HTMLAnchorElement>) => void }) {
-  const crew = job.assignedUserIds.map((id) => employees.find((employee) => employee.id === id)).filter(Boolean).map((employee) => `${employee!.firstName} ${employee!.lastName}`);
+  const crew = job.assignedUserIds
+    .map((id) => employees.find((employee) => employee.id === id))
+    .filter(Boolean)
+    .map((employee) => `${employee!.firstName} ${employee!.lastName}${employee!.isActive === false ? " (Inactive)" : ""}`);
   const label = displayCustomer(job);
   const isLocked = ["completed", "cancelled", "no_show"].includes(job.status);
 
@@ -45,7 +48,7 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
       >
         <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-[var(--co-muted)]"><span>{formatClockLabel(job.scheduledStartTime)}</span><span className="rounded bg-[var(--co-surface-muted)] px-1.5 py-0.5 text-[10px]">{job.clientType === "commercial" ? "Commercial" : "Residential"}</span></div>
         <p className="mt-1 truncate text-[13px] font-semibold text-[var(--co-ink)]">{label}</p>
-        <p className="mt-0.5 truncate text-[11px] text-[var(--co-muted)]">{TYPE_LABELS[job.type] ?? job.type} · {job.customerZip ?? "No ZIP"}</p>
+        <p className="mt-0.5 truncate text-[11px] text-[var(--co-muted)]">{TYPE_LABELS[job.type] ?? job.type} · {job.customerZip ?? "No ZIP"} · {formatEstimatedTime(job.estimatedDurationMinutes)}</p>
         <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px]"><span className="truncate text-[var(--co-muted)]">{crew.length ? crew.join(", ") : "Unassigned"}</span><span className="shrink-0 font-medium text-[var(--co-evergreen)]">{statusLabel("job", job.status)}</span></div>
         {job.recurringSeriesId ? <p className="mt-1 text-[10px] font-medium text-[var(--co-faint)]">↻ {recurrenceLabel(job.recurrenceFrequency)}</p> : null}
       </Link>

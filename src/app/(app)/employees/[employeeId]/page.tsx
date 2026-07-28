@@ -79,6 +79,12 @@ function formatClock(value: string | null) {
   return value ? value.slice(0, 5) : "—";
 }
 
+/** hh:mm, matching the Jobs list / Job Detail / Calendar convention. */
+function formatEstimatedTime(minutes: number | null) {
+  if (!minutes) return "No estimate";
+  return `Est. ${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
 function tenureLabel(hiredDate: string | null) {
   if (!hiredDate) return null;
   const hired = new Date(`${hiredDate}T00:00:00.000Z`);
@@ -162,6 +168,7 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
   const [error, setError] = useState<string | null>(null);
   const [managementMessage, setManagementMessage] = useState<string | null>(null);
   const [managementError, setManagementError] = useState<string | null>(null);
+  const [linkedRecords, setLinkedRecords] = useState<Record<string, number> | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [pto, setPto] = useState<EmployeePto[]>([]);
   const employeeInfoRef = useRef<HTMLDivElement>(null);
@@ -230,13 +237,18 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
     setManagementMessage("Password changed. Share the new password securely with the employee.");
   }
 
-  async function deleteEmployee() {
+  async function deleteEmployee(force = false) {
     setManagementMessage(null);
     setManagementError(null);
-    const response = await fetch(`/api/employees/${employeeId}`, { method: "DELETE" });
+    if (!force) setLinkedRecords(null);
+    const response = await fetch(`/api/employees/${employeeId}${force ? "?force=true" : ""}`, { method: "DELETE" });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      setManagementError(data.error ?? "This employee could not be permanently deleted.");
+      if (response.status === 409 && data.linkedRecords) {
+        setLinkedRecords(data.linkedRecords);
+        return;
+      }
+      setManagementError(data.error ?? "This employee could not be deleted.");
       return;
     }
     window.location.href = "/employees";
@@ -273,6 +285,7 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
     deleteEmployee={deleteEmployee}
     managementMessage={managementMessage}
     managementError={managementError}
+    linkedRecords={linkedRecords}
     load={load}
   />;
 }
@@ -293,9 +306,10 @@ type CompactProfileProps = {
   initials: string;
   tenure: string | null;
   setPassword: (password: string, confirmPassword: string) => Promise<void>;
-  deleteEmployee: () => Promise<void>;
+  deleteEmployee: (force?: boolean) => Promise<void>;
   managementMessage: string | null;
   managementError: string | null;
+  linkedRecords: Record<string, number> | null;
   load: () => Promise<void>;
 };
 
@@ -318,6 +332,7 @@ function CompactProfile({
   deleteEmployee,
   managementMessage,
   managementError,
+  linkedRecords,
   load,
 }: CompactProfileProps) {
   const anniversary = milestoneCountdown(employee.hiredDate, "Work anniversary");
@@ -421,9 +436,25 @@ function CompactProfile({
         onDelete={deleteEmployee}
         message={managementMessage}
         error={managementError}
+        linkedRecords={linkedRecords}
       />
     </div>
   );
+}
+
+const LINKED_RECORD_LABELS: Record<string, string> = {
+  jobAssignments: "job assignment",
+  timeEntries: "time entry",
+  payrollLines: "payroll line",
+  auditEntries: "audit log entry",
+  preferredByCustomers: "customer with them as preferred cleaner",
+};
+
+function describeLinkedRecords(linkedRecords: Record<string, number>) {
+  return Object.entries(linkedRecords)
+    .filter(([, count]) => count > 0)
+    .map(([key, count]) => `${count} ${LINKED_RECORD_LABELS[key] ?? key}${count === 1 ? "" : "s"}`)
+    .join(", ");
 }
 
 function EmployeeAccountManagement({
@@ -433,13 +464,15 @@ function EmployeeAccountManagement({
   onDelete,
   message,
   error,
+  linkedRecords,
 }: {
   employeeName: string;
   isActive: boolean;
   onSetPassword: (password: string, confirmPassword: string) => Promise<void>;
-  onDelete: () => Promise<void>;
+  onDelete: (force?: boolean) => Promise<void>;
   message: string | null;
   error: string | null;
+  linkedRecords: Record<string, number> | null;
 }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -502,18 +535,48 @@ function EmployeeAccountManagement({
           <p className="text-sm font-semibold text-[var(--co-ink)]">{isActive ? "Archive employee" : "Employee is archived"}</p>
           <p className="mt-1 text-xs text-[var(--co-muted)]">{isActive ? "Stops this person from appearing in active assignment pickers." : "Restore them from the button above when needed."}</p>
         </div>
-        <button
-          type="button"
-          className="rounded-xl border border-rose-200 px-3.5 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50"
-          onClick={() => {
-            if (window.confirm(`Permanently delete ${employeeName}? This cannot be undone. Employees with job, payroll, or audit history must be archived instead.`)) {
-              void onDelete();
-            }
-          }}
-        >
-          Delete permanently
-        </button>
+        {!linkedRecords ? (
+          <button
+            type="button"
+            className="rounded-xl border border-rose-200 px-3.5 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+            onClick={() => {
+              if (window.confirm(`Permanently delete ${employeeName}? This cannot be undone. Employees with job, payroll, or audit history must be archived instead.`)) {
+                void onDelete();
+              }
+            }}
+          >
+            Delete permanently
+          </button>
+        ) : null}
       </div>
+
+      {linkedRecords ? (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-900">{employeeName} has history in CleanOps</p>
+          <p className="mt-1 text-xs leading-5 text-amber-900">
+            {describeLinkedRecords(linkedRecords)}. They can&apos;t be permanently removed without losing that history — archive
+            them instead (button above), or force-delete: their profile is marked inactive and their login is revoked so they
+            can&apos;t sign in or be assigned new work, but their name stays on every past job, time entry, and payroll line,
+            shown with an &quot;Inactive&quot; badge.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              className="rounded-xl border border-rose-300 bg-white px-3.5 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+              onClick={() => {
+                if (window.confirm(`Force-delete ${employeeName}? Their login will be revoked immediately and they'll no longer be assignable, but their name stays on past jobs and payroll. This cannot be undone.`)) {
+                  void onDelete(true);
+                }
+              }}
+            >
+              Force delete anyway
+            </button>
+            <button type="button" className="co-button-secondary py-2 text-xs" onClick={() => void onDelete(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -595,7 +658,7 @@ function JobRow({ job, compact = false }: { job: EmployeeJob; compact?: boolean 
       <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--co-muted)]">
         <span>{job.scheduledDate}</span>
         <span>{formatClock(job.scheduledStartTime)}</span>
-        <span>{job.estimatedDurationMinutes ? `${Math.round((job.estimatedDurationMinutes / 60) * 10) / 10} hrs est.` : "No estimate"}</span>
+        <span>{formatEstimatedTime(job.estimatedDurationMinutes)}</span>
         {job.completedAt ? <span>Completed</span> : null}
       </div>
     </Link>
