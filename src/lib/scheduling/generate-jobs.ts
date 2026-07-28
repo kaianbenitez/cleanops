@@ -2,8 +2,8 @@ import { db } from "@/db";
 import { recurringSeries, jobs, jobAssignments } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 
-/** How far ahead to keep recurring jobs generated, per PLAN.md §4/§7. */
-const GENERATION_WINDOW_DAYS = 56; // 8 weeks
+/** How far ahead to keep recurring jobs generated — at least 3 months. */
+const GENERATION_WINDOW_DAYS = 92; // 13 weeks
 
 function toISODate(d: Date): string {
   return d.toISOString().slice(0, 10);

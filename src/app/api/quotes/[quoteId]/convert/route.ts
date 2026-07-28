@@ -14,9 +14,9 @@ const convertSchema = z.object({
   forceJob: z.boolean().optional(),
 });
 
-// Recurring service types spin up a recurring_series (+ its first 8 weeks of
-// jobs); everything else becomes a single job. "four_weeks" maps to the
-// existing every4weeks recurrence frequency from Phase 1.
+// Recurring service types spin up a recurring_series (+ at least its first 3
+// months of jobs); everything else becomes a single job. "four_weeks" maps to
+// the existing every4weeks recurrence frequency from Phase 1.
 const RECURRING_TYPES: Record<string, "weekly" | "biweekly" | "every4weeks"> = {
   weekly: "weekly",
   biweekly: "biweekly",

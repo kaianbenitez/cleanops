@@ -16,7 +16,7 @@ const createSeriesSchema = z.object({
   employeeIds: z.array(z.string().uuid()).optional(),
 });
 
-/** POST /api/recurring-series — creates a series and immediately generates its first 8 weeks of jobs. */
+/** POST /api/recurring-series — creates a series and immediately generates at least its first 3 months of jobs. */
 export async function POST(req: NextRequest) {
   const admin = await requireAdmin();
   const body = await req.json();

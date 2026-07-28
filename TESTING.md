@@ -158,7 +158,7 @@ Learned the hard way while testing `/recurring/new`:
 
 - **Do not submit a form that writes to the hosted database.** There is no local
   DB in this workflow — `POST /api/recurring-series` creates a real series plus
-  eight weeks of jobs. Assert on validation failures instead, or read-only paths.
+  at least 3 months of jobs. Assert on validation failures instead, or read-only paths.
 - Do not run `npm run db:migrate`, `db:push`, or `supabase:reset` (see
   `AGENTS.md`).
 - Do not commit `test-results/`, `playwright-report/`, or root `*.log` files —
