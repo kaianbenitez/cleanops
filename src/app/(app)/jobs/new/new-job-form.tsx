@@ -22,7 +22,7 @@ const LABELS: Record<string, string> = {
 export default function NewJobForm({ customers, employees, services }: NewJobOptions) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [customerId, setCustomerId] = useState("");
+  const [customerId, setCustomerId] = useState(searchParams.get("customerId") ?? "");
   const [type, setType] = useState<(typeof JOB_TYPES)[number]>("one_time");
   const [scheduledDate, setScheduledDate] = useState(searchParams.get("date") ?? "");
   const [scheduledStartTime, setScheduledStartTime] = useState("09:00");
@@ -59,7 +59,10 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
       setSubmitting(false);
       return;
     }
-    router.push("/calendar");
+    // Explicit view+day beats the calendar's remembered last-viewed cookie,
+    // so the newly created job's own date is what actually renders instead
+    // of silently falling back to whatever day was last viewed.
+    router.push(`/calendar?view=staff&day=${scheduledDate}`);
     router.refresh();
   }
 
