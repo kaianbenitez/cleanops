@@ -41,7 +41,7 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
         href={`/jobs/${job.id}`}
         draggable={draggable && !isLocked}
         onDragStart={onDragStart}
-        className={`group block rounded-lg border px-2.5 py-2 text-left transition hover:-translate-y-px hover:border-[var(--co-evergreen)] hover:shadow-[0_4px_12px_rgba(0,108,73,0.1)] ${STATUS_TONES[job.status] ?? STATUS_TONES.scheduled}`}
+        className={`group block h-full overflow-hidden rounded-lg border px-2.5 py-2 text-left transition hover:-translate-y-px hover:border-[var(--co-evergreen)] hover:shadow-[0_4px_12px_rgba(0,108,73,0.1)] ${STATUS_TONES[job.status] ?? STATUS_TONES.scheduled}`}
       >
         <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-[var(--co-muted)]"><span>{formatClockLabel(job.scheduledStartTime)}</span><span className="rounded bg-[var(--co-surface-muted)] px-1.5 py-0.5 text-[10px]">{job.clientType === "commercial" ? "Commercial" : "Residential"}</span></div>
         <p className="mt-1 truncate text-[13px] font-semibold text-[var(--co-ink)]">{label}</p>

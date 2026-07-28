@@ -43,6 +43,21 @@ function ptoStyle(period: PtoPeriod) {
   return { top: "0%", height: "100%" };
 }
 
+function minutesFromDragEvent(event: { clientY: number; currentTarget: HTMLElement }) {
+  const rect = event.currentTarget.getBoundingClientRect();
+  const rawMinutes = START + ((event.clientY - rect.top) / rect.height) * TOTAL;
+  const snappedMinutes = Math.round(rawMinutes / 15) * 15;
+  return Math.min(Math.max(snappedMinutes, START), START + TOTAL);
+}
+
+function clockLabelFromMinutes(totalMinutes: number) {
+  const hour24 = Math.floor(totalMinutes / 60);
+  const minute = totalMinutes % 60;
+  const hour12 = ((hour24 + 11) % 12) + 1;
+  const suffix = hour24 < 12 ? "AM" : "PM";
+  return `${hour12}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
+
 export default function StaffBoard({
   dayIso,
   dayLabel,
@@ -65,7 +80,10 @@ export default function StaffBoard({
   const router = useRouter();
   const [jobs, setJobs] = useState(initialJobs);
   const [syncedJobs, setSyncedJobs] = useState(initialJobs);
-  const [dragOver, setDragOver] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<{
+    employeeId: string;
+    minutes: number;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [selectedJobId, setSelectedJobId] = useState("");
@@ -142,11 +160,7 @@ export default function StaffBoard({
     );
     const isExistingLane = previousEmployees.includes(employeeId);
     const previousTime = job.scheduledStartTime;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const rawMinutes =
-      START + ((event.clientY - rect.top) / rect.height) * TOTAL;
-    const snappedMinutes = Math.round(rawMinutes / 15) * 15;
-    const clampedMinutes = Math.min(Math.max(snappedMinutes, START), START + TOTAL);
+    const clampedMinutes = minutesFromDragEvent(event);
     const nextTime = `${String(Math.floor(clampedMinutes / 60)).padStart(2, "0")}:${String(clampedMinutes % 60).padStart(2, "0")}`;
 
     if (
@@ -686,11 +700,14 @@ export default function StaffBoard({
                 return (
                   <div
                     key={employee.id}
-                    className={`relative border-t border-[var(--co-line-soft)] ${dragOver === employee.id ? "bg-[var(--co-accent-tint)]" : "bg-[var(--co-surface)]"}`}
+                    className={`relative border-t border-[var(--co-line-soft)] ${dragOver?.employeeId === employee.id ? "bg-[var(--co-accent-tint)]" : "bg-[var(--co-surface)]"}`}
                     style={{ minHeight: `${HOUR_HEIGHT * 8}px` }}
                     onDragOver={(event) => {
                       event.preventDefault();
-                      setDragOver(employee.id);
+                      setDragOver({
+                        employeeId: employee.id,
+                        minutes: minutesFromDragEvent(event),
+                      });
                     }}
                     onDragLeave={() => setDragOver(null)}
                     onDrop={(event) => dropOnEmployee(event, employee.id)}
@@ -760,9 +777,14 @@ export default function StaffBoard({
                         </div>
                       );
                     })}
-                    {dragOver === employee.id ? (
-                      <div className="absolute inset-x-2 top-2 z-20 rounded-lg border border-dashed border-[var(--co-evergreen)] bg-white/90 p-3 text-center text-xs font-semibold text-[var(--co-evergreen)]">
-                        Drop to assign
+                    {dragOver?.employeeId === employee.id ? (
+                      <div
+                        className="pointer-events-none absolute inset-x-2 z-20 -translate-y-1/2 rounded-lg border border-dashed border-[var(--co-evergreen)] bg-white/90 p-2 text-center text-xs font-semibold text-[var(--co-evergreen)]"
+                        style={{
+                          top: `${Math.max(0, Math.min(((dragOver.minutes - START) / TOTAL) * 100, 100))}%`,
+                        }}
+                      >
+                        Drop at {clockLabelFromMinutes(dragOver.minutes)}
                       </div>
                     ) : null}
                   </div>
