@@ -9,6 +9,46 @@ Last updated: 2026-07-28.
 
 ## Done
 
+- **Staff board: drop-to-exact-time and drag-bottom-edge-to-resize shipped (2026-07-28).**
+  This was the product decision `HANDOFF.calendar-audit.md`'s "Out of scope" section had
+  flagged as pending ("today a drop appends an assignee... this is a pending product
+  decision, not a bug to fix unilaterally") — the user has now made that call explicitly.
+  Two changes to `src/app/(app)/calendar/staff-board.tsx`:
+  1. **Drop-to-time fix.** `dropOnEmployee` previously only recalculated
+     `scheduledStartTime` from the drop's vertical position when dropping onto a lane the
+     job was *already* assigned to (`isExistingLane`); dropping onto a *new* technician's
+     lane silently kept the old time, so the card appeared to land wherever you dropped it
+     but the server disagreed. Now every drop — same lane or new lane, assigned or from the
+     unassigned queue — always snaps to the dropped Y position (15-min increments, clamped
+     to the 9am–5pm board).
+  2. **New: resize-to-extend-duration.** A pointer-events-based handle (not HTML5 drag, so
+     it doesn't fight the existing move-a-job dnd) sits on the bottom 12px of each job block,
+     visible on hover via a `group-hover` affordance. Dragging it live-previews the new
+     height, snaps to 15-min increments on release, clamps between 15 min and the board's
+     5pm edge, and commits via the same optimistic-update-then-`router.refresh()`-then-undo
+     pattern every other board mutation uses. `estimatedDurationMinutes` had to be added to
+     `updateJobSchema` in `api/jobs/[jobId]/route.ts` (was write-only via nothing — the field
+     existed on the row but no endpoint could set it) and to `JobPatch` in `drag-commit.ts`.
+     Also fixed the overlap-warning calculation in that same route: it gated on
+     `scheduledDate`/`scheduledStartTime`/`employeeIds` changing but not on duration, and used
+     `existing.estimatedDurationMinutes` even when the request was actively changing it — so
+     extending a job into a collision would previously return no warning at all.
+  Verified with `verify` (clean, 0 errors), `smoke:routes` (5/5), `smoke:auth` (22/22), the
+  full Playwright suite (4/4), and a throwaway Playwright spec driving the resize handle with
+  real synthetic pointer-move sequences (multi-jump drags, not a single coordinate jump, since
+  React's `onPointerMove` needs to see the drag) — confirmed the block's rendered height grows
+  during resize, the "Job duration updated" toast appears, and Undo restores the exact original
+  height. An earlier manual verification pass via the Chrome extension had also confirmed the
+  drop-to-time fix (dragging a job mid-card moved it to the dropped time, 10:45 AM) but left
+  that real job rescheduled on the hosted DB as a side effect — reverted via a second throwaway
+  spec calling `PATCH /api/jobs/[jobId]` directly before cleanup. Both throwaway specs were
+  deleted after use, per `TESTING.md`.
+  **Known gaps intentionally left for later, not blocking:** no touch/keyboard equivalent for
+  resize (same gap the existing move-drag already has, tracked in `HANDOFF.calendar-audit.md`
+  Phase 3); resizing does not re-run the PTO conflict check (only the double-booking warning),
+  though duration alone can't create a new PTO conflict since PTO is date/period-based, not
+  duration-based; `day-board.tsx` (dead code) was intentionally left untouched.
+
 - **Three missing indexes added for pasted design-review finding, applied to hosted DB
   (2026-07-28).** A design review of query/indexing patterns flagged three list-page sorts/filters
   with no matching index: `GET /api/customers` orders by `lastName, firstName`

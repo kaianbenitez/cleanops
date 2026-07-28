@@ -72,6 +72,12 @@ export default function StaffBoard({
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [queueExpanded, setQueueExpanded] = useState(false);
   const [openJobId, setOpenJobId] = useState<string | null>(null);
+  const [resizing, setResizing] = useState<{
+    jobId: string;
+    startY: number;
+    initialDuration: number;
+    previewDuration: number;
+  } | null>(null);
   const { toast, showUndo, dismiss } = useUndoToast();
   const sortedEmployees = useMemo(
     () =>
@@ -140,9 +146,8 @@ export default function StaffBoard({
     const rawMinutes =
       START + ((event.clientY - rect.top) / rect.height) * TOTAL;
     const snappedMinutes = Math.round(rawMinutes / 15) * 15;
-    const nextTime = isExistingLane
-      ? `${String(Math.floor(Math.min(Math.max(snappedMinutes, START), START + TOTAL) / 60)).padStart(2, "0")}:${String(Math.min(Math.max(snappedMinutes, START), START + TOTAL) % 60).padStart(2, "0")}`
-      : previousTime;
+    const clampedMinutes = Math.min(Math.max(snappedMinutes, START), START + TOTAL);
+    const nextTime = `${String(Math.floor(clampedMinutes / 60)).padStart(2, "0")}:${String(clampedMinutes % 60).padStart(2, "0")}`;
 
     if (
       JSON.stringify(previousEmployees) === JSON.stringify(nextEmployees) &&
@@ -333,17 +338,26 @@ export default function StaffBoard({
     );
   }
 
-  function jobStyle(job: CalendarJob, lane: number, laneCount: number) {
+  function startMinutesOf(job: CalendarJob) {
     const [hour, minute] = (job.scheduledStartTime ?? "09:00")
       .slice(0, 5)
       .split(":")
       .map(Number);
+    return hour * 60 + minute;
+  }
+
+  function jobStyle(
+    job: CalendarJob,
+    lane: number,
+    laneCount: number,
+    durationOverride?: number,
+  ) {
     const top = Math.max(
       0,
-      Math.min(((hour * 60 + minute - START) / TOTAL) * 100, 94),
+      Math.min(((startMinutesOf(job) - START) / TOTAL) * 100, 94),
     );
     const height = Math.max(
-      ((job.estimatedDurationMinutes ?? 75) / TOTAL) * 100,
+      ((durationOverride ?? job.estimatedDurationMinutes ?? 75) / TOTAL) * 100,
       8,
     );
     const width = 100 / laneCount;
@@ -353,6 +367,91 @@ export default function StaffBoard({
       left: `calc(${lane * width}% + 0.25rem)`,
       width: `calc(${width}% - 0.5rem)`,
     };
+  }
+
+  function startResize(
+    event: React.PointerEvent<HTMLDivElement>,
+    job: CalendarJob,
+  ) {
+    if (["completed", "cancelled", "no_show"].includes(job.status)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setResizing({
+      jobId: job.id,
+      startY: event.clientY,
+      initialDuration: job.estimatedDurationMinutes ?? 75,
+      previewDuration: job.estimatedDurationMinutes ?? 75,
+    });
+  }
+
+  function onResizeMove(event: React.PointerEvent<HTMLDivElement>) {
+    if (!resizing || resizing.jobId !== event.currentTarget.dataset.jobId)
+      return;
+    const job = jobs.find((entry) => entry.id === resizing.jobId);
+    if (!job) return;
+    const deltaMinutes =
+      ((event.clientY - resizing.startY) / (HOUR_HEIGHT * 8)) * TOTAL;
+    const rawDuration = resizing.initialDuration + deltaMinutes;
+    const snapped = Math.round(rawDuration / 15) * 15;
+    const maxDuration = Math.max(START + TOTAL - startMinutesOf(job), 15);
+    const clamped = Math.min(Math.max(snapped, 15), maxDuration);
+    setResizing((current) =>
+      current ? { ...current, previewDuration: clamped } : current,
+    );
+  }
+
+  function endResize() {
+    if (!resizing) return;
+    const { jobId, initialDuration, previewDuration } = resizing;
+    setResizing(null);
+    if (previewDuration === initialDuration) return;
+    setJobs((current) =>
+      current.map((entry) =>
+        entry.id === jobId
+          ? { ...entry, estimatedDurationMinutes: previewDuration }
+          : entry,
+      ),
+    );
+    commitJobPatch(
+      jobId,
+      { estimatedDurationMinutes: previewDuration },
+      {
+        onOptimistic: () => undefined,
+        onSuccess: () => {
+          router.refresh();
+          showUndo("Job duration updated", () =>
+            commitJobPatch(
+              jobId,
+              { estimatedDurationMinutes: initialDuration },
+              {
+                onOptimistic: () =>
+                  setJobs((current) =>
+                    current.map((entry) =>
+                      entry.id === jobId
+                        ? { ...entry, estimatedDurationMinutes: initialDuration }
+                        : entry,
+                    ),
+                  ),
+                onSuccess: () => router.refresh(),
+                onError: setError,
+              },
+            ),
+          );
+        },
+        onWarning: setWarning,
+        onError: (message) => {
+          setError(message);
+          setJobs((current) =>
+            current.map((entry) =>
+              entry.id === jobId
+                ? { ...entry, estimatedDurationMinutes: initialDuration }
+                : entry,
+            ),
+          );
+        },
+      },
+    );
   }
 
   function queueCard(job: CalendarJob, retained = false) {
@@ -614,14 +713,21 @@ export default function StaffBoard({
                     {employeeJobs.map((job) => {
                       const placement = lanes.get(job.id);
                       if (!placement || placement.hidden) return null;
+                      const isResizingThis = resizing?.jobId === job.id;
+                      const isLocked = [
+                        "completed",
+                        "cancelled",
+                        "no_show",
+                      ].includes(job.status);
                       return (
                         <div
                           key={job.id}
-                          className="absolute z-10"
+                          className={`group absolute ${isResizingThis ? "z-30" : "z-10"}`}
                           style={jobStyle(
                             job,
                             placement.lane,
                             placement.laneCount,
+                            isResizingThis ? resizing.previewDuration : undefined,
                           )}
                         >
                           <JobCard
@@ -636,6 +742,20 @@ export default function StaffBoard({
                             <span className="absolute bottom-1 right-1 rounded bg-[var(--co-ink)] px-1.5 py-0.5 text-[10px] font-semibold text-white">
                               +{placement.overflowCount} overlapping
                             </span>
+                          ) : null}
+                          {!isLocked ? (
+                            <div
+                              role="presentation"
+                              aria-label="Drag to extend job duration"
+                              data-job-id={job.id}
+                              onPointerDown={(event) => startResize(event, job)}
+                              onPointerMove={onResizeMove}
+                              onPointerUp={endResize}
+                              onPointerCancel={endResize}
+                              className={`absolute inset-x-0 bottom-0 z-20 flex h-3 cursor-ns-resize touch-none items-end justify-center pb-0.5 transition-opacity ${isResizingThis ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                            >
+                              <span className="h-1 w-8 rounded-full bg-[var(--co-ink)]/40" />
+                            </div>
                           ) : null}
                         </div>
                       );

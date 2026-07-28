@@ -12,6 +12,7 @@ const updateJobSchema = z.object({
   scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   scheduledStartTime: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).nullable().optional(),
   priceCents: z.number().int().nonnegative().optional(),
+  estimatedDurationMinutes: z.number().int().min(15).max(600).optional(),
   status: z.enum(["scheduled", "in_progress", "completed", "cancelled", "no_show"]).optional(),
   employeeIds: z.array(z.string().uuid()).optional(),
   completionNotes: z.string().optional(),
@@ -141,7 +142,7 @@ export async function PATCH(
   const scheduledDate = jobFields.scheduledDate ?? existing.scheduledDate;
   const scheduledStartTime = jobFields.scheduledStartTime ?? existing.scheduledStartTime;
   const warnings: string[] = [];
-  if (effectiveEmployeeIds.length > 0 && (employeeIds || jobFields.scheduledDate || jobFields.scheduledStartTime)) {
+  if (effectiveEmployeeIds.length > 0 && (employeeIds || jobFields.scheduledDate || jobFields.scheduledStartTime || jobFields.estimatedDurationMinutes)) {
     const overlappingJobs = await db
       .select({
         userId: jobAssignments.userId,
@@ -160,7 +161,7 @@ export async function PATCH(
         inArray(jobs.status, ["scheduled", "in_progress"]),
         ne(jobs.id, jobId),
       ));
-    const duration = existing.estimatedDurationMinutes ?? 75;
+    const duration = jobFields.estimatedDurationMinutes ?? existing.estimatedDurationMinutes ?? 75;
     const overlappingEmployees = new Set<string>();
     for (const other of overlappingJobs) {
       const targetStart = scheduledStartTime ? Number(scheduledStartTime.slice(0, 2)) * 60 + Number(scheduledStartTime.slice(3, 5)) : 9 * 60;
