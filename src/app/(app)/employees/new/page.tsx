@@ -4,6 +4,27 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+/** The API returns either a plain string or a zod `.flatten()` shape
+ * ({formErrors, fieldErrors}) for validation failures. Turn either into a
+ * sentence instead of dumping the raw object with JSON.stringify. */
+function describeApiError(error: unknown): string {
+  if (typeof error === "string" && error.trim()) return error;
+  if (error && typeof error === "object") {
+    const shape = error as { formErrors?: unknown; fieldErrors?: unknown };
+    const messages: string[] = [];
+    if (Array.isArray(shape.formErrors)) {
+      messages.push(...shape.formErrors.filter((m): m is string => typeof m === "string"));
+    }
+    if (shape.fieldErrors && typeof shape.fieldErrors === "object") {
+      for (const value of Object.values(shape.fieldErrors as Record<string, unknown>)) {
+        if (Array.isArray(value)) messages.push(...value.filter((m): m is string => typeof m === "string"));
+      }
+    }
+    if (messages.length) return messages.join(" ");
+  }
+  return "Something went wrong creating this account. Please check the form and try again.";
+}
+
 function Field({
   label,
   className,
@@ -67,8 +88,8 @@ export default function NewEmployeePage() {
     });
 
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setError(body.error ? JSON.stringify(body.error) : "Failed to create employee.");
+      const body = await res.json().catch(() => null);
+      setError(describeApiError(body?.error));
       setSubmitting(false);
       return;
     }

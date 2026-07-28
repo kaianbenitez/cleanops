@@ -88,26 +88,38 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Could not find an available username after 20 attempts." }, { status: 409 });
   }
 
-  const [employee] = await db
-    .insert(users)
-    .values({
-      id: authUserId,
-      companyId: admin.companyId,
-      role: data.role,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: usernameToEmail(username),
-      contactEmail: data.contactEmail,
-      phone: data.phone,
-      title: data.title,
-      birthday: data.birthday,
-      hiredDate: data.hiredDate,
-      payType: data.role === "employee" ? data.payType : undefined,
-      hourlyRateCents: data.role === "employee" ? data.hourlyRateCents : undefined,
-      gustoEmployeeId: data.gustoEmployeeId,
-      isActive: true,
-    })
-    .returning();
+  let employee;
+  try {
+    [employee] = await db
+      .insert(users)
+      .values({
+        id: authUserId,
+        companyId: admin.companyId,
+        role: data.role,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: usernameToEmail(username),
+        contactEmail: data.contactEmail,
+        phone: data.phone,
+        title: data.title,
+        birthday: data.birthday,
+        hiredDate: data.hiredDate,
+        payType: data.role === "employee" ? data.payType : undefined,
+        hourlyRateCents: data.role === "employee" ? data.hourlyRateCents : undefined,
+        gustoEmployeeId: data.gustoEmployeeId,
+        isActive: true,
+      })
+      .returning();
+  } catch (err) {
+    // The auth account already exists at this point — don't leave it orphaned
+    // with no matching profile row.
+    await supabaseAdmin.auth.admin.deleteUser(authUserId).catch(() => undefined);
+    const isDuplicate = Boolean(err && typeof err === "object" && "code" in err && err.code === "23505");
+    return NextResponse.json(
+      { error: isDuplicate ? "An employee record with that information already exists." : "Could not save the employee profile. No account was created — try again." },
+      { status: isDuplicate ? 409 : 500 }
+    );
+  }
 
   return NextResponse.json({ employee, username, password: DEFAULT_ACCOUNT_PASSWORD }, { status: 201 });
 }

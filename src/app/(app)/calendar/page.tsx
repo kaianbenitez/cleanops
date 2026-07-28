@@ -260,34 +260,43 @@ export default async function CalendarPage({
       ),
     );
 
-  const base = db
-    .select({
-      id: jobs.id,
-      type: jobs.type,
-      status: jobs.status,
-      scheduledDate: jobs.scheduledDate,
-      scheduledStartTime: jobs.scheduledStartTime,
-      estimatedDurationMinutes: jobs.estimatedDurationMinutes,
-      priceCents: jobs.priceCents,
-      recurringSeriesId: jobs.recurringSeriesId,
-      recurrenceFrequency: recurringSeries.frequency,
-      customerFirstName: customers.firstName,
-      customerLastName: customers.lastName,
-      companyName: customers.companyName,
-      clientType: customers.clientType,
-      customerZip: customers.zip,
-      customerCity: customers.city,
-      customerAddress: customers.addressLine1,
-    })
-    .from(jobs)
-    .innerJoin(customers, eq(jobs.customerId, customers.id))
-    .leftJoin(recurringSeries, eq(jobs.recurringSeriesId, recurringSeries.id));
+  // A fresh builder per call — drizzle's query builder mutates in place, so a
+  // shared instance reused across multiple `.where()`/`.innerJoin()` call
+  // sites (as this was) silently corrupts every query holding a reference to
+  // it. rowsQuery and unassignedRowsQuery both used to chain off one shared
+  // `base`, so whichever query ran last "won" and its where-clause quietly
+  // became every other query's where-clause too — the staff board's job list
+  // ended up filtered down to unassigned-only jobs, so anything assigned
+  // (old or newly dragged onto a column) vanished from the day entirely.
+  const buildBaseQuery = () =>
+    db
+      .select({
+        id: jobs.id,
+        type: jobs.type,
+        status: jobs.status,
+        scheduledDate: jobs.scheduledDate,
+        scheduledStartTime: jobs.scheduledStartTime,
+        estimatedDurationMinutes: jobs.estimatedDurationMinutes,
+        priceCents: jobs.priceCents,
+        recurringSeriesId: jobs.recurringSeriesId,
+        recurrenceFrequency: recurringSeries.frequency,
+        customerFirstName: customers.firstName,
+        customerLastName: customers.lastName,
+        companyName: customers.companyName,
+        clientType: customers.clientType,
+        customerZip: customers.zip,
+        customerCity: customers.city,
+        customerAddress: customers.addressLine1,
+      })
+      .from(jobs)
+      .innerJoin(customers, eq(jobs.customerId, customers.id))
+      .leftJoin(recurringSeries, eq(jobs.recurringSeriesId, recurringSeries.id));
 
   const rowsQuery =
     view === "month"
       ? Promise.resolve([])
       : sp.employeeId
-        ? base
+        ? buildBaseQuery()
             .innerJoin(
               jobAssignments,
               and(
@@ -297,7 +306,7 @@ export default async function CalendarPage({
             )
             .where(and(...conditions))
             .orderBy(jobs.scheduledDate, jobs.scheduledStartTime)
-        : base
+        : buildBaseQuery()
             .where(and(...conditions))
             .orderBy(jobs.scheduledDate, jobs.scheduledStartTime);
 
@@ -313,20 +322,21 @@ export default async function CalendarPage({
           ),
         ]
       : conditions;
-  const monthSummary = db
-    .select({
-      scheduledDate: jobs.scheduledDate,
-      jobs: sql<number>`count(*)`,
-      unassigned: sql<number>`count(*) filter (where not exists (select 1 from ${jobAssignments} where ${jobAssignments.jobId} = ${jobs.id}))`,
-      needsReview: sql<number>`count(*) filter (where ${jobs.status} = 'no_show')`,
-    })
-    .from(jobs)
-    .innerJoin(customers, eq(jobs.customerId, customers.id))
-    .leftJoin(recurringSeries, eq(jobs.recurringSeriesId, recurringSeries.id));
+  const buildMonthSummary = () =>
+    db
+      .select({
+        scheduledDate: jobs.scheduledDate,
+        jobs: sql<number>`count(*)`,
+        unassigned: sql<number>`count(*) filter (where not exists (select 1 from ${jobAssignments} where ${jobAssignments.jobId} = ${jobs.id}))`,
+        needsReview: sql<number>`count(*) filter (where ${jobs.status} = 'no_show')`,
+      })
+      .from(jobs)
+      .innerJoin(customers, eq(jobs.customerId, customers.id))
+      .leftJoin(recurringSeries, eq(jobs.recurringSeriesId, recurringSeries.id));
   const monthRowsQuery =
     view === "month"
       ? sp.employeeId
-        ? monthSummary
+        ? buildMonthSummary()
             .innerJoin(
               jobAssignments,
               and(
@@ -337,7 +347,7 @@ export default async function CalendarPage({
             .where(and(...monthConditions))
             .groupBy(jobs.scheduledDate)
             .orderBy(jobs.scheduledDate)
-        : monthSummary
+        : buildMonthSummary()
             .where(and(...monthConditions))
             .groupBy(jobs.scheduledDate)
             .orderBy(jobs.scheduledDate)
@@ -345,7 +355,7 @@ export default async function CalendarPage({
 
   const unassignedRowsQuery =
     view === "staff"
-      ? base
+      ? buildBaseQuery()
           .where(
             and(
               ...conditions,
