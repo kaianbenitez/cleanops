@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Plus, ChevronDown, FileText, ClipboardList } from "lucide-react";
+import { Plus, ChevronDown, FileText, ClipboardList, UserPlus } from "lucide-react";
 
 export default function CreateMenu() {
   const [open, setOpen] = useState(false);
@@ -30,6 +30,15 @@ export default function CreateMenu() {
           role="menu"
           className="absolute right-0 top-full z-30 mt-2 w-48 overflow-hidden rounded-2xl border border-[var(--co-line-soft)] bg-white py-1 shadow-[0_10px_32px_rgba(18,24,19,0.12)]"
         >
+          <Link
+            href="/customers/new"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-[var(--co-ink)] transition hover:bg-[var(--co-surface-muted)]"
+          >
+            <UserPlus className="h-4 w-4 text-[var(--co-muted)]" aria-hidden />
+            Customer
+          </Link>
           <Link
             href="/quotes/new"
             role="menuitem"
