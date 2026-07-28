@@ -6,7 +6,7 @@ import type { CalendarEmployee, CalendarJob } from "./page";
 import { commitJobPatch } from "./drag-commit";
 import { UndoToast, useUndoToast } from "./undo-toast";
 import JobCard from "./job-card";
-import { assignDayLanes, formatEstimatedTime } from "./shared";
+import { assignDayLanes, employeeColor, formatEstimatedTime } from "./shared";
 import UnassignedPanel from "./unassigned-panel";
 import type { EmployeePtoRecord, PtoPeriod } from "@/lib/scheduling/pto";
 
@@ -657,8 +657,13 @@ export default function StaffBoard({
                 <div
                   key={employee.id}
                   className="bg-[var(--co-surface-muted)] px-2 py-3 text-center"
+                  style={{ borderTop: `3px solid ${employeeColor(employee.id)}` }}
                 >
-                  <p className="truncate text-xs font-semibold">
+                  <p className="flex items-center justify-center gap-1.5 truncate text-xs font-semibold">
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ background: employeeColor(employee.id) }}
+                    />
                     {employee.firstName} {employee.lastName.slice(0, 1)}.
                   </p>
                   <p className="mt-1 text-[10px] text-[var(--co-faint)]">

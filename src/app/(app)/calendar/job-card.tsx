@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { displayCustomer, formatClockLabel, formatEstimatedTime, recurrenceLabel, TYPE_LABELS } from "./shared";
+import { displayCustomer, employeeColor, formatClockLabel, formatEstimatedTime, recurrenceLabel, TYPE_LABELS } from "./shared";
 import { statusLabel } from "@/components/ui/status-pill";
 
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
@@ -31,7 +31,8 @@ const STATUS_TONES: Record<string, string> = {
 };
 
 export default function JobCard({ job, employees, draggable = false, onDragStart }: { job: CardJob; employees: Employee[]; draggable?: boolean; onDragStart?: (event: React.DragEvent<HTMLAnchorElement>) => void }) {
-  const crew = job.assignedUserIds
+  const crewIds = job.assignedUserIds;
+  const crew = crewIds
     .map((id) => employees.find((employee) => employee.id === id))
     .filter(Boolean)
     .map((employee) => `${employee!.firstName} ${employee!.lastName}${employee!.isActive === false ? " (Inactive)" : ""}`);
@@ -44,12 +45,25 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
         href={`/jobs/${job.id}`}
         draggable={draggable && !isLocked}
         onDragStart={onDragStart}
+        style={{ borderLeftColor: employeeColor(crewIds[0]), borderLeftWidth: "3px" }}
         className={`group block h-full overflow-hidden rounded-lg border px-2.5 py-2 text-left transition hover:-translate-y-px hover:border-[var(--co-evergreen)] hover:shadow-[0_4px_12px_rgba(0,108,73,0.1)] ${STATUS_TONES[job.status] ?? STATUS_TONES.scheduled}`}
       >
         <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-[var(--co-muted)]"><span>{formatClockLabel(job.scheduledStartTime)}</span><span className="rounded bg-[var(--co-surface-muted)] px-1.5 py-0.5 text-[10px]">{job.clientType === "commercial" ? "Commercial" : "Residential"}</span></div>
         <p className="mt-1 truncate text-[13px] font-semibold text-[var(--co-ink)]">{label}</p>
         <p className="mt-0.5 truncate text-[11px] text-[var(--co-muted)]">{TYPE_LABELS[job.type] ?? job.type} · {job.customerZip ?? "No ZIP"} · {formatEstimatedTime(job.estimatedDurationMinutes)}</p>
-        <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px]"><span className="truncate text-[var(--co-muted)]">{crew.length ? crew.join(", ") : "Unassigned"}</span><span className="shrink-0 font-medium text-[var(--co-evergreen)]">{statusLabel("job", job.status)}</span></div>
+        <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px]">
+          <span className="flex min-w-0 items-center gap-1 truncate text-[var(--co-muted)]">
+            {crewIds.length ? (
+              <span className="flex shrink-0 items-center gap-0.5">
+                {crewIds.map((id) => (
+                  <span key={id} className="h-1.5 w-1.5 rounded-full" style={{ background: employeeColor(id) }} />
+                ))}
+              </span>
+            ) : null}
+            <span className="truncate">{crew.length ? crew.join(", ") : "Unassigned"}</span>
+          </span>
+          <span className="shrink-0 font-medium text-[var(--co-evergreen)]">{statusLabel("job", job.status)}</span>
+        </div>
         {job.recurringSeriesId ? <p className="mt-1 text-[10px] font-medium text-[var(--co-faint)]">↻ {recurrenceLabel(job.recurrenceFrequency)}</p> : null}
       </Link>
     </>

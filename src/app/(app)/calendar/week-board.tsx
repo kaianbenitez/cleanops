@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { CalendarEmployee, CalendarJob } from "./page";
 import JobCard from "./job-card";
+import { employeeColor } from "./shared";
 
 type DayMeta = {
   iso: string;
@@ -140,7 +141,19 @@ export default function WeekBoard({
                     return (
                       <div key={key}>
                         <p className="mb-1.5 flex items-center gap-1.5 truncate text-[11px] font-semibold text-[var(--co-ink)]">
-                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--co-evergreen)]" />
+                          <span className="flex shrink-0 items-center gap-0.5">
+                            {group[0].assignedUserIds.length ? (
+                              group[0].assignedUserIds.map((id) => (
+                                <span
+                                  key={id}
+                                  className="h-1.5 w-1.5 rounded-full"
+                                  style={{ background: employeeColor(id) }}
+                                />
+                              ))
+                            ) : (
+                              <span className="h-1.5 w-1.5 rounded-full bg-[var(--co-evergreen)]" />
+                            )}
+                          </span>
                           {teamName(group[0].assignedUserIds, employees)}
                         </p>
                         <div className="space-y-1.5">
