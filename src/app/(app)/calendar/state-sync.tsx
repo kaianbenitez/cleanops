@@ -22,9 +22,9 @@ function readCookie(): Record<string, string> {
  * cookie — see the fallback in page.tsx — this only writes the cookie. Only
  * the field for the *current* view is updated so switching views doesn't
  * clobber the remembered anchor for the other views. */
-export default function CalendarStateSync({ view, anchor }: { view: "staff" | "week" | "month"; anchor: string }) {
+export default function CalendarStateSync({ view, anchor }: { view: "staff" | "week" | "month" | "list"; anchor: string }) {
   useEffect(() => {
-    const field = view === "staff" ? "day" : view === "week" ? "week" : "month";
+    const field = view === "staff" || view === "list" ? "day" : view === "week" ? "week" : "month";
     const next = { ...readCookie(), view, [field]: anchor };
     document.cookie = `${COOKIE_NAME}=${encodeURIComponent(JSON.stringify(next))}; path=/; max-age=${MAX_AGE_SECONDS}; samesite=lax`;
   }, [view, anchor]);

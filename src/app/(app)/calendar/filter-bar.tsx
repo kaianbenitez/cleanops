@@ -9,6 +9,7 @@ const VIEWS = [
   { value: "week", label: "Week" },
   { value: "staff", label: "Staff" },
   { value: "month", label: "Month" },
+  { value: "list", label: "List" },
 ] as const;
 
 const TYPES = [
@@ -40,7 +41,7 @@ export default function FilterBar({
   resolvedView,
 }: {
   employees: Employee[];
-  resolvedView: "staff" | "week" | "month";
+  resolvedView: "staff" | "week" | "month" | "list";
 }) {
   const router = useRouter();
   const pathname = usePathname();
