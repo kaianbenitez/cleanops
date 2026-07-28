@@ -4,6 +4,7 @@ import { and, desc, eq, gte, isNull, lt, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { companies, customers, jobAssignments, jobs, payrollLines, payrollPeriods, timeEntries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { isFieldEligible } from "@/lib/auth/field-staff";
 import { payrollWeekRangeForDate } from "@/lib/payroll/periods";
 import EmployeeBrowserClient from "./employee-browser-client";
 import { formatDisplayDate } from "@/lib/scheduling/dates";
@@ -54,7 +55,7 @@ export default async function EmployeeBrowserPage({ searchParams }: { searchPara
         isActive: users.isActive,
       })
       .from(users)
-      .where(and(eq(users.companyId, currentUser.companyId), eq(users.role, "employee")))
+      .where(and(eq(users.companyId, currentUser.companyId), isFieldEligible))
       .orderBy(desc(users.isActive), users.firstName, users.lastName),
     db
       .select({
@@ -63,7 +64,7 @@ export default async function EmployeeBrowserPage({ searchParams }: { searchPara
         lastName: users.lastName,
       })
       .from(users)
-      .where(and(eq(users.companyId, currentUser.companyId), eq(users.role, "employee"), eq(users.isActive, true)))
+      .where(and(eq(users.companyId, currentUser.companyId), isFieldEligible, eq(users.isActive, true)))
       .orderBy(users.firstName, users.lastName),
   ]);
 

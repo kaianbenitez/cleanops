@@ -5,9 +5,66 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-07-28.
+Last updated: 2026-07-29.
 
 ## Done
+
+- **Admins can now also be field staff — assignable to jobs, clocked in/out, and
+  included in payroll (2026-07-29).** User report: "employee is admin + cleaner as
+  well, she should be assigned jobs and included in the payroll." Root cause:
+  `users.role` is a strict `admin`/`employee` enum, and every job-assignment picker,
+  the payroll generator, employee-browser clock-in/out, technician routes, the
+  preferred-cleaner picker, and global search all filtered on
+  `eq(users.role, "employee")` directly — an admin was structurally invisible to all
+  of it, with no way to be both. Checked the hosted DB and found the actual case:
+  **Brittney Riggs** (`role: admin`, title "Shine Coordinator - Sales", hired 2018)
+  already had `payType: commission_jth` and a full 4-tier commission schedule
+  configured — someone had already set her up to be paid like a cleaner — but she
+  had **zero job assignments ever**, invisible to both the assignment picker and
+  payroll generation.
+  Fixed with a new `users.is_field_staff` boolean (admin-only meaning; default
+  `false`; migration `drizzle/0018_wealthy_hammerhead.sql`, additive/idempotent,
+  applied to the hosted DB same session) decoupled from `role`, plus a single
+  shared predicate `isFieldEligible` in `src/lib/auth/field-staff.ts`
+  (`role = 'employee' OR (role = 'admin' AND is_field_staff)`) swapped into every
+  site that previously checked `eq(users.role, "employee")` directly: job
+  assignment pickers (`job-detail.ts`, calendar, jobs list, `/api/employees`),
+  payroll generation (`payroll/calculate.ts`), employee-browser (list + clock-in +
+  clock-out + mileage), dashboard technician routes and crew coverage, reports,
+  global search, and the customer preferred-cleaner picker. `role` itself is
+  untouched and still the only thing `requireAdmin`/`requireUser` and every
+  `role !== "admin"` page redirect check — admin access is unaffected either way.
+  UI: Settings → Administrators now has an inline "Also a field cleaner" checkbox
+  per admin row (PATCHes `/api/employees/[id]`, which already had no role
+  restriction — it's the same profile endpoint the Employees directory uses) with
+  a link to that admin's `/employees/[id]` profile page for pay type/rate setup
+  once toggled on; the "New admin" creation form got the same checkbox, revealing
+  the same title/pay-type/rate fields the employee flow already has. Since admins
+  have no "My Day" nav link by default (they land on `/dashboard`, not `/my-day` —
+  confirmed with the user this is the desired self-clock-in path for a field-staff
+  admin), `app-nav.tsx` now appends a "My day" link to the admin nav when
+  `isFieldStaff` is true, alongside their full admin link set; `/my-day` itself
+  already queries by `user.id` with no role gate, so no change was needed there.
+  Applied `is_field_staff = true` to Brittney's row on the hosted DB.
+  Verified: `check:drift` clean after the migration, `verify` clean (0 errors, only
+  pre-existing warnings in files this change didn't touch), `smoke:routes` (5/5)
+  and `smoke:auth` (22/22) against a local production build, and a throwaway
+  authenticated API check confirming `GET /api/employees` now includes Brittney
+  (assignment-picker shape) and `GET /api/admins` shows `isFieldStaff: true` with
+  her existing `payType`/`hourlyRateCents` — both against the hosted DB, script
+  deleted after. **Not click-through-tested in a real browser** — no admin login
+  credentials available in this session; the API-level check plus a clean
+  typecheck/lint/build was the verification path instead. Worth an actual
+  browser pass (toggle the checkbox, confirm she shows up in the New Job crew
+  picker and on the Staff calendar board, generate a payroll period and confirm a
+  commission line appears for her) next time someone's logged in as an admin.
+  **Not done / deliberately out of scope:** she does not appear in the `/employees`
+  directory list's *filters* differently from a real employee (she does now show
+  up in that list itself, since it uses `isFieldEligible` too) — no other UI
+  distinction was added between her and a `role: employee` row on that page. The
+  `DELETE /api/employees/[id]` endpoint still explicitly blocks non-employee roles
+  ("Only employees can be deleted here.") — left as-is on purpose, so this feature
+  doesn't accidentally make an admin account deletable from that screen.
 
 - **Calendar: new "List" view for a single day's jobs — customer info, assigned crew,
   status, per-employee clock status, inline reschedule, guarded cancel (2026-07-28).**

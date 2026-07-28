@@ -6,6 +6,7 @@ import { auditLog, customers, customerLocations, invoices, jobs, users } from "@
 import { and, eq, asc, desc, sql } from "drizzle-orm";
 import { syncToGhl } from "@/lib/ghl/sync";
 import { resolveCustomerServiceArea } from "@/lib/service-area";
+import { isFieldEligible } from "@/lib/auth/field-staff";
 
 const updateCustomerSchema = z.object({
   status: z.enum(["lead", "quoted", "first_clean_booked", "client", "lost", "moved"]).optional(),
@@ -131,7 +132,7 @@ export async function PATCH(
     const [cleaner] = await db
       .select({ id: users.id })
       .from(users)
-      .where(and(eq(users.id, parsed.data.preferredCleanerId), eq(users.companyId, admin.companyId), eq(users.role, "employee"), eq(users.isActive, true)))
+      .where(and(eq(users.id, parsed.data.preferredCleanerId), eq(users.companyId, admin.companyId), isFieldEligible, eq(users.isActive, true)))
       .limit(1);
     if (!cleaner) return NextResponse.json({ error: "Preferred cleaner must be an active employee in this company." }, { status: 400 });
   }

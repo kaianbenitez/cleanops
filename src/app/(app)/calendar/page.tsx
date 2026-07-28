@@ -26,6 +26,7 @@ import {
   users,
 } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { isFieldEligible } from "@/lib/auth/field-staff";
 import {
   addDays,
   formatDayLabel,
@@ -243,7 +244,7 @@ export default async function CalendarPage({
     .where(
       and(
         eq(users.companyId, admin.companyId),
-        eq(users.role, "employee"),
+        isFieldEligible,
       ),
     )
     .orderBy(users.firstName);

@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,rgba(0,108,73,0.06),transparent_26%),radial-gradient(circle_at_top_right,rgba(0,108,73,0.04),transparent_18%),var(--co-bg)] text-[var(--co-ink)]">
-      <AppNav isAdmin={isAdmin} userName={`${user.firstName} ${user.lastName}`} userEmail={emailToUsername(user.email)} />
+      <AppNav isAdmin={isAdmin} isFieldStaff={user.isFieldStaff} userName={`${user.firstName} ${user.lastName}`} userEmail={emailToUsername(user.email)} />
 
       <div className="lg:pl-[260px]">
         <header className="sticky top-0 z-20 hidden border-b border-[var(--co-line-soft)] bg-[var(--co-surface)]/90 backdrop-blur-xl xl:block">

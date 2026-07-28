@@ -16,6 +16,9 @@ export async function GET() {
       lastName: users.lastName,
       email: users.email,
       isActive: users.isActive,
+      isFieldStaff: users.isFieldStaff,
+      payType: users.payType,
+      hourlyRateCents: users.hourlyRateCents,
     })
     .from(users)
     .where(and(eq(users.companyId, admin.companyId), eq(users.role, "admin")))

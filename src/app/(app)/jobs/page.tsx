@@ -5,6 +5,7 @@ import { and, count, desc, eq, gte, ilike, inArray, lte, notExists, or, sql } fr
 import { db } from "@/db";
 import { customers, invoices, jobAssignments, jobs, timeEntries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { isFieldEligible } from "@/lib/auth/field-staff";
 import { StatusPill, statusLabel, statusOptions } from "@/components/ui/status-pill";
 import { RecalculateEstimatesButton } from "./recalculate-estimates-button";
 
@@ -159,7 +160,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
     db
       .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, isActive: users.isActive })
       .from(users)
-      .where(and(eq(users.companyId, admin.companyId), eq(users.role, "employee")))
+      .where(and(eq(users.companyId, admin.companyId), isFieldEligible))
       .orderBy(users.firstName),
     db
       .select({

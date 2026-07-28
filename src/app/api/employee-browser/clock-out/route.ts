@@ -3,6 +3,7 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { auditLog, jobs, timeEntries, users } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/current-user";
+import { isFieldEligible } from "@/lib/auth/field-staff";
 import { generatePayrollForPeriod } from "@/lib/payroll/calculate";
 import { refreshPayrollPeriodsForDates } from "@/lib/payroll/periods";
 import { z } from "zod";
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
   const [employee] = await db
     .select({ id: users.id, isActive: users.isActive })
     .from(users)
-    .where(and(eq(users.id, employeeId), eq(users.companyId, admin.companyId), eq(users.role, "employee")))
+    .where(and(eq(users.id, employeeId), eq(users.companyId, admin.companyId), isFieldEligible))
     .limit(1);
 
   if (!employee || !employee.isActive) {

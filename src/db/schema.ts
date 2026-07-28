@@ -40,6 +40,11 @@ export const users = pgTable("users", {
   id: uuid("id").primaryKey(), // matches supabase auth uid
   companyId: uuid("company_id").notNull().references(() => companies.id),
   role: text("role", { enum: roleEnum }).notNull(),
+  // Admin-only. Lets an admin also be assigned to jobs, clock in/out, and be
+  // included in payroll generation alongside role="employee" people, without
+  // weakening their admin access. See src/lib/auth/field-staff.ts for the
+  // shared eligibility check every assignment/payroll/clock query uses.
+  isFieldStaff: boolean("is_field_staff").notNull().default(false),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   phone: text("phone"),

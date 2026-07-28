@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { auditLog, customers, jobAssignments, jobs, services, timeEntries, users } from "@/db/schema";
+import { isFieldEligible } from "@/lib/auth/field-staff";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -113,7 +114,7 @@ export async function loadAssignableEmployees(companyId: string) {
   return db
     .select({ id: users.id, firstName: users.firstName, lastName: users.lastName })
     .from(users)
-    .where(and(eq(users.companyId, companyId), eq(users.role, "employee"), eq(users.isActive, true)))
+    .where(and(eq(users.companyId, companyId), isFieldEligible, eq(users.isActive, true)))
     .orderBy(users.firstName);
 }
 
@@ -126,6 +127,6 @@ export async function loadJobTeamEmployees(companyId: string) {
   return db
     .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, isActive: users.isActive })
     .from(users)
-    .where(and(eq(users.companyId, companyId), eq(users.role, "employee")))
+    .where(and(eq(users.companyId, companyId), isFieldEligible))
     .orderBy(users.firstName);
 }

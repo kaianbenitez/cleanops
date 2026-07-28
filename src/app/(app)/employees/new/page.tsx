@@ -46,6 +46,7 @@ export default function NewEmployeePage() {
   const router = useRouter();
 
   const [role, setRole] = useState<"employee" | "admin">("employee");
+  const [isFieldStaff, setIsFieldStaff] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -69,21 +70,24 @@ export default function NewEmployeePage() {
       return;
     }
 
+    const needsPayFields = role === "employee" || (role === "admin" && isFieldStaff);
+
     setSubmitting(true);
     const res = await fetch("/api/employees", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         role,
+        isFieldStaff: role === "admin" ? isFieldStaff : undefined,
         firstName,
         lastName,
         contactEmail: contactEmail || undefined,
         phone: phone || undefined,
         title: title || undefined,
         hiredDate: hiredDate || undefined,
-        payType: role === "employee" ? payType : undefined,
-        hourlyRateCents: role === "employee" ? Math.round(parseFloat(hourlyRate || "0") * 100) : undefined,
-        gustoEmployeeId: role === "employee" ? gustoEmployeeId || undefined : undefined,
+        payType: needsPayFields ? payType : undefined,
+        hourlyRateCents: needsPayFields ? Math.round(parseFloat(hourlyRate || "0") * 100) : undefined,
+        gustoEmployeeId: needsPayFields ? gustoEmployeeId || undefined : undefined,
       }),
     });
 
@@ -168,10 +172,22 @@ export default function NewEmployeePage() {
               </select>
               {role === "admin" && (
                 <p className="mt-1.5 text-xs text-[var(--co-muted)]">
-                  Admins get full access to customers, quotes, scheduling, and payroll — no pay/title fields needed.
+                  Admins get full access to customers, quotes, scheduling, and payroll.
                 </p>
               )}
             </Field>
+
+            {role === "admin" && (
+              <label className="flex items-center gap-2 text-xs font-medium text-[var(--co-muted)]">
+                <input
+                  type="checkbox"
+                  checked={isFieldStaff}
+                  onChange={(e) => setIsFieldStaff(e.target.checked)}
+                  className="h-4 w-4 rounded border-[var(--co-line)]"
+                />
+                Also a field cleaner (assignable to jobs, included in payroll)
+              </label>
+            )}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="First name">
@@ -215,7 +231,7 @@ export default function NewEmployeePage() {
               </p>
             ) : null}
 
-            {role === "employee" && (
+            {(role === "employee" || isFieldStaff) && (
               <Field label="Title">
                 <input
                   value={title}
@@ -237,7 +253,7 @@ export default function NewEmployeePage() {
               </Field>
             </div>
 
-            {role === "employee" && (
+            {(role === "employee" || isFieldStaff) && (
               <>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Pay type">

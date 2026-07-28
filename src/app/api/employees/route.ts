@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
+import { isFieldEligible } from "@/lib/auth/field-staff";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
@@ -20,7 +21,7 @@ export async function GET() {
       lastName: users.lastName,
     })
     .from(users)
-    .where(and(eq(users.companyId, admin.companyId), eq(users.role, "employee"), eq(users.isActive, true)))
+    .where(and(eq(users.companyId, admin.companyId), isFieldEligible, eq(users.isActive, true)))
     .orderBy(users.firstName);
 
   return NextResponse.json({ employees: rows });
@@ -38,6 +39,9 @@ const createEmployeeSchema = z.object({
   payType: z.enum(["commission_jth", "office_hourly"]).optional(),
   hourlyRateCents: z.number().int().nonnegative().optional(),
   gustoEmployeeId: z.string().trim().optional(),
+  // Admins only: also assignable to jobs, clocked in/out, and included in
+  // payroll — see src/lib/auth/field-staff.ts.
+  isFieldStaff: z.boolean().optional().default(false),
 });
 
 /** POST /api/employees — creates a Supabase auth account (username =
@@ -54,9 +58,10 @@ export async function POST(req: NextRequest) {
   }
 
   const data = parsed.data;
-  if (data.role === "employee" && (!data.payType || data.hourlyRateCents == null)) {
+  const needsPayFields = data.role === "employee" || (data.role === "admin" && data.isFieldStaff);
+  if (needsPayFields && (!data.payType || data.hourlyRateCents == null)) {
     return NextResponse.json(
-      { error: "Pay type and hourly rate are required for employees." },
+      { error: "Pay type and hourly rate are required for employees and field-staff admins." },
       { status: 400 }
     );
   }
@@ -96,6 +101,7 @@ export async function POST(req: NextRequest) {
         id: authUserId,
         companyId: admin.companyId,
         role: data.role,
+        isFieldStaff: data.role === "admin" ? data.isFieldStaff : false,
         firstName: data.firstName,
         lastName: data.lastName,
         email: usernameToEmail(username),
@@ -104,8 +110,8 @@ export async function POST(req: NextRequest) {
         title: data.title,
         birthday: data.birthday,
         hiredDate: data.hiredDate,
-        payType: data.role === "employee" ? data.payType : undefined,
-        hourlyRateCents: data.role === "employee" ? data.hourlyRateCents : undefined,
+        payType: needsPayFields ? data.payType : undefined,
+        hourlyRateCents: needsPayFields ? data.hourlyRateCents : undefined,
         gustoEmployeeId: data.gustoEmployeeId,
         isActive: true,
       })

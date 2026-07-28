@@ -4,6 +4,7 @@ import { and, eq, gte, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { customers, jobAssignments, jobs, payrollLines, payrollPeriods, timeEntries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { isFieldEligible } from "@/lib/auth/field-staff";
 import EmployeeDirectory, { type EmployeeDirectoryRow } from "./directory-client";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -52,7 +53,7 @@ export default async function EmployeesPage() {
         payType: users.payType,
       })
       .from(users)
-      .where(and(eq(users.companyId, admin.companyId), eq(users.role, "employee")))
+      .where(and(eq(users.companyId, admin.companyId), isFieldEligible))
       .orderBy(sql`${users.isActive} desc`, users.firstName, users.lastName),
     db
       .select({

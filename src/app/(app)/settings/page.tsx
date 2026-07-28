@@ -48,6 +48,9 @@ type AdminRow = {
   lastName: string;
   email: string;
   isActive: boolean;
+  isFieldStaff: boolean;
+  payType: "commission_jth" | "office_hourly" | null;
+  hourlyRateCents: number | null;
 };
 type CompanySettings = {
   quoteTemplate?: {
@@ -755,6 +758,27 @@ function AdminRow({ admin }: { admin: AdminRow }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isFieldStaff, setIsFieldStaff] = useState(admin.isFieldStaff);
+  const [fieldStaffSaving, setFieldStaffSaving] = useState(false);
+  const [fieldStaffError, setFieldStaffError] = useState<string | null>(null);
+
+  async function toggleFieldStaff() {
+    const next = !isFieldStaff;
+    setFieldStaffSaving(true);
+    setFieldStaffError(null);
+    const response = await fetch(`/api/employees/${admin.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isFieldStaff: next }),
+    });
+    setFieldStaffSaving(false);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      setFieldStaffError(data.error ?? "Could not update this.");
+      return;
+    }
+    setIsFieldStaff(next);
+  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -807,6 +831,30 @@ function AdminRow({ admin }: { admin: AdminRow }) {
           </button>
         </div>
       </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-2 text-xs font-medium text-[var(--co-muted)]">
+          <input
+            type="checkbox"
+            checked={isFieldStaff}
+            disabled={fieldStaffSaving}
+            onChange={toggleFieldStaff}
+            className="h-4 w-4 rounded border-[var(--co-line)]"
+          />
+          Also a field cleaner (assignable to jobs, included in payroll)
+        </label>
+        {isFieldStaff ? (
+          <Link href={`/employees/${admin.id}`} className="text-xs font-medium text-[var(--co-evergreen)] hover:underline">
+            Set up pay type & rate →
+          </Link>
+        ) : null}
+      </div>
+      {fieldStaffError ? <p className="mt-1 text-xs font-semibold text-rose-600">{fieldStaffError}</p> : null}
+      {isFieldStaff && !admin.payType ? (
+        <p className="mt-1 text-xs text-[var(--co-warning)]">
+          No pay type set yet — payroll will skip {admin.firstName} until one is set.
+        </p>
+      ) : null}
 
       {resetting ? (
         <form onSubmit={submit} className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">

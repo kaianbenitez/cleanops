@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { auditLog, payrollLines, users } from "@/db/schema";
 import { requireUser } from "@/lib/auth/current-user";
+import { isFieldEligible } from "@/lib/auth/field-staff";
 import { generatePayrollForPeriod, recomputeFinalCents } from "@/lib/payroll/calculate";
 import { getOrCreatePayrollPeriodForDate } from "@/lib/payroll/periods";
 
@@ -30,7 +31,7 @@ export async function PATCH(req: NextRequest) {
   const [employee] = await db
     .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, isActive: users.isActive })
     .from(users)
-    .where(and(eq(users.id, employeeId), eq(users.companyId, actingUser.companyId), eq(users.role, "employee")))
+    .where(and(eq(users.id, employeeId), eq(users.companyId, actingUser.companyId), isFieldEligible))
     .limit(1);
 
   if (!employee || !employee.isActive) {

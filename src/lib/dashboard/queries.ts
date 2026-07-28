@@ -2,6 +2,7 @@ import { and, asc, eq, gte, inArray, lt, lte, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { companies, customers, employeePto, ghlSyncLog, invoices, jobAssignments, jobs, quotes, users } from "@/db/schema";
 import { overdueSqlCondition } from "@/lib/invoices/overdue";
+import { isFieldEligible } from "@/lib/auth/field-staff";
 import type { CashToCollect, CrewCoverage, DashboardRange, ExceptionCounts, PulseMetrics, RevenueSeries, TodayRun } from "./types";
 import { addDaysIso } from "./range";
 const n = (value: unknown) => Number(value ?? 0);
@@ -88,8 +89,8 @@ export async function getCrewCoverage(companyId: string, weekStartIso: string): 
   const days = isoWeekdays(weekStartIso);
   const weekEndIso = days[days.length - 1]!;
   const [employees, assignments, pto] = await Promise.all([
-    db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName }).from(users).where(and(eq(users.companyId, companyId), eq(users.role, "employee"), eq(users.isActive, true))).orderBy(users.firstName, users.lastName),
-    db.select({ userId: jobAssignments.userId, scheduledDate: jobs.scheduledDate, estimatedDurationMinutes: jobs.estimatedDurationMinutes }).from(jobAssignments).innerJoin(jobs, eq(jobAssignments.jobId, jobs.id)).innerJoin(users, eq(jobAssignments.userId, users.id)).where(and(eq(jobs.companyId, companyId), eq(users.companyId, companyId), eq(users.role, "employee"), eq(users.isActive, true), gte(jobs.scheduledDate, weekStartIso), lte(jobs.scheduledDate, weekEndIso))),
+    db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName }).from(users).where(and(eq(users.companyId, companyId), isFieldEligible, eq(users.isActive, true))).orderBy(users.firstName, users.lastName),
+    db.select({ userId: jobAssignments.userId, scheduledDate: jobs.scheduledDate, estimatedDurationMinutes: jobs.estimatedDurationMinutes }).from(jobAssignments).innerJoin(jobs, eq(jobAssignments.jobId, jobs.id)).innerJoin(users, eq(jobAssignments.userId, users.id)).where(and(eq(jobs.companyId, companyId), eq(users.companyId, companyId), isFieldEligible, eq(users.isActive, true), gte(jobs.scheduledDate, weekStartIso), lte(jobs.scheduledDate, weekEndIso))),
     db.select({ userId: employeePto.userId, startDate: employeePto.startDate, endDate: employeePto.endDate, startPeriod: employeePto.startPeriod, endPeriod: employeePto.endPeriod }).from(employeePto).where(and(eq(employeePto.companyId, companyId), lte(employeePto.startDate, weekEndIso), gte(employeePto.endDate, weekStartIso))),
   ]);
   const hours = new Map<string, number>();

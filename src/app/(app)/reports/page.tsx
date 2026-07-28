@@ -4,6 +4,7 @@ import { and, desc, eq, gte, inArray, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { companies, customers, ghlSyncLog, invoices, jobs, jobAssignments, payrollLines, payrollPeriods, quotes, timeEntries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { isFieldEligible } from "@/lib/auth/field-staff";
 import { todayInTimeZone } from "@/lib/dashboard/range";
 import { compactMoney, formatTime, money, percent } from "@/lib/format";
 import { payrollWeekRangeForDate } from "@/lib/payroll/periods";
@@ -156,7 +157,7 @@ export default async function ReportsPage() {
         hourlyRateCents: users.hourlyRateCents,
       })
       .from(users)
-      .where(and(eq(users.companyId, user.companyId), eq(users.role, "employee"), eq(users.isActive, true)))
+      .where(and(eq(users.companyId, user.companyId), isFieldEligible, eq(users.isActive, true)))
       .orderBy(users.firstName),
   ]);
 

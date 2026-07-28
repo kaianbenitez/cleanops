@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { buildPayTiers, getPayTierBrackets } from "@/lib/payroll/calculate";
 
 const updateEmployeeSchema = z.object({
+  isFieldStaff: z.boolean().optional(),
   firstName: z.string().trim().min(1).optional(),
   lastName: z.string().trim().min(1).optional(),
   contactEmail: z.string().trim().optional(),

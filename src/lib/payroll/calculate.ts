@@ -12,6 +12,7 @@ import {
 import { and, eq, gte, lte, isNotNull, or, sql } from "drizzle-orm";
 import { refreshJobTicketHours } from "./job-ticket-hours";
 import { DEFAULT_PAY_TIER_BRACKETS, type PayTierBracket } from "./brackets";
+import { isFieldEligible } from "@/lib/auth/field-staff";
 
 type CalculationLine = {
   jobId: string;
@@ -133,7 +134,7 @@ export async function generatePayrollForPeriod(periodId: string): Promise<{
   const activeEmployees = await db
     .select()
     .from(users)
-    .where(and(eq(users.companyId, period.companyId), eq(users.role, "employee"), eq(users.isActive, true)));
+    .where(and(eq(users.companyId, period.companyId), isFieldEligible, eq(users.isActive, true)));
 
   let linesUpdated = 0;
 
