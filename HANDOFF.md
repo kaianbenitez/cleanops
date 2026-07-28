@@ -9,6 +9,54 @@ Last updated: 2026-07-28.
 
 ## Done
 
+- **Calendar: new "List" view for a single day's jobs — customer info, assigned crew,
+  status, per-employee clock status, inline reschedule, guarded cancel (2026-07-28).**
+  User request: a list view of today showing brief customer info, assigned employee,
+  status, the assigned employee's clock-in/tracker status, and the ability to cancel and
+  reschedule right from the list. Added as a fourth view (`?view=list`) alongside
+  Staff/Week/Month, day-anchored the same way Staff is (`day` query param, Previous/Today/
+  Next navigation, remembered via the `co_calendar_state` cookie) rather than a fixed
+  today-only page, so an admin can still flip to yesterday/tomorrow from the same screen.
+  New `src/app/(app)/calendar/today-list-board.tsx`; `page.tsx` now also queries
+  `time_entries` for the day's jobs (only when `view === "list"`) and passes them down.
+  Per assigned employee the Clock column reads: no entries → "Not started"; an entry with
+  `clockOut IS NULL` → "Clocked in · <live elapsed>" (ticks client-side, matches My Day's
+  `formatElapsed`); otherwise → "Clocked out · <summed minutesWorked>m". Reschedule reuses
+  the same inline date/time-input-with-onBlur pattern as the (previously unwired) generic
+  `list-board.tsx`; Cancel is a dedicated guarded action (button → inline "Keep job /
+  Confirm cancel" → `commitStatus(job, "cancelled")`), mirroring the pattern the unassigned
+  queue panel shipped 2026-07-28 earlier the same day, rather than relying solely on the
+  status `<select>` (which still exists and still offers Cancelled, for parity/un-cancelling).
+  **Found and fixed while wiring this up**: adding "list" as a new view value initially only
+  updated the view-resolution ternary and the day/week/month row-query branch — the
+  Previous/Today/Next header links, `DatePicker`, and `CalendarStateSync` each had their own
+  separate `view === "staff" ? ... : ...` ternary that silently fell through to the *week*
+  branch for any unrecognized view value. Caught live in the browser: clicking "Today" from
+  the new List view was rewriting the URL to `?view=list&week=2026-07-27` instead of
+  `&day=<today>`, so the page never actually landed on today. Fixed all four ternaries
+  (`page.tsx`'s prev/next/today/currentDate/dateLabel/stateAnchor block, `date-picker.tsx`'s
+  `selectDay`, `state-sync.tsx`) to treat `list` as day-anchored like `staff`. Worth
+  remembering: any *future* new calendar view value needs the same audit — grep
+  `view === "staff"` in the calendar directory before assuming a new view "just works" off
+  the existing day/week/month plumbing.
+  Verified: `tsc --noEmit` clean, `npm run verify` clean (0 errors), `smoke:routes` (5/5),
+  `smoke:auth` (22/22) against a local production build, and a live click-through via the
+  Chrome extension against the hosted DB — confirmed the List tab renders, Previous/Today/
+  Next correctly jump the day-anchor (including the today-nav bug above, before and after
+  the fix), assigned/unassigned/multi-employee rows all render correctly, an already-
+  cancelled job shows the `StatusPill` with no Cancel control, and the Cancel button's
+  confirm step (Keep job / Confirm cancel) works — **never clicked "Confirm cancel" on a
+  real job**, so no hosted data was mutated. Reschedule's date/time inputs and the status
+  `<select>` reuse `commitJobPatch` verbatim from the already-shipped `list-board.tsx` /
+  `unassigned-panel.tsx` / staff-board resize code, so those write paths were not
+  separately live-tested against the hosted DB this session — only the read-only and
+  local-state-only interactions (Cancel's confirm/keep, view navigation) were exercised live.
+  **Not done**: no touch/keyboard-specific affordance beyond what the existing inline
+  inputs and buttons already provide (same baseline as the rest of Calendar); the generic,
+  still-unwired `list-board.tsx` (arbitrary date-range list, no clock column) was left as-is
+  rather than merged into this — they serve different purposes and neither reads the other's
+  props today.
+
 - **Service catalog split into Main jobs / Add-ons; New Job can now use custom presets
   (2026-07-28).** User request: "settings page should let you create presets other than
   move-out/deep-clean/first-time; catalog should have a main job category and an add-on
