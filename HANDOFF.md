@@ -9,6 +9,68 @@ Last updated: 2026-07-28.
 
 ## Done
 
+- **Service catalog split into Main jobs / Add-ons; New Job can now use custom presets
+  (2026-07-28).** User request: "settings page should let you create presets other than
+  move-out/deep-clean/first-time; catalog should have a main job category and an add-on
+  category to customize." Investigation found the catalog (`services` table, Settings →
+  Service catalog) already allowed arbitrary named presets — it was just a disconnected
+  "price prefill" list. The actual fixed list was the New Job form's own hardcoded Job type
+  dropdown (`first_clean/one_time/deep_clean/move_out`), which the user was really reacting
+  to. Also found `job.type === "first_clean"` is load-bearing for GHL sync (tags
+  `first-clean-done`, sets `first_cleaning_date`, fires `first_clean.completed`/
+  `first_clean.scheduled` events — see `api/jobs/[jobId]/clock-out/route.ts` and
+  `api/quotes/[quoteId]/convert/route.ts`), and the Calendar filter bar and 14 other files
+  read `jobs.type` directly for display labels. Fully replacing the fixed enum with
+  free-form types would have risked breaking GHL automation and required touching all 14 —
+  disproportionate for this request. Shipped instead:
+  - `services.category` (`main` | `add_on`), nullable `defaultPriceCents`/
+    `defaultDurationMinutes` (add-ons can have variable/no price, shown via new
+    `priceLabel` instead — e.g. "$10–$20 per window"), and `availableAddOnIds` (which
+    add-ons a main preset offers). Migration `drizzle/0017_strange_iceman.sql`, applied to
+    the hosted DB the same session (idempotent, additive only — no drops). **Note for
+    whoever applies migrations from a checklist next**: the first attempt at applying it
+    via a throwaway script silently dropped the two `ALTER COLUMN ... DROP NOT NULL`
+    statements because they shared a line with the file's leading comment block and a naive
+    "skip lines starting with `--`" filter discarded the whole chunk — caught immediately by
+    a functional test (`23502 null value in column "default_price_cents"` on add-on create),
+    fixed, and confirmed via `check:drift` + a full functional round-trip before moving on.
+    Worth remembering if a future migration file starts with a multi-line comment.
+  - `jobs.serviceId` (which main preset, if any) and `jobs.addOnIds` (jsonb array), both
+    nullable/optional — a job can still just use one of the four built-in types with no
+    catalog preset at all.
+  - Settings → Service catalog (`settings/services/page.tsx`) now has two sections: Add-ons
+    (name, optional flat price, optional price note for variable pricing) and Main jobs
+    (unchanged fields plus a checkbox list to pick which add-ons that preset offers).
+  - New Job form's Job type `<select>` now has an "Built-in" optgroup (the original 4) and a
+    "Custom presets" optgroup pulling from `services` where `category = "main"`. Picking a
+    preset prefills price/duration and unlocks an add-ons picker (filtered to that preset's
+    `availableAddOnIds`, or all active add-ons if none configured); selected add-ons sum into
+    the invoiced price live.
+  - Job Detail now resolves and shows the real preset name (instead of a generic
+    "One-time") and the selected add-ons as chips, via `loadJobDetail` joining `services` on
+    `serviceId`/`addOnIds`.
+  **Deliberately not touched, so scope this correctly next time it comes up:**
+  - The quote/proposal pricing engine's own add-ons (`lib/pricing/add-ons.ts`, the
+    hardcoded `ADD_ONS` list used on Move In/Out quotes) — untouched and unrelated to this
+    catalog on purpose. Two separate add-on concepts now exist by design: quote add-ons
+    (fixed list, quote pricing engine) and catalog add-ons (admin-editable, one-off Jobs).
+  - Custom presets are NOT reflected in: the Jobs list, Calendar day/week/month boards,
+    customer profile job history, or employee profile job history — all of these still show
+    a custom-preset job as generic "One-time" (its underlying `jobs.type` really is
+    `"one_time"`). Only Job Detail (`/jobs/[jobId]`) was wired to resolve the real preset
+    name, since that's the primary place an admin would check what was actually sold. Fixing
+    the other ~13 call sites means adding a `serviceName` join to each of their own separate
+    queries — a real but purely cosmetic gap, do this if it comes up as a complaint, not
+    preemptively.
+  - The Calendar filter bar's "cleaning type" filter still only offers the 4 built-in types;
+    filtering by a specific custom preset isn't possible yet (filtering by "One-time" does
+    surface all custom-preset jobs together, just not split out by preset).
+  Verified: `verify` (clean), `check:drift` (clean after the migration was applied),
+  `smoke:routes` (5/5), `smoke:auth` (22/22) against a local production build, and a
+  throwaway end-to-end script (create add-on → create main preset referencing it → create a
+  job with both → confirm Job Detail resolves the real names) — passed, then all test rows
+  deleted.
+
 - **Staff board: drop-to-exact-time and drag-bottom-edge-to-resize shipped (2026-07-28).**
   This was the product decision `HANDOFF.calendar-audit.md`'s "Out of scope" section had
   flagged as pending ("today a drop appends an assignee... this is a pending product

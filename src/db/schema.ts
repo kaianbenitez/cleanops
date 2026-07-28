@@ -202,13 +202,28 @@ export const customerLocations = pgTable("customer_locations", {
 }));
 
 // ---------- services ----------
+// "main" entries are job presets (what the New Job form's Job type picker
+// offers, alongside the four built-in types); "add_on" entries are optional
+// extras a main job can offer (window cleaning, oven clean-out, ...). This is
+// a separate, job-scoped catalog from lib/pricing/add-ons.ts, which remains
+// the quote/proposal engine's own hardcoded add-on list — deliberately not
+// unified, since the quote pricing engine has its own well-tested behavior.
+export const serviceCategoryEnum = ["main", "add_on"] as const;
+
 export const services = pgTable("services", {
   id: uuid("id").primaryKey().defaultRandom(),
   companyId: uuid("company_id").notNull().references(() => companies.id),
+  category: text("category", { enum: serviceCategoryEnum }).notNull().default("main"),
   name: text("name").notNull(),
   description: text("description"),
-  defaultPriceCents: integer("default_price_cents").notNull(),
-  defaultDurationMinutes: integer("default_duration_minutes").notNull(),
+  // Nullable so an add-on can have variable pricing (shown via priceLabel
+  // instead), e.g. "Window Cleaning" priced per-window.
+  defaultPriceCents: integer("default_price_cents"),
+  priceLabel: text("price_label"),
+  defaultDurationMinutes: integer("default_duration_minutes"),
+  // Add-on service ids offered alongside this main job on the New Job form.
+  // Only meaningful when category = "main".
+  availableAddOnIds: jsonb("available_add_on_ids").notNull().default([]),
   isActive: boolean("is_active").notNull().default(true),
   ...timestamps,
 });
@@ -362,6 +377,11 @@ export const jobs = pgTable("jobs", {
   estimatedDurationMinutes: integer("estimated_duration_minutes"),
   priceCents: integer("price_cents").notNull(),
   recurringSeriesId: uuid("recurring_series_id").references(() => recurringSeries.id),
+  // Custom main-job preset this job was created from (services.category =
+  // "main"), when the admin picked one instead of a built-in job type.
+  serviceId: uuid("service_id").references(() => services.id),
+  // Add-on service ids (services.category = "add_on") selected for this job.
+  addOnIds: jsonb("add_on_ids").notNull().default([]),
   completionNotes: text("completion_notes"),
   completedAt: timestamp("completed_at", { withTimezone: true }),
   ...timestamps,

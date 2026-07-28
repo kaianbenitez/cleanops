@@ -16,6 +16,9 @@ export type JobDetail = {
   estimatedDurationMinutes: number | null;
   priceCents: number;
   completionNotes: string | null;
+  serviceId: string | null;
+  serviceName: string | null;
+  addOnNames: string[];
   customerId: string;
   customerFirstName: string;
   customerLastName: string;

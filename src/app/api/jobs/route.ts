@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { auditLog, jobs, customers, jobAssignments, users } from "@/db/schema";
+import { auditLog, jobs, customers, jobAssignments, users, services } from "@/db/schema";
 import { and, eq, gte, lte, inArray } from "drizzle-orm";
 import { findPtoConflicts, ptoConflictMessage } from "@/lib/scheduling/pto";
 
@@ -14,6 +14,11 @@ const createJobSchema = z.object({
   estimatedDurationMinutes: z.number().int().positive().optional(),
   priceCents: z.number().int().nonnegative(),
   employeeIds: z.array(z.string().uuid()).optional(),
+  // A custom "main" service-catalog preset the job was created from, and any
+  // "add_on" presets selected alongside it. Both optional — a job can still
+  // just use one of the four built-in types with no catalog preset at all.
+  serviceId: z.string().uuid().optional(),
+  addOnIds: z.array(z.string().uuid()).optional(),
 });
 
 /** GET /api/jobs?start=YYYY-MM-DD&end=YYYY-MM-DD — jobs for the calendar view. */
@@ -96,6 +101,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Customer not found" }, { status: 404 });
   }
 
+  if (data.serviceId || data.addOnIds?.length) {
+    const catalogIds = [...(data.serviceId ? [data.serviceId] : []), ...(data.addOnIds ?? [])];
+    const catalogRows = await db
+      .select({ id: services.id, category: services.category })
+      .from(services)
+      .where(and(inArray(services.id, catalogIds), eq(services.companyId, admin.companyId)));
+    const catalogById = new Map(catalogRows.map((row) => [row.id, row]));
+
+    if (data.serviceId && catalogById.get(data.serviceId)?.category !== "main") {
+      return NextResponse.json({ error: "Service preset not found" }, { status: 400 });
+    }
+    if (data.addOnIds?.some((id) => catalogById.get(id)?.category !== "add_on")) {
+      return NextResponse.json({ error: "One or more add-ons were not found" }, { status: 400 });
+    }
+  }
+
   if (data.employeeIds && data.employeeIds.length > 0) {
     const validUsers = await db
       .select({ id: users.id })
@@ -127,6 +148,8 @@ export async function POST(req: NextRequest) {
       scheduledStartTime: data.scheduledStartTime ?? "09:00:00",
       estimatedDurationMinutes: data.estimatedDurationMinutes ?? 120,
       priceCents: data.priceCents,
+      serviceId: data.serviceId,
+      addOnIds: data.addOnIds ?? [],
     })
     .returning();
 

@@ -207,6 +207,11 @@ async function main() {
     )
     .returning();
 
+  // Non-null: seeded above with literal defaultPriceCents values; only
+  // custom add-on catalog entries can have a null price.
+  const standardPriceCents = svcStandard.defaultPriceCents ?? 0;
+  const deepPriceCents = svcDeep.defaultPriceCents ?? 0;
+
   const clients = insertedCustomers.filter((c) => c.status === "client");
 
   // Two recurring series for the weekly + biweekly clients
@@ -219,7 +224,7 @@ async function main() {
         frequency: "weekly",
         dayOfWeek: 2, // Tuesday
         startDate: daysFromToday(-30),
-        priceCents: svcStandard.defaultPriceCents,
+        priceCents: standardPriceCents,
         defaultEmployeeIds: [employeeIds[0]],
       },
       {
@@ -228,7 +233,7 @@ async function main() {
         frequency: "biweekly",
         dayOfWeek: 4, // Thursday
         startDate: daysFromToday(-30),
-        priceCents: svcStandard.defaultPriceCents,
+        priceCents: standardPriceCents,
         defaultEmployeeIds: [employeeIds[1]],
       },
     ])
@@ -237,13 +242,13 @@ async function main() {
   // ~2 weeks of jobs: some past+completed (for payroll demo data), some upcoming
   const jobRows = [
     // past completed jobs (last week) — feeds payroll screen
-    { customerId: clients[0].id, seriesId: seriesWeekly.id, date: daysFromToday(-7), status: "completed", type: "recurring", price: svcStandard.defaultPriceCents, employee: employeeIds[0] },
-    { customerId: clients[1].id, seriesId: seriesBiweekly.id, date: daysFromToday(-5), status: "completed", type: "recurring", price: svcStandard.defaultPriceCents, employee: employeeIds[1] },
-    { customerId: clients[2].id, seriesId: null, date: daysFromToday(-3), status: "completed", type: "one_time", price: svcDeep.defaultPriceCents, employee: employeeIds[2] },
+    { customerId: clients[0].id, seriesId: seriesWeekly.id, date: daysFromToday(-7), status: "completed", type: "recurring", price: standardPriceCents, employee: employeeIds[0] },
+    { customerId: clients[1].id, seriesId: seriesBiweekly.id, date: daysFromToday(-5), status: "completed", type: "recurring", price: standardPriceCents, employee: employeeIds[1] },
+    { customerId: clients[2].id, seriesId: null, date: daysFromToday(-3), status: "completed", type: "one_time", price: deepPriceCents, employee: employeeIds[2] },
     // today / upcoming
-    { customerId: clients[0].id, seriesId: seriesWeekly.id, date: daysFromToday(0), status: "scheduled", type: "recurring", price: svcStandard.defaultPriceCents, employee: employeeIds[0] },
-    { customerId: insertedCustomers[2].id, seriesId: null, date: daysFromToday(1), status: "scheduled", type: "first_clean", price: svcDeep.defaultPriceCents, employee: employeeIds[1] },
-    { customerId: clients[1].id, seriesId: seriesBiweekly.id, date: daysFromToday(9), status: "scheduled", type: "recurring", price: svcStandard.defaultPriceCents, employee: employeeIds[1] },
+    { customerId: clients[0].id, seriesId: seriesWeekly.id, date: daysFromToday(0), status: "scheduled", type: "recurring", price: standardPriceCents, employee: employeeIds[0] },
+    { customerId: insertedCustomers[2].id, seriesId: null, date: daysFromToday(1), status: "scheduled", type: "first_clean", price: deepPriceCents, employee: employeeIds[1] },
+    { customerId: clients[1].id, seriesId: seriesBiweekly.id, date: daysFromToday(9), status: "scheduled", type: "recurring", price: standardPriceCents, employee: employeeIds[1] },
   ] as const;
 
   for (const j of jobRows) {

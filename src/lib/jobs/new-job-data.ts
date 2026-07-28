@@ -5,7 +5,15 @@ import { loadAssignableEmployees } from "@/lib/jobs/job-detail";
 
 export type NewJobCustomerOption = { id: string; firstName: string; lastName: string; status: string };
 export type NewJobEmployeeOption = { id: string; firstName: string; lastName: string };
-export type NewJobServiceOption = { id: string; name: string; defaultPriceCents: number };
+export type NewJobServiceOption = {
+  id: string;
+  category: "main" | "add_on";
+  name: string;
+  defaultPriceCents: number | null;
+  priceLabel: string | null;
+  defaultDurationMinutes: number | null;
+  availableAddOnIds: string[];
+};
 
 export type NewJobOptions = {
   customers: NewJobCustomerOption[];
@@ -36,13 +44,21 @@ export async function loadNewJobOptions(companyId: string): Promise<NewJobOption
     db
       .select({
         id: services.id,
+        category: services.category,
         name: services.name,
         defaultPriceCents: services.defaultPriceCents,
+        priceLabel: services.priceLabel,
+        defaultDurationMinutes: services.defaultDurationMinutes,
+        availableAddOnIds: services.availableAddOnIds,
       })
       .from(services)
       .where(and(eq(services.companyId, companyId), eq(services.isActive, true)))
       .orderBy(services.name),
   ]);
 
-  return { customers: customerRows, employees: employeeRows, services: serviceRows };
+  return {
+    customers: customerRows,
+    employees: employeeRows,
+    services: serviceRows.map((row) => ({ ...row, availableAddOnIds: (row.availableAddOnIds as string[]) ?? [] })),
+  };
 }

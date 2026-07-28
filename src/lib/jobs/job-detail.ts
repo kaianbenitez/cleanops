@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { auditLog, customers, jobAssignments, jobs, timeEntries, users } from "@/db/schema";
+import { auditLog, customers, jobAssignments, jobs, services, timeEntries, users } from "@/db/schema";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -40,6 +40,8 @@ export async function loadJobDetail(jobId: string, companyId: string) {
       estimatedDurationMinutes: jobs.estimatedDurationMinutes,
       priceCents: jobs.priceCents,
       completionNotes: jobs.completionNotes,
+      serviceId: jobs.serviceId,
+      addOnIds: jobs.addOnIds,
       customerId: jobs.customerId,
       customerFirstName: customers.firstName,
       customerLastName: customers.lastName,
@@ -57,6 +59,18 @@ export async function loadJobDetail(jobId: string, companyId: string) {
     .limit(1);
 
   if (!job) return null;
+
+  const addOnIds = (job.addOnIds as string[]) ?? [];
+  const catalogIds = [...(job.serviceId ? [job.serviceId] : []), ...addOnIds];
+  const catalogRows = catalogIds.length
+    ? await db
+        .select({ id: services.id, name: services.name })
+        .from(services)
+        .where(and(inArray(services.id, catalogIds), eq(services.companyId, companyId)))
+    : [];
+  const catalogNameById = new Map(catalogRows.map((row) => [row.id, row.name]));
+  const serviceName = job.serviceId ? (catalogNameById.get(job.serviceId) ?? null) : null;
+  const addOnNames = addOnIds.map((id) => catalogNameById.get(id)).filter((name): name is string => !!name);
 
   const [assignments, entries, jobAuditLogs] = await Promise.all([
     db.select().from(jobAssignments).where(eq(jobAssignments.jobId, jobId)),
@@ -91,7 +105,7 @@ export async function loadJobDetail(jobId: string, companyId: string) {
     .where(and(eq(auditLog.companyId, companyId), eq(auditLog.entityType, "time_entry"), inArray(auditLog.entityId, entryIds)))
     .orderBy(desc(auditLog.createdAt));
 
-  return { job, assignments, timeEntries: entries, timeEntryAuditLogs, jobAuditLogs };
+  return { job: { ...job, serviceName, addOnNames }, assignments, timeEntries: entries, timeEntryAuditLogs, jobAuditLogs };
 }
 
 /** Active employees available to assign, same shape as `GET /api/employees`. */

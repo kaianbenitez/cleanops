@@ -113,7 +113,7 @@ export default function JobDetailClient({
   const serviceProgress = job.status === "completed" ? 100 : job.status === "in_progress" ? 62 : timeEntries.length > 0 ? 35 : 0;
   const serviceSteps = [
     { label: "Arrival & access", detail: "Confirm arrival, access, and home notes.", done: job.status !== "scheduled" },
-    { label: `${TYPE_LABELS[job.type] ?? job.type} service`, detail: "Complete the quoted cleaning scope.", done: job.status === "completed" },
+    { label: `${job.serviceName ?? TYPE_LABELS[job.type] ?? job.type} service`, detail: "Complete the quoted cleaning scope.", done: job.status === "completed" },
     { label: "Close-out & photos", detail: "Add service notes and photos before handoff.", done: job.status === "completed" && Boolean(job.completionNotes) },
   ];
 
@@ -206,12 +206,21 @@ export default function JobDetailClient({
             <h2 className="font-semibold">Service package</h2>
             <div className="mt-5 rounded-xl border border-[#d3e0d2] bg-[#f1f7ef] p-4">
               <div className="flex items-start justify-between gap-2">
-                <p className="font-bold text-[var(--co-evergreen)]">{TYPE_LABELS[job.type] ?? job.type}</p>
+                <p className="font-bold text-[var(--co-evergreen)]">{job.serviceName ?? TYPE_LABELS[job.type] ?? job.type}</p>
                 <span className="text-sm font-bold text-[var(--co-evergreen)]">{money(job.priceCents)}</span>
               </div>
               <p className="mt-1 text-xs text-[var(--co-muted)]">
                 One-time appointment · Est. {formatEstimatedTime(job.estimatedDurationMinutes)}
               </p>
+              {job.addOnNames.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {job.addOnNames.map((name) => (
+                    <span key={name} className="rounded-full border border-[#d3e0d2] bg-white px-2.5 py-1 text-xs font-medium text-[var(--co-evergreen)]">
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-xl border border-[#d3e0d2] bg-[#f7fbf5] p-3">

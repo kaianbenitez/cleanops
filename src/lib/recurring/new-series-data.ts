@@ -43,10 +43,18 @@ export async function loadNewSeriesOptions(companyId: string): Promise<NewSeries
         name: services.name,
         defaultPriceCents: services.defaultPriceCents,
       })
+      // "add_on" catalog entries aren't meaningful as a whole-series price
+      // prefill, and can have a null (variable) price — main presets always
+      // require a price (enforced on create), so this filter also satisfies
+      // the non-null SeriesServiceOption type below.
       .from(services)
-      .where(and(eq(services.companyId, companyId), eq(services.isActive, true)))
+      .where(and(eq(services.companyId, companyId), eq(services.isActive, true), eq(services.category, "main")))
       .orderBy(services.name),
   ]);
 
-  return { customers: customerRows, employees: employeeRows, services: serviceRows };
+  return {
+    customers: customerRows,
+    employees: employeeRows,
+    services: serviceRows.map((row) => ({ ...row, defaultPriceCents: row.defaultPriceCents ?? 0 })),
+  };
 }
