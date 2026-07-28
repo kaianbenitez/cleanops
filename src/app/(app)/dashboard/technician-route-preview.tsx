@@ -33,6 +33,13 @@ export default function TechnicianRoutePreview({
   const [selectedId, setSelectedId] = useState(routes.find((route) => route.jobs.length > 0)?.employeeId ?? "all");
 
   const mergedJobs = useMemo(() => routes.flatMap((route) => route.jobs), [routes]);
+  const selectItems = useMemo(
+    () => [
+      { value: "all", label: `All technicians (${mergedJobs.length})` },
+      ...routes.map((route) => ({ value: route.employeeId, label: `${route.employeeName} (${route.jobs.length})` })),
+    ],
+    [routes, mergedJobs.length]
+  );
   const selectedRoute = selectedId === "all" ? { employeeId: "all", employeeName: "All technicians", jobs: mergedJobs } : routes.find((route) => route.employeeId === selectedId) ?? routes[0];
   const jobs = selectedRoute?.jobs ?? [];
   const totalStops = jobs.length;
@@ -55,7 +62,7 @@ export default function TechnicianRoutePreview({
           <Label htmlFor="technician-filter" className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">
             Technician
           </Label>
-          <Select value={selectedId} onValueChange={(value) => setSelectedId(value ?? "all")}>
+          <Select items={selectItems} value={selectedId} onValueChange={(value) => setSelectedId(value ?? "all")}>
             <SelectTrigger
               id="technician-filter"
               className="mt-2 h-[2.55rem] w-full min-w-[220px] justify-between rounded-[0.65rem] border border-[var(--co-input-border)] bg-[var(--co-surface)] px-[0.8rem] text-sm text-[var(--co-ink)] hover:border-[var(--co-input-border-hover)]"
