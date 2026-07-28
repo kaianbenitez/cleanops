@@ -11,7 +11,8 @@ import UnassignedPanel from "./unassigned-panel";
 import type { EmployeePtoRecord, PtoPeriod } from "@/lib/scheduling/pto";
 
 const START = 9 * 60;
-const TOTAL = 8 * 60;
+const HOURS = 10;
+const TOTAL = HOURS * 60;
 const HOUR_HEIGHT = 104;
 const RETAINED_STATUSES = ["cancelled", "no_show"];
 
@@ -417,7 +418,7 @@ export default function StaffBoard({
     const job = jobs.find((entry) => entry.id === resizing.jobId);
     if (!job) return;
     const deltaMinutes =
-      ((event.clientY - resizing.startY) / (HOUR_HEIGHT * 8)) * TOTAL;
+      ((event.clientY - resizing.startY) / (HOUR_HEIGHT * HOURS)) * TOTAL;
     const rawDuration = resizing.initialDuration + deltaMinutes;
     const snapped = Math.round(rawDuration / 15) * 15;
     const maxDuration = Math.max(START + TOTAL - startMinutesOf(job), 15);
@@ -684,16 +685,16 @@ export default function StaffBoard({
             >
               <div
                 className="relative bg-[var(--co-surface-muted)]"
-                style={{ minHeight: `${HOUR_HEIGHT * 8}px` }}
+                style={{ minHeight: `${HOUR_HEIGHT * HOURS}px` }}
               >
-                {Array.from({ length: 9 }, (_, index) => (
+                {Array.from({ length: HOURS + 1 }, (_, index) => (
                   <span
                     key={index}
                     className="absolute right-3 text-[11px] font-medium text-[var(--co-muted)]"
                     style={{ top: `${index * HOUR_HEIGHT - 7}px` }}
                   >
-                    {index === 8
-                      ? "5 PM"
+                    {index === HOURS
+                      ? `${index + 9 > 12 ? index - 3 : index + 9} PM`
                       : `${index + 9 > 12 ? index - 3 : index + 9}:00 ${index + 9 >= 12 ? "PM" : "AM"}`}
                   </span>
                 ))}
@@ -712,7 +713,7 @@ export default function StaffBoard({
                   <div
                     key={employee.id}
                     className={`relative border-t border-[var(--co-line-soft)] ${dragOver?.employeeId === employee.id ? "bg-[var(--co-accent-tint)]" : "bg-[var(--co-surface)]"}`}
-                    style={{ minHeight: `${HOUR_HEIGHT * 8}px` }}
+                    style={{ minHeight: `${HOUR_HEIGHT * HOURS}px` }}
                     onDragOver={(event) => {
                       event.preventDefault();
                       setDragOver({
@@ -804,7 +805,7 @@ export default function StaffBoard({
               {sortedEmployees.length === 0 ? (
                 <div
                   className="flex items-start justify-center bg-[var(--co-surface)] px-4 py-10 text-center text-sm text-[var(--co-muted)]"
-                  style={{ minHeight: `${HOUR_HEIGHT * 8}px` }}
+                  style={{ minHeight: `${HOUR_HEIGHT * HOURS}px` }}
                 >
                   Create or activate a technician to use the dispatch board.
                 </div>
