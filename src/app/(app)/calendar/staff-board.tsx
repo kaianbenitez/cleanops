@@ -8,6 +8,7 @@ import { UndoToast, useUndoToast } from "./undo-toast";
 import JobCard from "./job-card";
 import { assignDayLanes, employeeColor, formatEstimatedTime } from "./shared";
 import UnassignedPanel from "./unassigned-panel";
+import JobDetailPanel from "./job-detail-panel";
 import type { EmployeePtoRecord, PtoPeriod } from "@/lib/scheduling/pto";
 
 const START = 9 * 60;
@@ -91,6 +92,7 @@ export default function StaffBoard({
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [queueExpanded, setQueueExpanded] = useState(false);
   const [openJobId, setOpenJobId] = useState<string | null>(null);
+  const [detailJobId, setDetailJobId] = useState<string | null>(null);
   const [resizing, setResizing] = useState<{
     jobId: string;
     startY: number;
@@ -617,6 +619,7 @@ export default function StaffBoard({
                   onDragStart={(event) =>
                     event.dataTransfer.setData("text/plain", job.id)
                   }
+                  onOpen={setDetailJobId}
                 />
               ))}
             </div>
@@ -771,6 +774,7 @@ export default function StaffBoard({
                             onDragStart={(event) =>
                               event.dataTransfer.setData("text/plain", job.id)
                             }
+                            onOpen={setDetailJobId}
                           />
                           {placement.overflowCount > 0 ? (
                             <span className="absolute bottom-1 right-1 rounded bg-[var(--co-ink)] px-1.5 py-0.5 text-[10px] font-semibold text-white">
@@ -892,6 +896,11 @@ export default function StaffBoard({
         jobId={openJobId}
         employees={employees}
         onClose={() => setOpenJobId(null)}
+      />
+      <JobDetailPanel
+        jobId={detailJobId}
+        employees={employees}
+        onClose={() => setDetailJobId(null)}
       />
     </div>
   );

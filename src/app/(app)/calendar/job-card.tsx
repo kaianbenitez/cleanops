@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { displayCustomer, employeeColor, formatClockLabel, formatEstimatedTime, recurrenceLabel, TYPE_LABELS } from "./shared";
+import { displayCustomer, employeeColor, formatClockLabel, formatEstimatedTime, isPlainClick, recurrenceLabel, TYPE_LABELS } from "./shared";
 import { statusLabel } from "@/components/ui/status-pill";
 
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
@@ -30,7 +30,7 @@ const STATUS_TONES: Record<string, string> = {
   no_show: "border-rose-300 bg-rose-50/60",
 };
 
-export default function JobCard({ job, employees, draggable = false, onDragStart }: { job: CardJob; employees: Employee[]; draggable?: boolean; onDragStart?: (event: React.DragEvent<HTMLAnchorElement>) => void }) {
+export default function JobCard({ job, employees, draggable = false, onDragStart, onOpen }: { job: CardJob; employees: Employee[]; draggable?: boolean; onDragStart?: (event: React.DragEvent<HTMLAnchorElement>) => void; onOpen?: (jobId: string) => void }) {
   const crewIds = job.assignedUserIds;
   const crew = crewIds
     .map((id) => employees.find((employee) => employee.id === id))
@@ -45,6 +45,11 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
         href={`/jobs/${job.id}`}
         draggable={draggable && !isLocked}
         onDragStart={onDragStart}
+        onClick={(event) => {
+          if (!onOpen || !isPlainClick(event)) return;
+          event.preventDefault();
+          onOpen(job.id);
+        }}
         style={{ borderLeftColor: employeeColor(crewIds[0]), borderLeftWidth: "3px" }}
         className={`group block h-full overflow-hidden rounded-lg border px-2.5 py-2 text-left transition hover:-translate-y-px hover:border-[var(--co-evergreen)] hover:shadow-[0_4px_12px_rgba(0,108,73,0.1)] ${STATUS_TONES[job.status] ?? STATUS_TONES.scheduled}`}
       >

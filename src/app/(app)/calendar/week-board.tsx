@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { CalendarEmployee, CalendarJob } from "./page";
 import JobCard from "./job-card";
 import { employeeColor } from "./shared";
+import JobDetailPanel from "./job-detail-panel";
 
 type DayMeta = {
   iso: string;
@@ -34,6 +35,7 @@ export default function WeekBoard({
   jobs: CalendarJob[];
 }) {
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
+  const [detailJobId, setDetailJobId] = useState<string | null>(null);
   const byDate = useMemo(
     () =>
       new Map(
@@ -162,6 +164,7 @@ export default function WeekBoard({
                               key={job.id}
                               job={job}
                               employees={employees}
+                              onOpen={setDetailJobId}
                             />
                           ))}
                         </div>
@@ -211,6 +214,11 @@ export default function WeekBoard({
           })}
         </div>
       </div>
+      <JobDetailPanel
+        jobId={detailJobId}
+        employees={employees}
+        onClose={() => setDetailJobId(null)}
+      />
     </section>
   );
 }

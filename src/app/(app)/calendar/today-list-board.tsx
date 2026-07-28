@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { displayCustomer, formatClockLabel, formatEstimatedTime } from "./shared";
 import { commitJobPatch } from "./drag-commit";
 import { useUndoToast, UndoToast } from "./undo-toast";
 import AssigneePicker from "./assignee-picker";
+import JobDetailPanel from "./job-detail-panel";
 import { StatusPill } from "@/components/ui/status-pill";
 import { formatElapsed } from "@/lib/my-day/job-format";
 
@@ -74,6 +74,7 @@ export default function TodayListBoard({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmingCancelId, setConfirmingCancelId] = useState<string | null>(null);
+  const [detailJobId, setDetailJobId] = useState<string | null>(null);
   const [now, setNow] = useState(0);
   const { toast, showUndo, dismiss } = useUndoToast();
 
@@ -253,9 +254,13 @@ export default function TodayListBoard({
                     <p className="mt-1.5 text-[10px] text-[var(--co-muted)]">{formatEstimatedTime(job.estimatedDurationMinutes)}</p>
                   </td>
                   <td className="px-5 py-3 font-medium">
-                    <Link href={`/jobs/${job.id}`} className="text-[var(--co-evergreen)] hover:underline">
+                    <button
+                      type="button"
+                      onClick={() => setDetailJobId(job.id)}
+                      className="text-[var(--co-evergreen)] hover:underline"
+                    >
                       {displayCustomer(job)}
-                    </Link>
+                    </button>
                     <p className="mt-0.5 text-xs text-[var(--co-muted)]">
                       {job.customerAddress ?? "No address"}
                       {job.customerCity ? `, ${job.customerCity}` : ""} {job.customerZip ?? ""}
@@ -349,6 +354,11 @@ export default function TodayListBoard({
         </table>
       </div>
       <UndoToast toast={toast} onDismiss={dismiss} />
+      <JobDetailPanel
+        jobId={detailJobId}
+        employees={employees}
+        onClose={() => setDetailJobId(null)}
+      />
     </div>
   );
 }
