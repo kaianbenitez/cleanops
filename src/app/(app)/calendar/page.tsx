@@ -22,6 +22,7 @@ import {
   jobs,
   recurrenceEnum,
   recurringSeries,
+  services,
   timeEntries,
   users,
 } from "@/db/schema";
@@ -110,6 +111,8 @@ export type CalendarJob = {
   priceCents: number;
   recurringSeriesId: string | null;
   recurrenceFrequency: string | null;
+  serviceId: string | null;
+  addOnIds: string[];
   customerFirstName: string;
   customerLastName: string;
   companyName: string | null;
@@ -117,6 +120,10 @@ export type CalendarJob = {
   customerZip: string | null;
   customerCity: string | null;
   customerAddress: string | null;
+  customerNotes: string | null;
+  gateCodeOrKeyNotes: string | null;
+  doNotClean: string | null;
+  petNotes: string | null;
   assignedUserIds: string[];
 };
 
@@ -296,6 +303,8 @@ export default async function CalendarPage({
         priceCents: jobs.priceCents,
         recurringSeriesId: jobs.recurringSeriesId,
         recurrenceFrequency: recurringSeries.frequency,
+        serviceId: jobs.serviceId,
+        addOnIds: jobs.addOnIds,
         customerFirstName: customers.firstName,
         customerLastName: customers.lastName,
         companyName: customers.companyName,
@@ -303,6 +312,10 @@ export default async function CalendarPage({
         customerZip: customers.zip,
         customerCity: customers.city,
         customerAddress: customers.addressLine1,
+        customerNotes: customers.generalNotes,
+        gateCodeOrKeyNotes: customers.gateCodeOrKeyNotes,
+        doNotClean: customers.doNotClean,
+        petNotes: customers.petNotes,
       })
       .from(jobs)
       .innerJoin(customers, eq(jobs.customerId, customers.id))
@@ -484,6 +497,44 @@ export default async function CalendarPage({
       ? jobsWithAssignments.filter((job) => !job.assignedUserIds.length)
       : jobsWithAssignments;
 
+  // Only the List view renders a friendly service name — resolve custom
+  // catalog presets (services.category = "main"/"add_on") to their names in
+  // one batched query rather than joining services into every calendar view.
+  const catalogIds =
+    view === "list"
+      ? [
+          ...new Set(
+            displayedJobs.flatMap((job) => [
+              ...(job.serviceId ? [job.serviceId] : []),
+              ...job.addOnIds,
+            ]),
+          ),
+        ]
+      : [];
+  const catalogRows = catalogIds.length
+    ? await db
+        .select({ id: services.id, name: services.name })
+        .from(services)
+        .where(
+          and(
+            inArray(services.id, catalogIds),
+            eq(services.companyId, admin.companyId),
+          ),
+        )
+    : [];
+  const catalogNameById = new Map(
+    catalogRows.map((row) => [row.id, row.name]),
+  );
+  const listJobs = displayedJobs.map((job) => ({
+    ...job,
+    serviceName: job.serviceId
+      ? (catalogNameById.get(job.serviceId) ?? null)
+      : null,
+    addOnNames: job.addOnIds
+      .map((id) => catalogNameById.get(id))
+      .filter((name): name is string => !!name),
+  }));
+
   const filterParams: SearchParams = {
     view: sp.view,
     week: sp.week,
@@ -643,7 +694,7 @@ export default async function CalendarPage({
             dayLabel={formatDayLabel(dayAnchor)}
             isToday={toISODate(dayAnchor) === todayIso}
             employees={employees}
-            jobs={displayedJobs}
+            jobs={listJobs}
             timeEntries={clockEntries.map((entry) => ({
               ...entry,
               clockIn: entry.clockIn.toISOString(),

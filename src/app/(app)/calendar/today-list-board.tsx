@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { displayCustomer, formatClockLabel, formatEstimatedTime } from "./shared";
+import { displayCustomer, formatClockLabel, formatEstimatedTime, TYPE_LABELS } from "./shared";
 import { commitJobPatch } from "./drag-commit";
 import { useUndoToast, UndoToast } from "./undo-toast";
 import AssigneePicker from "./assignee-picker";
@@ -14,6 +14,7 @@ type Employee = { id: string; firstName: string; lastName: string; isActive?: bo
 
 type ListJob = {
   id: string;
+  type: string;
   status: string;
   scheduledDate: string;
   scheduledStartTime: string | null;
@@ -25,6 +26,13 @@ type ListJob = {
   customerCity: string | null;
   customerAddress: string | null;
   estimatedDurationMinutes: number | null;
+  priceCents: number;
+  serviceName: string | null;
+  addOnNames: string[];
+  customerNotes: string | null;
+  gateCodeOrKeyNotes: string | null;
+  doNotClean: string | null;
+  petNotes: string | null;
   assignedUserIds: string[];
 };
 
@@ -232,8 +240,10 @@ export default function TodayListBoard({
                 .map((id) => employees.find((employee) => employee.id === id))
                 .filter((employee): employee is Employee => Boolean(employee));
               const cancellable = job.status !== "cancelled" && job.status !== "completed";
+              const hasNotes = Boolean(job.gateCodeOrKeyNotes || job.petNotes || job.doNotClean || job.customerNotes);
               return (
-                <tr key={job.id} className={`align-top hover:bg-[var(--co-surface-muted)]/50 ${savingId === job.id ? "opacity-50" : ""}`}>
+                <Fragment key={job.id}>
+                <tr className={`align-top hover:bg-[var(--co-surface-muted)]/50 ${savingId === job.id ? "opacity-50" : ""}`}>
                   <td className="px-5 py-3">
                     <input
                       key={`date-${job.scheduledDate}`}
@@ -267,6 +277,11 @@ export default function TodayListBoard({
                     </p>
                     <p className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-[var(--co-faint)]">
                       {job.clientType === "commercial" ? "Commercial" : "Residential"}
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--co-ink)]">
+                      {job.serviceName ?? TYPE_LABELS[job.type] ?? job.type}
+                      {job.addOnNames.length ? ` + ${job.addOnNames.join(", ")}` : ""}
+                      <span className="ml-1.5 font-medium text-[var(--co-muted)]">${(job.priceCents / 100).toFixed(2)}</span>
                     </p>
                   </td>
                   <td className="px-5 py-3">
@@ -341,6 +356,39 @@ export default function TodayListBoard({
                     )}
                   </td>
                 </tr>
+                {hasNotes ? (
+                  <tr className={savingId === job.id ? "opacity-50" : ""}>
+                    <td colSpan={6} className="border-t border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 px-5 py-2 text-xs text-[var(--co-muted)]">
+                      <div className="grid gap-1 sm:grid-cols-2">
+                        {job.gateCodeOrKeyNotes ? (
+                          <p className="max-w-sm truncate" title={job.gateCodeOrKeyNotes}>
+                            <span className="font-semibold text-[var(--co-ink)]">Access: </span>
+                            {job.gateCodeOrKeyNotes}
+                          </p>
+                        ) : null}
+                        {job.petNotes ? (
+                          <p className="max-w-sm truncate" title={job.petNotes}>
+                            <span className="font-semibold text-[var(--co-ink)]">Pets: </span>
+                            {job.petNotes}
+                          </p>
+                        ) : null}
+                        {job.doNotClean ? (
+                          <p className="max-w-sm truncate" title={job.doNotClean}>
+                            <span className="font-semibold text-rose-700">Don&apos;t clean: </span>
+                            {job.doNotClean}
+                          </p>
+                        ) : null}
+                        {job.customerNotes ? (
+                          <p className="max-w-2xl truncate sm:col-span-2" title={job.customerNotes}>
+                            <span className="font-semibold text-[var(--co-ink)]">Notes: </span>
+                            {job.customerNotes}
+                          </p>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                ) : null}
+                </Fragment>
               );
             })}
             {jobs.length === 0 ? (
