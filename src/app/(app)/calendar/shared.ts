@@ -68,6 +68,12 @@ export function jobDuration(job: { estimatedDurationMinutes: number | null }) {
   return Math.max(job.estimatedDurationMinutes ?? 75, 45);
 }
 
+/** hh:mm, matching the Jobs list and Job Detail convention (`formatEstimatedTime`). */
+export function formatEstimatedTime(minutes: number | null | undefined) {
+  if (!minutes) return "Est. pending";
+  return `Est. ${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
 export function jobsOverlap(
   a: { scheduledStartTime: string | null },
   aDuration: number,
