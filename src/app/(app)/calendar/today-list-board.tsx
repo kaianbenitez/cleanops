@@ -58,12 +58,14 @@ const STATUS_OPTIONS = [
 
 function clockStatus(entries: TimeEntryRow[], now: number) {
   const open = entries.find((entry) => !entry.clockOut);
-  if (open) return { label: `Clocked in · ${formatElapsed(open.clockIn, now)}`, className: "border-emerald-200 bg-emerald-50 text-emerald-700" };
+  if (open) return { label: `Cleaning · ${formatElapsed(open.clockIn, now)}`, className: "border-emerald-200 bg-emerald-50 text-emerald-700" };
   if (entries.length) {
     const totalMinutes = entries.reduce((sum, entry) => sum + (entry.minutesWorked ?? 0), 0);
-    return { label: `Clocked out · ${totalMinutes}m`, className: "border-slate-200 bg-slate-50 text-slate-600" };
+    const hours = Math.floor(totalMinutes / 60);
+    const duration = hours ? `${hours}h ${totalMinutes % 60}m` : `${totalMinutes}m`;
+    return { label: `Cleaned · ${duration}`, className: "border-slate-200 bg-slate-50 text-slate-700" };
   }
-  return { label: "Not started", className: "border-slate-200 bg-slate-50 text-slate-400" };
+  return { label: "Not started", className: "border-slate-200 bg-slate-50 text-slate-500" };
 }
 
 export default function TodayListBoard({
@@ -226,14 +228,14 @@ export default function TodayListBoard({
         {error ? <p className="mt-2 text-xs font-medium text-rose-600">{error}</p> : null}
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1080px] text-left text-sm">
-          <thead className="bg-[var(--co-surface-muted)] text-xs uppercase tracking-[0.1em] text-[var(--co-muted)]">
+        <table className="w-full min-w-[1240px] text-left text-base">
+          <thead className="bg-[var(--co-surface-muted)] text-sm uppercase tracking-[0.08em] text-[var(--co-muted)]">
             <tr>
               <th className="px-5 py-3">Time</th>
               <th className="px-5 py-3">Customer</th>
               <th className="px-5 py-3">Assigned</th>
               <th className="px-5 py-3">Status</th>
-              <th className="px-5 py-3">Clock</th>
+              <th className="px-5 py-3">Cleaning time</th>
               <th className="px-5 py-3">Actions</th>
             </tr>
           </thead>
@@ -253,7 +255,7 @@ export default function TodayListBoard({
                       type="date"
                       defaultValue={job.scheduledDate}
                       onBlur={(event) => commitDate(job, event.target.value)}
-                      className="co-input py-1.5 text-xs"
+                      className="co-input py-1.5 text-sm"
                       aria-label={`Date for ${job.customerFirstName} ${job.customerLastName}`}
                     />
                     <input
@@ -261,28 +263,28 @@ export default function TodayListBoard({
                       type="time"
                       defaultValue={job.scheduledStartTime?.slice(0, 5) ?? ""}
                       onBlur={(event) => commitTime(job, event.target.value)}
-                      className="co-input mt-1.5 py-1.5 text-xs"
+                      className="co-input mt-1.5 py-1.5 text-sm"
                       aria-label={`Time for ${job.customerFirstName} ${job.customerLastName}`}
                     />
-                    <p className="mt-1.5 text-[10px] text-[var(--co-muted)]">{formatEstimatedTime(job.estimatedDurationMinutes)}</p>
+                    <p className="mt-1.5 text-sm text-[var(--co-muted)]">{formatEstimatedTime(job.estimatedDurationMinutes)}</p>
                   </td>
                   <td className="px-5 py-3 font-medium">
                     <button
                       type="button"
                       onClick={() => setDetailJobId(job.id)}
-                      className="text-[var(--co-evergreen)] hover:underline"
+                      className="text-base text-[var(--co-evergreen)] hover:underline"
                     >
                       {displayCustomer(job)}
                     </button>
                     <ClientHomeSymbols className="mt-1" roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} />
-                    <p className="mt-0.5 text-xs text-[var(--co-muted)]">
+                    <p className="mt-1 text-sm text-[var(--co-muted)]">
                       {job.customerAddress ?? "No address"}
                       {job.customerCity ? `, ${job.customerCity}` : ""} {job.customerZip ?? ""}
                     </p>
-                    <p className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-[var(--co-faint)]">
+                    <p className="mt-1 text-xs uppercase tracking-[0.08em] text-[var(--co-faint)]">
                       {job.clientType === "commercial" ? "Commercial" : "Residential"}
                     </p>
-                    <p className="mt-1 text-xs text-[var(--co-ink)]">
+                    <p className="mt-1.5 text-sm text-[var(--co-ink)]">
                       {job.serviceName ?? TYPE_LABELS[job.type] ?? job.type}
                       {job.addOnNames.length ? ` + ${job.addOnNames.join(", ")}` : ""}
                       <span className="ml-1.5 font-medium text-[var(--co-muted)]">${(job.priceCents / 100).toFixed(2)}</span>
@@ -301,7 +303,7 @@ export default function TodayListBoard({
                       key={`status-${job.status}`}
                       defaultValue={job.status}
                       onChange={(event) => commitStatus(job, event.target.value)}
-                      className="co-input py-1.5 text-xs"
+                      className="co-input py-1.5 text-sm"
                       aria-label={`Status for ${job.customerFirstName} ${job.customerLastName}`}
                     >
                       {STATUS_OPTIONS.map((option) => (
@@ -319,12 +321,12 @@ export default function TodayListBoard({
                         {assignedEmployees.map((employee) => {
                           const state = clockStatus(entriesFor(job.id, employee.id), now);
                           return (
-                            <li key={employee.id} className="text-xs">
+                            <li key={employee.id} className="text-sm">
                               <span className="text-[var(--co-muted)]">
                                 {employee.firstName} {employee.lastName}
                                 {employee.isActive === false ? " (Inactive): " : ": "}
                               </span>
-                              <span className={`inline-block whitespace-nowrap rounded-full border px-2 py-0.5 font-medium ${state.className}`}>{state.label}</span>
+                              <span className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-1 font-semibold ${state.className}`}>{state.label}</span>
                             </li>
                           );
                         })}
@@ -332,6 +334,9 @@ export default function TodayListBoard({
                     )}
                   </td>
                   <td className="px-5 py-3">
+                    <button type="button" disabled title="Invoice action coming soon" className="mb-3 rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)] px-3 py-1.5 text-sm font-semibold text-[var(--co-muted)] disabled:cursor-not-allowed">
+                      Invoice — coming soon
+                    </button>
                     {job.status === "cancelled" ? (
                       <StatusPill domain="job" status="cancelled" />
                     ) : confirmingCancelId === job.id ? (
@@ -362,28 +367,28 @@ export default function TodayListBoard({
                 </tr>
                 {hasNotes ? (
                   <tr className={savingId === job.id ? "opacity-50" : ""}>
-                    <td colSpan={6} className="border-t border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 px-5 py-2 text-xs text-[var(--co-muted)]">
-                      <div className="grid gap-1 sm:grid-cols-2">
+                    <td colSpan={6} className="border-t border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 px-5 py-3 text-sm text-[var(--co-muted)]">
+                      <div className="grid gap-3 sm:grid-cols-2">
                         {job.gateCodeOrKeyNotes ? (
-                          <p className="max-w-sm truncate" title={job.gateCodeOrKeyNotes}>
+                          <p className="whitespace-pre-wrap break-words">
                             <span className="font-semibold text-[var(--co-ink)]">Access: </span>
                             {job.gateCodeOrKeyNotes}
                           </p>
                         ) : null}
                         {job.petNotes ? (
-                          <p className="max-w-sm truncate" title={job.petNotes}>
+                          <p className="whitespace-pre-wrap break-words">
                             <span className="font-semibold text-[var(--co-ink)]">Pets: </span>
                             {job.petNotes}
                           </p>
                         ) : null}
                         {job.doNotClean ? (
-                          <p className="max-w-sm truncate" title={job.doNotClean}>
+                          <p className="whitespace-pre-wrap break-words">
                             <span className="font-semibold text-rose-700">Don&apos;t clean: </span>
                             {job.doNotClean}
                           </p>
                         ) : null}
                         {job.customerNotes ? (
-                          <p className="max-w-2xl truncate sm:col-span-2" title={job.customerNotes}>
+                          <p className="whitespace-pre-wrap break-words sm:col-span-2">
                             <span className="font-semibold text-[var(--co-ink)]">Notes: </span>
                             {job.customerNotes}
                           </p>
