@@ -149,7 +149,7 @@ export default function WeekBoard({
                                 <span
                                   key={id}
                                   className="h-1.5 w-1.5 rounded-full"
-                                  style={{ background: employeeColor(id) }}
+                                  style={{ background: employees.find((employee) => employee.id === id)?.calendarColor ?? employeeColor(id) }}
                                 />
                               ))
                             ) : (

@@ -732,12 +732,12 @@ export default function StaffBoard({
                   onDragEnd={() => setDraggedEmployeeId(null)}
                   aria-label={`Drag ${employee.firstName} ${employee.lastName}'s column to reorder`}
                   className={`bg-[var(--co-surface-muted)] px-2 py-3 text-center ${laneEmployeeId ? "" : "cursor-grab active:cursor-grabbing"}`}
-                  style={{ borderTop: `3px solid ${employeeColor(employee.id)}` }}
+                  style={{ borderTop: `3px solid ${employee.calendarColor ?? employeeColor(employee.id)}` }}
                 >
                   <p className="flex items-center justify-center gap-1.5 truncate text-xs font-semibold">
                     <span
                       className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ background: employeeColor(employee.id) }}
+                      style={{ background: employee.calendarColor ?? employeeColor(employee.id) }}
                     />
                     {employee.firstName} {employee.lastName.slice(0, 1)}.
                   </p>

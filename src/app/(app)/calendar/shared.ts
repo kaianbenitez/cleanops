@@ -66,7 +66,7 @@ export function employeeColorAt(index: number) {
 }
 
 export function employeeCardStyle(id: string | null | undefined) {
-  const color = employeeColor(id);
+  const color = id?.startsWith("#") ? id : employeeColor(id);
   return {
     backgroundColor: `${color}66`,
     borderColor: `${color}d9`,
