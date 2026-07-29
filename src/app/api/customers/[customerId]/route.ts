@@ -44,6 +44,7 @@ const updateCustomerSchema = z.object({
     subdivision: z.string().trim().max(150).nullable().optional(),
     googlePlaceId: z.string().trim().max(200).nullable().optional(),
     accessInstructions: z.string().trim().max(5000).nullable().optional(),
+    entryCode: z.string().trim().max(200).nullable().optional(),
     keyNumber: z.string().trim().max(200).nullable().optional(),
     garageCode: z.string().trim().max(200).nullable().optional(),
     gateCode: z.string().trim().max(200).nullable().optional(),
@@ -103,7 +104,7 @@ export async function GET(
       city: customer.city, state: customer.state, zip: customer.zip,
       county: customer.county, subdivision: customer.subdivision, googlePlaceId: null,
       isPrimary: true, isActive: true, accessInstructions: customer.gateCodeOrKeyNotes,
-      keyNumber: null, garageCode: null, gateCode: null, alarmCode: null,
+      keyNumber: null, entryCode: null, garageCode: null, gateCode: null, alarmCode: null,
       vacuumLocation: null, mopHeadsNeeded: null, trashBags: null,
       createdAt: customer.createdAt, updatedAt: customer.updatedAt,
     }];

@@ -16,7 +16,8 @@ const createQuoteSchema = z.object({
   requestedServiceType: z.enum(SERVICE_TYPES).nullable().optional(), // admin's suggested default tier — optional, every tier is priced and sent regardless
   roomCounts: z.array(z.object({ roomTypeId: z.string().uuid(), count: z.number().int().nonnegative() })),
   travelZoneId: z.string().uuid().nullable(),
-  dirtyCodeLevel: z.number().int().nullable(),
+  dirtScore: z.number().int().min(1).max(10).nullable(),
+  clutterScore: z.number().int().min(1).max(10).nullable(),
   notesToCustomer: z.string().optional(),
   validUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
   }
 
   const data = parsed.data;
+  const dirtyCodeLevel = data.dirtScore == null ? null : data.dirtScore <= 2 ? 1 : data.dirtScore <= 5 ? 2 : data.dirtScore <= 8 ? 3 : 4;
 
   const [customer] = await db
     .select({ id: customers.id, zip: customers.zip })
@@ -101,7 +103,7 @@ export async function POST(req: NextRequest) {
     serviceLocationId: data.serviceLocationId,
     roomCounts: data.roomCounts,
     travelZoneId: data.travelZoneId,
-    dirtyCodeLevel: data.dirtyCodeLevel,
+    dirtyCodeLevel,
   });
 
   const publicToken = randomBytes(24).toString("base64url");
@@ -116,7 +118,9 @@ export async function POST(req: NextRequest) {
       serviceLocationId: data.serviceLocationId,
       requestedServiceType: data.requestedServiceType ?? null,
       travelZoneId: data.travelZoneId,
-      dirtyCodeLevel: data.dirtyCodeLevel,
+      dirtyCodeLevel,
+      dirtScore: data.dirtScore,
+      clutterScore: data.clutterScore,
       roomCounts: data.roomCounts,
       allTierPricing,
       totalCents: data.requestedServiceType ? allTierPricing[data.requestedServiceType].finalCents : 0,

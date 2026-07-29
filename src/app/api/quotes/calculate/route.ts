@@ -11,7 +11,7 @@ const calcSchema = z.object({
   serviceType: z.enum(SERVICE_TYPES), // which tier's detail to return as `breakdown`
   roomCounts: z.array(z.object({ roomTypeId: z.string().uuid(), count: z.number().int().nonnegative() })),
   travelZoneId: z.string().uuid().nullable(),
-  dirtyCodeLevel: z.number().int().nullable(),
+  dirtScore: z.number().int().min(1).max(10).nullable(),
 });
 
 /** POST /api/quotes/calculate — live price preview, no save. Computes every service
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     serviceLocationId: parsed.data.serviceLocationId,
     roomCounts: parsed.data.roomCounts,
     travelZoneId: parsed.data.travelZoneId,
-    dirtyCodeLevel: parsed.data.dirtyCodeLevel,
+    dirtyCodeLevel: parsed.data.dirtScore == null ? null : parsed.data.dirtScore <= 2 ? 1 : parsed.data.dirtScore <= 5 ? 2 : parsed.data.dirtScore <= 8 ? 3 : 4,
   });
 
   return NextResponse.json({ breakdown: allTiers[parsed.data.serviceType], allTiers });

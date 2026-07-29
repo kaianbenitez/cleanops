@@ -198,6 +198,10 @@ export const customerLocations = pgTable("customer_locations", {
   isPrimary: boolean("is_primary").notNull().default(true),
   isActive: boolean("is_active").notNull().default(true),
   accessInstructions: text("access_instructions"),
+  // The single access value used by the new dispatcher/field-staff UI. Legacy
+  // per-device values below remain for historical records and are never sent
+  // in ordinary calendar payloads.
+  entryCode: text("entry_code"),
   keyNumber: text("key_number"),
   garageCode: text("garage_code"),
   gateCode: text("gate_code"),
@@ -330,6 +334,8 @@ export const quotes = pgTable("quotes", {
   acceptedRecurringServiceType: text("accepted_recurring_service_type", { enum: serviceTypeEnum }),
   travelZoneId: uuid("travel_zone_id").references(() => travelZones.id),
   dirtyCodeLevel: integer("dirty_code_level"), // 1-4, matches serviceLocations.dirtyCodeTiers[].level
+  dirtScore: integer("dirt_score"), // 1-10 operational assessment; maps to dirtyCodeLevel for pricing
+  clutterScore: integer("clutter_score"), // 1-10 operational assessment; does not affect pricing
   roomCounts: jsonb("room_counts").notNull().default([]), // [{ roomTypeId, count }]
   allTierPricing: jsonb("all_tier_pricing"), // { [serviceType]: PricingBreakdown }, computed at creation
 
@@ -370,6 +376,64 @@ export const recurringSeries = pgTable("recurring_series", {
   isActive: boolean("is_active").notNull().default(true),
   ...timestamps,
 });
+
+// ---------- internal calendar events ----------
+// Events are staff-only schedule blocks (training, meetings, PTO-style
+// reminders). They intentionally do not participate in jobs, payroll, or
+// customer billing.
+export const calendarEvents = pgTable("calendar_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull().references(() => companies.id),
+  title: text("title").notNull(),
+  note: text("note"),
+  scheduledDate: date("scheduled_date").notNull(),
+  startTime: time("start_time"),
+  durationMinutes: integer("duration_minutes"),
+  isAllDay: boolean("is_all_day").notNull().default(false),
+  createdByUserId: uuid("created_by_user_id").notNull().references(() => users.id),
+  ...timestamps,
+}, (t) => ({
+  companyDateIdx: index("calendar_events_company_date_idx").on(t.companyId, t.scheduledDate),
+}));
+
+export const calendarEventAssignments = pgTable("calendar_event_assignments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  eventId: uuid("event_id").notNull().references(() => calendarEvents.id),
+  userId: uuid("user_id").notNull().references(() => users.id),
+}, (t) => ({
+  eventUserIdx: uniqueIndex("calendar_event_assignments_event_user_idx").on(t.eventId, t.userId),
+  userIdx: index("calendar_event_assignments_user_idx").on(t.userId),
+}));
+
+// ---------- employee report notes ----------
+export const employeeReportNotes = pgTable("employee_report_notes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull().references(() => companies.id),
+  employeeId: uuid("employee_id").notNull().references(() => users.id),
+  authorUserId: uuid("author_user_id").notNull().references(() => users.id),
+  note: text("note").notNull(),
+  reportDate: date("report_date").notNull(),
+  ...timestamps,
+}, (t) => ({
+  employeeDateIdx: index("employee_report_notes_employee_date_idx").on(t.employeeId, t.reportDate),
+}));
+
+// ---------- in-app notifications ----------
+export const appNotifications = pgTable("app_notifications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull().references(() => companies.id),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  body: text("body"),
+  href: text("href"),
+  quoteId: uuid("quote_id").references(() => quotes.id),
+  customerId: uuid("customer_id").references(() => customers.id),
+  readAt: timestamp("read_at", { withTimezone: true }),
+  ...timestamps,
+}, (t) => ({
+  companyCreatedIdx: index("app_notifications_company_created_idx").on(t.companyId, t.createdAt),
+  quoteIdx: uniqueIndex("app_notifications_quote_idx").on(t.quoteId),
+}));
 
 // ---------- jobs ----------
 export const jobTypeEnum = ["first_clean", "recurring", "one_time", "deep_clean", "move_out"] as const;

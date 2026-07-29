@@ -1,5 +1,5 @@
 ---
-name: CleanOps
+name: ServiceSpark
 colors:
   surface: '#f4fbf4'
   surface-dim: '#d4dcd5'
@@ -16,16 +16,16 @@ colors:
   outline: '#6c7a71'
   outline-variant: '#bbcabf'
   surface-tint: '#006c49'
-  primary: '#006c49'
+  primary: '#2457ff'
   on-primary: '#ffffff'
-  primary-container: '#10b981'
-  on-primary-container: '#00422b'
+  primary-container: '#cdd8ff'
+  on-primary-container: '#10266f'
   inverse-primary: '#4edea3'
   secondary: '#565e74'
   on-secondary: '#ffffff'
   secondary-container: '#dae2fd'
   on-secondary-container: '#5c647a'
-  tertiary: '#a43a3a'
+  tertiary: '#d94a38'
   on-tertiary: '#ffffff'
   tertiary-container: '#fc7c78'
   on-tertiary-container: '#711419'
@@ -114,11 +114,11 @@ The design system is engineered for high-efficiency residential cleaning operati
 The aesthetic is a **Corporate Modern** hybrid: it borrows the high-density utility and "command-center" feel of developer tools, the spaciousness of modern documentation platforms, and the refined finish of premium fintech dashboards. The UI prioritizes "information scent" through purposeful whitespace and a meticulous hierarchy, ensuring that critical data like cleaner status or client issues are immediately scannable.
 
 ## Colors
-The palette is rooted in a "Clean Tech" aesthetic. 
-- **Primary:** An energetic Emerald serves as the brand's signature, used for primary actions and "Completed" states, reinforcing a sense of accomplishment.
+The palette is rooted in a bright, practical ServiceSpark aesthetic.
+- **Primary:** Electric cobalt is the signature color for navigation and primary actions. Completion remains green; cobalt is never used to imply a job status.
 - **Neutral/Text:** A Deep Slate Navy provides high-contrast legibility and an authoritative tone for headers and body text.
 - **Surface & Background:** A subtle distinction between the Soft Slate background and pure White surfaces creates a layered, "dashboard" depth that helps separate the navigation and utility areas from the active workspace.
-- **Semantic Accents:** Status colors are high-chroma but balanced with light backgrounds to ensure they pop without creating visual fatigue.
+- **Semantic Accents:** Lime marks completed/positive states, coral marks exceptions, and amber marks attention. Calendar job types may use distinct high-contrast accents, always paired with a text label.
 
 ## Typography
 This design system utilizes **Inter** for its neutral, highly legible character, perfect for data-heavy SaaS interfaces. 

@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
-import { quotes } from "@/db/schema";
+import { appNotifications, quotes } from "@/db/schema";
 import { and, eq, inArray } from "drizzle-orm";
 import { SERVICE_TYPES, type PricingBreakdown, type ServiceType } from "@/lib/pricing/calculate";
 import { ADD_ONS } from "@/lib/pricing/add-ons";
-import { syncToGhl } from "@/lib/ghl/sync";
 
 const RECURRING_SERVICE_TYPES = ["weekly", "biweekly", "four_weeks"] as const;
 
@@ -88,7 +87,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       : NextResponse.json({ error: "This quote can no longer be accepted" }, { status: 409 });
   }
 
-  await syncToGhl(quote.companyId, { type: "quote.accepted", customerId: quote.customerId });
+  // Delivery to GHL is intentionally deferred until the production API setup is
+  // available. The internal notification is idempotent via quote_id's unique index.
+  await db.insert(appNotifications).values({
+    companyId: quote.companyId,
+    type: "quote.accepted",
+    title: "Proposal accepted",
+    body: "A customer accepted a proposal and is ready for scheduling.",
+    href: `/quotes/${quote.id}`,
+    quoteId: quote.id,
+    customerId: quote.customerId,
+  }).onConflictDoNothing();
 
   return NextResponse.json({ ok: true });
 }

@@ -141,7 +141,8 @@ export default function NewQuotePage() {
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [serviceLocationId, setServiceLocationId] = useState("");
   const [travelZoneId, setTravelZoneId] = useState("");
-  const [dirtyCodeLevel, setDirtyCodeLevel] = useState<number | "">("");
+  const [dirtScore, setDirtScore] = useState<number | "">("");
+  const [clutterScore, setClutterScore] = useState<number | "">("");
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [allTiers, setAllTiers] = useState<Record<string, Breakdown> | null>(null);
   const [calculating, setCalculating] = useState(false);
@@ -276,7 +277,7 @@ export default function NewQuotePage() {
         serviceType: BREAKDOWN_PREVIEW_TYPE,
         roomCounts,
         travelZoneId: travelZoneId || null,
-        dirtyCodeLevel: dirtyCodeLevel === "" ? null : dirtyCodeLevel,
+        dirtScore: dirtScore === "" ? null : dirtScore,
       }),
     });
 
@@ -289,7 +290,7 @@ export default function NewQuotePage() {
       setAllTiers(null);
     }
     setCalculating(false);
-  }, [dirtyCodeLevel, roomCounts, serviceLocationId, travelZoneId]);
+  }, [dirtScore, roomCounts, serviceLocationId, travelZoneId]);
 
   useEffect(() => {
     // Recalculate after the form inputs change; this is the quote preview's source of truth.
@@ -335,7 +336,8 @@ export default function NewQuotePage() {
         serviceLocationId,
         roomCounts,
         travelZoneId: travelZoneId || null,
-        dirtyCodeLevel: dirtyCodeLevel === "" ? null : dirtyCodeLevel,
+        dirtScore: dirtScore === "" ? null : dirtScore,
+        clutterScore: clutterScore === "" ? null : clutterScore,
         notesToCustomer: notes || undefined,
         validUntil: validUntil || undefined,
       }),
@@ -572,24 +574,32 @@ export default function NewQuotePage() {
 
           <section className="co-card p-5">
             <p className="eyebrow">Pricing context</p>
-            <h2 className="mt-1 text-lg font-semibold">Dirt level and travel</h2>
+            <h2 className="mt-1 text-lg font-semibold">Home condition and travel</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
                 <span className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-[var(--co-muted)]">
                   <Percent className="h-3.5 w-3.5" aria-hidden />
-                  Dirt level
+                  Dirt score (1–10)
                 </span>
                 <select
                   className="co-input w-full"
-                  value={dirtyCodeLevel}
-                  onChange={(event) => setDirtyCodeLevel(event.target.value === "" ? "" : Number(event.target.value))}
+                  value={dirtScore}
+                  onChange={(event) => setDirtScore(event.target.value === "" ? "" : Number(event.target.value))}
                 >
                   <option value="">None</option>
-                  {selectedLocation?.dirtyCodeTiers.map((tier) => (
+                  {Array.from({ length: 10 }, (_, index) => ({ level: index + 1, discountPercent: 0 })).map((tier) => (
                     <option key={tier.level} value={tier.level}>
                       Level {tier.level} · {(tier.discountPercent * 100).toFixed(0)}%
                     </option>
                   ))}
+                </select>
+              </label>
+
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Clutter score (1–10)</span>
+                <select className="co-input w-full" value={clutterScore} onChange={(event) => setClutterScore(event.target.value === "" ? "" : Number(event.target.value))}>
+                  <option value="">None</option>
+                  {Array.from({ length: 10 }, (_, index) => index + 1).map((score) => <option key={score} value={score}>Level {score}</option>)}
                 </select>
               </label>
 
