@@ -99,10 +99,20 @@ function normalizeAddressToken(value: string | null | undefined) {
   return (value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
 }
 
+function configuredAreaTokens(value: string) {
+  const zipTokens = value.match(/\b\d{5}(?:-\d{4})?\b/g) ?? [];
+  const cityTokens = value
+    .split(/[,&/|;()]+/g)
+    .flatMap((part) => part.split(/\s+-\s+/g))
+    .map((part) => part.replace(/\b\d{5}(?:-\d{4})?\b/g, "").trim())
+    .map(normalizeAddressToken)
+    .filter(Boolean);
+  return [...cityTokens, ...zipTokens.map(normalizeAddressToken)];
+}
 function matchingPricingArea(address: CustomerAddress, locations: ServiceLocation[]) {
   const tokens = new Set([address.city, address.zip, address.zip?.replace(/\D/g, "").slice(0, 5), address.subdivision].map(normalizeAddressToken).filter(Boolean));
   for (const location of locations) {
-    const zone = location.travelZones.find((candidate) => candidate.name.split(/[,&/|;]+/g).flatMap((part) => part.split(/\s+-\s+/g)).map(normalizeAddressToken).some((token) => tokens.has(token)));
+    const zone = location.travelZones.find((candidate) => configuredAreaTokens(candidate.name).some((token) => tokens.has(token)));
     if (zone) return { serviceLocationId: location.id, travelZoneId: zone.id };
   }
   const city = normalizeAddressToken(address.city);

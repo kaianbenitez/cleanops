@@ -1,11 +1,14 @@
 import { and, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "@/db";
-import { jobAssignments, jobs, quotes, serviceLocations, users } from "@/db/schema";
+import { jobs, quotes, serviceLocations } from "@/db/schema";
 import { estimateDurationMinutesFromPrice } from "@/lib/pricing/calculate";
 
-/** Rebuilds Job Ticket Hours from amount due ÷ service-area rate.
- * A linked quote is authoritative; legacy/manual jobs fall back to a team whose
- * assigned employees share one service area. Ambiguous jobs are never guessed. */
+/** Rebuilds Job Ticket Hours from amount due and the linked quote's rate.
+ *
+ * Payroll always pays the JTH stored on the job multiplied by each employee's
+ * own hourly rate. An employee's service area is a scheduling/pricing detail,
+ * not a payroll input, so unquoted/manual jobs retain their stored JTH.
+ */
 export async function refreshJobTicketHours(params: {
   companyId: string;
   startDate?: string;
@@ -32,41 +35,18 @@ export async function refreshJobTicketHours(params: {
 
   if (!rows.length) return { updated: 0, unresolved: [] };
 
-  const jobIds = rows.map((row) => row.id);
-  const assignments = await db
-    .select({ jobId: jobAssignments.jobId, serviceLocationId: users.serviceLocationId })
-    .from(jobAssignments)
-    .innerJoin(users, eq(jobAssignments.userId, users.id))
-    .where(and(inArray(jobAssignments.jobId, jobIds), eq(users.companyId, params.companyId)));
-  const areaIds = [...new Set(assignments.map((assignment) => assignment.serviceLocationId).filter((id): id is string => Boolean(id)))];
-  const areas = areaIds.length
-    ? await db.select({ id: serviceLocations.id, hourlyRateCents: serviceLocations.hourlyRateCents }).from(serviceLocations).where(and(eq(serviceLocations.companyId, params.companyId), inArray(serviceLocations.id, areaIds)))
-    : [];
-  const rateByArea = new Map(areas.map((area) => [area.id, area.hourlyRateCents]));
-  const areasByJob = new Map<string, Set<string>>();
-  for (const assignment of assignments) {
-    if (!assignment.serviceLocationId) continue;
-    const jobAreas = areasByJob.get(assignment.jobId) ?? new Set<string>();
-    jobAreas.add(assignment.serviceLocationId);
-    areasByJob.set(assignment.jobId, jobAreas);
-  }
-
   const updates: Array<{ id: string; minutes: number }> = [];
   const unresolved: string[] = [];
   for (const row of rows) {
-    const teamAreas = [...(areasByJob.get(row.id) ?? new Set<string>())];
-    const fallbackRate = teamAreas.length === 1 ? rateByArea.get(teamAreas[0]) : undefined;
-    const rate = row.quoteHourlyRateCents ?? fallbackRate;
-    if (!rate) {
+    if (row.quoteHourlyRateCents) {
+      const minutes = estimateDurationMinutesFromPrice(row.priceCents, row.quoteHourlyRateCents);
+      if (minutes !== row.currentMinutes) updates.push({ id: row.id, minutes });
+    } else if (row.currentMinutes === null) {
       unresolved.push(row.id);
-      continue;
     }
-    const minutes = estimateDurationMinutesFromPrice(row.priceCents, rate);
-    if (minutes !== row.currentMinutes) updates.push({ id: row.id, minutes });
   }
-
   if (params.failOnUnresolved && unresolved.length) {
-    throw new Error(`Cannot calculate Job Ticket Hours for ${unresolved.length} completed job${unresolved.length === 1 ? "" : "s"}. Link it to a quote or assign employees from one service area. Job IDs: ${unresolved.join(", ")}`);
+    throw new Error(`Cannot calculate Job Ticket Hours for ${unresolved.length} completed job${unresolved.length === 1 ? "" : "s"}. Add Job Ticket Hours or link the job to a quote. Job IDs: ${unresolved.join(", ")}`);
   }
 
   await db.transaction(async (tx) => {

@@ -243,16 +243,12 @@ async function generateCommissionLine(
     minutesByJob.set(row.jobId, (minutesByJob.get(row.jobId) ?? 0) + (row.minutesWorked ?? 0));
   }
 
-  // Tier rate depends on TOTAL weekly hours, so compute that total first,
-  // then apply the single resulting rate to every job that week — confirmed
-  // against a real example: one flat rate was used across all of that
-  // employee's jobs, not a graduated/marginal rate per bracket.
+  // Each completed job pays its stored JTH at this employee's configured
+  // hourly rate. Service area and weekly tier settings never change payroll.
   const uniqueRows = [...new Map(rows.map((row) => [row.jobId, row])).values()];
   const totalMinutes = uniqueRows.reduce((sum, r) => sum + (r.estimatedDurationMinutes ?? 0), 0);
   const totalHours = totalMinutes / 60;
-  const tiers = (employee.payTiers as PayTier[] | null) ?? null;
-  const rateCents = resolveTierRateCents(totalHours, tiers, employee.hourlyRateCents ?? 0);
-
+  const rateCents = employee.hourlyRateCents ?? 0;
   const calculation: CalculationLine[] = uniqueRows.map((r) => {
     const minutes = r.estimatedDurationMinutes ?? 0;
     const hoursSpent = (minutesByJob.get(r.jobId) ?? 0) / 60;
