@@ -9,7 +9,6 @@ import JobCard from "./job-card";
 import { assignDayLanes, employeeColor, formatEstimatedTime } from "./shared";
 import UnassignedPanel from "./unassigned-panel";
 import JobDetailPanel from "./job-detail-panel";
-import CalendarEventsStrip from "./calendar-events-strip";
 import type { EmployeePtoRecord, PtoPeriod } from "@/lib/scheduling/pto";
 
 const START = 9 * 60;
@@ -530,11 +529,11 @@ export default function StaffBoard({
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--co-line-soft)] px-4 py-3">
           <div>
             <h2 className="text-base font-semibold">
-              Dispatch board - {dayLabel}
+              Staff Daily — {dayLabel}
             </h2>
             <p className="mt-0.5 text-xs text-[var(--co-muted)]">
-              Employees are lanes. Drag a job between columns to add a
-              technician.
+              Horizontal employee schedule. Scroll sideways to see every
+              cleaner; drag jobs between columns to assign the team.
             </p>
             {isHoliday ? (
               <p className="mt-1 text-xs font-semibold text-amber-800">
@@ -546,7 +545,6 @@ export default function StaffBoard({
             {jobs.length} jobs
           </span>
         </div>
-        <CalendarEventsStrip dayIso={dayIso} employees={employees} />
         <form
           onSubmit={(event) => {
             event.preventDefault();

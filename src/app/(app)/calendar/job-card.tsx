@@ -23,11 +23,11 @@ export type CardJob = {
 };
 
 const STATUS_TONES: Record<string, string> = {
-  scheduled: "border-[var(--co-line)] bg-white",
-  in_progress: "border-amber-300 bg-amber-50/60",
-  completed: "border-emerald-300 bg-emerald-50/60",
+  scheduled: "border-blue-200 bg-blue-50",
+  in_progress: "border-amber-300 bg-amber-50",
+  completed: "border-emerald-300 bg-emerald-50",
   cancelled: "border-[var(--co-line)] bg-[var(--co-surface-muted)] opacity-60",
-  no_show: "border-rose-300 bg-rose-50/60",
+  no_show: "border-rose-300 bg-rose-50",
 };
 
 export default function JobCard({ job, employees, draggable = false, onDragStart, onOpen }: { job: CardJob; employees: Employee[]; draggable?: boolean; onDragStart?: (event: React.DragEvent<HTMLAnchorElement>) => void; onOpen?: (jobId: string) => void }) {
