@@ -14,7 +14,7 @@ export const TYPE_COLORS: Record<string, string> = {
   move_out: "border-orange-300 bg-orange-50 text-orange-700",
 };
 
-export const EMPLOYEE_PALETTE = ["#2563eb", "#0f766e", "#7c3aed", "#ea580c", "#be123c", "#15803d", "#b45309", "#4f46e5"];
+export const EMPLOYEE_PALETTE = ["#2563eb", "#0f766e", "#7c3aed", "#ea580c", "#be123c", "#15803d", "#b45309", "#4f46e5", "#0e7490", "#c2410c", "#9333ea", "#047857", "#b91c1c", "#1d4ed8", "#9f1239", "#a16207"];
 
 export const STAFF_RANGE_START = 9 * 60;
 export const STAFF_RANGE_MINUTES = 9 * 60;
@@ -52,6 +52,16 @@ export function employeeColor(id: string | null | undefined) {
     hash = (hash * 31 + id.charCodeAt(index)) >>> 0;
   }
   return EMPLOYEE_PALETTE[hash % EMPLOYEE_PALETTE.length];
+}
+
+export function employeeCardStyle(id: string | null | undefined) {
+  const color = employeeColor(id);
+  return {
+    backgroundColor: `${color}1f`,
+    borderColor: `${color}80`,
+    borderLeftColor: color,
+    borderLeftWidth: "3px",
+  };
 }
 
 export function displayCustomer(job: { customerFirstName: string; customerLastName: string; companyName?: string | null }) {

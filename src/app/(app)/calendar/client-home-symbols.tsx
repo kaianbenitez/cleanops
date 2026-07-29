@@ -1,48 +1,55 @@
-import { CircleSlash, House, KeyRound, PawPrint } from "lucide-react";
+import { Bath, BedDouble, CircleSlash, DoorOpen, KeyRound, PawPrint } from "lucide-react";
 
 type ClientHomeSymbolsProps = {
-  homeDetails?: Record<string, unknown> | null;
+  roomCounts?: { name: string; count: number }[];
   gateCodeOrKeyNotes?: string | null;
   petNotes?: string | null;
   doNotClean?: string | null;
   className?: string;
 };
 
-function homeProfileLabel(homeDetails: Record<string, unknown> | null | undefined) {
-  if (!homeDetails || Object.keys(homeDetails).length === 0) return null;
-  const details = [
-    homeDetails.dirtLevel ? `Dirt level: ${String(homeDetails.dirtLevel)}` : null,
-    homeDetails.clutterCode ? `Clutter code: ${String(homeDetails.clutterCode)}` : null,
-    homeDetails.dogs ? `Pets: ${String(homeDetails.dogs)}` : null,
-  ].filter(Boolean);
-  return details.length ? `House profile — ${details.join(" · ")}` : "House profile available";
+type Symbol =
+  | { kind: "room"; room: { name: string; count: number }; label: string; tone: string }
+  | { kind: "note"; icon: typeof KeyRound; label: string; tone: string };
+
+function RoomIcon({ name }: { name: string }) {
+  const normalized = name.toLowerCase();
+  if (normalized.includes("bed")) return <BedDouble className="h-3.5 w-3.5" aria-hidden />;
+  if (normalized.includes("bath")) return <Bath className="h-3.5 w-3.5" aria-hidden />;
+  return <DoorOpen className="h-3.5 w-3.5" aria-hidden />;
 }
 
-/** Compact, text-backed alerts for dispatchers. Titles expose the full note on hover. */
+/** Compact, text-backed property details for dispatchers. Titles expose full details on hover. */
 export default function ClientHomeSymbols({
-  homeDetails,
+  roomCounts = [],
   gateCodeOrKeyNotes,
   petNotes,
   doNotClean,
   className = "",
 }: ClientHomeSymbolsProps) {
-  const profileLabel = homeProfileLabel(homeDetails);
-  const symbols = [
-    profileLabel ? { icon: House, label: profileLabel, tone: "text-[var(--co-evergreen)]" } : null,
-    gateCodeOrKeyNotes ? { icon: KeyRound, label: `Access: ${gateCodeOrKeyNotes}`, tone: "text-amber-700" } : null,
-    petNotes ? { icon: PawPrint, label: `Pets: ${petNotes}`, tone: "text-[var(--co-muted)]" } : null,
-    doNotClean ? { icon: CircleSlash, label: `Don't clean: ${doNotClean}`, tone: "text-rose-700" } : null,
-  ].filter((symbol): symbol is { icon: typeof House; label: string; tone: string } => Boolean(symbol));
+  const symbols: Symbol[] = [
+    ...roomCounts.slice(0, 3).map((room) => ({ kind: "room" as const, room, label: `${room.count} ${room.name}`, tone: "text-[var(--co-evergreen)]" })),
+    ...(gateCodeOrKeyNotes ? [{ kind: "note" as const, icon: KeyRound, label: `Access: ${gateCodeOrKeyNotes}`, tone: "text-amber-700" }] : []),
+    ...(petNotes ? [{ kind: "note" as const, icon: PawPrint, label: `Pets: ${petNotes}`, tone: "text-[var(--co-muted)]" }] : []),
+    ...(doNotClean ? [{ kind: "note" as const, icon: CircleSlash, label: `Don't clean: ${doNotClean}`, tone: "text-rose-700" }] : []),
+  ];
 
   if (!symbols.length) return null;
 
   return (
     <span className={`flex shrink-0 items-center gap-1 ${className}`} aria-label={symbols.map((symbol) => symbol.label).join("; ")}>
-      {symbols.map(({ icon: Icon, label, tone }) => (
-        <span key={label} title={label} className={tone}>
-          <Icon className="h-3.5 w-3.5" aria-hidden />
-        </span>
+      {symbols.map((symbol) => (
+        symbol.kind === "room" ? (
+          <span key={symbol.label} title={symbol.label} className={`flex items-center gap-0.5 ${symbol.tone}`}>
+            <RoomIcon name={symbol.room.name} />
+            <span className="text-[10px] font-bold">{symbol.room.count}</span>
+          </span>
+        ) : <NoteSymbol key={symbol.label} icon={symbol.icon} label={symbol.label} tone={symbol.tone} />
       ))}
     </span>
   );
+}
+
+function NoteSymbol({ icon: Icon, label, tone }: { icon: typeof KeyRound; label: string; tone: string }) {
+  return <span title={label} className={tone}><Icon className="h-3.5 w-3.5" aria-hidden /></span>;
 }

@@ -22,6 +22,7 @@ import {
   jobs,
   recurrenceEnum,
   recurringSeries,
+  roomTypes,
   services,
   timeEntries,
   users,
@@ -124,6 +125,7 @@ export type CalendarJob = {
   customerCity: string | null;
   customerAddress: string | null;
   customerHomeDetails: Record<string, unknown>;
+  roomCounts: { name: string; count: number }[];
   customerNotes: string | null;
   gateCodeOrKeyNotes: string | null;
   doNotClean: string | null;
@@ -469,6 +471,14 @@ export default async function CalendarPage({
           ),
         )
     : [];
+  const configuredRoomTypes = await db
+    .select({ id: roomTypes.id, name: roomTypes.name })
+    .from(roomTypes)
+    .where(eq(roomTypes.companyId, admin.companyId))
+    .orderBy(roomTypes.sortOrder);
+  const roomTypeNameById = new Map(
+    configuredRoomTypes.map((roomType) => [roomType.id, roomType.name]),
+  );
   const clockEntries =
     view === "list" && rows.length
       ? await db
@@ -495,10 +505,23 @@ export default async function CalendarPage({
       assignment.userId,
     ]),
   );
-  const jobsWithAssignments: CalendarJob[] = rows.map((row) => ({
-    ...row,
-    assignedUserIds: byJob.get(row.id) ?? [],
-  }));
+  const jobsWithAssignments: CalendarJob[] = rows.map((row) => {
+    const storedRoomCounts = row.customerHomeDetails.roomCounts;
+    const roomCountById =
+      storedRoomCounts && typeof storedRoomCounts === "object"
+        ? (storedRoomCounts as Record<string, unknown>)
+        : {};
+    const roomCounts = Object.entries(roomCountById)
+      .map(([roomTypeId, count]) => ({
+        name: roomTypeNameById.get(roomTypeId),
+        count: Number(count),
+      }))
+      .filter(
+        (room): room is { name: string; count: number } =>
+          Boolean(room.name) && Number.isFinite(room.count) && room.count > 0,
+      );
+    return { ...row, roomCounts, assignedUserIds: byJob.get(row.id) ?? [] };
+  });
   const displayedJobs =
     sp.assignment === "unassigned"
       ? jobsWithAssignments.filter((job) => !job.assignedUserIds.length)
