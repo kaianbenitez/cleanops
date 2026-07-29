@@ -1,12 +1,16 @@
 import { redirect } from "next/navigation";
+import { desc, eq } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { emailToUsername } from "@/lib/auth/username";
+import { db } from "@/db";
+import { appNotifications } from "@/db/schema";
 import AppNav from "./app-nav";
 import ActionFeedbackProvider from "./action-feedback-provider";
 import AppSurfaceMotion from "./app-surface-motion";
 import CreateMenu from "./create-menu";
 import GlobalSearch from "./global-search";
 import MustChangePassword from "./must-change-password";
+import NotificationsMenu from "./notifications-menu";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -16,6 +20,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const isAdmin = user.role === "admin";
+  const initialNotifications = isAdmin
+    ? await db.select({ id: appNotifications.id, title: appNotifications.title, body: appNotifications.body, href: appNotifications.href, readAt: appNotifications.readAt, createdAt: appNotifications.createdAt }).from(appNotifications).where(eq(appNotifications.companyId, user.companyId)).orderBy(desc(appNotifications.createdAt)).limit(20)
+    : [];
 
   return (
     <ActionFeedbackProvider>
@@ -32,6 +39,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <div className="flex h-[64px] items-center justify-end px-4 sm:px-6 lg:px-8">
                   <div className="flex items-center justify-end gap-3">
                     {isAdmin ? <GlobalSearch /> : null}
+                    {isAdmin ? <NotificationsMenu initialNotifications={initialNotifications} /> : null}
                     {isAdmin ? <CreateMenu /> : null}
                   </div>
                 </div>
