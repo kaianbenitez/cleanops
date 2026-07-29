@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { DEFAULT_ACCOUNT_PASSWORD, slugifyUsername, usernameToEmail } from "@/lib/auth/username";
+import { generateTemporaryPassword, slugifyUsername, usernameToEmail } from "@/lib/auth/username";
 
 /** GET /api/employees — active employees for assignment pickers (kept minimal —
  * other code depends on this exact shape). For the full directory list with
@@ -45,9 +45,9 @@ const createEmployeeSchema = z.object({
 });
 
 /** POST /api/employees — creates a Supabase auth account (username =
- * firstname+lastname, default password shared out-of-band by the admin) plus
- * the profile row. Mirrors the seed script's account-creation pattern but
- * usable from the app itself, not just seeding. */
+ * firstname+lastname, random one-time password shared out-of-band by the
+ * admin) plus the profile row. Mirrors the seed script's account-creation
+ * pattern but usable from the app itself, not just seeding. */
 export async function POST(req: NextRequest) {
   const admin = await requireAdmin();
   const body = await req.json();
@@ -72,13 +72,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Could not derive a username from that name." }, { status: 400 });
   }
 
+  const temporaryPassword = generateTemporaryPassword();
   let username = baseUsername;
   let authUserId: string | null = null;
   for (let attempt = 1; attempt <= 20 && !authUserId; attempt++) {
     username = attempt === 1 ? baseUsername : `${baseUsername}${attempt}`;
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: usernameToEmail(username),
-      password: DEFAULT_ACCOUNT_PASSWORD,
+      password: temporaryPassword,
       email_confirm: true,
     });
 
@@ -114,6 +115,7 @@ export async function POST(req: NextRequest) {
         hourlyRateCents: needsPayFields ? data.hourlyRateCents : undefined,
         gustoEmployeeId: data.gustoEmployeeId,
         isActive: true,
+        mustChangePassword: true,
       })
       .returning();
   } catch (err) {
@@ -127,5 +129,5 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  return NextResponse.json({ employee, username, password: DEFAULT_ACCOUNT_PASSWORD }, { status: 201 });
+  return NextResponse.json({ employee, username, password: temporaryPassword }, { status: 201 });
 }

@@ -79,6 +79,11 @@ export const users = pgTable("users", {
   // Storage object path in the private employee-photos bucket.
   profilePhotoUrl: text("profile_photo_url"),
   isActive: boolean("is_active").notNull().default(true),
+  // Set whenever an admin hands this account a one-time password (creation
+  // or a manual reset) and cleared once the holder sets their own password.
+  // Enforced in requireUser()/requireAdmin() — existing rows default false
+  // so this doesn't retroactively lock anyone out.
+  mustChangePassword: boolean("must_change_password").notNull().default(false),
   ...timestamps,
 }, (t) => ({
   companyIdx: index("users_company_idx").on(t.companyId),

@@ -120,6 +120,13 @@
       "when": 1785262756948,
       "tag": "0018_wealthy_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1785305005749,
+      "tag": "0019_must_change_password_column",
+      "breakpoints": true
     }
   ]
 }

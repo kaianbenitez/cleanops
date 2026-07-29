@@ -124,7 +124,7 @@ export default function NewEmployeePage() {
             </div>
           </div>
           <p className="text-xs text-[var(--co-warning)]">
-            This is the default password for every new account — have them change it from Account settings after their first login.
+            This one-time password only works for their first login — they&apos;ll be required to set their own before they can use the rest of CleanOps.
           </p>
           <button
             onClick={() => router.push(role === "admin" ? "/settings" : "/employees")}
@@ -227,7 +227,7 @@ export default function NewEmployeePage() {
 
             {firstName && lastName ? (
               <p className="text-xs text-[var(--co-muted)]">
-                Username will be <span className="font-mono">{`${firstName}${lastName}`.toLowerCase().replace(/[^a-z0-9]/g, "")}</span>, default password <span className="font-mono">password123</span>.
+                Username will be <span className="font-mono">{`${firstName}${lastName}`.toLowerCase().replace(/[^a-z0-9]/g, "")}</span>, with a one-time password generated after saving.
               </p>
             ) : null}
 

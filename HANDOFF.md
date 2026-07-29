@@ -5,9 +5,31 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-07-29.
+Last updated: 2026-07-29 (random one-time passwords + forced password change, reconciled onto
+this branch from a stale local session — see the note right below and the matching
+`DECISIONS.md` entry).
 
 ## Done
+
+- **Every new account gets a random one-time password instead of the old hardcoded
+  `password123`, and must set their own before using the app (originally 2026-07-27,
+  reconciled onto `main` 2026-07-29).** Account creation and admin password resets
+  (`src/app/api/employees/route.ts`, `.../employees/[employeeId]/route.ts`) now issue
+  `generateTemporaryPassword()` (`src/lib/auth/username.ts`) and set the new
+  `users.mustChangePassword`, enforced in `requireUser`/`requireAdmin`
+  (`src/lib/auth/current-user.ts`) and gated in `(app)/layout.tsx` via the new
+  `must-change-password.tsx` screen until cleared through `POST /api/account/password`. New
+  rows default `mustChangePassword` to `true`; the column defaults `false` so existing users
+  weren't retroactively locked out. Same fix applied to `work/create-admin.ts`.
+  **This work and its migration were done in a session whose local `main` was 50 commits
+  behind `origin/main` and never pushed** — reconciled onto the real history 2026-07-29 by
+  resetting to `origin/main` and replaying this feature's uncommitted changes on top (3
+  conflicts: `AGENTS.md`, `(app)/layout.tsx`, `api/employees/route.ts` — resolved by keeping
+  both sides' intent, e.g. `layout.tsx` now gates on `mustChangePassword` *and* still passes
+  `isFieldStaff` to `AppNav`). The migration itself (`drizzle/0019_must_change_password_column.sql`)
+  had to be regenerated from scratch since the original was only ever in the discarded local
+  commit — see the Blocked item below, it still needs to be applied/confirmed against the
+  hosted DB.
 
 - **Admins can now also be field staff — assignable to jobs, clocked in/out, and
   included in payroll (2026-07-29).** User report: "employee is admin + cleaner as
@@ -474,6 +496,13 @@ Last updated: 2026-07-29.
 
 ## Blocked / needs a human
 
+- **`drizzle/0019_must_change_password_column.sql` (`users.must_change_password`) needs to be
+  applied and confirmed against the hosted DB.** Written `IF NOT EXISTS` since a prior
+  (uncommitted, now-discarded) local session's user reportedly applied this same column
+  directly on 2026-07-27 — but that was never confirmed on this branch's history, so treat it
+  as unverified. Run `npm run check:drift` once real DB credentials are available; if it
+  flags this column missing, apply the migration (Supabase SQL Editor or a single transaction,
+  per `AGENTS.md`) and re-run `check:drift` clean.
 - **Hosted DB: RLS disabled on every public table, and leaked-password protection off
   (found 2026-07-28 via `mcp__supabase__get_advisors`).** All 20+ `public.*` tables
   (`users`, `customers`, `jobs`, `invoices`, `payroll_lines`, etc.) show `rls_disabled_in_public`
@@ -512,10 +541,11 @@ Last updated: 2026-07-29.
   a prior session staged and pushed most of it anyway (commits `fb311bc`, `d3a2553`,
   `6eb3c19`) without reviewing it or disclosing in the commit messages that it was Codex's
   code — see the "Correction" entry in `DECISIONS.md` 2026-07-24 for the full writeup and why
-  it wasn't reverted. Treat that feature as **unreviewed and unverified against the hosted
-  DB** even though it's now merged — no migration exists for `users.birthday` /
-  `users.profile_photo_url` / `job_photos`, so it may not work in production. The original
-  warning is left below for the remaining pieces (if any) that weren't swept in.
+  it wasn't reverted. **Update 2026-07-29: the migration gap this bullet originally warned
+  about is resolved** — `drizzle/0015_employee_photos_catchup.sql` now covers `users.birthday`,
+  `users.profile_photo_url`, and `job_photos`, verified against the hosted DB (see that file's
+  own header comment). The original warning is left below for the remaining pieces (if any)
+  that weren't swept in.
 - Codex is actively working in this repo in parallel — this list of "do not touch" files is a
   snapshot and goes stale fast. **Before staging anything (`git add`), diff every changed file
   individually against this list and against what you actually intended to change this

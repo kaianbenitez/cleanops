@@ -334,6 +334,8 @@ export async function POST(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
+  await db.update(users).set({ mustChangePassword: true }).where(eq(users.id, employeeId));
+
   await db.insert(auditLog).values({
     companyId: admin.companyId,
     userId: admin.id,

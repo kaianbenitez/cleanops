@@ -24,13 +24,27 @@ export async function requireAdmin(): Promise<CurrentUser> {
   if (!user || user.role !== "admin") {
     throw new Error("Forbidden: admin role required");
   }
+  if (user.mustChangePassword) {
+    throw new Error("PasswordChangeRequired");
+  }
+  return user;
+}
+
+/** Any authenticated user, regardless of `mustChangePassword` — only for the
+ * self-service password-change route, which must stay reachable for an
+ * account that's gated on it. Everything else should use `requireUser`. */
+export async function requireAuthenticatedUser(): Promise<CurrentUser> {
+  const user = await getCurrentUser();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
   return user;
 }
 
 export async function requireUser(): Promise<CurrentUser> {
-  const user = await getCurrentUser();
-  if (!user) {
-    throw new Error("Unauthorized");
+  const user = await requireAuthenticatedUser();
+  if (user.mustChangePassword) {
+    throw new Error("PasswordChangeRequired");
   }
   return user;
 }

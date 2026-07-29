@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 
 export default function AccountPage() {
   const [newPassword, setNewPassword] = useState("");
@@ -25,11 +24,16 @@ export default function AccountPage() {
     }
 
     setSaving(true);
-    const { error: updateError } = await createClient().auth.updateUser({ password: newPassword });
+    const res = await fetch("/api/account/password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: newPassword, confirmPassword }),
+    });
     setSaving(false);
 
-    if (updateError) {
-      setError(updateError.message);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? "Failed to update password.");
       return;
     }
 

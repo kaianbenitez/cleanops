@@ -690,3 +690,51 @@ correction instead.
 (and now, via these three commits, in the UI) but may not exist on the hosted DB. Verify
 directly against the live DB (not just `schema.ts`) before trusting this feature works in
 production.
+
+## 2026-07-29 — Reconciled a 50-commit-stale local session; regenerated must_change_password's migration
+
+A session started this day with a local `main` at `d389cec`, 50 commits behind `origin/main`
+(last local sync was around the `0015_thin_grey_gargoyle`/mustChangePassword work of
+2026-07-27, itself never pushed). Working from that stale base, the session generated its own
+`job_photos` catch-up migration, a static `drizzle-kit generate`-based CI drift check, and a
+`db:migrate` script fix, then committed locally — only to discover, right before pushing, that
+`git fetch` showed 50 unseen commits and that **all three of those exact problems had already
+been fixed upstream two days earlier** (`7881507`/`05e582e`, 2026-07-27), with a materially
+better approach: `0015_employee_photos_catchup.sql` (idempotent `IF NOT EXISTS`, verified live)
+for job_photos, and `.github/workflows/schema-drift.yml` + `npm run check:drift` (checks the
+*live database* directly, not just a schema.ts-vs-snapshot diff — explicitly called out
+upstream as the reason a plain `drizzle-kit generate` check "reported nothing to migrate while
+production was broken"). The local commit's own migration numbering (`0015`=mustChangePassword,
+`0016`=job_photos) also collided outright with upstream's (`0015`=job_photos catchup,
+`0016`=query-performance indexes).
+
+Recovery, with user approval before the destructive step: stashed all uncommitted changes
+(`git stash push -u`) to protect the one genuinely new, not-yet-upstream feature sitting in the
+working tree — random one-time passwords + forced password change
+(`generateTemporaryPassword()`, `users.mustChangePassword`, gated in `(app)/layout.tsx`) — then
+`git reset --hard origin/main` to discard the redundant local commit entirely, then
+`git stash pop` to replay that feature back on top of the real history. Three merge conflicts,
+all resolved by combining both sides' intent rather than picking one:
+- `AGENTS.md` — kept upstream's stricter Supabase-safety language (requires approval before
+  production migrations, points at `check:drift`) over the stashed session's now-superseded
+  "no approval needed" language from 2026-07-27. **Net effect: production migrations require
+  explicit approval again, upstream's current rule wins.**
+- `(app)/layout.tsx` — kept the `mustChangePassword` gate wrapping the whole nav/content tree,
+  and kept upstream's `isFieldStaff` prop passed to `AppNav` inside the non-gated branch.
+- `src/app/api/employees/route.ts` — kept upstream's try/catch orphaned-auth-account cleanup
+  and `isFieldStaff`/`needsPayFields` handling, added the stashed session's
+  `mustChangePassword: true` on new-row insert.
+
+`npx tsc --noEmit` and `npx eslint .` both clean after resolving (0 errors, only pre-existing
+warnings in untouched files). `npm run build`/`check:drift` could not be verified this session
+— `DATABASE_URL` is redacted to `[SENSITIVE]` in this session's `.env.local` (dotenvx), the same
+blocker documented for `0015_thin_grey_gargoyle` originally.
+
+Discovered while reconciling: the mustChangePassword feature's own migration
+(`users.must_change_password`) existed only in the discarded local commit — it was never on
+`origin/main` at all. Regenerated it as `drizzle/0019_must_change_password_column.sql`
+(`ADD COLUMN IF NOT EXISTS`, matching the `0015_employee_photos_catchup.sql` idempotent-catchup
+pattern, since the column may already exist live per the original, now-unverifiable
+2026-07-27 record) via the same "diff schema.ts against a stripped snapshot" technique used to
+recover `job_photos` earlier this session. **Not yet confirmed applied to the hosted DB** —
+see `HANDOFF.md`'s Blocked section.

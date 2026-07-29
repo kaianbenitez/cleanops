@@ -234,7 +234,7 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
       setManagementError(data.error ?? "Could not change the password.");
       return;
     }
-    setManagementMessage("Password changed. Share the new password securely with the employee.");
+    setManagementMessage("Password changed. Share the new password securely with the employee — they'll be asked to set their own on next login.");
   }
 
   async function deleteEmployee(force = false) {
