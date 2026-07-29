@@ -1,0 +1,4 @@
+interface:
+  display_name: "Risk Remediation"
+  short_description: "Remediate and track CleanOps risk findings."
+  default_prompt: "Use $risk-remediation to review the risk artifact, remediate the highest-priority verified finding, validate it, and update the artifact."
