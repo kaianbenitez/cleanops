@@ -26,6 +26,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ADD_ONS, detectRequestedAddOns, type AddOnKey } from "@/lib/pricing/add-ons";
+import { resolveServiceAreaNameForZip } from "@/lib/pricing/service-area-zips";
 
 type Customer = {
   id: string;
@@ -100,6 +101,17 @@ function normalizeAddressToken(value: string | null | undefined) {
 }
 
 function matchingPricingArea(address: CustomerAddress, locations: ServiceLocation[]) {
+  // Branch selection is ZIP-driven. Travel zones are only for a local travel
+  // fee, and can be incomplete or overlap a neighboring branch.
+  const branchName = resolveServiceAreaNameForZip(address.zip);
+  if (branchName) {
+    const branch = locations.find((location) => normalizeAddressToken(location.name) === normalizeAddressToken(branchName));
+    if (branch) {
+      const tokens = new Set([address.city, address.zip, address.zip?.replace(/\D/g, "").slice(0, 5), address.subdivision].map(normalizeAddressToken).filter(Boolean));
+      const zone = branch.travelZones.find((candidate) => candidate.name.split(/[,&/|;]+/g).flatMap((part) => part.split(/\s+-\s+/g)).map(normalizeAddressToken).some((token) => tokens.has(token)));
+      return { serviceLocationId: branch.id, travelZoneId: zone?.id ?? "" };
+    }
+  }
   const tokens = new Set([address.city, address.zip, address.zip?.replace(/\D/g, "").slice(0, 5), address.subdivision].map(normalizeAddressToken).filter(Boolean));
   for (const location of locations) {
     const zone = location.travelZones.find((candidate) => candidate.name.split(/[,&/|;]+/g).flatMap((part) => part.split(/\s+-\s+/g)).map(normalizeAddressToken).some((token) => tokens.has(token)));

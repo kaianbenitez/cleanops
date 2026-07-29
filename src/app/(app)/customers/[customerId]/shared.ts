@@ -56,6 +56,7 @@ export type CustomerJob = {
   scheduledStartTime: string | null;
   estimatedDurationMinutes: number | null;
   priceCents: number;
+  assignedCleanerNames?: string[];
 };
 
 export type AuditEntry = {
@@ -76,4 +77,10 @@ export const TYPE_LABELS: Record<string, string> = {
 
 export function money(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
+}
+
+/** hh:mm, matching the Jobs list / Job Detail / Calendar convention. */
+export function formatEstimatedTime(minutes: number | null | undefined) {
+  if (!minutes) return "—";
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 }

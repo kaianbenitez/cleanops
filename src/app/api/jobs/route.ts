@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { auditLog, jobs, customers, jobAssignments, users, services } from "@/db/schema";
 import { and, eq, gte, lte, inArray } from "drizzle-orm";
 import { findPtoConflicts, ptoConflictMessage } from "@/lib/scheduling/pto";
+import { resolveJobTicketMinutes } from "@/lib/payroll/job-ticket-hours";
 
 const createJobSchema = z.object({
   customerId: z.string().uuid(),
@@ -137,6 +138,18 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // A job-ticket-hours estimate (amount due ÷ the customer's branch rate)
+  // beats the generic 2-hour placeholder whenever it can be resolved; an
+  // explicit estimatedDurationMinutes from the caller always wins.
+  const estimatedDurationMinutes =
+    data.estimatedDurationMinutes ??
+    (await resolveJobTicketMinutes({
+      companyId: admin.companyId,
+      priceCents: data.priceCents,
+      customerId: data.customerId,
+    })) ??
+    120;
+
   const [job] = await db
     .insert(jobs)
     .values({
@@ -146,7 +159,7 @@ export async function POST(req: NextRequest) {
       status: "scheduled",
       scheduledDate: data.scheduledDate,
       scheduledStartTime: data.scheduledStartTime ?? "09:00:00",
-      estimatedDurationMinutes: data.estimatedDurationMinutes ?? 120,
+      estimatedDurationMinutes,
       priceCents: data.priceCents,
       serviceId: data.serviceId,
       addOnIds: data.addOnIds ?? [],

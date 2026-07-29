@@ -110,6 +110,16 @@ export default function JobDetailClient({
     router.push(`/invoices/${body.invoice.id}`);
   }, [job.customerId, job.id, job.priceCents, router]);
 
+  const cancelJob = useCallback(() => {
+    const reason = window.prompt("Why is this job being cancelled?");
+    if (reason === null) return;
+    if (!reason.trim()) {
+      setError("Enter a cancellation reason before cancelling this job.");
+      return;
+    }
+    void save({ status: "cancelled", cancellationReason: reason.trim() });
+  }, [save]);
+
   const serviceProgress = job.status === "completed" ? 100 : job.status === "in_progress" ? 62 : timeEntries.length > 0 ? 35 : 0;
   const serviceSteps = [
     { label: "Arrival & access", detail: "Confirm arrival, access, and home notes.", done: job.status !== "scheduled" },
@@ -140,10 +150,15 @@ export default function JobDetailClient({
               <CalendarClock className="h-4 w-4" /> Reschedule
             </button>
             {job.status === "cancelled" ? null : (
+              <button type="button" disabled={saving} onClick={createInvoice} className="co-button-secondary">
+                Create draft invoice
+              </button>
+            )}
+            {job.status === "cancelled" ? null : (
               <button
                 type="button"
                 disabled={saving}
-                onClick={() => save({ status: "cancelled" })}
+                onClick={cancelJob}
                 className="co-button-secondary border-rose-200 text-rose-700 hover:bg-rose-50"
               >
                 <XCircle className="h-4 w-4" /> Cancel
@@ -167,7 +182,7 @@ export default function JobDetailClient({
                 <CircleUserRound className="h-7 w-7" />
               </span>
               <div>
-                <p className="font-bold">{job.customerFirstName} {job.customerLastName}</p>
+                <Link href={`/customers/${job.customerId}`} className="font-bold hover:text-[var(--co-evergreen)] hover:underline">{job.customerFirstName} {job.customerLastName}</Link>
                 <p className="text-xs text-[var(--co-muted)]">Customer record</p>
               </div>
             </div>
@@ -209,9 +224,7 @@ export default function JobDetailClient({
                 <p className="font-bold text-[var(--co-evergreen)]">{job.serviceName ?? TYPE_LABELS[job.type] ?? job.type}</p>
                 <span className="text-sm font-bold text-[var(--co-evergreen)]">{money(job.priceCents)}</span>
               </div>
-              <p className="mt-1 text-xs text-[var(--co-muted)]">
-                One-time appointment · Est. {formatEstimatedTime(job.estimatedDurationMinutes)}
-              </p>
+              <p className="mt-1 text-xs text-[var(--co-muted)]">One-time appointment</p>
               {job.addOnNames.length > 0 ? (
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {job.addOnNames.map((name) => (
@@ -230,6 +243,10 @@ export default function JobDetailClient({
               <div className="rounded-xl border border-[#d3e0d2] bg-[#f7fbf5] p-3">
                 <p className="text-xs text-[var(--co-muted)]">Start time</p>
                 <p className="mt-1 font-semibold">{job.scheduledStartTime?.slice(0, 5) ?? "Unscheduled"}</p>
+              </div>
+              <div className="col-span-2 rounded-xl border border-[#d3e0d2] bg-[#f7fbf5] p-3">
+                <p className="text-xs text-[var(--co-muted)]">Job Ticket Hours</p>
+                <p className="mt-1 font-semibold">{formatEstimatedTime(job.estimatedDurationMinutes)}</p>
               </div>
             </div>
             {job.customerNotes ? (

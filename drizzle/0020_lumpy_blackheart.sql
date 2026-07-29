@@ -1,0 +1,1 @@
+ALTER TABLE "jobs" ADD COLUMN "cancellation_reason" text;

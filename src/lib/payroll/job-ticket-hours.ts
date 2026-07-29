@@ -1,11 +1,67 @@
 import { and, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "@/db";
-import { jobAssignments, jobs, quotes, serviceLocations, users } from "@/db/schema";
+import { customers, jobs, quotes, serviceLocations } from "@/db/schema";
 import { estimateDurationMinutesFromPrice } from "@/lib/pricing/calculate";
+import { resolveServiceAreaNameForZip } from "@/lib/pricing/service-area-zips";
 
-/** Rebuilds Job Ticket Hours from amount due ÷ service-area rate.
- * A linked quote is authoritative; legacy/manual jobs fall back to a team whose
- * assigned employees share one service area. Ambiguous jobs are never guessed. */
+/** Resolves the ÷-rate for one job/series: a linked quote's service-area rate
+ * is authoritative; otherwise the branch is derived from the customer's zip
+ * (see `service-area-zips.ts`) and its rate is read live from
+ * `service_locations.hourlyRateCents`. Returns null (never guesses) when
+ * neither resolves — no quote and no zip match. */
+async function resolveHourlyRateCents(params: {
+  companyId: string;
+  quoteId?: string | null;
+  customerId?: string | null;
+}): Promise<number | null> {
+  if (params.quoteId) {
+    const [quoteRow] = await db
+      .select({ hourlyRateCents: serviceLocations.hourlyRateCents })
+      .from(quotes)
+      .innerJoin(serviceLocations, eq(quotes.serviceLocationId, serviceLocations.id))
+      .where(and(eq(quotes.id, params.quoteId), eq(quotes.companyId, params.companyId), eq(serviceLocations.companyId, params.companyId)))
+      .limit(1);
+    if (quoteRow?.hourlyRateCents) return quoteRow.hourlyRateCents;
+  }
+  if (params.customerId) {
+    const [customer] = await db
+      .select({ zip: customers.zip })
+      .from(customers)
+      .where(and(eq(customers.id, params.customerId), eq(customers.companyId, params.companyId)))
+      .limit(1);
+    const areaName = resolveServiceAreaNameForZip(customer?.zip);
+    if (areaName) {
+      const [area] = await db
+        .select({ hourlyRateCents: serviceLocations.hourlyRateCents })
+        .from(serviceLocations)
+        .where(and(eq(serviceLocations.companyId, params.companyId), eq(serviceLocations.name, areaName)))
+        .limit(1);
+      return area?.hourlyRateCents ?? null;
+    }
+  }
+  return null;
+}
+
+/** Single-job/single-series Job Ticket Hours calc, for use at job-creation and
+ * price-edit time so duration is right immediately instead of waiting on the
+ * next bulk `refreshJobTicketHours` pass. Returns null when unresolved —
+ * callers keep whatever duration they already had rather than guessing. */
+export async function resolveJobTicketMinutes(params: {
+  companyId: string;
+  priceCents: number;
+  quoteId?: string | null;
+  customerId?: string | null;
+}): Promise<number | null> {
+  const rate = await resolveHourlyRateCents(params);
+  if (!rate) return null;
+  return estimateDurationMinutesFromPrice(params.priceCents, rate);
+}
+
+/** Rebuilds Job Ticket Hours from amount due ÷ branch rate. A linked quote's
+ * service area is authoritative; otherwise the branch is derived from the
+ * customer's zip. Rates are read live from `service_locations`, so a Settings
+ * change is picked up immediately. Jobs with no quote and an unmapped/missing
+ * zip are never guessed. */
 export async function refreshJobTicketHours(params: {
   companyId: string;
   startDate?: string;
@@ -24,39 +80,31 @@ export async function refreshJobTicketHours(params: {
       priceCents: jobs.priceCents,
       currentMinutes: jobs.estimatedDurationMinutes,
       quoteHourlyRateCents: serviceLocations.hourlyRateCents,
+      customerZip: customers.zip,
     })
     .from(jobs)
+    .innerJoin(customers, eq(jobs.customerId, customers.id))
     .leftJoin(quotes, eq(jobs.quoteId, quotes.id))
     .leftJoin(serviceLocations, and(eq(quotes.serviceLocationId, serviceLocations.id), eq(serviceLocations.companyId, params.companyId)))
     .where(and(...conditions));
 
   if (!rows.length) return { updated: 0, unresolved: [] };
 
-  const jobIds = rows.map((row) => row.id);
-  const assignments = await db
-    .select({ jobId: jobAssignments.jobId, serviceLocationId: users.serviceLocationId })
-    .from(jobAssignments)
-    .innerJoin(users, eq(jobAssignments.userId, users.id))
-    .where(and(inArray(jobAssignments.jobId, jobIds), eq(users.companyId, params.companyId)));
-  const areaIds = [...new Set(assignments.map((assignment) => assignment.serviceLocationId).filter((id): id is string => Boolean(id)))];
-  const areas = areaIds.length
-    ? await db.select({ id: serviceLocations.id, hourlyRateCents: serviceLocations.hourlyRateCents }).from(serviceLocations).where(and(eq(serviceLocations.companyId, params.companyId), inArray(serviceLocations.id, areaIds)))
+  const areaNames = [...new Set(rows.map((row) => resolveServiceAreaNameForZip(row.customerZip)).filter((name): name is string => Boolean(name)))];
+  const areas = areaNames.length
+    ? await db
+        .select({ name: serviceLocations.name, hourlyRateCents: serviceLocations.hourlyRateCents })
+        .from(serviceLocations)
+        .where(and(eq(serviceLocations.companyId, params.companyId), inArray(serviceLocations.name, areaNames)))
     : [];
-  const rateByArea = new Map(areas.map((area) => [area.id, area.hourlyRateCents]));
-  const areasByJob = new Map<string, Set<string>>();
-  for (const assignment of assignments) {
-    if (!assignment.serviceLocationId) continue;
-    const jobAreas = areasByJob.get(assignment.jobId) ?? new Set<string>();
-    jobAreas.add(assignment.serviceLocationId);
-    areasByJob.set(assignment.jobId, jobAreas);
-  }
+  const rateByAreaName = new Map(areas.map((area) => [area.name, area.hourlyRateCents]));
 
   const updates: Array<{ id: string; minutes: number }> = [];
   const unresolved: string[] = [];
   for (const row of rows) {
-    const teamAreas = [...(areasByJob.get(row.id) ?? new Set<string>())];
-    const fallbackRate = teamAreas.length === 1 ? rateByArea.get(teamAreas[0]) : undefined;
-    const rate = row.quoteHourlyRateCents ?? fallbackRate;
+    const areaName = resolveServiceAreaNameForZip(row.customerZip);
+    const zipRate = areaName ? rateByAreaName.get(areaName) : undefined;
+    const rate = row.quoteHourlyRateCents ?? zipRate;
     if (!rate) {
       unresolved.push(row.id);
       continue;
@@ -66,7 +114,7 @@ export async function refreshJobTicketHours(params: {
   }
 
   if (params.failOnUnresolved && unresolved.length) {
-    throw new Error(`Cannot calculate Job Ticket Hours for ${unresolved.length} completed job${unresolved.length === 1 ? "" : "s"}. Link it to a quote or assign employees from one service area. Job IDs: ${unresolved.join(", ")}`);
+    throw new Error(`Cannot calculate Job Ticket Hours for ${unresolved.length} completed job${unresolved.length === 1 ? "" : "s"}. Link it to a quote or add a zip that matches a service area. Job IDs: ${unresolved.join(", ")}`);
   }
 
   await db.transaction(async (tx) => {

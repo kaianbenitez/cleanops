@@ -16,6 +16,7 @@ export type JobDetail = {
   estimatedDurationMinutes: number | null;
   priceCents: number;
   completionNotes: string | null;
+  cancellationReason: string | null;
   serviceId: string | null;
   serviceName: string | null;
   addOnNames: string[];

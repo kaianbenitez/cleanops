@@ -7,6 +7,7 @@ import { quotes, customers, customerLocations, serviceLocations, travelZones } f
 import { and, eq, desc } from "drizzle-orm";
 import { calculateAllTierPrices, SERVICE_TYPES } from "@/lib/pricing/calculate";
 import { resolveAddressServiceArea, resolveCustomerServiceArea } from "@/lib/service-area";
+import { resolveServiceAreaNameForZip } from "@/lib/pricing/service-area-zips";
 
 const createQuoteSchema = z.object({
   customerId: z.string().uuid(),
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
   const data = parsed.data;
 
   const [customer] = await db
-    .select({ id: customers.id })
+    .select({ id: customers.id, zip: customers.zip })
     .from(customers)
     .where(and(eq(customers.id, data.customerId), eq(customers.companyId, admin.companyId)))
     .limit(1);
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
   if (!customer) {
     return NextResponse.json({ error: "Customer not found" }, { status: 404 });
   }
-  const [location] = await db.select({ id: serviceLocations.id }).from(serviceLocations).where(and(eq(serviceLocations.id, data.serviceLocationId), eq(serviceLocations.companyId, admin.companyId))).limit(1);
+  const [location] = await db.select({ id: serviceLocations.id, name: serviceLocations.name }).from(serviceLocations).where(and(eq(serviceLocations.id, data.serviceLocationId), eq(serviceLocations.companyId, admin.companyId))).limit(1);
   if (!location) return NextResponse.json({ error: "Service location not found" }, { status: 404 });
   if (data.travelZoneId) {
     const [zone] = await db.select({ id: travelZones.id }).from(travelZones).where(and(eq(travelZones.id, data.travelZoneId), eq(travelZones.serviceLocationId, location.id))).limit(1);
@@ -80,13 +81,19 @@ export async function POST(req: NextRequest) {
     ? await db.select({ addressLine1: customerLocations.addressLine1, city: customerLocations.city, state: customerLocations.state, zip: customerLocations.zip, subdivision: customerLocations.subdivision, label: customerLocations.label }).from(customerLocations).where(and(eq(customerLocations.id, data.serviceAddressLocationId), eq(customerLocations.customerId, data.customerId), eq(customerLocations.companyId, admin.companyId))).limit(1)
     : [];
   if (data.serviceAddressLocationId && !selectedAddress) return NextResponse.json({ error: "Selected service address was not found for this customer." }, { status: 400 });
+  const mappedBranchName = resolveServiceAreaNameForZip(selectedAddress?.zip ?? customer.zip);
+  if (mappedBranchName && location.name.toLowerCase() !== mappedBranchName.toLowerCase()) {
+    return NextResponse.json({ error: `ZIP code belongs to the ${mappedBranchName} branch.` }, { status: 400 });
+  }
   const serviceArea = selectedAddress
     ? await resolveAddressServiceArea({ companyId: admin.companyId, serviceLocationId: data.serviceLocationId, address: { ...selectedAddress, addressLabel: selectedAddress.label } })
     : await resolveCustomerServiceArea({ companyId: admin.companyId, customerId: data.customerId, serviceLocationId: data.serviceLocationId });
   if (serviceArea.status === "missing_address") {
     return NextResponse.json({ error: "This customer is missing an address. Add city or ZIP before quoting." }, { status: 400 });
   }
-  if (serviceArea.status === "outside_area" || serviceArea.status === "no_service_zones") {
+  // The branch ZIP list is authoritative; travel zones only provide an optional
+  // local fee and are not a complete branch-boundary dataset.
+  if (!mappedBranchName && (serviceArea.status === "outside_area" || serviceArea.status === "no_service_zones")) {
     return NextResponse.json({ error: "This customer is outside the selected service area." }, { status: 400 });
   }
 

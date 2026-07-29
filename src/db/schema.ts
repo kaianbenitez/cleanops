@@ -393,6 +393,7 @@ export const jobs = pgTable("jobs", {
   // Add-on service ids (services.category = "add_on") selected for this job.
   addOnIds: jsonb("add_on_ids").notNull().default([]),
   completionNotes: text("completion_notes"),
+  cancellationReason: text("cancellation_reason"),
   completedAt: timestamp("completed_at", { withTimezone: true }),
   ...timestamps,
 }, (t) => ({

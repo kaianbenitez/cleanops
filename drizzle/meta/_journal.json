@@ -127,6 +127,13 @@
       "when": 1785305005749,
       "tag": "0019_must_change_password_column",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1785330910563,
+      "tag": "0020_lumpy_blackheart",
+      "breakpoints": true
     }
   ]
 }

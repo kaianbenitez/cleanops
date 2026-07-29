@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { TYPE_LABELS } from "./shared";
+import { formatEstimatedTime, TYPE_LABELS } from "./shared";
 import { StatusPill } from "@/components/ui/status-pill";
 import { commitJobPatch } from "./drag-commit";
 import AssigneePicker from "./assignee-picker";
@@ -16,7 +16,9 @@ type JobDetail = {
   status: string;
   scheduledDate: string;
   scheduledStartTime: string | null;
+  estimatedDurationMinutes: number | null;
   priceCents: number;
+  customerId: string;
   customerFirstName: string;
   customerLastName: string;
   addressLine1: string | null;
@@ -101,6 +103,16 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
     });
   }
 
+  function cancelJob() {
+    const reason = window.prompt("Why is this job being cancelled?");
+    if (reason === null) return;
+    if (!reason.trim()) {
+      setError("Enter a cancellation reason before cancelling this job.");
+      return;
+    }
+    patch({ status: "cancelled", cancellationReason: reason.trim() });
+  }
+
   const location = job ? [job.addressLine1, job.city, job.state, job.zip].filter(Boolean).join(", ") : "";
 
   return (
@@ -110,7 +122,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
         <div className="flex items-start justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
           <div>
             <p className="eyebrow">Job details</p>
-            <h2 className="mt-1 text-lg font-semibold">{job ? `${job.customerFirstName} ${job.customerLastName}` : "Loading..."}</h2>
+            {job ? <Link href={`/customers/${job.customerId}`} className="mt-1 block text-lg font-semibold hover:text-[var(--co-evergreen)] hover:underline">{job.customerFirstName} {job.customerLastName}</Link> : <h2 className="mt-1 text-lg font-semibold">Loading...</h2>}
           </div>
           <button type="button" onClick={onClose} className="rounded-full p-1 text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]" aria-label="Close">
             ✕
@@ -179,7 +191,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
               <select
                 key={`status-${job.status}`}
                 defaultValue={job.status}
-                onChange={(event) => patch({ status: event.target.value })}
+                onChange={(event) => event.target.value === "cancelled" ? cancelJob() : patch({ status: event.target.value })}
                 className="co-input mt-1 w-full"
               >
                 {STATUS_OPTIONS.map((option) => (
@@ -190,14 +202,20 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
               </select>
             </label>
 
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Job value</p>
-              <p className="mt-1 text-sm text-[var(--co-ink)]">${(job.priceCents / 100).toFixed(2)}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Job value</p>
+                <p className="mt-1 text-sm text-[var(--co-ink)]">${(job.priceCents / 100).toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Job Ticket Hours</p>
+                <p className="mt-1 text-sm text-[var(--co-ink)]">{formatEstimatedTime(job.estimatedDurationMinutes)}</p>
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-2 border-t border-[var(--co-line-soft)] pt-4">
               {job.status !== "cancelled" ? (
-                <button type="button" onClick={() => patch({ status: "cancelled" })} className="co-button-secondary">
+                <button type="button" onClick={cancelJob} className="co-button-secondary">
                   Cancel job
                 </button>
               ) : null}

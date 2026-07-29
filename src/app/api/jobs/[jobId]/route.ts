@@ -7,6 +7,7 @@ import { and, eq, inArray, ne } from "drizzle-orm";
 import { syncToGhl } from "@/lib/ghl/sync";
 import { loadJobDetail } from "@/lib/jobs/job-detail";
 import { findPtoConflicts, ptoConflictMessage } from "@/lib/scheduling/pto";
+import { resolveJobTicketMinutes } from "@/lib/payroll/job-ticket-hours";
 
 const updateJobSchema = z.object({
   scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -14,6 +15,7 @@ const updateJobSchema = z.object({
   priceCents: z.number().int().nonnegative().optional(),
   estimatedDurationMinutes: z.number().int().min(15).max(600).optional(),
   status: z.enum(["scheduled", "in_progress", "completed", "cancelled", "no_show"]).optional(),
+  cancellationReason: z.string().trim().min(1).max(1000).optional(),
   employeeIds: z.array(z.string().uuid()).optional(),
   completionNotes: z.string().optional(),
 });
@@ -50,7 +52,7 @@ export async function PATCH(
   }
 
   const [existing] = await db
-    .select({ id: jobs.id, type: jobs.type, status: jobs.status, customerId: jobs.customerId, scheduledDate: jobs.scheduledDate, scheduledStartTime: jobs.scheduledStartTime, estimatedDurationMinutes: jobs.estimatedDurationMinutes, priceCents: jobs.priceCents, completionNotes: jobs.completionNotes })
+    .select({ id: jobs.id, type: jobs.type, status: jobs.status, customerId: jobs.customerId, quoteId: jobs.quoteId, scheduledDate: jobs.scheduledDate, scheduledStartTime: jobs.scheduledStartTime, estimatedDurationMinutes: jobs.estimatedDurationMinutes, priceCents: jobs.priceCents, completionNotes: jobs.completionNotes, cancellationReason: jobs.cancellationReason })
     .from(jobs)
     .where(and(eq(jobs.id, jobId), eq(jobs.companyId, admin.companyId)))
     .limit(1);
@@ -60,6 +62,9 @@ export async function PATCH(
   }
 
   const { employeeIds, ...jobFields } = parsed.data;
+  if (jobFields.status === "cancelled" && existing.status !== "cancelled" && !jobFields.cancellationReason) {
+    return NextResponse.json({ error: "Enter a cancellation reason before cancelling this job." }, { status: 400 });
+  }
   const currentAssignments = await db
     .select({ userId: jobAssignments.userId, role: jobAssignments.role })
     .from(jobAssignments)
@@ -89,6 +94,21 @@ export async function PATCH(
     }
   }
 
+  // A price edit re-derives Job Ticket Hours (amount due ÷ the customer's
+  // branch rate) so duration stays accurate to what's actually being charged.
+  // Skipped whenever the caller sets estimatedDurationMinutes itself in the
+  // same request — the calendar's resize handle is a deliberate manual
+  // override and must not be clobbered by this.
+  if (jobFields.priceCents !== undefined && jobFields.estimatedDurationMinutes === undefined) {
+    const resolvedMinutes = await resolveJobTicketMinutes({
+      companyId: admin.companyId,
+      priceCents: jobFields.priceCents,
+      quoteId: existing.quoteId,
+      customerId: existing.customerId,
+    });
+    if (resolvedMinutes != null) jobFields.estimatedDurationMinutes = resolvedMinutes;
+  }
+
   if (Object.keys(jobFields).length > 0) {
     try {
       await db.update(jobs).set(jobFields).where(eq(jobs.id, jobId));
@@ -104,7 +124,7 @@ export async function PATCH(
       action: "job.updated",
       entityType: "job",
       entityId: jobId,
-      before: { status: existing.status, scheduledDate: existing.scheduledDate, scheduledStartTime: existing.scheduledStartTime, priceCents: existing.priceCents, completionNotes: existing.completionNotes },
+      before: { status: existing.status, scheduledDate: existing.scheduledDate, scheduledStartTime: existing.scheduledStartTime, priceCents: existing.priceCents, completionNotes: existing.completionNotes, cancellationReason: existing.cancellationReason },
       after: jobFields,
     });
   }

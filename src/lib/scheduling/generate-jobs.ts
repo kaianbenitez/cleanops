@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { recurringSeries, jobs, jobAssignments } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
+import { resolveJobTicketMinutes } from "@/lib/payroll/job-ticket-hours";
 
 /** How far ahead to keep recurring jobs generated — at least 3 months. */
 const GENERATION_WINDOW_DAYS = 92; // 13 weeks
@@ -121,6 +122,21 @@ export async function generateJobsForSeries(
   const occurrenceDates = computeOccurrences(series, today, windowEnd);
   if (occurrenceDates.length === 0) return { created: 0, skipped: 0 };
 
+  const defaultEmployeeIds = (series.defaultEmployeeIds as string[]) ?? [];
+  // series.estimatedDurationMinutes is only ever set by quote-conversion (the
+  // quote-derived schedule budget survives price changes on purpose). Series
+  // created directly with no quote have it null — resolve Job Ticket Hours
+  // from the series price and the customer's branch here instead of a flat
+  // fallback.
+  const estimatedDurationMinutes =
+    series.estimatedDurationMinutes ??
+    (await resolveJobTicketMinutes({
+      companyId: series.companyId,
+      priceCents: series.priceCents,
+      customerId: series.customerId,
+    })) ??
+    120;
+
   let created = 0;
   let skipped = 0;
 
@@ -135,7 +151,7 @@ export async function generateJobsForSeries(
         status: "scheduled",
         scheduledDate: date,
         scheduledStartTime: "09:00:00",
-        estimatedDurationMinutes: series.estimatedDurationMinutes ?? 120,
+        estimatedDurationMinutes,
         priceCents: series.priceCents,
       })
       .onConflictDoNothing({
@@ -149,10 +165,9 @@ export async function generateJobsForSeries(
     }
 
     created++;
-    const employeeIds = (series.defaultEmployeeIds as string[]) ?? [];
-    if (employeeIds.length > 0) {
+    if (defaultEmployeeIds.length > 0) {
       await db.insert(jobAssignments).values(
-        employeeIds.map((userId, i) => ({
+        defaultEmployeeIds.map((userId, i) => ({
           jobId: inserted[0].id,
           userId,
           role: i === 0 ? ("lead" as const) : ("helper" as const),

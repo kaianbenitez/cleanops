@@ -24,6 +24,8 @@ type CustomerInvoice = {
   paidAt: string | null;
 };
 
+type RecurringSeries = { id: string; frequency: string; isActive: boolean; startDate: string; endDate: string | null };
+
 type ServiceAreaSummary = {
   status: "in_area" | "outside_area" | "missing_address" | "no_service_zones";
   label: string;
@@ -141,6 +143,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
   const [locations, setLocations] = useState<Location[]>([]);
   const [jobs, setJobs] = useState<CustomerJob[]>([]);
   const [invoices, setInvoices] = useState<CustomerInvoice[]>([]);
+  const [recurringSeries, setRecurringSeries] = useState<RecurringSeries[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
   const [serviceArea, setServiceArea] = useState<ServiceAreaSummary | null>(null);
   const [activeLocationIndex, setActiveLocationIndex] = useState(0);
@@ -151,6 +154,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [lifetimeSpendCents, setLifetimeSpendCents] = useState(0);
   const [archiving, setArchiving] = useState(false);
+  const [endingSeries, setEndingSeries] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [archiveReasonInput, setArchiveReasonInput] = useState("");
 
@@ -183,6 +187,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
     setLocations(body.locations ?? []);
     setJobs(body.jobs ?? []);
     setInvoices(body.invoices ?? []);
+    setRecurringSeries(body.recurringSeries ?? []);
     setAuditLogs(body.auditLogs ?? []);
     setServiceArea(body.serviceArea ?? null);
     setLifetimeSpendCents(Number(body.lifetimeSpendCents ?? 0));
@@ -229,6 +234,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
     [jobs]
   );
   const nextJob = upcomingJobs[0] ?? null;
+  const activeRecurringSeries = recurringSeries.find((series) => series.isActive) ?? null;
   const lastJob = recentJobs[0] ?? null;
   const openBalance = invoices.reduce((sum, invoice) => sum + (invoice.status === "void" ? 0 : Math.max(invoice.totalCents - invoice.amountPaidCents, 0)), 0);
 
@@ -329,6 +335,22 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
     await load();
   }
 
+  async function endRecurringService(seriesId: string, action: "suspend" | "cancel") {
+    const verb = action === "suspend" ? "suspend" : "cancel";
+    if (!window.confirm(`${verb[0].toUpperCase()}${verb.slice(1)} this recurring service? New visits will stop generating, the customer will be archived, and already-created visits will stay on the schedule for review.`)) return;
+    setEndingSeries(true);
+    setError("");
+    const response = await fetch(`/api/recurring-series/${seriesId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+    const body = await response.json().catch(() => ({}));
+    setEndingSeries(false);
+    if (!response.ok) {
+      setError(typeof body.error === "string" ? body.error : "Could not update the recurring service.");
+      return;
+    }
+    setMessage(body.message ?? "Recurring service updated.");
+    await load();
+  }
+
   const addressSectionRef = useRef<HTMLElement>(null);
 
   function jumpToAddressFields() {
@@ -377,7 +399,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               ← Customers
             </Link>
             <div className="mt-1 flex flex-wrap items-center gap-3">
-            <StatusPill domain="customer" status={customer.status} />
+            {customer.isArchived ? null : <StatusPill domain="customer" status={customer.status} />}
             {customer.isArchived ? (
               <span className="whitespace-nowrap rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-500">
                 Archived{customer.archivedAt ? ` ${new Date(customer.archivedAt).toLocaleDateString()}` : ""}
@@ -403,6 +425,16 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
           <Link href={`/jobs/new?customerId=${customer.id}`} className={customer.status === "lead" ? "co-button-secondary" : "co-button-primary"}>
             <Plus className="h-4 w-4" /> New job
           </Link>
+          {mode === "view" && activeRecurringSeries ? (
+            <>
+              <button className="co-button-secondary" onClick={() => endRecurringService(activeRecurringSeries.id, "suspend")} disabled={endingSeries}>
+                {endingSeries ? "Updating..." : "Suspend recurring service"}
+              </button>
+              <button className="co-button-secondary border-rose-200 text-rose-700 hover:bg-rose-50" onClick={() => endRecurringService(activeRecurringSeries.id, "cancel")} disabled={endingSeries}>
+                Cancel recurring service
+              </button>
+            </>
+          ) : null}
           {mode === "view" ? (
             <>
               {customer.isArchived ? (

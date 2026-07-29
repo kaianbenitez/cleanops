@@ -5,6 +5,7 @@ export type JobPatch = Partial<{
   priceCents: number;
   employeeIds: string[];
   status: string;
+  cancellationReason: string;
 }>;
 
 export async function commitJobPatch(

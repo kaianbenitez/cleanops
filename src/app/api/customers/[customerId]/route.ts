@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { auditLog, customers, customerLocations, invoices, jobs, users } from "@/db/schema";
+import { auditLog, customers, customerLocations, invoices, jobAssignments, jobs, recurringSeries, users } from "@/db/schema";
 import { and, eq, asc, desc, sql } from "drizzle-orm";
 import { syncToGhl } from "@/lib/ghl/sync";
 import { resolveCustomerServiceArea } from "@/lib/service-area";
@@ -61,10 +61,19 @@ export async function GET(
   const admin = await requireAdmin();
   const { customerId } = await params;
 
-  const [[customer], locationRows, customerJobs, customerInvoices, [{ lifetimeSpendCents }], serviceArea, auditLogs] = await Promise.all([
+  const [[customer], locationRows, customerJobs, customerJobAssignments, customerRecurringSeries, customerInvoices, [{ lifetimeSpendCents }], serviceArea, auditLogs] = await Promise.all([
     db.select().from(customers).where(and(eq(customers.id, customerId), eq(customers.companyId, admin.companyId))).limit(1),
     db.select().from(customerLocations).where(and(eq(customerLocations.customerId, customerId), eq(customerLocations.companyId, admin.companyId))).orderBy(asc(customerLocations.isPrimary), asc(customerLocations.label)),
     db.select({ id: jobs.id, type: jobs.type, status: jobs.status, scheduledDate: jobs.scheduledDate, scheduledStartTime: jobs.scheduledStartTime, estimatedDurationMinutes: jobs.estimatedDurationMinutes, priceCents: jobs.priceCents }).from(jobs).where(and(eq(jobs.customerId, customerId), eq(jobs.companyId, admin.companyId))).orderBy(desc(jobs.scheduledDate), desc(jobs.scheduledStartTime)),
+    db.select({ jobId: jobAssignments.jobId, firstName: users.firstName, lastName: users.lastName, role: jobAssignments.role })
+      .from(jobAssignments)
+      .innerJoin(jobs, eq(jobAssignments.jobId, jobs.id))
+      .innerJoin(users, eq(jobAssignments.userId, users.id))
+      .where(and(eq(jobs.customerId, customerId), eq(jobs.companyId, admin.companyId))),
+    db.select({ id: recurringSeries.id, frequency: recurringSeries.frequency, isActive: recurringSeries.isActive, startDate: recurringSeries.startDate, endDate: recurringSeries.endDate })
+      .from(recurringSeries)
+      .where(and(eq(recurringSeries.customerId, customerId), eq(recurringSeries.companyId, admin.companyId)))
+      .orderBy(desc(recurringSeries.createdAt)),
     db.select({ id: invoices.id, status: invoices.status, method: invoices.method, totalCents: invoices.totalCents, amountPaidCents: invoices.amountPaidCents, tipCents: invoices.tipCents, createdAt: invoices.createdAt, paidAt: invoices.paidAt }).from(invoices).where(and(eq(invoices.customerId, customerId), eq(invoices.companyId, admin.companyId))).orderBy(desc(invoices.createdAt)),
     db.select({ lifetimeSpendCents: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)` }).from(invoices).where(and(eq(invoices.customerId, customerId), eq(invoices.companyId, admin.companyId))),
     resolveCustomerServiceArea({ companyId: admin.companyId, customerId }),
@@ -99,7 +108,11 @@ export async function GET(
       createdAt: customer.createdAt, updatedAt: customer.updatedAt,
     }];
   }
-  return NextResponse.json({ customer, locations, jobs: customerJobs, invoices: customerInvoices, auditLogs, serviceArea, lifetimeSpendCents: Number(lifetimeSpendCents) });
+  const assignedCleanerNamesByJob = new Map<string, string[]>();
+  for (const assignment of customerJobAssignments.sort((a, b) => a.role === b.role ? 0 : a.role === "lead" ? -1 : 1)) {
+    assignedCleanerNamesByJob.set(assignment.jobId, [...(assignedCleanerNamesByJob.get(assignment.jobId) ?? []), `${assignment.firstName} ${assignment.lastName}`]);
+  }
+  return NextResponse.json({ customer, locations, jobs: customerJobs.map((job) => ({ ...job, assignedCleanerNames: assignedCleanerNamesByJob.get(job.id) ?? [] })), recurringSeries: customerRecurringSeries, invoices: customerInvoices, auditLogs, serviceArea, lifetimeSpendCents: Number(lifetimeSpendCents) });
 }
 
 /** PATCH /api/customers/[customerId] — status changes only for now (no full Customers
