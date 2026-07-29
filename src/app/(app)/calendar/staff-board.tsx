@@ -64,6 +64,7 @@ export default function StaffBoard({
   dayIso,
   dayLabel,
   employees,
+  savedColumnOrder,
   laneEmployeeId,
   jobs: initialJobs,
   unassignedJobs,
@@ -73,6 +74,7 @@ export default function StaffBoard({
   dayIso: string;
   dayLabel: string;
   employees: CalendarEmployee[];
+  savedColumnOrder: string[];
   laneEmployeeId?: string;
   jobs: CalendarJob[];
   unassignedJobs: CalendarJob[];
@@ -86,6 +88,8 @@ export default function StaffBoard({
     employeeId: string;
     minutes: number;
   } | null>(null);
+  const [columnOrder, setColumnOrder] = useState(savedColumnOrder);
+  const [draggedEmployeeId, setDraggedEmployeeId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [selectedJobId, setSelectedJobId] = useState("");
@@ -109,12 +113,52 @@ export default function StaffBoard({
     [employees],
   );
   const sortedEmployees = useMemo(
-    () =>
-      laneEmployeeId
-        ? activeEmployees.filter((employee) => employee.id === laneEmployeeId)
-        : [...activeEmployees],
-    [activeEmployees, laneEmployeeId],
+    () => {
+      const byTenure = [...activeEmployees].sort((left, right) => {
+        if (left.hiredDate && right.hiredDate)
+          return left.hiredDate.localeCompare(right.hiredDate) || left.firstName.localeCompare(right.firstName);
+        if (left.hiredDate) return -1;
+        if (right.hiredDate) return 1;
+        return left.firstName.localeCompare(right.firstName);
+      });
+      if (laneEmployeeId)
+        return byTenure.filter((employee) => employee.id === laneEmployeeId);
+      const rank = new Map(columnOrder.map((id, index) => [id, index]));
+      return byTenure.sort((left, right) =>
+        (rank.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+        (rank.get(right.id) ?? Number.MAX_SAFE_INTEGER),
+      );
+    },
+    [activeEmployees, columnOrder, laneEmployeeId],
   );
+
+  async function saveColumnOrder(nextOrder: string[]) {
+    setColumnOrder(nextOrder);
+    const response = await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ staffColumnOrder: nextOrder }),
+    });
+    if (!response.ok) {
+      setColumnOrder(savedColumnOrder);
+      setError("Could not save the staff column order. Please try again.");
+    }
+  }
+
+  function moveEmployeeColumn(targetEmployeeId: string) {
+    if (!draggedEmployeeId || draggedEmployeeId === targetEmployeeId) return;
+    const nextOrder = sortedEmployees.map((employee) => employee.id);
+    const from = nextOrder.indexOf(draggedEmployeeId);
+    const to = nextOrder.indexOf(targetEmployeeId);
+    if (from < 0 || to < 0) return;
+    nextOrder.splice(from, 1);
+    nextOrder.splice(to, 0, draggedEmployeeId);
+    void saveColumnOrder(nextOrder);
+  }
+
+  function resetColumnsToTenure() {
+    void saveColumnOrder([]);
+  }
   const activeUnassignedJobs = useMemo(
     () =>
       unassignedJobs.filter(
@@ -532,8 +576,9 @@ export default function StaffBoard({
               Staff Daily — {dayLabel}
             </h2>
             <p className="mt-0.5 text-xs text-[var(--co-muted)]">
-              Horizontal employee schedule. Scroll sideways to see every
-              cleaner; drag jobs between columns to assign the team.
+              Employees are ordered by tenure. Drag a column header to set a
+              custom order. Scroll sideways to see every cleaner; drag jobs
+              between columns to assign the team.
             </p>
             {isHoliday ? (
               <p className="mt-1 text-xs font-semibold text-amber-800">
@@ -544,6 +589,15 @@ export default function StaffBoard({
           <span className="text-xs font-medium text-[var(--co-muted)]">
             {jobs.length} jobs
           </span>
+          {!laneEmployeeId ? (
+            <button
+              type="button"
+              onClick={resetColumnsToTenure}
+              className="co-button-secondary text-xs"
+            >
+              Sort by tenure
+            </button>
+          ) : null}
         </div>
         <form
           onSubmit={(event) => {
@@ -659,7 +713,25 @@ export default function StaffBoard({
               {sortedEmployees.map((employee) => (
                 <div
                   key={employee.id}
-                  className="bg-[var(--co-surface-muted)] px-2 py-3 text-center"
+                  draggable={!laneEmployeeId}
+                  onDragStart={(event) => {
+                    setDraggedEmployeeId(employee.id);
+                    event.dataTransfer.effectAllowed = "move";
+                    event.dataTransfer.setData("application/x-cleanops-employee-column", employee.id);
+                  }}
+                  onDragOver={(event) => {
+                    if (!draggedEmployeeId) return;
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    moveEmployeeColumn(employee.id);
+                    setDraggedEmployeeId(null);
+                  }}
+                  onDragEnd={() => setDraggedEmployeeId(null)}
+                  aria-label={`Drag ${employee.firstName} ${employee.lastName}'s column to reorder`}
+                  className={`bg-[var(--co-surface-muted)] px-2 py-3 text-center ${laneEmployeeId ? "" : "cursor-grab active:cursor-grabbing"}`}
                   style={{ borderTop: `3px solid ${employeeColor(employee.id)}` }}
                 >
                   <p className="flex items-center justify-center gap-1.5 truncate text-xs font-semibold">

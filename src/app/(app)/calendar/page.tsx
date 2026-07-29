@@ -100,6 +100,7 @@ export type CalendarEmployee = {
   id: string;
   firstName: string;
   lastName: string;
+  hiredDate: string | null;
   isActive: boolean;
 };
 
@@ -248,6 +249,7 @@ export default async function CalendarPage({
       id: users.id,
       firstName: users.firstName,
       lastName: users.lastName,
+      hiredDate: users.hiredDate,
       isActive: users.isActive,
     })
     .from(users)
@@ -257,7 +259,7 @@ export default async function CalendarPage({
         isFieldEligible,
       ),
     )
-    .orderBy(users.firstName);
+    .orderBy(users.hiredDate, users.firstName, users.lastName);
 
   const conditions = [
     eq(jobs.companyId, admin.companyId),
@@ -674,6 +676,15 @@ export default async function CalendarPage({
             dayIso={toISODate(dayAnchor)}
             dayLabel={formatDayLabel(dayAnchor)}
             employees={employees}
+            savedColumnOrder={Array.isArray(
+              (company.settings as { staffColumnOrder?: unknown } | null)
+                ?.staffColumnOrder,
+            )
+              ? ((company.settings as { staffColumnOrder: unknown[] })
+                  .staffColumnOrder.filter(
+                    (id): id is string => typeof id === "string",
+                  ))
+              : []}
             laneEmployeeId={sp.employeeId}
             jobs={displayedJobs}
             unassignedJobs={unassignedRows.map((row) => ({

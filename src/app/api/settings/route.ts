@@ -105,6 +105,10 @@ const schema = z.object({
     .max(366)
     .optional(),
   workingDays: z.array(z.number().int().min(0).max(6)).min(1).max(7).optional(),
+  // Staff-board column order. Employee ids are validated again against the
+  // company roster by the calendar UI, so stale ids from archived staff are
+  // harmless and simply ignored when the board renders.
+  staffColumnOrder: z.array(z.string().uuid()).max(500).optional(),
   // Bracket ladders that overlap, run backwards, or have no open-ended top
   // don't fail at payroll time — resolveTierRateCents() just returns the wrong
   // rate. Reject them here so the API is the authority, not just the UI form.
@@ -189,6 +193,9 @@ export async function PATCH(req: NextRequest) {
       : {}),
     ...(parsed.data.workingDays !== undefined
       ? { workingDays: parsed.data.workingDays }
+      : {}),
+    ...(parsed.data.staffColumnOrder !== undefined
+      ? { staffColumnOrder: parsed.data.staffColumnOrder }
       : {}),
     ...(parsed.data.payTierBrackets
       ? { payTierBrackets: parsed.data.payTierBrackets }
