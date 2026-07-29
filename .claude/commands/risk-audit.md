@@ -1,5 +1,9 @@
 Audit exactly **one** CleanOps risk category and update `RISK_ARTIFACT.md` directly. Do not change application code, dependencies, migrations, infrastructure, or secrets. Do not require a Claude login or an external artifact URL.
 
+## Token and execution limit
+
+Work as **one agent in this one conversation only**. Do **not** use the Task tool, spawn subagents/background agents/forks, delegate, run parallel audits, wait for other agents, or synthesize results from separate tasks. Do not inspect categories other than the selected one. If the selected category cannot be completed with the remaining context, mark its coverage row `Partially audited` with the files inspected and exact remaining scope, then stop.
+
 If the user supplies a category, audit only that category. Otherwise, read the artifact's `Audit coverage` section and select the first unchecked category in this order:
 
 1. Auth, authorization, IDOR, and company/tenant isolation
@@ -14,4 +18,4 @@ Read only the code, routes, schema/configuration, and tests relevant to the sele
 
 Create an `Audit coverage` section if it is missing. Record the selected category, its completion date, scope inspected, and a brief outcome there. Do not mark a category complete if relevant code/configuration could not be inspected.
 
-Finish with a concise summary of this category's findings and the next category. Then stop; do not begin another category.
+Finish with a concise summary of this category's findings and the next category. Then stop; do not begin another category, another pass, or any follow-up work.
