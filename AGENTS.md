@@ -13,10 +13,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
   skip silently and still report green, Chrome-extension setup, and the selector/scripting
   gotchas specific to this repo. `npm run smoke:auth -- <baseUrl>` is the highest-value
   runtime check and is not in the release sequence below — run it anyway.
-- By user preference, commit and push each completed, verified feature by default. Before
-  staging, inspect `git status` and the per-file diff; stop and ask before pushing if any
-  unrelated/shared change, merge state, or unapproved production migration would be included.
-  Stage explicit paths only — never use `git add -A` or `git add .` in this shared worktree.
+- By user preference, always commit and push each completed, verified feature before handoff.
+  Before staging, inspect `git status` and the per-file diff. If unrelated/shared changes are
+  present, stage only the completed feature's explicit paths; do not include them in the commit.
+  Stop only for a merge state or an unapproved production migration. Never use `git add -A` or
+  `git add .` in this shared worktree.
 - Never print, commit, or paste secret values. Check only whether required variables are configured.
 - GHL checks must use the approved test location and read-only requests unless the user explicitly asks for a write test.
 - Preserve company-scoped authorization on every database query and API mutation.

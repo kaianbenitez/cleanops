@@ -7,6 +7,17 @@ import type { CashToCollect, CrewCoverage, DashboardRange, ExceptionCounts, Puls
 import { addDaysIso } from "./range";
 const n = (value: unknown) => Number(value ?? 0);
 
+function dashboardCustomerName(customer: {
+  clientType: "residential" | "commercial";
+  companyName: string | null;
+  firstName: string;
+  lastName: string;
+}) {
+  return customer.clientType === "commercial" && customer.companyName?.trim()
+    ? customer.companyName.trim()
+    : `${customer.firstName} ${customer.lastName}`;
+}
+
 function paidRangeCondition(companyId: string, fromIso: string, toIsoInclusive: string, timeZone: string) {
   const toExclusiveIso = addDaysIso(toIsoInclusive, 1);
   return and(
@@ -17,11 +28,11 @@ function paidRangeCondition(companyId: string, fromIso: string, toIsoInclusive: 
   );
 }
 export async function getTodaysRun(companyId: string, todayIso: string): Promise<TodayRun> {
-  const rows = await db.select({ id: jobs.id, status: jobs.status, type: jobs.type, scheduledStartTime: jobs.scheduledStartTime, firstName: customers.firstName, lastName: customers.lastName, address: customers.addressLine1, city: customers.city }).from(jobs).innerJoin(customers, eq(jobs.customerId, customers.id)).where(and(eq(jobs.companyId, companyId), eq(customers.companyId, companyId), eq(jobs.scheduledDate, todayIso))).orderBy(jobs.scheduledStartTime);
+  const rows = await db.select({ id: jobs.id, status: jobs.status, type: jobs.type, scheduledStartTime: jobs.scheduledStartTime, clientType: customers.clientType, companyName: customers.companyName, firstName: customers.firstName, lastName: customers.lastName, address: customers.addressLine1, city: customers.city }).from(jobs).innerJoin(customers, eq(jobs.customerId, customers.id)).where(and(eq(jobs.companyId, companyId), eq(customers.companyId, companyId), eq(jobs.scheduledDate, todayIso))).orderBy(jobs.scheduledStartTime);
   const assignments = rows.length ? await db.select({ jobId: jobAssignments.jobId, firstName: users.firstName, lastName: users.lastName }).from(jobAssignments).innerJoin(users, eq(jobAssignments.userId, users.id)).innerJoin(jobs, eq(jobAssignments.jobId, jobs.id)).where(and(eq(jobs.companyId, companyId), eq(users.companyId, companyId), inArray(jobAssignments.jobId, rows.map((row) => row.id)))) : [];
   const byJob = new Map<string, string[]>(); assignments.forEach((row) => byJob.set(row.jobId, [...(byJob.get(row.jobId) ?? []), row.firstName + " " + row.lastName]));
   const now = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
-  const jobsView = rows.map((row) => ({ id: row.id, status: row.status, type: row.type, scheduledStartTime: row.scheduledStartTime, customerName: row.firstName + " " + row.lastName, address: [row.address, row.city].filter(Boolean).join(", ") || "Address not set", assignedTo: byJob.get(row.id) ?? [] }));
+  const jobsView = rows.map((row) => ({ id: row.id, status: row.status, type: row.type, scheduledStartTime: row.scheduledStartTime, customerName: dashboardCustomerName(row), address: [row.address, row.city].filter(Boolean).join(", ") || "Address not set", assignedTo: byJob.get(row.id) ?? [] }));
   return { jobs: jobsView, scheduled: rows.filter((row) => row.status === "scheduled").length, completed: rows.filter((row) => row.status === "completed").length, atRisk: jobsView.filter((job) => job.assignedTo.length === 0 || (job.status === "scheduled" && Boolean(job.scheduledStartTime && job.scheduledStartTime.slice(0, 5) < now))).length };
 }
 export async function getExceptionCounts(companyId: string, todayIso: string): Promise<ExceptionCounts> {
@@ -63,11 +74,11 @@ export async function getRevenueSeries(companyId: string, range: DashboardRange,
 
 export async function getCashToCollect(companyId: string): Promise<CashToCollect> {
   const [rows, totals] = await Promise.all([
-    db.select({ id: invoices.id, customerId: customers.id, firstName: customers.firstName, lastName: customers.lastName, totalCents: invoices.totalCents, amountPaidCents: invoices.amountPaidCents, createdAt: invoices.createdAt }).from(invoices).innerJoin(customers, eq(invoices.customerId, customers.id)).where(and(eq(invoices.companyId, companyId), overdueSqlCondition())).orderBy(asc(invoices.createdAt)).limit(5),
+    db.select({ id: invoices.id, customerId: customers.id, clientType: customers.clientType, companyName: customers.companyName, firstName: customers.firstName, lastName: customers.lastName, totalCents: invoices.totalCents, amountPaidCents: invoices.amountPaidCents, createdAt: invoices.createdAt }).from(invoices).innerJoin(customers, eq(invoices.customerId, customers.id)).where(and(eq(invoices.companyId, companyId), overdueSqlCondition())).orderBy(asc(invoices.createdAt)).limit(5),
     db.select({ totalCents: sql<number>`coalesce(sum(greatest(${invoices.totalCents} - ${invoices.amountPaidCents}, 0)), 0)` }).from(invoices).where(and(eq(invoices.companyId, companyId), overdueSqlCondition())),
   ]);
   const now = Date.now();
-  return { totalCents: n(totals[0]?.totalCents), invoices: rows.map((row) => ({ id: row.id, customerId: row.customerId, customerName: `${row.firstName} ${row.lastName}`, amountDueCents: Math.max(row.totalCents - row.amountPaidCents, 0), daysBeyondGrace: Math.max(0, Math.floor((now - new Date(row.createdAt).getTime()) / 86400000) - 14) })) };
+  return { totalCents: n(totals[0]?.totalCents), invoices: rows.map((row) => ({ id: row.id, customerId: row.customerId, customerName: dashboardCustomerName(row), amountDueCents: Math.max(row.totalCents - row.amountPaidCents, 0), daysBeyondGrace: Math.max(0, Math.floor((now - new Date(row.createdAt).getTime()) / 86400000) - 14) })) };
 }
 
 function isoWeekdays(weekStartIso: string) {
