@@ -38,6 +38,7 @@ import { todayInTimeZone } from "@/lib/dashboard/range";
 import { listEmployeePto } from "@/lib/scheduling/pto";
 import FilterBar from "./filter-bar";
 import StaffBoard from "./staff-board";
+import StaffVerticalBoard from "./staff-vertical-board";
 import WeekBoard from "./week-board";
 import MonthBoard from "./month-board";
 import TodayListBoard from "./today-list-board";
@@ -60,6 +61,7 @@ function readCalendarStateCookie(
       parsed.view === "week" ||
       parsed.view === "month" ||
       parsed.view === "staff" ||
+      parsed.view === "staff_vertical" ||
       parsed.view === "list"
     )
       result.view = parsed.view;
@@ -172,6 +174,7 @@ export default async function CalendarPage({
     effectiveView === "week" ||
     effectiveView === "month" ||
     effectiveView === "list"
+      || effectiveView === "staff_vertical"
       ? effectiveView
       : "staff";
   const [company] = await db
@@ -226,7 +229,7 @@ export default async function CalendarPage({
     : new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
   const month = monthBounds(monthAnchor);
   const days =
-    view === "staff" || view === "list"
+    view === "staff" || view === "staff_vertical" || view === "list"
       ? [dayAnchor]
       : view === "month"
         ? []
@@ -383,7 +386,7 @@ export default async function CalendarPage({
       : Promise.resolve([]);
 
   const unassignedRowsQuery =
-    view === "staff"
+    view === "staff" || view === "staff_vertical"
       ? buildBaseQuery()
           .where(
             and(
@@ -419,7 +422,7 @@ export default async function CalendarPage({
     );
 
   const ptoRowsQuery =
-    view === "staff"
+    view === "staff" || view === "staff_vertical"
       ? listEmployeePto({
           companyId: admin.companyId,
           startDate: start,
@@ -556,7 +559,7 @@ export default async function CalendarPage({
             1,
           ),
         )
-      : view === "staff" || view === "list"
+      : view === "staff" || view === "staff_vertical" || view === "list"
         ? addDays(dayAnchor, -1)
         : addDays(weekStart, -7);
   const nextDate =
@@ -568,14 +571,14 @@ export default async function CalendarPage({
             1,
           ),
         )
-      : view === "staff" || view === "list"
+      : view === "staff" || view === "staff_vertical" || view === "list"
         ? addDays(dayAnchor, 1)
         : addDays(weekStart, 7);
   const prev = query({
     ...filterParams,
     ...(view === "month"
       ? { month: toISODate(previousDate).slice(0, 7) }
-      : view === "staff" || view === "list"
+      : view === "staff" || view === "staff_vertical" || view === "list"
         ? { day: toISODate(previousDate) }
         : { week: toISODate(previousDate) }),
   });
@@ -583,7 +586,7 @@ export default async function CalendarPage({
     ...filterParams,
     ...(view === "month"
       ? { month: toISODate(nextDate).slice(0, 7) }
-      : view === "staff" || view === "list"
+      : view === "staff" || view === "staff_vertical" || view === "list"
         ? { day: toISODate(nextDate) }
         : { week: toISODate(nextDate) }),
   });
@@ -591,7 +594,7 @@ export default async function CalendarPage({
     ...filterParams,
     ...(view === "month"
       ? { month: todayIso.slice(0, 7) }
-      : view === "staff" || view === "list"
+      : view === "staff" || view === "staff_vertical" || view === "list"
         ? { day: todayIso }
         : { week: toISODate(startOfWeek(today)) }),
   });
@@ -599,7 +602,7 @@ export default async function CalendarPage({
   const currentDate =
     view === "month"
       ? monthAnchor
-      : view === "staff" || view === "list"
+      : view === "staff" || view === "staff_vertical" || view === "list"
         ? dayAnchor
         : weekStart;
   const dateLabel =
@@ -609,13 +612,13 @@ export default async function CalendarPage({
           year: "numeric",
           timeZone: "UTC",
         })
-      : view === "staff" || view === "list"
+      : view === "staff" || view === "staff_vertical" || view === "list"
         ? formatDayLabel(dayAnchor)
         : `${weekDays[0].toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })} to ${weekDays[weekDays.length - 1].toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`;
   const stateAnchor =
     view === "month"
       ? toISODate(monthAnchor).slice(0, 7)
-      : view === "staff" || view === "list"
+      : view === "staff" || view === "staff_vertical" || view === "list"
         ? toISODate(dayAnchor)
         : toISODate(weekStart);
   return (
@@ -681,6 +684,7 @@ export default async function CalendarPage({
             isHoliday={holidays.includes(toISODate(dayAnchor))}
           />
         ) : null}
+        {view === "staff_vertical" ? <StaffVerticalBoard employees={employees} jobs={displayedJobs} /> : null}
         {view === "month" ? (
           <MonthBoard
             month={monthAnchor}

@@ -8,6 +8,7 @@ type Employee = { id: string; firstName: string; lastName: string; isActive?: bo
 const VIEWS = [
   { value: "week", label: "Week" },
   { value: "staff", label: "Staff" },
+  { value: "staff_vertical", label: "Staff vertical" },
   { value: "month", label: "Month" },
   { value: "list", label: "List" },
 ] as const;
@@ -41,7 +42,7 @@ export default function FilterBar({
   resolvedView,
 }: {
   employees: Employee[];
-  resolvedView: "staff" | "week" | "month" | "list";
+  resolvedView: "staff" | "staff_vertical" | "week" | "month" | "list";
 }) {
   const router = useRouter();
   const pathname = usePathname();

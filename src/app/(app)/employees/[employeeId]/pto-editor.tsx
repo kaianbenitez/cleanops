@@ -80,11 +80,11 @@ export default function PtoEditor({ employeeId, onChange }: { employeeId: string
     <div className="mt-5 border-t border-[var(--co-line-soft)] pt-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-[var(--co-ink)]">Admin PTO</p>
-          <p className="mt-1 text-xs text-[var(--co-muted)]">PTO blocks new assignments and appears in this week’s preview.</p>
+          <p className="text-sm font-semibold text-[var(--co-ink)]">Time off</p>
+          <p className="mt-1 text-xs text-[var(--co-muted)]">Time off blocks new assignments and appears in this week’s preview.</p>
         </div>
         <button type="button" onClick={() => setOpen((value) => !value)} className="co-button-secondary px-3 py-2 text-xs">
-          {open ? "Close" : "Set PTO"}
+          {open ? "Close" : "Set time off"}
         </button>
       </div>
 
@@ -110,7 +110,7 @@ export default function PtoEditor({ employeeId, onChange }: { employeeId: string
           <label className="text-xs font-semibold text-[var(--co-muted)]">Start period<select value={startPeriod} onChange={(event) => setStartPeriod(event.target.value as EmployeePto["startPeriod"])} className="co-input mt-1 w-full text-sm">{Object.entries(periodLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label className="text-xs font-semibold text-[var(--co-muted)]">End period<select value={endPeriod} onChange={(event) => setEndPeriod(event.target.value as EmployeePto["endPeriod"])} className="co-input mt-1 w-full text-sm">{Object.entries(periodLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label className="text-xs font-semibold text-[var(--co-muted)] sm:col-span-2">Note (optional)<input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Vacation, appointment, training…" className="co-input mt-1 w-full text-sm" /></label>
-          <div className="flex items-center justify-between gap-3 sm:col-span-2"><span className="text-xs text-rose-600">{message}</span><button disabled={saving || !startDate} type="submit" className="co-button-primary px-4 py-2 text-xs">{saving ? "Saving…" : "Save PTO"}</button></div>
+          <div className="flex items-center justify-between gap-3 sm:col-span-2"><span className="text-xs text-rose-600">{message}</span><button disabled={saving || !startDate} type="submit" className="co-button-primary px-4 py-2 text-xs">{saving ? "Saving…" : "Save time off"}</button></div>
         </form>
       ) : null}
       {!open && message ? <p className="mt-2 text-xs text-[var(--co-evergreen)]">{message}</p> : null}
