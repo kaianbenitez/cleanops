@@ -5,12 +5,15 @@ import { db } from "@/db";
 import { quotes, jobs, recurringSeries, customers, serviceLocations } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { generateJobsForSeries } from "@/lib/scheduling/generate-jobs";
-import { estimateDurationMinutesFromPrice, type PricingBreakdown, type ServiceType } from "@/lib/pricing/calculate";
+import { estimateDurationMinutesFromPrice, SERVICE_TYPES, type PricingBreakdown, type ServiceType } from "@/lib/pricing/calculate";
 import { syncToGhl } from "@/lib/ghl/sync";
 
 const convertSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   employeeIds: z.array(z.string().uuid()).optional(),
+  // Office staff can select any service that was priced on the quote when
+  // scheduling with recorded approval, even before the public quote is accepted.
+  serviceType: z.enum(SERVICE_TYPES).optional(),
   forceJob: z.boolean().optional(),
 });
 
@@ -59,23 +62,23 @@ export async function POST(
   if (quote.status !== "accepted" && !parsed.data.forceJob) {
     return NextResponse.json({ error: "Only accepted quotes can be converted" }, { status: 400 });
   }
-  const serviceType = quote.acceptedServiceType ?? quote.requestedServiceType;
+  const serviceType = parsed.data.serviceType ?? (quote.acceptedServiceType as ServiceType | null) ?? (quote.requestedServiceType as ServiceType | null);
   if (!serviceType) {
-    return NextResponse.json({ error: "Quote has no accepted service type" }, { status: 400 });
+    return NextResponse.json({ error: "Choose a service to schedule." }, { status: 400 });
   }
 
   const { startDate, employeeIds } = parsed.data;
   const recurrenceFrequency = RECURRING_TYPES[serviceType];
   const allTierPricing = quote.allTierPricing as Record<ServiceType, PricingBreakdown> | null;
-  const acceptedBreakdown = allTierPricing?.[serviceType];
-  if (!acceptedBreakdown) {
-    return NextResponse.json({ error: "Quote has no price matrix for the selected service" }, { status: 400 });
+  const selectedBreakdown = allTierPricing?.[serviceType];
+  if (!selectedBreakdown) {
+    return NextResponse.json({ error: "The selected service was not priced on this quote." }, { status: 400 });
   }
 
   // Use this tier's final matrix price, rather than room weights or the
   // original requested tier. This is especially important for recurring
   // options, whose discounted price defines their job-ticket hours.
-  const estimatedDurationMinutes = estimateDurationMinutesFromPrice(acceptedBreakdown.finalCents, hourlyRateCents);
+  const estimatedDurationMinutes = estimateDurationMinutesFromPrice(selectedBreakdown.finalCents, hourlyRateCents);
 
   if (recurrenceFrequency) {
     const dayOfWeek = new Date(`${startDate}T00:00:00.000Z`).getUTCDay();
@@ -87,7 +90,7 @@ export async function POST(
         frequency: recurrenceFrequency,
         dayOfWeek,
         startDate,
-        priceCents: quote.totalCents,
+        priceCents: selectedBreakdown.finalCents,
         estimatedDurationMinutes,
         defaultEmployeeIds: employeeIds ?? [],
         isActive: true,
@@ -124,7 +127,7 @@ export async function POST(
       scheduledDate: startDate,
       scheduledStartTime: "09:00:00",
       estimatedDurationMinutes,
-      priceCents: quote.totalCents,
+      priceCents: selectedBreakdown.finalCents,
     })
     .returning();
 

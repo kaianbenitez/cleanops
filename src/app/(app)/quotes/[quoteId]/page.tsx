@@ -82,6 +82,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
   const [publicUrl, setPublicUrl] = useState("");
   const [copied, setCopied] = useState(false);
   const [convertDate, setConvertDate] = useState("");
+  const [selectedServiceType, setSelectedServiceType] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
@@ -90,7 +91,12 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
     const response = await fetch(`/api/quotes/${quoteId}`, { cache: "no-store" });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(body.error ?? `Quote could not be loaded (${response.status}).`);
-    setQuote({ ...body.quote, viewCount: body.viewCount, lastViewedAt: body.lastViewedAt });
+    const loadedQuote = { ...body.quote, viewCount: body.viewCount, lastViewedAt: body.lastViewedAt } as QuoteDetails;
+    setQuote(loadedQuote);
+    setSelectedServiceType((current) => {
+      if (current && loadedQuote.allTierPricing?.[current]) return current;
+      return loadedQuote.acceptedServiceType ?? loadedQuote.requestedServiceType ?? Object.keys(loadedQuote.allTierPricing ?? {})[0] ?? "";
+    });
     setCustomerId(body.customerId ?? "");
     setCustomerName(`${body.customerFirstName} ${body.customerLastName}`);
     setCustomerAddress(
@@ -138,7 +144,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
     const response = await fetch(`/api/quotes/${quoteId}/convert`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ startDate: convertDate, forceJob }),
+      body: JSON.stringify({ startDate: convertDate, serviceType: selectedServiceType || undefined, forceJob }),
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -319,21 +325,36 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
             }
           >
             <label className="block text-sm">
+              <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Service to schedule</span>
+              <select
+                value={selectedServiceType}
+                onChange={(event) => setSelectedServiceType(event.target.value)}
+                className="co-input w-full"
+                disabled={tiers.length === 0}
+              >
+                {tiers.map(([type, tier]) => (
+                  <option key={type} value={type}>
+                    {LABELS[type] ?? type} · {dollars(tier.finalCents)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
               <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Start date</span>
               <input type="date" value={convertDate} onChange={(event) => setConvertDate(event.target.value)} className="co-input w-full" />
             </label>
             <div className="mt-4 grid gap-2">
               {quote.status === "accepted" ? (
                 <button onClick={() => convert(false)} className="co-button-primary w-full">
-                  Convert to scheduled work →
+                  Schedule selected service
                 </button>
               ) : null}
               <button onClick={() => convert(true)} className={`w-full ${quote.status === "accepted" ? "co-button-secondary" : "co-button-primary"}`} type="button">
-                Convert as job now
+                Schedule without acceptance
               </button>
             </div>
             <p className="mt-3 text-xs text-[var(--co-muted)]">
-              “Convert as job now” skips the acceptance gate and is meant for internal scheduling when you already have approval elsewhere.
+              This bypasses the customer acceptance gate for internal scheduling when approval was received elsewhere.
             </p>
           </PageCard>
 
