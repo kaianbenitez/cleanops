@@ -14,7 +14,7 @@ export const TYPE_COLORS: Record<string, string> = {
   move_out: "border-orange-300 bg-orange-50 text-orange-700",
 };
 
-export const EMPLOYEE_PALETTE = ["#2563eb", "#0f766e", "#7c3aed", "#ea580c", "#be123c", "#15803d", "#b45309", "#4f46e5", "#0e7490", "#c2410c", "#9333ea", "#047857", "#b91c1c", "#1d4ed8", "#9f1239", "#a16207"];
+export const EMPLOYEE_PALETTE = ["#f6ed00", "#f4c542", "#9bd8ad", "#008c99", "#e600d0", "#4ed66c", "#a7c8ef", "#e31b16", "#a899d1", "#d4a500", "#8f9698", "#ff7a00", "#fff3ca", "#f4d5cf", "#b9d8e8", "#5687d8"];
 
 export const STAFF_RANGE_START = 9 * 60;
 export const STAFF_RANGE_MINUTES = 9 * 60;
@@ -68,8 +68,8 @@ export function employeeColorAt(index: number) {
 export function employeeCardStyle(id: string | null | undefined) {
   const color = employeeColor(id);
   return {
-    backgroundColor: `${color}1f`,
-    borderColor: `${color}80`,
+    backgroundColor: `${color}66`,
+    borderColor: `${color}d9`,
     borderLeftColor: color,
     borderLeftWidth: "3px",
   };

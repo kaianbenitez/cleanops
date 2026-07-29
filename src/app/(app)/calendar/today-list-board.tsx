@@ -274,7 +274,7 @@ export default function TodayListBoard({
                     >
                       {displayCustomer(job)}
                     </button>
-                    <ClientHomeSymbols className="mt-1" roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} doNotClean={job.doNotClean} />
+                    <ClientHomeSymbols className="mt-1" roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} />
                     <p className="mt-0.5 text-xs text-[var(--co-muted)]">
                       {job.customerAddress ?? "No address"}
                       {job.customerCity ? `, ${job.customerCity}` : ""} {job.customerZip ?? ""}
