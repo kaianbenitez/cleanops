@@ -123,6 +123,7 @@ export type CalendarJob = {
   customerZip: string | null;
   customerCity: string | null;
   customerAddress: string | null;
+  customerHomeDetails: Record<string, unknown>;
   customerNotes: string | null;
   gateCodeOrKeyNotes: string | null;
   doNotClean: string | null;
@@ -317,6 +318,7 @@ export default async function CalendarPage({
         customerZip: customers.zip,
         customerCity: customers.city,
         customerAddress: customers.addressLine1,
+        customerHomeDetails: customers.homeDetails,
         customerNotes: customers.generalNotes,
         gateCodeOrKeyNotes: customers.gateCodeOrKeyNotes,
         doNotClean: customers.doNotClean,

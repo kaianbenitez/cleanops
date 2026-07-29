@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { displayCustomer, employeeColor, formatClockLabel, formatEstimatedTime, isPlainClick, recurrenceLabel, TYPE_LABELS } from "./shared";
 import { statusLabel } from "@/components/ui/status-pill";
+import ClientHomeSymbols from "./client-home-symbols";
 
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 export type CardJob = {
@@ -19,6 +20,10 @@ export type CardJob = {
   companyName: string | null;
   clientType: string;
   customerZip: string | null;
+  customerHomeDetails: Record<string, unknown>;
+  gateCodeOrKeyNotes: string | null;
+  petNotes: string | null;
+  doNotClean: string | null;
   assignedUserIds: string[];
 };
 
@@ -53,7 +58,7 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
         style={{ borderLeftColor: employeeColor(crewIds[0]), borderLeftWidth: "3px" }}
         className={`group block h-full overflow-hidden rounded-lg border px-2.5 py-2 text-left transition hover:-translate-y-px hover:border-[var(--co-evergreen)] hover:shadow-[0_4px_12px_rgba(0,108,73,0.1)] ${STATUS_TONES[job.status] ?? STATUS_TONES.scheduled}`}
       >
-        <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-[var(--co-muted)]"><span>{formatClockLabel(job.scheduledStartTime)}</span><span className="rounded bg-[var(--co-surface-muted)] px-1.5 py-0.5 text-[10px]">{job.clientType === "commercial" ? "Commercial" : "Residential"}</span></div>
+        <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-[var(--co-muted)]"><span>{formatClockLabel(job.scheduledStartTime)}</span><span className="flex items-center gap-1.5"><ClientHomeSymbols homeDetails={job.customerHomeDetails} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} doNotClean={job.doNotClean} /><span className="rounded bg-[var(--co-surface-muted)] px-1.5 py-0.5 text-[10px]">{job.clientType === "commercial" ? "Commercial" : "Residential"}</span></span></div>
         <p className="mt-1 truncate text-[13px] font-semibold text-[var(--co-ink)]">{label}</p>
         <p className="mt-0.5 truncate text-[11px] text-[var(--co-muted)]">{TYPE_LABELS[job.type] ?? job.type} · {job.customerZip ?? "No ZIP"} · {formatEstimatedTime(job.estimatedDurationMinutes)}</p>
         <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px]">

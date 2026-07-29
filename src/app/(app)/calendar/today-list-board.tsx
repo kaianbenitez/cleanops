@@ -9,6 +9,7 @@ import AssigneePicker from "./assignee-picker";
 import JobDetailPanel from "./job-detail-panel";
 import { StatusPill } from "@/components/ui/status-pill";
 import { formatElapsed } from "@/lib/my-day/job-format";
+import ClientHomeSymbols from "./client-home-symbols";
 
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
@@ -25,6 +26,7 @@ type ListJob = {
   customerZip: string | null;
   customerCity: string | null;
   customerAddress: string | null;
+  customerHomeDetails: Record<string, unknown>;
   estimatedDurationMinutes: number | null;
   priceCents: number;
   serviceName: string | null;
@@ -271,6 +273,7 @@ export default function TodayListBoard({
                     >
                       {displayCustomer(job)}
                     </button>
+                    <ClientHomeSymbols className="mt-1" homeDetails={job.customerHomeDetails} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} doNotClean={job.doNotClean} />
                     <p className="mt-0.5 text-xs text-[var(--co-muted)]">
                       {job.customerAddress ?? "No address"}
                       {job.customerCity ? `, ${job.customerCity}` : ""} {job.customerZip ?? ""}
