@@ -884,6 +884,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <Field label="State" value={location.state ?? ""} onChange={(value) => updateLocation("state", value)} />
               <Field label="ZIP" value={location.zip ?? ""} onChange={(value) => updateLocation("zip", value)} />
               <Field label="Entrance notes" value={location.accessInstructions ?? ""} onChange={(value) => updateLocation("accessInstructions", value)} textarea />
+              <Field label="Entry code" value={location.entryCode ?? ""} onChange={(value) => updateLocation("entryCode", value)} type="password" />
               <Field label="Garage code" value={location.garageCode ?? ""} onChange={(value) => updateLocation("garageCode", value)} />
               <Field label="Gate code" value={location.gateCode ?? ""} onChange={(value) => updateLocation("gateCode", value)} />
             </>

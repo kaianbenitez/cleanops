@@ -131,7 +131,7 @@ export default function AppNav({
 
           <Link href={isAdmin ? "/dashboard" : "/my-day"} className="flex items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-[10px] bg-[var(--co-evergreen)] text-[10px] font-black tracking-tight text-white">CO</span>
-            <span className="text-base font-bold text-[var(--co-evergreen)]">CleanOps</span>
+            <span className="text-base font-bold text-[var(--co-evergreen)]">ServiceSpark</span>
           </Link>
 
           <Link href="/account" aria-label="Account" className="rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]">
@@ -160,7 +160,7 @@ export default function AppNav({
         <div className="flex items-center justify-between gap-3 border-b border-[var(--co-line-soft)] px-4 py-4">
           <Link href={isAdmin ? "/dashboard" : "/my-day"} onClick={() => setMenuOpen(false)} className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[var(--co-evergreen)] text-[10px] font-black tracking-tight text-white">CO</span>
-            <span className="text-base font-bold text-[var(--co-evergreen)]">CleanOps</span>
+            <span className="text-base font-bold text-[var(--co-evergreen)]">ServiceSpark</span>
           </Link>
           <button
             type="button"

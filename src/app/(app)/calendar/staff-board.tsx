@@ -9,6 +9,7 @@ import JobCard from "./job-card";
 import { assignDayLanes, employeeColor, formatEstimatedTime } from "./shared";
 import UnassignedPanel from "./unassigned-panel";
 import JobDetailPanel from "./job-detail-panel";
+import CalendarEventsStrip from "./calendar-events-strip";
 import type { EmployeePtoRecord, PtoPeriod } from "@/lib/scheduling/pto";
 
 const START = 9 * 60;
@@ -545,6 +546,7 @@ export default function StaffBoard({
             {jobs.length} jobs
           </span>
         </div>
+        <CalendarEventsStrip dayIso={dayIso} employees={employees} />
         <form
           onSubmit={(event) => {
             event.preventDefault();

@@ -38,6 +38,7 @@ export type Location = {
   zip?: string | null;
   subdivision?: string | null;
   accessInstructions?: string | null;
+  entryCode?: string | null;
   keyNumber?: string | null;
   garageCode?: string | null;
   gateCode?: string | null;

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { dateLabel, formatElapsed, groupNotes, jobAddress, jobTypeLabel, timeLabel } from "@/lib/my-day/job-format";
+import { Cat, CircleAlert, Sparkles } from "lucide-react";
 
 type Job = {
   jobId: string;
@@ -30,6 +31,9 @@ type Job = {
   mopHeadsNeeded: string | null;
   trashBags: string | null;
   generalNotes?: string | null;
+  doNotClean?: string | null;
+  petNotes?: string | null;
+  importantToCustomer?: string | null;
   preferredDays?: string[] | null;
   preferredTimeOfDay?: string | null;
   subdivision: string | null;
@@ -78,6 +82,11 @@ export default function JobExecutionClient({
   const address = jobAddress(job) || "Address not set";
   const notes = groupNotes(job);
   const clientNote = job.generalNotes ?? "";
+  const instructions = [
+    job.doNotClean ? { label: "Do not clean", value: job.doNotClean, icon: CircleAlert, tone: "border-rose-200 bg-rose-50 text-rose-800" } : null,
+    job.petNotes ? { label: "Pets", value: job.petNotes, icon: Cat, tone: "border-amber-200 bg-amber-50 text-amber-900" } : null,
+    job.importantToCustomer ? { label: "Important", value: job.importantToCustomer, icon: Sparkles, tone: "border-violet-200 bg-violet-50 text-violet-900" } : null,
+  ].filter(Boolean) as Array<{ label: string; value: string; icon: typeof CircleAlert; tone: string }>;
   const beforePhotos = photos.filter((photo) => photo.slot === "before");
   const afterPhotos = photos.filter((photo) => photo.slot === "after");
   const extraPhotos = photos.filter((photo) => photo.slot === "extra");
@@ -236,6 +245,15 @@ export default function JobExecutionClient({
               <div className="mt-4 rounded-lg bg-[var(--co-accent-tint)] p-4">
                 <p className="mb-1 text-xs font-bold uppercase tracking-tight text-[var(--co-evergreen)]">Client notes</p>
                 <p className="text-sm text-[var(--co-ink)]">{clientNote}</p>
+              </div>
+            ) : null}
+
+            {instructions.length ? (
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                {instructions.map((instruction) => {
+                  const Icon = instruction.icon;
+                  return <section key={instruction.label} className={`rounded-lg border p-3 ${instruction.tone}`}><div className="flex items-center gap-2 text-xs font-bold"><Icon className="h-4 w-4" />{instruction.label}</div><p className="mt-2 text-sm leading-5">{instruction.value}</p></section>;
+                })}
               </div>
             ) : null}
 
