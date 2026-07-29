@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { auditLog, customers, jobAssignments, jobs, services, timeEntries, users } from "@/db/schema";
+import { auditLog, customers, jobAssignments, jobs, roomTypes, services, timeEntries, users } from "@/db/schema";
 import { isFieldEligible } from "@/lib/auth/field-staff";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -50,6 +50,10 @@ export async function loadJobDetail(jobId: string, companyId: string) {
       customerEmail: customers.email,
       customerPhone: customers.phone,
       customerNotes: customers.generalNotes,
+      homeDetails: customers.homeDetails,
+      gateCodeOrKeyNotes: customers.gateCodeOrKeyNotes,
+      petNotes: customers.petNotes,
+      doNotClean: customers.doNotClean,
       addressLine1: customers.addressLine1,
       city: customers.city,
       state: customers.state,
@@ -74,7 +78,7 @@ export async function loadJobDetail(jobId: string, companyId: string) {
   const serviceName = job.serviceId ? (catalogNameById.get(job.serviceId) ?? null) : null;
   const addOnNames = addOnIds.map((id) => catalogNameById.get(id)).filter((name): name is string => !!name);
 
-  const [assignments, entries, jobAuditLogs] = await Promise.all([
+  const [assignments, entries, jobAuditLogs, configuredRoomTypes] = await Promise.all([
     db.select().from(jobAssignments).where(eq(jobAssignments.jobId, jobId)),
     db
       .select({
@@ -97,6 +101,11 @@ export async function loadJobDetail(jobId: string, companyId: string) {
       .leftJoin(users, eq(auditLog.userId, users.id))
       .where(and(eq(auditLog.companyId, companyId), eq(auditLog.entityType, "job"), eq(auditLog.entityId, jobId)))
       .orderBy(desc(auditLog.createdAt)),
+    db
+      .select({ id: roomTypes.id, name: roomTypes.name })
+      .from(roomTypes)
+      .where(eq(roomTypes.companyId, companyId))
+      .orderBy(roomTypes.sortOrder),
   ]);
 
   const entryIds = entries.map((entry) => entry.id);
@@ -107,7 +116,15 @@ export async function loadJobDetail(jobId: string, companyId: string) {
     .where(and(eq(auditLog.companyId, companyId), eq(auditLog.entityType, "time_entry"), inArray(auditLog.entityId, entryIds)))
     .orderBy(desc(auditLog.createdAt));
 
-  return { job: { ...job, serviceName, addOnNames }, assignments, timeEntries: entries, timeEntryAuditLogs, jobAuditLogs };
+  const homeDetails = job.homeDetails as Record<string, unknown>;
+  const storedRoomCounts = homeDetails.roomCounts;
+  const roomCountById = storedRoomCounts && typeof storedRoomCounts === "object" ? storedRoomCounts as Record<string, unknown> : {};
+  const roomTypeNameById = new Map(configuredRoomTypes.map((roomType) => [roomType.id, roomType.name]));
+  const roomCounts = Object.entries(roomCountById)
+    .map(([roomTypeId, count]) => ({ name: roomTypeNameById.get(roomTypeId), count: Number(count) }))
+    .filter((room): room is { name: string; count: number } => Boolean(room.name) && Number.isFinite(room.count) && room.count > 0);
+
+  return { job: { ...job, roomCounts, serviceName, addOnNames }, assignments, timeEntries: entries, timeEntryAuditLogs, jobAuditLogs };
 }
 
 /** Active employees available to assign, same shape as `GET /api/employees`. */

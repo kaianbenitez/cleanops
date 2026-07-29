@@ -5,7 +5,7 @@ import { displayCustomer, employeeCardStyle, employeeColor, formatClockLabel, fo
 import { statusLabel } from "@/components/ui/status-pill";
 import ClientHomeSymbols from "./client-home-symbols";
 
-type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
+type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean; calendarColor?: string };
 export type CardJob = {
   id: string;
   type: string;
@@ -45,6 +45,7 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
     .map((employee) => `${employee!.firstName} ${employee!.lastName}${employee!.isActive === false ? " (Inactive)" : ""}`);
   const label = displayCustomer(job);
   const isLocked = ["completed", "cancelled", "no_show"].includes(job.status);
+  const leadColor = employees.find((employee) => employee.id === crewIds[0])?.calendarColor ?? crewIds[0];
 
   return (
     <>
@@ -57,7 +58,7 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
           event.preventDefault();
           onOpen(job.id);
         }}
-        style={employeeCardStyle(crewIds[0])}
+        style={employeeCardStyle(leadColor)}
         className={`group block h-full overflow-hidden rounded-lg border px-2.5 py-2 text-left transition hover:-translate-y-px hover:border-[var(--co-evergreen)] hover:shadow-[0_4px_12px_rgba(0,108,73,0.1)] ${STATUS_TONES[job.status] ?? STATUS_TONES.scheduled}`}
       >
         <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-[var(--co-muted)]"><span>{formatClockLabel(job.scheduledStartTime)}</span><span className="flex items-center gap-1.5"><ClientHomeSymbols roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} doNotClean={job.doNotClean} /><span className="rounded bg-white/60 px-1.5 py-0.5 text-[10px]">{job.clientType === "commercial" ? "Commercial" : "Residential"}</span></span></div>
@@ -68,7 +69,7 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
             {crewIds.length ? (
               <span className="flex shrink-0 items-center gap-0.5">
                 {crewIds.map((id) => (
-                  <span key={id} className="h-1.5 w-1.5 rounded-full" style={{ background: employeeColor(id) }} />
+                  <span key={id} className="h-1.5 w-1.5 rounded-full" style={{ background: employees.find((employee) => employee.id === id)?.calendarColor ?? employeeColor(id) }} />
                 ))}
               </span>
             ) : null}

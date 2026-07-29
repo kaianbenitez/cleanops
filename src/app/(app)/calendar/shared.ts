@@ -54,6 +54,17 @@ export function employeeColor(id: string | null | undefined) {
   return EMPLOYEE_PALETTE[hash % EMPLOYEE_PALETTE.length];
 }
 
+export function employeeColorAt(index: number) {
+  if (index < EMPLOYEE_PALETTE.length) return EMPLOYEE_PALETTE[index];
+  const hue = (index * 137.508) % 360;
+  const chroma = 0.42;
+  const lightness = 0.42;
+  const x = chroma * (1 - Math.abs(((hue / 60) % 2) - 1));
+  const match = lightness - chroma / 2;
+  const [red, green, blue] = hue < 60 ? [chroma, x, 0] : hue < 120 ? [x, chroma, 0] : hue < 180 ? [0, chroma, x] : hue < 240 ? [0, x, chroma] : hue < 300 ? [x, 0, chroma] : [chroma, 0, x];
+  return `#${[red, green, blue].map((value) => Math.round((value + match) * 255).toString(16).padStart(2, "0")).join("")}`;
+}
+
 export function employeeCardStyle(id: string | null | undefined) {
   const color = employeeColor(id);
   return {

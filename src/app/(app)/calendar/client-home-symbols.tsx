@@ -5,6 +5,7 @@ type ClientHomeSymbolsProps = {
   gateCodeOrKeyNotes?: string | null;
   petNotes?: string | null;
   doNotClean?: string | null;
+  showAll?: boolean;
   className?: string;
 };
 
@@ -25,10 +26,11 @@ export default function ClientHomeSymbols({
   gateCodeOrKeyNotes,
   petNotes,
   doNotClean,
+  showAll = false,
   className = "",
 }: ClientHomeSymbolsProps) {
   const symbols: Symbol[] = [
-    ...roomCounts.slice(0, 3).map((room) => ({ kind: "room" as const, room, label: `${room.count} ${room.name}`, tone: "text-[var(--co-evergreen)]" })),
+    ...roomCounts.slice(0, showAll ? undefined : 3).map((room) => ({ kind: "room" as const, room, label: `${room.count} ${room.name}`, tone: "text-[var(--co-evergreen)]" })),
     ...(gateCodeOrKeyNotes ? [{ kind: "note" as const, icon: KeyRound, label: `Access: ${gateCodeOrKeyNotes}`, tone: "text-amber-700" }] : []),
     ...(petNotes ? [{ kind: "note" as const, icon: PawPrint, label: `Pets: ${petNotes}`, tone: "text-[var(--co-muted)]" }] : []),
     ...(doNotClean ? [{ kind: "note" as const, icon: CircleSlash, label: `Don't clean: ${doNotClean}`, tone: "text-rose-700" }] : []),

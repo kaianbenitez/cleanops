@@ -46,6 +46,7 @@ import TodayListBoard from "./today-list-board";
 import DatePicker from "./date-picker";
 import CalendarStateSync from "./state-sync";
 import WeekendOrphanBanner from "./weekend-orphan-banner";
+import { employeeColorAt } from "./shared";
 
 const CALENDAR_STATE_COOKIE = "co_calendar_state";
 
@@ -103,6 +104,7 @@ export type CalendarEmployee = {
   lastName: string;
   hiredDate: string | null;
   isActive: boolean;
+  calendarColor?: string;
 };
 
 export type CalendarJob = {
@@ -499,6 +501,9 @@ export default async function CalendarPage({
           )
       : [];
   const byJob = new Map<string, string[]>();
+  employees.forEach((employee, index) => {
+    employee.calendarColor = employeeColorAt(index);
+  });
   assignments.forEach((assignment) =>
     byJob.set(assignment.jobId, [
       ...(byJob.get(assignment.jobId) ?? []),
