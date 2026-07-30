@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { auditLog, jobs, jobAssignments, timeEntries } from "@/db/schema";
+import { auditLog, customers, jobs, jobAssignments, timeEntries } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { generatePayrollForPeriod } from "@/lib/payroll/calculate";
 import { refreshPayrollPeriodsForDates } from "@/lib/payroll/periods";
+import { notifyAdmins } from "@/lib/notifications/create";
 
 export async function POST(
   _req: NextRequest,
@@ -48,10 +49,23 @@ export async function POST(
   // Keep the open period's line in sync (jobsCount/hours) the moment a real
   // clock-in happens, same as the admin manual-entry path — otherwise payroll
   // stays stale until an admin happens to reload the Payroll page.
-  const [job] = await db.select({ scheduledDate: jobs.scheduledDate }).from(jobs).where(eq(jobs.id, jobId)).limit(1);
+  const [job] = await db
+    .select({ scheduledDate: jobs.scheduledDate, customerId: jobs.customerId, customerFirstName: customers.firstName, customerLastName: customers.lastName })
+    .from(jobs)
+    .innerJoin(customers, eq(jobs.customerId, customers.id))
+    .where(eq(jobs.id, jobId))
+    .limit(1);
   if (job) {
     const refreshedPeriods = await refreshPayrollPeriodsForDates(user.companyId, [job.scheduledDate, now]);
     for (const periodId of refreshedPeriods) await generatePayrollForPeriod(periodId);
+    await notifyAdmins({
+      companyId: user.companyId,
+      type: "job.on_the_way",
+      title: `${user.firstName} is on the way`,
+      body: `${job.customerFirstName} ${job.customerLastName}`,
+      href: `/jobs/${jobId}`,
+      customerId: job.customerId,
+    });
   }
 
   return NextResponse.json({ ok: true });
