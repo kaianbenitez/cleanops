@@ -5,10 +5,44 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-07-30 (check-number follow-up to the payment-method feature, commit
-`6295ae1` — see the entry right below).
+Last updated: 2026-07-30 (admin notifications for job updates, commit `1587f87` on
+`claude/work` — see the entry right below; not yet integrated onto `main`).
 
 ## Done
+
+- **Admin bell notifications now fire on My Day job updates (2026-07-30, commit
+  `1587f87` on `claude/work`, pushed but not yet integrated onto `main`).** User request:
+  "a way for admins to track" job updates — on the way, completed, note added, payment
+  method added, before/after photos added. Extends the existing `appNotifications` bell
+  (previously only fired on "quote accepted") to five new trigger points, all inside
+  existing My Day endpoints — no new UI, no schema change:
+  - **On the way** — `POST /api/jobs/[jobId]/clock-in` (My Day's "On my way" button already
+    calls this).
+  - **Completed** — `POST /api/jobs/[jobId]/clock-out`, only when the job's status actually
+    transitions to `completed` (all assigned employees clocked out).
+  - **Note added** / **Payment method added** — same clock-out call, gated on the
+    cleaner-reported `cleanerNotes` / `paymentMethodCollected` fields from the payment-method
+    + damage-notes feature two entries below. Deliberately does **not** fire on the separate
+    admin-side `completionNotes` edit on Job Detail (`PATCH /api/jobs/[jobId]`) — that's an
+    admin's own edit, not a field update worth notifying admins about.
+  - **Before/after photos** — `POST /api/jobs/[jobId]/photos`, only for `slot: "before"` /
+    `"after"` (not the generic "extra" evidence photos).
+  New shared helper `src/lib/notifications/create.ts` (`notifyAdmins`) wraps the insert so
+  the five call sites share one shape instead of repeating the pattern the quote-accept route
+  already used inline. Verified with `verify` (clean), `check:drift` (clean, no schema
+  touched), `smoke:routes` (5/5) and `smoke:auth` (22/22) against a local production build,
+  and a throwaway script (`postgres` client + `DATABASE_URL`, deleted after) that ran the
+  exact job+customer join query added to each route against a real job and round-tripped a
+  test insert/read/delete on `app_notifications` — confirmed the join resolves correctly and
+  the insert satisfies the table's constraints. **Not click-through-tested in a real
+  browser** — no admin/field session available this session, so the bell rendering these new
+  entries and the My Day buttons that trigger them were not visually confirmed. Worth an
+  actual pass next time someone's logged in: clock in/out of a real job, add close-out notes
+  and a payment method, upload a before/after photo, and confirm all four show up in the
+  bell with working links to Job Detail. **Not yet cherry-picked onto `main`** — this is
+  sitting on `claude/work` per the collaboration workflow in `AGENT-COLLABORATION.md`;
+  needs an integrator pass (`check:env`, `check:drift`, `verify`, smoke checks) before it
+  ships.
 
 - **My Day payment method: added a check-number field, shown when "Check" is selected
   (2026-07-30).** Direct follow-up to the payment-method/damage-notes feature below, same
