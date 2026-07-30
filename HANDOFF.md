@@ -614,10 +614,15 @@ this branch from a stale local session — see the note right below and the matc
   technician or collides with PTO, and **every caller discards it silently** — Job Detail did
   before the 2026-07-27 refactor and still does after, since that refactor was deliberately
   behavior-preserving. Surfacing it is a small change with real dispatch value.
-- Full pagination + SQL-aggregate rewrite for the `customers`, `invoices`, and `sync-issues`
-  list pages — currently flagged, not implemented. Their stat cards read the entire filtered
-  row set client-side, so real pagination means moving those into SQL aggregates first. Low
-  urgency at current data volume; will matter as customer/invoice counts grow.
+- ~~Full pagination + SQL-aggregate rewrite for the `customers`, `invoices`, and
+  `sync-issues` list pages~~ **Correction 2026-07-29**: this was stale. Checked all three
+  directly — each already does SQL-aggregate `count(*) filter (...)` stat queries plus
+  `limit`/`offset` pagination, run in parallel via `Promise.all` (`customers/page.tsx:163`,
+  `invoices/page.tsx:59`, `sync-issues/page.tsx:21`). No stat card reads the full row set
+  client-side. Found via a pasted design review of `/employees`, `/invoices`, and
+  `/quotes/new`; also confirmed `invoices/page.tsx` and `quotes/page.tsx` both already carry
+  the identical `id::text ilike` fix (with matching comments) for searching a uuid column by
+  ILIKE — no outstanding bug there either. Nothing left to do on this bullet.
 - Dashboard exception counts use SQL aggregates. The Jobs page still applies `unassigned` and
   `missingHours` filters after pagination, so its displayed count can temporarily disagree with
   the dashboard. Fix the Jobs-page filter/pagination order separately; do not make the dashboard

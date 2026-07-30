@@ -64,6 +64,12 @@ function timeLabel(value: string | null) {
   return new Date(value).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
+/** hh:mm, matching the Jobs list / Job Detail / Calendar convention. */
+function formatEstimatedTime(minutes: number | null) {
+  if (!minutes) return "—";
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
 function dateLabel(value: string) {
   return formatDayLabel(new Date(`${value}T00:00:00.000Z`));
 }
@@ -410,7 +416,7 @@ export default function EmployeeBrowserClient({
                     <p className="text-right text-xs text-[var(--co-muted)]">
                       {timeLabel(job.scheduledStartTime)}
                       <br />
-                      {job.estimatedDurationMinutes ? `${Math.round(job.estimatedDurationMinutes)} min` : "—"}
+                      {formatEstimatedTime(job.estimatedDurationMinutes)}
                     </p>
                   </div>
                 </div>

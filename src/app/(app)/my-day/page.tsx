@@ -14,6 +14,7 @@ type JobCard = {
   scheduledDate: string;
   scheduledStartTime: string | null;
   type: string;
+  estimatedDurationMinutes: number | null;
   addressLine1: string | null;
   city: string | null;
   state: string | null;
@@ -108,6 +109,7 @@ export default async function MyDayPage() {
       scheduledDate: jobs.scheduledDate,
       scheduledStartTime: jobs.scheduledStartTime,
       type: jobs.type,
+      estimatedDurationMinutes: jobs.estimatedDurationMinutes,
       addressLine1: customerLocations.addressLine1,
       city: customerLocations.city,
       state: customerLocations.state,
@@ -144,6 +146,7 @@ export default async function MyDayPage() {
       scheduledDate: jobs.scheduledDate,
       scheduledStartTime: jobs.scheduledStartTime,
       type: jobs.type,
+      estimatedDurationMinutes: jobs.estimatedDurationMinutes,
       addressLine1: customerLocations.addressLine1,
       city: customerLocations.city,
       state: customerLocations.state,
@@ -181,6 +184,7 @@ export default async function MyDayPage() {
       scheduledDate: jobs.scheduledDate,
       scheduledStartTime: jobs.scheduledStartTime,
       type: jobs.type,
+      estimatedDurationMinutes: jobs.estimatedDurationMinutes,
       addressLine1: customerLocations.addressLine1,
       city: customerLocations.city,
       state: customerLocations.state,
@@ -223,6 +227,7 @@ export default async function MyDayPage() {
       scheduledDate: jobs.scheduledDate,
       scheduledStartTime: jobs.scheduledStartTime,
       type: jobs.type,
+      estimatedDurationMinutes: jobs.estimatedDurationMinutes,
       status: jobs.status,
       customerId: customers.id,
       customerFirstName: customers.firstName,
@@ -325,6 +330,7 @@ export default async function MyDayPage() {
         scheduledDate: openEntry.scheduledDate,
         scheduledStartTime: openEntry.scheduledStartTime,
         type: openEntry.type,
+        estimatedDurationMinutes: openEntry.estimatedDurationMinutes,
         addressLine1: openEntry.addressLine1,
         city: openEntry.city,
         state: openEntry.state,
@@ -354,6 +360,7 @@ export default async function MyDayPage() {
           scheduledDate: currentJob.scheduledDate,
           scheduledStartTime: currentJob.scheduledStartTime,
           type: currentJob.type,
+          estimatedDurationMinutes: currentJob.estimatedDurationMinutes,
           addressLine1: currentJob.addressLine1,
           city: currentJob.city,
           state: currentJob.state,

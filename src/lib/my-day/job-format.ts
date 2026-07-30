@@ -79,6 +79,12 @@ export function formatElapsed(startedAt: string | number | null, now: number) {
   return hours > 0 ? `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}` : `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+/** hh:mm, matching the Jobs list / Job Detail / Calendar convention. */
+export function formatEstimatedTime(minutes: number | null | undefined) {
+  if (!minutes) return "Est. pending";
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
 export function jobTypeLabel(type: string) {
   return type.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

@@ -695,7 +695,7 @@ export default function StaffBoard({
             Scheduling warning: {warning}
           </p>
         ) : null}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overscroll-x-contain [scrollbar-gutter:stable]">
           <div
             style={{
               minWidth: `${120 + Math.max(sortedEmployees.length, 1) * 180}px`,
@@ -895,7 +895,7 @@ export default function StaffBoard({
           </div>
         </div>
       </section>
-      <aside className="space-y-4">
+      <aside className="space-y-4 lg:sticky lg:top-5 lg:max-h-[calc(100dvh-2.5rem)] lg:self-start lg:overflow-y-auto lg:pb-5">
         <section className="border border-[var(--co-line)] bg-[var(--co-surface)] p-3">
           <div className="flex items-start justify-between gap-3">
             <div>

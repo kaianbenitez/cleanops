@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw, Phone, ArrowRight, MapPin, Car, CheckCircle2, Play, X, ChevronRight, CalendarCheck } from "lucide-react";
-import { timeLabel, dateLabel, jobAddress, formatElapsed } from "@/lib/my-day/job-format";
+import { timeLabel, dateLabel, jobAddress, formatElapsed, formatEstimatedTime } from "@/lib/my-day/job-format";
 
 type JobCard = {
   jobId: string;
@@ -14,6 +14,7 @@ type JobCard = {
   scheduledDate: string;
   scheduledStartTime: string | null;
   type: string;
+  estimatedDurationMinutes: number | null;
   addressLine1: string | null;
   city: string | null;
   state: string | null;
@@ -317,7 +318,9 @@ export default function MyDayClient({
                             {job.customerFirstName} {job.customerLastName}
                           </p>
                           <p className="mt-1 text-xs text-[var(--co-muted)]">
-                            {isNextUp ? jobAddress(job) || "Address not set" : `${timeLabel(job.scheduledStartTime)} · ${jobAddress(job) || "Address not set"}`}
+                            {isNextUp
+                              ? `${jobAddress(job) || "Address not set"} · ${formatEstimatedTime(job.estimatedDurationMinutes)}`
+                              : `${timeLabel(job.scheduledStartTime)} · ${jobAddress(job) || "Address not set"} · ${formatEstimatedTime(job.estimatedDurationMinutes)}`}
                           </p>
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-2">
@@ -415,7 +418,7 @@ export default function MyDayClient({
                     {job.customerFirstName} {job.customerLastName}
                   </p>
                   <p className="mt-1 text-xs text-[var(--co-faint)]">
-                    {dateLabel(job.scheduledDate, companyTimezone)} · {timeLabel(job.scheduledStartTime)}
+                    {dateLabel(job.scheduledDate, companyTimezone)} · {timeLabel(job.scheduledStartTime)} · {formatEstimatedTime(job.estimatedDurationMinutes)}
                   </p>
                   <p className="mt-1 text-xs text-[var(--co-faint)]">{jobAddress(job) || "Address not set"}</p>
                 </div>

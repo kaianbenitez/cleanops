@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { companies, customerLocations, customers, jobs, jobAssignments } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { dateLabel, jobAddress, jobTypeLabel, timeLabel } from "@/lib/my-day/job-format";
+import { dateLabel, formatEstimatedTime, jobAddress, jobTypeLabel, timeLabel } from "@/lib/my-day/job-format";
 
 function todayInTimezone(timezone: string) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -101,7 +101,7 @@ export default async function SchedulePage() {
             <div className="divide-y divide-[var(--co-line-soft)]">
               {dayJobs.map((job) => {
                 const address = jobAddress(job);
-                const duration = job.estimatedDurationMinutes ? `${Math.round(job.estimatedDurationMinutes / 60 * 10) / 10}h est.` : null;
+                const duration = job.estimatedDurationMinutes ? `Est. ${formatEstimatedTime(job.estimatedDurationMinutes)}` : null;
                 return (
                   <Link key={job.jobId} href={`/my-day/${job.jobId}`} className="flex min-h-24 items-center gap-3 px-4 py-3 transition hover:bg-[var(--co-surface-muted)] sm:px-5">
                     <div className="w-[62px] shrink-0 text-sm font-semibold tabular-nums text-[var(--co-evergreen)]">{timeLabel(job.scheduledStartTime)}</div>

@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { dateLabel, formatElapsed, groupNotes, jobAddress, jobTypeLabel, timeLabel } from "@/lib/my-day/job-format";
-import { Cat, CircleAlert, Sparkles } from "lucide-react";
+import { dateLabel, formatElapsed, formatEstimatedTime, groupNotes, jobAddress, jobTypeLabel, timeLabel } from "@/lib/my-day/job-format";`r`nimport { Cat, CircleAlert, Sparkles } from "lucide-react";
 
 type Job = {
   jobId: string;
@@ -218,7 +217,7 @@ export default function JobExecutionClient({
               {job.estimatedDurationMinutes ? (
                 <div className="flex items-center justify-between border-b border-[var(--co-line-soft)] py-2">
                   <span className="text-sm text-[var(--co-muted)]">Est. duration</span>
-                  <span className="text-sm font-semibold text-[var(--co-ink)]">{Math.round(job.estimatedDurationMinutes / 60)}h</span>
+                  <span className="text-sm font-semibold text-[var(--co-ink)]">{formatEstimatedTime(job.estimatedDurationMinutes)}</span>
                 </div>
               ) : null}
               {job.keyNumber || job.garageCode || job.gateCode || job.alarmCode ? (
