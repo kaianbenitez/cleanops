@@ -165,7 +165,7 @@ export function CustomerViewCards({
         </aside>
         <div className="w-full self-start space-y-6">
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.85fr)]">
-          <section className="rounded-xl border border-[var(--co-line)] bg-[var(--co-surface-muted)]/75 p-5 sm:p-6">
+          <section className="self-start rounded-xl border border-[var(--co-line)] bg-[var(--co-surface-muted)]/75 p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3 text-[var(--co-evergreen)]"><CalendarDays className="h-6 w-6" /><h2 className="text-lg font-semibold">{customer.isArchived ? "Archived service" : "Active subscription"}</h2></div><span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white ${customer.isArchived ? "bg-slate-500" : "bg-[var(--co-evergreen)]"}`}>{customer.isArchived ? "Archived" : customer.status === "client" ? "Active plan" : "Customer plan"}</span></div>
             <div className="mt-4 grid gap-3 md:grid-cols-3"><div><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Plan details</p><p className="mt-1 text-sm font-semibold">{plan}</p></div><div><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Next visit</p>{nextJob ? <Link href={`/jobs/${nextJob.id}`} className="mt-1 block text-sm font-semibold text-[var(--co-evergreen)] hover:underline">{formatDisplayDate(nextJob.scheduledDate)}<span className="mt-1 block font-normal text-[var(--co-muted)]">{nextJob.scheduledStartTime?.slice(0, 5) ?? "Time pending"}</span></Link> : <p className="mt-1 text-sm text-[var(--co-muted)]">No visit scheduled</p>}</div><div><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Preferred cleaner</p><p className="mt-1 text-sm font-semibold">{customer.preferredCleanerId ? "Cleaner assigned" : "Any available cleaner"}</p><p className="mt-1 text-sm text-[var(--co-muted)]">{upcomingJobs.length ? `${upcomingJobs.length} upcoming visit${upcomingJobs.length === 1 ? "" : "s"}` : "No upcoming visits"}</p></div></div>
           </section>
@@ -176,7 +176,7 @@ export function CustomerViewCards({
             </div>
             <div className="p-5">
               {roomSummary.length ? (
-                <div className="grid grid-cols-2 gap-x-5 gap-y-3">
+                <div className="grid grid-cols-3 gap-x-5 gap-y-3">
                   {roomSummary.map((room) => <div key={room.name} className="flex items-center justify-between gap-3 border-b border-[var(--co-line-soft)] pb-2" title={room.name}><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--co-surface-muted)]"><RoomIcon roomName={room.name} /><span className="sr-only">{room.name}</span></span><span className="text-sm font-semibold text-[var(--co-ink)]">{room.count}</span></div>)}
                 </div>
               ) : <p className="text-sm text-[var(--co-muted)]">No room counts recorded yet.</p>}
