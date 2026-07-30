@@ -45,7 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 </div>
               </header>
               <main className="w-full px-3 py-4 sm:px-4 lg:px-5 xl:px-6 lg:py-5">
-                <div className="mx-auto w-full max-w-[1600px]">
+                <div className="mx-auto w-full max-w-[1440px]">
                   <AppSurfaceMotion>{children}</AppSurfaceMotion>
                 </div>
               </main>
