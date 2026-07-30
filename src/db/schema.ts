@@ -464,6 +464,8 @@ export const jobs = pgTable("jobs", {
   // Reported by the cleaner at clock-out, in My Day — separate from the
   // admin-authored completionNotes above.
   paymentMethodCollected: text("payment_method_collected", { enum: jobPaymentMethodEnum }),
+  // Only meaningful when paymentMethodCollected is "check".
+  checkNumberCollected: text("check_number_collected"),
   cleanerNotes: text("cleaner_notes"),
   cancellationReason: text("cancellation_reason"),
   completedAt: timestamp("completed_at", { withTimezone: true }),

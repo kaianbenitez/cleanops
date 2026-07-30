@@ -17,6 +17,7 @@ export type JobDetail = {
   priceCents: number;
   completionNotes: string | null;
   paymentMethodCollected: string | null;
+  checkNumberCollected: string | null;
   cleanerNotes: string | null;
   cancellationReason: string | null;
   serviceId: string | null;

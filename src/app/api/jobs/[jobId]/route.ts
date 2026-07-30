@@ -19,6 +19,7 @@ const updateJobSchema = z.object({
   employeeIds: z.array(z.string().uuid()).optional(),
   completionNotes: z.string().optional(),
   paymentMethodCollected: z.enum(jobPaymentMethodEnum).nullable().optional(),
+  checkNumberCollected: z.string().optional(),
   cleanerNotes: z.string().optional(),
 });
 
@@ -54,7 +55,7 @@ export async function PATCH(
   }
 
   const [existing] = await db
-    .select({ id: jobs.id, type: jobs.type, status: jobs.status, customerId: jobs.customerId, quoteId: jobs.quoteId, scheduledDate: jobs.scheduledDate, scheduledStartTime: jobs.scheduledStartTime, estimatedDurationMinutes: jobs.estimatedDurationMinutes, priceCents: jobs.priceCents, completionNotes: jobs.completionNotes, paymentMethodCollected: jobs.paymentMethodCollected, cleanerNotes: jobs.cleanerNotes, cancellationReason: jobs.cancellationReason })
+    .select({ id: jobs.id, type: jobs.type, status: jobs.status, customerId: jobs.customerId, quoteId: jobs.quoteId, scheduledDate: jobs.scheduledDate, scheduledStartTime: jobs.scheduledStartTime, estimatedDurationMinutes: jobs.estimatedDurationMinutes, priceCents: jobs.priceCents, completionNotes: jobs.completionNotes, paymentMethodCollected: jobs.paymentMethodCollected, checkNumberCollected: jobs.checkNumberCollected, cleanerNotes: jobs.cleanerNotes, cancellationReason: jobs.cancellationReason })
     .from(jobs)
     .where(and(eq(jobs.id, jobId), eq(jobs.companyId, admin.companyId)))
     .limit(1);
@@ -126,7 +127,7 @@ export async function PATCH(
       action: "job.updated",
       entityType: "job",
       entityId: jobId,
-      before: { status: existing.status, scheduledDate: existing.scheduledDate, scheduledStartTime: existing.scheduledStartTime, priceCents: existing.priceCents, completionNotes: existing.completionNotes, paymentMethodCollected: existing.paymentMethodCollected, cleanerNotes: existing.cleanerNotes, cancellationReason: existing.cancellationReason },
+      before: { status: existing.status, scheduledDate: existing.scheduledDate, scheduledStartTime: existing.scheduledStartTime, priceCents: existing.priceCents, completionNotes: existing.completionNotes, paymentMethodCollected: existing.paymentMethodCollected, checkNumberCollected: existing.checkNumberCollected, cleanerNotes: existing.cleanerNotes, cancellationReason: existing.cancellationReason },
       after: jobFields,
     });
   }

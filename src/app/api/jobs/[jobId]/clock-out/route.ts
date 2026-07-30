@@ -10,6 +10,7 @@ import { refreshPayrollPeriodsForDates } from "@/lib/payroll/periods";
 
 const closeOutSchema = z.object({
   paymentMethodCollected: z.enum(jobPaymentMethodEnum).optional(),
+  checkNumberCollected: z.string().trim().max(100).optional(),
   cleanerNotes: z.string().trim().max(2000).optional(),
 });
 
@@ -24,7 +25,7 @@ export async function POST(
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const { paymentMethodCollected, cleanerNotes } = parsed.data;
+  const { paymentMethodCollected, checkNumberCollected, cleanerNotes } = parsed.data;
 
   const [openEntry] = await db
     .select()
@@ -75,6 +76,7 @@ export async function POST(
     await tx.update(jobs).set({
       ...(shouldComplete ? { status: "completed" as const, completedAt: clockOut } : { status: "in_progress" as const }),
       ...(paymentMethodCollected !== undefined ? { paymentMethodCollected } : {}),
+      ...(paymentMethodCollected === "check" && checkNumberCollected ? { checkNumberCollected } : {}),
       ...(cleanerNotes ? { cleanerNotes } : {}),
     }).where(eq(jobs.id, jobId));
     return shouldComplete;
@@ -90,6 +92,7 @@ export async function POST(
       clockOut: clockOut.toISOString(),
       minutesWorked,
       ...(paymentMethodCollected !== undefined ? { paymentMethodCollected } : {}),
+      ...(paymentMethodCollected === "check" && checkNumberCollected ? { checkNumberCollected } : {}),
       ...(cleanerNotes ? { cleanerNotes } : {}),
     },
   });
