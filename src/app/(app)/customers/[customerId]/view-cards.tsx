@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarDays, Cat, CircleAlert, Clock3, CreditCard, House, KeyRound, Mail, MapPin, NotebookText, Phone, Sparkles } from "lucide-react";
+import { Bath, BedDouble, Boxes, CalendarDays, Cat, CircleAlert, Clock3, CookingPot, CreditCard, Dog, House, KeyRound, Mail, MapPin, NotebookText, Phone, Sofa, Sparkles, Warehouse, WashingMachine } from "lucide-react";
 import { StatusPill } from "@/components/ui/status-pill";
 import { MaskedCode } from "@/components/ui/masked-code";
 import { TYPE_LABELS, money, formatEstimatedTime, type Customer, type Location, type CustomerJob } from "./shared";
@@ -89,6 +89,12 @@ function Preference({ icon: Icon, title, tone, children }: { icon: typeof KeyRou
   );
 }
 
+function RoomIcon({ roomName }: { roomName: string }) {
+  const name = roomName.toLowerCase();
+  const Icon = name.includes("bed") ? BedDouble : name.includes("bath") ? Bath : name.includes("kitchen") ? CookingPot : name.includes("living") ? Sofa : name.includes("laundry") ? WashingMachine : name.includes("garage") ? Warehouse : House;
+  return <Icon className="h-4 w-4 text-[var(--co-evergreen)]" aria-hidden />;
+}
+
 export function CustomerViewCards({
   customer,
   location,
@@ -128,10 +134,10 @@ export function CustomerViewCards({
     .map((roomType) => ({ name: roomType.name, count: Number(roomCounts[roomType.id] ?? 0) }))
     .filter((room) => Number.isFinite(room.count) && room.count > 0);
   const houseDetails = [
-    homeDetails.dirtLevel ? { label: "Dirt level", value: String(homeDetails.dirtLevel) } : null,
-    homeDetails.clutterCode ? { label: "Clutter", value: String(homeDetails.clutterCode) } : null,
-    homeDetails.dogs ? { label: "Pets", value: String(homeDetails.dogs) } : null,
-  ].filter((detail): detail is { label: string; value: string } => Boolean(detail));
+    homeDetails.dirtLevel ? { label: "Dirt level", value: String(homeDetails.dirtLevel), icon: Sparkles } : null,
+    homeDetails.clutterCode ? { label: "Clutter", value: String(homeDetails.clutterCode), icon: Boxes } : null,
+    homeDetails.dogs ? { label: "Pets", value: String(homeDetails.dogs), icon: Dog } : null,
+  ].filter((detail): detail is { label: string; value: string; icon: typeof House } => Boolean(detail));
   const notes = [
     customer.generalNotes ? { icon: NotebookText, title: "General notes", text: cleanNoteText(customer.generalNotes) } : null,
     customer.doNotClean ? { icon: CircleAlert, title: "Do not clean", text: cleanNoteText(customer.doNotClean), tone: "border-rose-200 bg-rose-50 text-rose-800" } : null,
@@ -157,7 +163,7 @@ export function CustomerViewCards({
             <div className="space-y-3 p-5"><div className="rounded-lg bg-[var(--co-surface-muted)] p-3 text-sm"><p className="font-semibold">{customer.paymentMethods?.length ? customer.paymentMethods.join(" · ") : "Payment method not set"}</p><p className="mt-1 text-xs text-[var(--co-muted)]">{openBalance ? `${money(openBalance)} outstanding` : "No open balance"}</p></div><Link href="/invoices" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--co-evergreen)] hover:underline">View all invoices →</Link></div>
           </Card>
         </aside>
-        <div className="space-y-6">
+        <div className="w-full self-start space-y-6">
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.85fr)]">
           <section className="rounded-xl border border-[var(--co-line)] bg-[var(--co-surface-muted)]/75 p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3 text-[var(--co-evergreen)]"><CalendarDays className="h-6 w-6" /><h2 className="text-lg font-semibold">{customer.isArchived ? "Archived service" : "Active subscription"}</h2></div><span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white ${customer.isArchived ? "bg-slate-500" : "bg-[var(--co-evergreen)]"}`}>{customer.isArchived ? "Archived" : customer.status === "client" ? "Active plan" : "Customer plan"}</span></div>
@@ -171,10 +177,10 @@ export function CustomerViewCards({
             <div className="p-5">
               {roomSummary.length ? (
                 <div className="grid grid-cols-2 gap-x-5 gap-y-3">
-                  {roomSummary.map((room) => <div key={room.name} className="flex items-baseline justify-between gap-3 border-b border-[var(--co-line-soft)] pb-2 text-sm"><span className="text-[var(--co-muted)]">{room.name}</span><span className="font-semibold text-[var(--co-ink)]">{room.count}</span></div>)}
+                  {roomSummary.map((room) => <div key={room.name} className="flex items-center justify-between gap-3 border-b border-[var(--co-line-soft)] pb-2" title={room.name}><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--co-surface-muted)]"><RoomIcon roomName={room.name} /><span className="sr-only">{room.name}</span></span><span className="text-sm font-semibold text-[var(--co-ink)]">{room.count}</span></div>)}
                 </div>
               ) : <p className="text-sm text-[var(--co-muted)]">No room counts recorded yet.</p>}
-              {houseDetails.length ? <div className="mt-4 flex flex-wrap gap-2">{houseDetails.map((detail) => <span key={detail.label} className="rounded-full bg-[var(--co-surface-muted)] px-2.5 py-1 text-xs text-[var(--co-ink)]"><span className="font-semibold">{detail.label}:</span> {detail.value}</span>)}</div> : null}
+              {houseDetails.length ? <div className="mt-4 flex flex-wrap gap-2">{houseDetails.map((detail) => { const Icon = detail.icon; return <span key={detail.label} title={detail.label} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--co-surface-muted)] px-2.5 py-1 text-xs font-semibold text-[var(--co-ink)]"><Icon className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden /><span className="sr-only">{detail.label}: </span>{detail.value}</span>; })}</div> : null}
             </div>
           </section>
           </div>
