@@ -916,6 +916,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         <CustomerViewCards
           customer={customer}
           location={location}
+          roomTypes={roomTypes}
           locations={locations}
           primaryAddress={primaryAddress}
           upcomingJobs={upcomingJobs}

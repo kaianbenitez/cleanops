@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarDays, Cat, CircleAlert, Clock3, CreditCard, KeyRound, Mail, MapPin, NotebookText, Phone, Sparkles } from "lucide-react";
+import { CalendarDays, Cat, CircleAlert, Clock3, CreditCard, House, KeyRound, Mail, MapPin, NotebookText, Phone, Sparkles } from "lucide-react";
 import { StatusPill } from "@/components/ui/status-pill";
 import { MaskedCode } from "@/components/ui/masked-code";
 import { TYPE_LABELS, money, formatEstimatedTime, type Customer, type Location, type CustomerJob } from "./shared";
@@ -92,6 +92,7 @@ function Preference({ icon: Icon, title, tone, children }: { icon: typeof KeyRou
 export function CustomerViewCards({
   customer,
   location,
+  roomTypes,
   primaryAddress,
   upcomingJobs,
   recentJobs,
@@ -101,6 +102,7 @@ export function CustomerViewCards({
 }: {
   customer: Customer;
   location: Location | null;
+  roomTypes: { id: string; name: string }[];
   locations: Location[];
   primaryAddress: string;
   upcomingJobs: CustomerJob[];
@@ -120,6 +122,16 @@ export function CustomerViewCards({
   const preferredDays = customer.preferredDays?.map((day) => day.slice(0, 1).toUpperCase() + day.slice(1)).join(", ");
   const plan = customer.recurrence && customer.recurrence !== "none" ? customer.recurrence.replace("biweekly", "Every other week").replace(/^./, (letter) => letter.toUpperCase()) : "One-time service";
   const schedulingPreference = [preferredDays, customer.preferredTimeOfDay].filter(Boolean).join(" · ");
+  const homeDetails = customer.homeDetails ?? {};
+  const roomCounts = (homeDetails.roomCounts as Record<string, number>) ?? {};
+  const roomSummary = roomTypes
+    .map((roomType) => ({ name: roomType.name, count: Number(roomCounts[roomType.id] ?? 0) }))
+    .filter((room) => Number.isFinite(room.count) && room.count > 0);
+  const houseDetails = [
+    homeDetails.dirtLevel ? { label: "Dirt level", value: String(homeDetails.dirtLevel) } : null,
+    homeDetails.clutterCode ? { label: "Clutter", value: String(homeDetails.clutterCode) } : null,
+    homeDetails.dogs ? { label: "Pets", value: String(homeDetails.dogs) } : null,
+  ].filter((detail): detail is { label: string; value: string } => Boolean(detail));
   const notes = [
     customer.generalNotes ? { icon: NotebookText, title: "General notes", text: cleanNoteText(customer.generalNotes) } : null,
     customer.doNotClean ? { icon: CircleAlert, title: "Do not clean", text: cleanNoteText(customer.doNotClean), tone: "border-rose-200 bg-rose-50 text-rose-800" } : null,
@@ -146,10 +158,26 @@ export function CustomerViewCards({
           </Card>
         </aside>
         <div className="space-y-6">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.85fr)]">
           <section className="rounded-xl border border-[var(--co-line)] bg-[var(--co-surface-muted)]/75 p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3 text-[var(--co-evergreen)]"><CalendarDays className="h-6 w-6" /><h2 className="text-lg font-semibold">{customer.isArchived ? "Archived service" : "Active subscription"}</h2></div><span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white ${customer.isArchived ? "bg-slate-500" : "bg-[var(--co-evergreen)]"}`}>{customer.isArchived ? "Archived" : customer.status === "client" ? "Active plan" : "Customer plan"}</span></div>
             <div className="mt-4 grid gap-3 md:grid-cols-3"><div><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Plan details</p><p className="mt-1 text-sm font-semibold">{plan}</p></div><div><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Next visit</p>{nextJob ? <Link href={`/jobs/${nextJob.id}`} className="mt-1 block text-sm font-semibold text-[var(--co-evergreen)] hover:underline">{formatDisplayDate(nextJob.scheduledDate)}<span className="mt-1 block font-normal text-[var(--co-muted)]">{nextJob.scheduledStartTime?.slice(0, 5) ?? "Time pending"}</span></Link> : <p className="mt-1 text-sm text-[var(--co-muted)]">No visit scheduled</p>}</div><div><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Preferred cleaner</p><p className="mt-1 text-sm font-semibold">{customer.preferredCleanerId ? "Cleaner assigned" : "Any available cleaner"}</p><p className="mt-1 text-sm text-[var(--co-muted)]">{upcomingJobs.length ? `${upcomingJobs.length} upcoming visit${upcomingJobs.length === 1 ? "" : "s"}` : "No upcoming visits"}</p></div></div>
           </section>
+          <section className="co-card overflow-hidden">
+            <div className="flex items-center gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
+              <House className="h-5 w-5 text-[var(--co-evergreen)]" />
+              <div><h2 className="text-lg font-semibold tracking-[-0.02em]">House details</h2><p className="text-xs text-[var(--co-muted)]">At-a-glance service information</p></div>
+            </div>
+            <div className="p-5">
+              {roomSummary.length ? (
+                <div className="grid grid-cols-2 gap-x-5 gap-y-3">
+                  {roomSummary.map((room) => <div key={room.name} className="flex items-baseline justify-between gap-3 border-b border-[var(--co-line-soft)] pb-2 text-sm"><span className="text-[var(--co-muted)]">{room.name}</span><span className="font-semibold text-[var(--co-ink)]">{room.count}</span></div>)}
+                </div>
+              ) : <p className="text-sm text-[var(--co-muted)]">No room counts recorded yet.</p>}
+              {houseDetails.length ? <div className="mt-4 flex flex-wrap gap-2">{houseDetails.map((detail) => <span key={detail.label} className="rounded-full bg-[var(--co-surface-muted)] px-2.5 py-1 text-xs text-[var(--co-ink)]"><span className="font-semibold">{detail.label}:</span> {detail.value}</span>)}</div> : null}
+            </div>
+          </section>
+          </div>
           <UpcomingVisits upcomingJobs={upcomingJobs} />
           <Card title="Service history" action={<Link href="/jobs" className="text-sm font-semibold text-[var(--co-evergreen)] hover:underline">View all activity →</Link>}>
             {recentJobs.length ? <div className="overflow-x-auto"><table className="w-full min-w-[700px] text-left text-sm"><thead className="bg-[var(--co-surface-muted)] text-[10px] font-bold uppercase tracking-wide text-[var(--co-muted)]"><tr><th className="px-6 py-3">Date</th><th className="px-4 py-3">Service type</th><th className="px-4 py-3">Duration</th><th className="px-4 py-3">Price</th><th className="px-6 py-3 text-right">Status</th></tr></thead><tbody>{recentJobs.slice(0, 5).map((job) => <tr key={job.id} className="border-t border-[var(--co-line-soft)]"><td className="px-6 py-4"><Link href={`/jobs/${job.id}`} className="font-medium hover:text-[var(--co-evergreen)] hover:underline">{formatDisplayDate(job.scheduledDate)}</Link></td><td className="px-4 py-4 font-medium">{TYPE_LABELS[job.type] ?? job.type}</td><td className="px-4 py-4">{formatEstimatedTime(job.estimatedDurationMinutes)}</td><td className="px-4 py-4">{money(job.priceCents)}</td><td className="px-6 py-4 text-right"><span className={`rounded px-2 py-1 text-[10px] font-bold uppercase ${job.status === "completed" ? "bg-emerald-50 text-emerald-800" : job.status === "cancelled" ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"}`}>{job.status.replaceAll("_", " ")}</span></td></tr>)}</tbody></table></div> : <p className="p-6 text-sm text-[var(--co-muted)]">No service history yet.</p>}
