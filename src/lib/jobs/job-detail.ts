@@ -41,6 +41,8 @@ export async function loadJobDetail(jobId: string, companyId: string) {
       estimatedDurationMinutes: jobs.estimatedDurationMinutes,
       priceCents: jobs.priceCents,
       completionNotes: jobs.completionNotes,
+      paymentMethodCollected: jobs.paymentMethodCollected,
+      cleanerNotes: jobs.cleanerNotes,
       cancellationReason: jobs.cancellationReason,
       serviceId: jobs.serviceId,
       addOnIds: jobs.addOnIds,

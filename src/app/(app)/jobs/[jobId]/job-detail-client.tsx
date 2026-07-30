@@ -12,6 +12,7 @@ import TeamPanel from "./team-panel";
 import TimeEntriesPanel from "./time-entries-panel";
 import {
   CARD_CLASS,
+  PAYMENT_METHOD_LABELS,
   TYPE_LABELS,
   formatDateTime,
   formatEstimatedTime,
@@ -311,6 +312,34 @@ export default function JobDetailClient({
                 placeholder="Notes save when you leave this field."
               />
             </details>
+            <div className="mt-5 rounded-xl border border-[#d5ded5] p-3">
+              <p className="text-sm font-semibold text-[var(--co-evergreen)]">Reported from the field</p>
+              <label className="mt-3 block">
+                <span className="mb-1 block text-xs text-[var(--co-muted)]">Payment collected on-site</span>
+                <select
+                  defaultValue={job.paymentMethodCollected ?? ""}
+                  onChange={(event) => save({ paymentMethodCollected: event.target.value || null })}
+                  className="co-input w-full"
+                >
+                  <option value="">Not set</option>
+                  {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="mt-3 block">
+                <span className="mb-1 block text-xs text-[var(--co-muted)]">Damages / notes from the cleaner</span>
+                <textarea
+                  defaultValue={job.cleanerNotes ?? ""}
+                  onBlur={(event) => save({ cleanerNotes: event.target.value })}
+                  rows={3}
+                  className="co-input w-full resize-none"
+                  placeholder="Nothing reported."
+                />
+              </label>
+            </div>
           </section>
 
           <section id="schedule" className={CARD_CLASS}>

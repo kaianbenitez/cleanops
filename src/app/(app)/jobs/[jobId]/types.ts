@@ -16,6 +16,8 @@ export type JobDetail = {
   estimatedDurationMinutes: number | null;
   priceCents: number;
   completionNotes: string | null;
+  paymentMethodCollected: string | null;
+  cleanerNotes: string | null;
   cancellationReason: string | null;
   serviceId: string | null;
   serviceName: string | null;
@@ -63,6 +65,15 @@ export const TYPE_LABELS: Record<string, string> = {
   one_time: "One-time",
   deep_clean: "Deep clean",
   move_out: "Move in/out",
+};
+
+/** Matches `jobPaymentMethodEnum` in src/db/schema.ts. */
+export const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cash: "Cash",
+  check: "Check",
+  credit_card: "Credit card",
+  not_collected: "Not collected on-site",
+  other: "Other",
 };
 
 export function readableError(body: { error?: unknown }) {

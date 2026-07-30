@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { dateLabel, formatElapsed, formatEstimatedTime, groupNotes, jobAddress, jobTypeLabel, timeLabel } from "@/lib/my-day/job-format";
+import { dateLabel, formatElapsed, formatEstimatedTime, groupNotes, jobAddress, jobTypeLabel, PAYMENT_METHOD_OPTIONS, timeLabel } from "@/lib/my-day/job-format";
 import { cleanNoteText } from "@/lib/format";
 import { MaskedCode } from "@/components/ui/masked-code";
 import { Cat, CircleAlert, Sparkles } from "lucide-react";
@@ -64,6 +64,8 @@ export default function JobExecutionClient({
   const [completing, setCompleting] = useState(false);
   const [completed, setCompleted] = useState(job.status === "completed" || Boolean(timeEntry?.clockOut));
   const [error, setError] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [cleanerNotes, setCleanerNotes] = useState("");
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -133,7 +135,14 @@ export default function JobExecutionClient({
   async function completeJob() {
     setError(null);
     setCompleting(true);
-    const res = await fetch(`/api/jobs/${job.jobId}/clock-out`, { method: "POST" });
+    const res = await fetch(`/api/jobs/${job.jobId}/clock-out`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        paymentMethodCollected: paymentMethod || undefined,
+        cleanerNotes: cleanerNotes.trim() || undefined,
+      }),
+    });
     const body = await res.json().catch(() => ({}));
     setCompleting(false);
     if (!res.ok) {
@@ -321,6 +330,37 @@ export default function JobExecutionClient({
                   </button>
                 </div>
                 <p className="mt-3 text-xs text-[var(--co-faint)]">Photos are securely saved to this job for office review.</p>
+              </section>
+
+              <section className="co-card p-5">
+                <h2 className="mb-4 text-base font-semibold text-[var(--co-ink)]">Close out</h2>
+                <div className="space-y-4">
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-[var(--co-muted)]">Payment collected on-site</span>
+                    <select
+                      value={paymentMethod}
+                      onChange={(event) => setPaymentMethod(event.target.value)}
+                      className="co-input w-full"
+                    >
+                      <option value="">Select…</option>
+                      {PAYMENT_METHOD_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-[var(--co-muted)]">Damages / notes for the office</span>
+                    <textarea
+                      value={cleanerNotes}
+                      onChange={(event) => setCleanerNotes(event.target.value)}
+                      rows={3}
+                      placeholder="Anything broken, missing, or the office should know about — optional."
+                      className="co-input w-full resize-none"
+                    />
+                  </label>
+                </div>
               </section>
             </>
           ) : (

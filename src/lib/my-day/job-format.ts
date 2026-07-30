@@ -92,3 +92,18 @@ export function formatEstimatedTime(minutes: number | null | undefined) {
 export function jobTypeLabel(type: string) {
   return type.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
+
+/** Matches `jobPaymentMethodEnum` in src/db/schema.ts — kept as a labeled list
+ * (not just title-cased) so the "nothing collected on-site" option can read
+ * as a real sentence instead of "Not Collected". */
+export const PAYMENT_METHOD_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "not_collected", label: "Not collected on-site" },
+  { value: "cash", label: "Cash" },
+  { value: "check", label: "Check" },
+  { value: "credit_card", label: "Credit card" },
+  { value: "other", label: "Other" },
+];
+
+export function paymentMethodLabel(value: string | null | undefined) {
+  return PAYMENT_METHOD_OPTIONS.find((option) => option.value === value)?.label ?? "Not set";
+}

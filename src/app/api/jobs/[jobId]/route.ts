@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { auditLog, jobs, jobAssignments, users } from "@/db/schema";
+import { auditLog, jobPaymentMethodEnum, jobs, jobAssignments, users } from "@/db/schema";
 import { and, eq, inArray, ne } from "drizzle-orm";
 import { syncToGhl } from "@/lib/ghl/sync";
 import { loadJobDetail } from "@/lib/jobs/job-detail";
@@ -18,6 +18,8 @@ const updateJobSchema = z.object({
   cancellationReason: z.string().trim().min(1).max(1000).optional(),
   employeeIds: z.array(z.string().uuid()).optional(),
   completionNotes: z.string().optional(),
+  paymentMethodCollected: z.enum(jobPaymentMethodEnum).nullable().optional(),
+  cleanerNotes: z.string().optional(),
 });
 
 /** Shared with the `/jobs/[jobId]` server component via `loadJobDetail` — the
@@ -52,7 +54,7 @@ export async function PATCH(
   }
 
   const [existing] = await db
-    .select({ id: jobs.id, type: jobs.type, status: jobs.status, customerId: jobs.customerId, quoteId: jobs.quoteId, scheduledDate: jobs.scheduledDate, scheduledStartTime: jobs.scheduledStartTime, estimatedDurationMinutes: jobs.estimatedDurationMinutes, priceCents: jobs.priceCents, completionNotes: jobs.completionNotes, cancellationReason: jobs.cancellationReason })
+    .select({ id: jobs.id, type: jobs.type, status: jobs.status, customerId: jobs.customerId, quoteId: jobs.quoteId, scheduledDate: jobs.scheduledDate, scheduledStartTime: jobs.scheduledStartTime, estimatedDurationMinutes: jobs.estimatedDurationMinutes, priceCents: jobs.priceCents, completionNotes: jobs.completionNotes, paymentMethodCollected: jobs.paymentMethodCollected, cleanerNotes: jobs.cleanerNotes, cancellationReason: jobs.cancellationReason })
     .from(jobs)
     .where(and(eq(jobs.id, jobId), eq(jobs.companyId, admin.companyId)))
     .limit(1);
@@ -124,7 +126,7 @@ export async function PATCH(
       action: "job.updated",
       entityType: "job",
       entityId: jobId,
-      before: { status: existing.status, scheduledDate: existing.scheduledDate, scheduledStartTime: existing.scheduledStartTime, priceCents: existing.priceCents, completionNotes: existing.completionNotes, cancellationReason: existing.cancellationReason },
+      before: { status: existing.status, scheduledDate: existing.scheduledDate, scheduledStartTime: existing.scheduledStartTime, priceCents: existing.priceCents, completionNotes: existing.completionNotes, paymentMethodCollected: existing.paymentMethodCollected, cleanerNotes: existing.cleanerNotes, cancellationReason: existing.cancellationReason },
       after: jobFields,
     });
   }

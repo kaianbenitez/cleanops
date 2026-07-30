@@ -438,6 +438,10 @@ export const appNotifications = pgTable("app_notifications", {
 // ---------- jobs ----------
 export const jobTypeEnum = ["first_clean", "recurring", "one_time", "deep_clean", "move_out"] as const;
 export const jobStatusEnum = ["scheduled", "in_progress", "completed", "cancelled", "no_show"] as const;
+// What the cleaner says they collected on-site, distinct from the actual
+// invoice/Square payment flow (invoiceMethodEnum) — most customers are on
+// card-on-file recurring billing and this stays "not_collected".
+export const jobPaymentMethodEnum = ["cash", "check", "credit_card", "not_collected", "other"] as const;
 
 export const jobs = pgTable("jobs", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -457,6 +461,10 @@ export const jobs = pgTable("jobs", {
   // Add-on service ids (services.category = "add_on") selected for this job.
   addOnIds: jsonb("add_on_ids").notNull().default([]),
   completionNotes: text("completion_notes"),
+  // Reported by the cleaner at clock-out, in My Day — separate from the
+  // admin-authored completionNotes above.
+  paymentMethodCollected: text("payment_method_collected", { enum: jobPaymentMethodEnum }),
+  cleanerNotes: text("cleaner_notes"),
   cancellationReason: text("cancellation_reason"),
   completedAt: timestamp("completed_at", { withTimezone: true }),
   ...timestamps,
