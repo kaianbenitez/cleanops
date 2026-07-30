@@ -77,7 +77,7 @@ function Detail({ icon: Icon, label, children }: { icon: typeof Phone; label: st
 
 function Preference({ icon: Icon, title, tone, children }: { icon: typeof KeyRound; title: string; tone?: string; children: React.ReactNode }) {
   return (
-    <article className={`min-h-32 rounded-lg border p-4 ${tone ?? "border-[var(--co-line)] bg-[var(--co-surface-muted)]/80"}`}>
+    <article className={`rounded-lg border p-4 ${tone ?? "border-[var(--co-line)] bg-[var(--co-surface-muted)]/80"}`}>
       <div className="flex gap-3">
         <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${tone ? "" : "text-[var(--co-evergreen)]"}`} />
         <div>
@@ -87,6 +87,14 @@ function Preference({ icon: Icon, title, tone, children }: { icon: typeof KeyRou
       </div>
     </article>
   );
+}
+
+function compactNoteText(value: string | null | undefined) {
+  return cleanNoteText(value)
+    .split("\n")
+    .filter((line) => !/^[^:\n]{1,80}:\s*$/.test(line.trim()))
+    .join("\n")
+    .trim();
 }
 
 function RoomIcon({ roomName }: { roomName: string }) {
@@ -138,11 +146,15 @@ export function CustomerViewCards({
     homeDetails.clutterCode ? { label: "Clutter", value: String(homeDetails.clutterCode), icon: Boxes } : null,
     homeDetails.dogs ? { label: "Pets", value: String(homeDetails.dogs), icon: Dog } : null,
   ].filter((detail): detail is { label: string; value: string; icon: typeof House } => Boolean(detail));
+  const generalNotes = compactNoteText(customer.generalNotes);
+  const doNotClean = compactNoteText(customer.doNotClean);
+  const petNotes = compactNoteText(customer.petNotes);
+  const importantToCustomer = compactNoteText(customer.importantToCustomer);
   const notes = [
-    customer.generalNotes ? { icon: NotebookText, title: "General notes", text: cleanNoteText(customer.generalNotes) } : null,
-    customer.doNotClean ? { icon: CircleAlert, title: "Do not clean", text: cleanNoteText(customer.doNotClean), tone: "border-rose-200 bg-rose-50 text-rose-800" } : null,
-    customer.petNotes ? { icon: Cat, title: "Pets", text: cleanNoteText(customer.petNotes), tone: "border-amber-200 bg-amber-50 text-amber-900" } : null,
-    customer.importantToCustomer ? { icon: Sparkles, title: "Important to customer", text: cleanNoteText(customer.importantToCustomer), tone: "border-violet-200 bg-violet-50 text-violet-900" } : null,
+    generalNotes ? { icon: NotebookText, title: "General notes", text: generalNotes } : null,
+    doNotClean ? { icon: CircleAlert, title: "Do not clean", text: doNotClean, tone: "border-rose-200 bg-rose-50 text-rose-800" } : null,
+    petNotes ? { icon: Cat, title: "Pets", text: petNotes, tone: "border-amber-200 bg-amber-50 text-amber-900" } : null,
+    importantToCustomer ? { icon: Sparkles, title: "Important to customer", text: importantToCustomer, tone: "border-violet-200 bg-violet-50 text-violet-900" } : null,
     schedulingPreference ? { icon: Clock3, title: "Scheduling preference", text: schedulingPreference } : null,
     accessNotesText || accessCodes ? { icon: KeyRound, title: "Entrance & access instructions", text: accessNotesText || "No entry instructions recorded." } : null,
   ].filter((note): note is { icon: typeof KeyRound; title: string; text: string; tone?: string } => Boolean(note));
@@ -188,7 +200,7 @@ export function CustomerViewCards({
           </Card>
           <Card title="Service notes & preferences" action={<button onClick={onEditFocus} className="text-sm font-semibold text-[var(--co-evergreen)] hover:underline">Edit</button>}>
             {notes.length ? (
-              <div className="grid gap-4 p-5 md:grid-cols-2">
+              <div className="grid items-start gap-4 p-5 md:grid-cols-2">
                 {notes.map((note) => (
                   <Preference key={note.title} icon={note.icon} title={note.title} tone={note.tone}>
                     {note.text}
