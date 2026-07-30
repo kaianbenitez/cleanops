@@ -7,6 +7,7 @@ import { appNotifications } from "@/db/schema";
 import AppNav from "./app-nav";
 import ActionFeedbackProvider from "./action-feedback-provider";
 import AppSurfaceMotion from "./app-surface-motion";
+import AppContentFrame from "./app-content-frame";
 import CreateMenu from "./create-menu";
 import GlobalSearch from "./global-search";
 import MustChangePassword from "./must-change-password";
@@ -45,9 +46,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 </div>
               </header>
               <main className="w-full px-3 py-4 sm:px-4 lg:px-5 xl:px-6 lg:py-5">
-                <div className="mx-auto w-full max-w-[1440px]">
+                <AppContentFrame>
                   <AppSurfaceMotion>{children}</AppSurfaceMotion>
-                </div>
+                </AppContentFrame>
               </main>
             </div>
           </>
