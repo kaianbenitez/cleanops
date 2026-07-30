@@ -199,12 +199,12 @@ export default function TodayListBoard({
     );
   }
 
-  function commitStatus(job: ListJob, status: string) {
+  function commitStatus(job: ListJob, status: string, cancellationReason?: string) {
     if (status === job.status) return;
     const previousStatus = job.status;
     commit(
       job.id,
-      { status },
+      { status, ...(cancellationReason ? { cancellationReason } : {}) },
       (candidate) => ({ ...candidate, status }),
       {
         message: `Changed ${job.customerFirstName} ${job.customerLastName} to ${status.replaceAll("_", " ")}`,
@@ -216,7 +216,18 @@ export default function TodayListBoard({
 
   function cancelJob(job: ListJob) {
     setConfirmingCancelId(null);
-    commitStatus(job, "cancelled");
+    const reason = window.prompt("Why is this job being cancelled?");
+    if (!reason?.trim()) return;
+    commitStatus(job, "cancelled", reason.trim());
+  }
+
+  function changeStatus(job: ListJob, status: string, select: HTMLSelectElement) {
+    if (status === "cancelled") {
+      select.value = job.status;
+      cancelJob(job);
+      return;
+    }
+    commitStatus(job, status);
   }
 
   return (
@@ -302,7 +313,7 @@ export default function TodayListBoard({
                     <select
                       key={`status-${job.status}`}
                       defaultValue={job.status}
-                      onChange={(event) => commitStatus(job, event.target.value)}
+                      onChange={(event) => changeStatus(job, event.target.value, event.currentTarget)}
                       className="co-input py-1.5 text-sm"
                       aria-label={`Status for ${job.customerFirstName} ${job.customerLastName}`}
                     >
