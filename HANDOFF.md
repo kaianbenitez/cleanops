@@ -5,10 +5,31 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-07-30 (My Day payment method + damage notes at close-out, commit
-`cddc7fc` — see the entry right below).
+Last updated: 2026-07-30 (check-number follow-up to the payment-method feature, commit
+`6295ae1` — see the entry right below).
 
 ## Done
+
+- **My Day payment method: added a check-number field, shown when "Check" is selected
+  (2026-07-30).** Direct follow-up to the payment-method/damage-notes feature below, same
+  session: user asked that selecting "Check" also ask for the check number, and that it show
+  up on admin Job Detail so the office can reconcile which check a job's payment refers to.
+  New nullable `jobs.check_number_collected` column, migration
+  `drizzle/0022_job_check_number_collected.sql`, **applied to the hosted DB and confirmed via
+  `check:drift`** (approved by the user first). My Day's "Close out" card now conditionally
+  renders a check-number text input right under the payment-method select when
+  `paymentMethod === "check"`; `completeJob()` only sends it in that case. The clock-out route
+  only persists `checkNumberCollected` when `paymentMethodCollected === "check"` in the same
+  request, so a stray typed value can't survive a method switch. Admin Job Detail's "Reported
+  from the field" card had to become a controlled `<select>` (was `defaultValue`) so the new
+  check-number input can show/hide reactively off local state, same conditional pattern as My
+  Day; it saves through the existing `save()` → `PATCH /api/jobs/[jobId]` path like the other
+  two field-reported values.
+  Verified: `npm run verify` clean (0 errors, 26 pre-existing warnings), `check:drift` clean
+  after applying the migration, `smoke:routes` (5/5) and `smoke:auth` (22/22) against a local
+  production build. **Not click-through-tested live** — same constraint as the parent feature
+  below (no in-progress job available to open without a real clock-in/payroll side effect on
+  production data); build- and type-verified only.
 
 - **My Day: cleaners can now mark the payment method collected on-site and log
   damages/notes at job close-out (2026-07-30).** User request: "have ability to mark which
