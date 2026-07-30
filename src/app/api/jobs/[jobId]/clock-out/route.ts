@@ -2,14 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { auditLog, jobPaymentMethodEnum, jobs, jobAssignments, timeEntries } from "@/db/schema";
+import { auditLog, customers, jobPaymentMethodEnum, jobs, jobAssignments, timeEntries } from "@/db/schema";
 import { and, eq, isNull, desc } from "drizzle-orm";
 import { syncToGhl } from "@/lib/ghl/sync";
 import { generatePayrollForPeriod } from "@/lib/payroll/calculate";
 import { refreshPayrollPeriodsForDates } from "@/lib/payroll/periods";
+import { notifyAdmins } from "@/lib/notifications/create";
+import { paymentMethodLabel } from "@/lib/my-day/job-format";
 
 const closeOutSchema = z.object({
   paymentMethodCollected: z.enum(jobPaymentMethodEnum).optional(),
+  checkNumberCollected: z.string().trim().max(100).optional(),
   cleanerNotes: z.string().trim().max(2000).optional(),
 });
 
@@ -24,7 +27,7 @@ export async function POST(
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const { paymentMethodCollected, cleanerNotes } = parsed.data;
+  const { paymentMethodCollected, checkNumberCollected, cleanerNotes } = parsed.data;
 
   const [openEntry] = await db
     .select()
@@ -49,8 +52,9 @@ export async function POST(
   );
 
   const [job] = await db
-    .select({ type: jobs.type, status: jobs.status, customerId: jobs.customerId, scheduledDate: jobs.scheduledDate })
+    .select({ type: jobs.type, status: jobs.status, customerId: jobs.customerId, scheduledDate: jobs.scheduledDate, customerFirstName: customers.firstName, customerLastName: customers.lastName })
     .from(jobs)
+    .innerJoin(customers, eq(jobs.customerId, customers.id))
     .where(eq(jobs.id, jobId))
     .limit(1);
 
@@ -75,6 +79,7 @@ export async function POST(
     await tx.update(jobs).set({
       ...(shouldComplete ? { status: "completed" as const, completedAt: clockOut } : { status: "in_progress" as const }),
       ...(paymentMethodCollected !== undefined ? { paymentMethodCollected } : {}),
+      ...(paymentMethodCollected === "check" && checkNumberCollected ? { checkNumberCollected } : {}),
       ...(cleanerNotes ? { cleanerNotes } : {}),
     }).where(eq(jobs.id, jobId));
     return shouldComplete;
@@ -90,6 +95,7 @@ export async function POST(
       clockOut: clockOut.toISOString(),
       minutesWorked,
       ...(paymentMethodCollected !== undefined ? { paymentMethodCollected } : {}),
+      ...(paymentMethodCollected === "check" && checkNumberCollected ? { checkNumberCollected } : {}),
       ...(cleanerNotes ? { cleanerNotes } : {}),
     },
   });
@@ -97,6 +103,19 @@ export async function POST(
   // PLAN.md §6: "Job completed (first_clean)" -> tag first-clean-done.
   if (completion && job && job.status !== "completed" && job.type === "first_clean") {
     await syncToGhl(user.companyId, { type: "first_clean.completed", customerId: job.customerId });
+  }
+
+  if (job) {
+    const customerName = `${job.customerFirstName} ${job.customerLastName}`;
+    if (completion) {
+      await notifyAdmins({ companyId: user.companyId, type: "job.completed", title: "Job completed", body: customerName, href: `/jobs/${jobId}`, customerId: job.customerId });
+    }
+    if (cleanerNotes) {
+      await notifyAdmins({ companyId: user.companyId, type: "job.note_added", title: "Note added from the field", body: `${customerName} — ${cleanerNotes}`, href: `/jobs/${jobId}`, customerId: job.customerId });
+    }
+    if (paymentMethodCollected && paymentMethodCollected !== "not_collected") {
+      await notifyAdmins({ companyId: user.companyId, type: "job.payment_method_added", title: `Payment collected (${paymentMethodLabel(paymentMethodCollected)})`, body: customerName, href: `/jobs/${jobId}`, customerId: job.customerId });
+    }
   }
 
   // Keep the open period's line in sync the moment a real clock-out happens,

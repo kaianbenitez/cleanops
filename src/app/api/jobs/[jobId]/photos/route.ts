@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { auditLog, jobAssignments, jobPhotos, jobs, users } from "@/db/schema";
+import { auditLog, customers, jobAssignments, jobPhotos, jobs, users } from "@/db/schema";
 import { requireUser } from "@/lib/auth/current-user";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyAdmins } from "@/lib/notifications/create";
 
 const bucket = "job-photos";
 const accepted = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -50,6 +51,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ job
   if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 400 });
   const [photo] = await db.insert(jobPhotos).values({ jobId, companyId: user.companyId, uploadedByUserId: user.id, storagePath: path, slot: slot as "before" | "after" | "extra", caption }).returning();
   await db.insert(auditLog).values({ companyId: user.companyId, userId: user.id, action: "job.photo_uploaded", entityType: "job", entityId: jobId, before: null, after: { photoId: photo.id, slot, caption } });
+  if (slot === "before" || slot === "after") {
+    const [jobCustomer] = await db.select({ customerId: jobs.customerId, firstName: customers.firstName, lastName: customers.lastName }).from(jobs).innerJoin(customers, eq(jobs.customerId, customers.id)).where(eq(jobs.id, jobId)).limit(1);
+    if (jobCustomer) {
+      await notifyAdmins({
+        companyId: user.companyId,
+        type: "job.photo_added",
+        title: `${slot === "before" ? "Before" : "After"} photo added`,
+        body: `${jobCustomer.firstName} ${jobCustomer.lastName}`,
+        href: `/jobs/${jobId}`,
+        customerId: jobCustomer.customerId,
+      });
+    }
+  }
   const { data } = await storage.createSignedUrl(path, 60 * 60);
   return NextResponse.json({ photo: { ...photo, url: data?.signedUrl ?? null } }, { status: 201 });
 }

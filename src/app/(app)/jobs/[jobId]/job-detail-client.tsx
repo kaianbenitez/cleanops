@@ -49,6 +49,7 @@ export default function JobDetailClient({
   const [busy, setBusy] = useState(false);
   const [isRefreshing, startTransition] = useTransition();
   const saving = busy || isRefreshing;
+  const [paymentMethodCollected, setPaymentMethodCollected] = useState(job.paymentMethodCollected ?? "");
 
   const refresh = useCallback(() => {
     startTransition(() => router.refresh());
@@ -317,8 +318,12 @@ export default function JobDetailClient({
               <label className="mt-3 block">
                 <span className="mb-1 block text-xs text-[var(--co-muted)]">Payment collected on-site</span>
                 <select
-                  defaultValue={job.paymentMethodCollected ?? ""}
-                  onChange={(event) => save({ paymentMethodCollected: event.target.value || null })}
+                  value={paymentMethodCollected}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setPaymentMethodCollected(value);
+                    save({ paymentMethodCollected: value || null });
+                  }}
                   className="co-input w-full"
                 >
                   <option value="">Not set</option>
@@ -329,6 +334,18 @@ export default function JobDetailClient({
                   ))}
                 </select>
               </label>
+              {paymentMethodCollected === "check" ? (
+                <label className="mt-3 block">
+                  <span className="mb-1 block text-xs text-[var(--co-muted)]">Check number</span>
+                  <input
+                    type="text"
+                    defaultValue={job.checkNumberCollected ?? ""}
+                    onBlur={(event) => save({ checkNumberCollected: event.target.value })}
+                    className="co-input w-full"
+                    placeholder="Not reported"
+                  />
+                </label>
+              ) : null}
               <label className="mt-3 block">
                 <span className="mb-1 block text-xs text-[var(--co-muted)]">Damages / notes from the cleaner</span>
                 <textarea

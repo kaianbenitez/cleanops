@@ -65,6 +65,7 @@ export default function JobExecutionClient({
   const [completed, setCompleted] = useState(job.status === "completed" || Boolean(timeEntry?.clockOut));
   const [error, setError] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [checkNumber, setCheckNumber] = useState("");
   const [cleanerNotes, setCleanerNotes] = useState("");
 
   useEffect(() => {
@@ -140,6 +141,7 @@ export default function JobExecutionClient({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         paymentMethodCollected: paymentMethod || undefined,
+        checkNumberCollected: paymentMethod === "check" ? checkNumber.trim() || undefined : undefined,
         cleanerNotes: cleanerNotes.trim() || undefined,
       }),
     });
@@ -350,6 +352,18 @@ export default function JobExecutionClient({
                       ))}
                     </select>
                   </label>
+                  {paymentMethod === "check" ? (
+                    <label className="block">
+                      <span className="mb-1 block text-sm text-[var(--co-muted)]">Check number</span>
+                      <input
+                        type="text"
+                        value={checkNumber}
+                        onChange={(event) => setCheckNumber(event.target.value)}
+                        placeholder="Optional, but helpful"
+                        className="co-input w-full"
+                      />
+                    </label>
+                  ) : null}
                   <label className="block">
                     <span className="mb-1 block text-sm text-[var(--co-muted)]">Damages / notes for the office</span>
                     <textarea

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarDays, Cat, CircleAlert, Clock3, CreditCard, KeyRound, Mail, MapPin, NotebookText, Phone, Sparkles } from "lucide-react";
+import { Bath, BedDouble, Boxes, CalendarDays, Cat, CircleAlert, Clock3, CookingPot, CreditCard, Dog, House, KeyRound, Mail, MapPin, NotebookText, Phone, Sofa, Sparkles, Warehouse, WashingMachine } from "lucide-react";
 import { StatusPill } from "@/components/ui/status-pill";
 import { MaskedCode } from "@/components/ui/masked-code";
 import { TYPE_LABELS, money, formatEstimatedTime, type Customer, type Location, type CustomerJob } from "./shared";
@@ -77,7 +77,7 @@ function Detail({ icon: Icon, label, children }: { icon: typeof Phone; label: st
 
 function Preference({ icon: Icon, title, tone, children }: { icon: typeof KeyRound; title: string; tone?: string; children: React.ReactNode }) {
   return (
-    <article className={`min-h-32 rounded-lg border p-4 ${tone ?? "border-[var(--co-line)] bg-[var(--co-surface-muted)]/80"}`}>
+    <article className={`rounded-lg border p-4 ${tone ?? "border-[var(--co-line)] bg-[var(--co-surface-muted)]/80"}`}>
       <div className="flex gap-3">
         <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${tone ? "" : "text-[var(--co-evergreen)]"}`} />
         <div>
@@ -89,9 +89,24 @@ function Preference({ icon: Icon, title, tone, children }: { icon: typeof KeyRou
   );
 }
 
+function compactNoteText(value: string | null | undefined) {
+  return cleanNoteText(value)
+    .split("\n")
+    .filter((line) => !/^[^:\n]{1,80}:\s*$/.test(line.trim()))
+    .join("\n")
+    .trim();
+}
+
+function RoomIcon({ roomName }: { roomName: string }) {
+  const name = roomName.toLowerCase();
+  const Icon = name.includes("bed") ? BedDouble : name.includes("bath") ? Bath : name.includes("kitchen") ? CookingPot : name.includes("living") ? Sofa : name.includes("laundry") ? WashingMachine : name.includes("garage") ? Warehouse : House;
+  return <Icon className="h-4 w-4 text-[var(--co-evergreen)]" aria-hidden />;
+}
+
 export function CustomerViewCards({
   customer,
   location,
+  roomTypes,
   primaryAddress,
   upcomingJobs,
   recentJobs,
@@ -101,6 +116,7 @@ export function CustomerViewCards({
 }: {
   customer: Customer;
   location: Location | null;
+  roomTypes: { id: string; name: string }[];
   locations: Location[];
   primaryAddress: string;
   upcomingJobs: CustomerJob[];
@@ -120,11 +136,25 @@ export function CustomerViewCards({
   const preferredDays = customer.preferredDays?.map((day) => day.slice(0, 1).toUpperCase() + day.slice(1)).join(", ");
   const plan = customer.recurrence && customer.recurrence !== "none" ? customer.recurrence.replace("biweekly", "Every other week").replace(/^./, (letter) => letter.toUpperCase()) : "One-time service";
   const schedulingPreference = [preferredDays, customer.preferredTimeOfDay].filter(Boolean).join(" · ");
+  const homeDetails = customer.homeDetails ?? {};
+  const roomCounts = (homeDetails.roomCounts as Record<string, number>) ?? {};
+  const roomSummary = roomTypes
+    .map((roomType) => ({ name: roomType.name, count: Number(roomCounts[roomType.id] ?? 0) }))
+    .filter((room) => Number.isFinite(room.count) && room.count > 0);
+  const houseDetails = [
+    homeDetails.dirtLevel ? { label: "Dirt level", value: String(homeDetails.dirtLevel), icon: Sparkles } : null,
+    homeDetails.clutterCode ? { label: "Clutter", value: String(homeDetails.clutterCode), icon: Boxes } : null,
+    homeDetails.dogs ? { label: "Pets", value: String(homeDetails.dogs), icon: Dog } : null,
+  ].filter((detail): detail is { label: string; value: string; icon: typeof House } => Boolean(detail));
+  const generalNotes = compactNoteText(customer.generalNotes);
+  const doNotClean = compactNoteText(customer.doNotClean);
+  const petNotes = compactNoteText(customer.petNotes);
+  const importantToCustomer = compactNoteText(customer.importantToCustomer);
   const notes = [
-    customer.generalNotes ? { icon: NotebookText, title: "General notes", text: cleanNoteText(customer.generalNotes) } : null,
-    customer.doNotClean ? { icon: CircleAlert, title: "Do not clean", text: cleanNoteText(customer.doNotClean), tone: "border-rose-200 bg-rose-50 text-rose-800" } : null,
-    customer.petNotes ? { icon: Cat, title: "Pets", text: cleanNoteText(customer.petNotes), tone: "border-amber-200 bg-amber-50 text-amber-900" } : null,
-    customer.importantToCustomer ? { icon: Sparkles, title: "Important to customer", text: cleanNoteText(customer.importantToCustomer), tone: "border-violet-200 bg-violet-50 text-violet-900" } : null,
+    generalNotes ? { icon: NotebookText, title: "General notes", text: generalNotes } : null,
+    doNotClean ? { icon: CircleAlert, title: "Do not clean", text: doNotClean, tone: "border-rose-200 bg-rose-50 text-rose-800" } : null,
+    petNotes ? { icon: Cat, title: "Pets", text: petNotes, tone: "border-amber-200 bg-amber-50 text-amber-900" } : null,
+    importantToCustomer ? { icon: Sparkles, title: "Important to customer", text: importantToCustomer, tone: "border-violet-200 bg-violet-50 text-violet-900" } : null,
     schedulingPreference ? { icon: Clock3, title: "Scheduling preference", text: schedulingPreference } : null,
     accessNotesText || accessCodes ? { icon: KeyRound, title: "Entrance & access instructions", text: accessNotesText || "No entry instructions recorded." } : null,
   ].filter((note): note is { icon: typeof KeyRound; title: string; text: string; tone?: string } => Boolean(note));
@@ -145,18 +175,32 @@ export function CustomerViewCards({
             <div className="space-y-3 p-5"><div className="rounded-lg bg-[var(--co-surface-muted)] p-3 text-sm"><p className="font-semibold">{customer.paymentMethods?.length ? customer.paymentMethods.join(" · ") : "Payment method not set"}</p><p className="mt-1 text-xs text-[var(--co-muted)]">{openBalance ? `${money(openBalance)} outstanding` : "No open balance"}</p></div><Link href="/invoices" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--co-evergreen)] hover:underline">View all invoices →</Link></div>
           </Card>
         </aside>
-        <div className="space-y-6">
-          <section className="rounded-xl border border-[var(--co-line)] bg-[var(--co-surface-muted)]/75 p-5 sm:p-6">
+        <div className="w-full self-start space-y-6">
+          <div className="grid items-start gap-6 2xl:grid-cols-[minmax(34rem,1fr)_auto]">
+          <section className="self-start rounded-xl border border-[var(--co-line)] bg-[var(--co-surface-muted)]/75 p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3 text-[var(--co-evergreen)]"><CalendarDays className="h-6 w-6" /><h2 className="text-lg font-semibold">{customer.isArchived ? "Archived service" : "Active subscription"}</h2></div><span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white ${customer.isArchived ? "bg-slate-500" : "bg-[var(--co-evergreen)]"}`}>{customer.isArchived ? "Archived" : customer.status === "client" ? "Active plan" : "Customer plan"}</span></div>
             <div className="mt-4 grid gap-3 md:grid-cols-3"><div><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Plan details</p><p className="mt-1 text-sm font-semibold">{plan}</p></div><div><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Next visit</p>{nextJob ? <Link href={`/jobs/${nextJob.id}`} className="mt-1 block text-sm font-semibold text-[var(--co-evergreen)] hover:underline">{formatDisplayDate(nextJob.scheduledDate)}<span className="mt-1 block font-normal text-[var(--co-muted)]">{nextJob.scheduledStartTime?.slice(0, 5) ?? "Time pending"}</span></Link> : <p className="mt-1 text-sm text-[var(--co-muted)]">No visit scheduled</p>}</div><div><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Preferred cleaner</p><p className="mt-1 text-sm font-semibold">{customer.preferredCleanerId ? "Cleaner assigned" : "Any available cleaner"}</p><p className="mt-1 text-sm text-[var(--co-muted)]">{upcomingJobs.length ? `${upcomingJobs.length} upcoming visit${upcomingJobs.length === 1 ? "" : "s"}` : "No upcoming visits"}</p></div></div>
           </section>
+          <section className="co-card overflow-hidden">
+            <div className="flex items-center gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
+              <House className="h-5 w-5 text-[var(--co-evergreen)]" />
+              <div><h2 className="text-lg font-semibold tracking-[-0.02em]">House details</h2><p className="text-xs text-[var(--co-muted)]">At-a-glance service information</p></div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 p-5">
+              {roomSummary.length ? (
+                roomSummary.map((room) => <div key={room.name} className="inline-flex h-9 items-center gap-2 rounded-lg bg-[var(--co-surface-muted)] px-2.5" title={room.name}><RoomIcon roomName={room.name} /><span className="sr-only">{room.name}</span><span className="text-sm font-semibold text-[var(--co-ink)]">{room.count}</span></div>)
+              ) : <p className="text-sm text-[var(--co-muted)]">No room counts recorded yet.</p>}
+              {houseDetails.map((detail) => { const Icon = detail.icon; return <span key={detail.label} title={detail.label} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--co-surface-muted)] px-2.5 text-xs font-semibold text-[var(--co-ink)]"><Icon className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden /><span className="sr-only">{detail.label}: </span>{detail.value}</span>; })}
+            </div>
+          </section>
+          </div>
           <UpcomingVisits upcomingJobs={upcomingJobs} />
           <Card title="Service history" action={<Link href="/jobs" className="text-sm font-semibold text-[var(--co-evergreen)] hover:underline">View all activity →</Link>}>
             {recentJobs.length ? <div className="overflow-x-auto"><table className="w-full min-w-[700px] text-left text-sm"><thead className="bg-[var(--co-surface-muted)] text-[10px] font-bold uppercase tracking-wide text-[var(--co-muted)]"><tr><th className="px-6 py-3">Date</th><th className="px-4 py-3">Service type</th><th className="px-4 py-3">Duration</th><th className="px-4 py-3">Price</th><th className="px-6 py-3 text-right">Status</th></tr></thead><tbody>{recentJobs.slice(0, 5).map((job) => <tr key={job.id} className="border-t border-[var(--co-line-soft)]"><td className="px-6 py-4"><Link href={`/jobs/${job.id}`} className="font-medium hover:text-[var(--co-evergreen)] hover:underline">{formatDisplayDate(job.scheduledDate)}</Link></td><td className="px-4 py-4 font-medium">{TYPE_LABELS[job.type] ?? job.type}</td><td className="px-4 py-4">{formatEstimatedTime(job.estimatedDurationMinutes)}</td><td className="px-4 py-4">{money(job.priceCents)}</td><td className="px-6 py-4 text-right"><span className={`rounded px-2 py-1 text-[10px] font-bold uppercase ${job.status === "completed" ? "bg-emerald-50 text-emerald-800" : job.status === "cancelled" ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"}`}>{job.status.replaceAll("_", " ")}</span></td></tr>)}</tbody></table></div> : <p className="p-6 text-sm text-[var(--co-muted)]">No service history yet.</p>}
           </Card>
           <Card title="Service notes & preferences" action={<button onClick={onEditFocus} className="text-sm font-semibold text-[var(--co-evergreen)] hover:underline">Edit</button>}>
             {notes.length ? (
-              <div className="grid gap-4 p-5 md:grid-cols-2">
+              <div className="grid items-start gap-4 p-5 md:grid-cols-2">
                 {notes.map((note) => (
                   <Preference key={note.title} icon={note.icon} title={note.title} tone={note.tone}>
                     {note.text}
