@@ -56,3 +56,64 @@ export async function POST(
 
   return NextResponse.json({ ok: true });
 }
+
+/** Undo the current cleaner's clock-in before any work has been completed. */
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ jobId: string }> }
+) {
+  const user = await requireUser();
+  const { jobId } = await params;
+
+  const [assignment] = await db
+    .select()
+    .from(jobAssignments)
+    .where(and(eq(jobAssignments.jobId, jobId), eq(jobAssignments.userId, user.id)))
+    .limit(1);
+
+  if (!assignment) {
+    return NextResponse.json({ error: "Not assigned to this job" }, { status: 403 });
+  }
+
+  const result = await db.transaction(async (tx) => {
+    const [openEntry] = await tx
+      .select({ id: timeEntries.id, clockIn: timeEntries.clockIn })
+      .from(timeEntries)
+      .where(and(eq(timeEntries.jobId, jobId), eq(timeEntries.userId, user.id), isNull(timeEntries.clockOut)))
+      .limit(1);
+    if (!openEntry) return null;
+
+    await tx.delete(timeEntries).where(eq(timeEntries.id, openEntry.id));
+
+    const remainingEntries = await tx
+      .select({ id: timeEntries.id })
+      .from(timeEntries)
+      .where(eq(timeEntries.jobId, jobId))
+      .limit(1);
+    await tx.update(jobs).set({ status: remainingEntries.length ? "in_progress" : "scheduled" }).where(eq(jobs.id, jobId));
+
+    return openEntry;
+  });
+
+  if (!result) {
+    return NextResponse.json({ error: "No open time entry for this job" }, { status: 400 });
+  }
+
+  await db.insert(auditLog).values({
+    companyId: user.companyId,
+    userId: user.id,
+    action: "job.clock_in_undone",
+    entityType: "job",
+    entityId: jobId,
+    before: { clockIn: result.clockIn.toISOString() },
+    after: null,
+  });
+
+  const [job] = await db.select({ scheduledDate: jobs.scheduledDate }).from(jobs).where(eq(jobs.id, jobId)).limit(1);
+  if (job) {
+    const refreshedPeriods = await refreshPayrollPeriodsForDates(user.companyId, [job.scheduledDate, result.clockIn]);
+    for (const periodId of refreshedPeriods) await generatePayrollForPeriod(periodId);
+  }
+
+  return NextResponse.json({ ok: true });
+}
