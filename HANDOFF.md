@@ -5,13 +5,38 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-07-30 (admin notifications for job updates, commit `1587f87` on
-`claude/work` — see the entry right below; not yet integrated onto `main`).
+Last updated: 2026-07-30 (Vercel Preview builds fixed + admin job-update notifications
+integrated onto `main` as `9f66ccd`/`5409f58` — see the two entries right below).
 
 ## Done
 
-- **Admin bell notifications now fire on My Day job updates (2026-07-30, commit
-  `1587f87` on `claude/work`, pushed but not yet integrated onto `main`).** User request:
+- **Vercel Preview deployments were never actually working for any feature branch —
+  fixed 2026-07-30.** Found while investigating why `claude/work`'s Vercel build failed
+  with `Error: DATABASE_URL is not set` at `/api/account/password`. Checked
+  `vercel env ls`: `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` were all scoped
+  **Production only** (only `SENTRY_DSN` and `NEXT_PUBLIC_TURNSTILE_SITE_KEY` had
+  Preview too). Since `src/db/index.ts` throws synchronously at module load if
+  `DATABASE_URL` is unset, and nearly every API route imports it, this meant **every**
+  non-`main` branch push has always failed to build on Vercel, regardless of what the
+  branch actually changed — confirmed via deployment history: `codex/my-day-discard-undo`
+  and `codex/calendar-drag-scroll` both failed with the identical error. This was
+  initially misread as "Codex's branches preview fine, only mine doesn't" — checked and
+  that's not true either; Codex's deployment history is almost entirely direct commits to
+  `main` (which deploys as Production and has real credentials), not feature branches, so
+  it wasn't actually exercising Preview any more than this session was. Fixed by adding
+  the four missing vars to the Preview scope via `vercel env add <name> preview` (values
+  piped from `.env.local`, never printed). Verified with `npx vercel deploy
+  --target=preview` from a clean checkout — came back `readyState: READY`. Going forward,
+  a red Preview build on any branch is a real signal again. Trade-off worth knowing:
+  Preview deployments for any pushed branch now run against the **live production
+  database**, same as local dev already does — not new exposure (the login wall still
+  applies) but more surface area than "only `main` can reach prod." User approved this
+  explicitly after that trade-off was laid out.
+
+- **Admin bell notifications now fire on My Day job updates (2026-07-30, commits
+  `9f66ccd`/`5409f58` on `main`, cherry-picked cleanly from `claude/work`'s `1587f87`/
+  `51c35fb` with no conflicts).** User request:
   "a way for admins to track" job updates — on the way, completed, note added, payment
   method added, before/after photos added. Extends the existing `appNotifications` bell
   (previously only fired on "quote accepted") to five new trigger points, all inside
@@ -39,10 +64,9 @@ Last updated: 2026-07-30 (admin notifications for job updates, commit `1587f87` 
   entries and the My Day buttons that trigger them were not visually confirmed. Worth an
   actual pass next time someone's logged in: clock in/out of a real job, add close-out notes
   and a payment method, upload a before/after photo, and confirm all four show up in the
-  bell with working links to Job Detail. **Not yet cherry-picked onto `main`** — this is
-  sitting on `claude/work` per the collaboration workflow in `AGENT-COLLABORATION.md`;
-  needs an integrator pass (`check:env`, `check:drift`, `verify`, smoke checks) before it
-  ships.
+  bell with working links to Job Detail. Integrated onto `main` the same session via a
+  clean cherry-pick (no conflicts) after re-running `check:env`, `check:drift`, `verify`,
+  and both smoke scripts against the integration worktree.
 
 - **My Day payment method: added a check-number field, shown when "Check" is selected
   (2026-07-30).** Direct follow-up to the payment-method/damage-notes feature below, same
