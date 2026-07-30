@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { dateLabel, formatElapsed, formatEstimatedTime, groupNotes, jobAddress, jobTypeLabel, timeLabel } from "@/lib/my-day/job-format";
+import { cleanNoteText } from "@/lib/format";
+import { MaskedCode } from "@/components/ui/masked-code";
 import { Cat, CircleAlert, Sparkles } from "lucide-react";
 
 type Job = {
@@ -81,11 +83,11 @@ export default function JobExecutionClient({
   const elapsed = timeEntry ? formatElapsed(timeEntry.clockIn, timeEntry.clockOut ? new Date(timeEntry.clockOut).getTime() : now) : "00:00";
   const address = jobAddress(job) || "Address not set";
   const notes = groupNotes(job);
-  const clientNote = job.generalNotes ?? "";
+  const clientNote = cleanNoteText(job.generalNotes);
   const instructions = [
-    job.doNotClean ? { label: "Do not clean", value: job.doNotClean, icon: CircleAlert, tone: "border-rose-200 bg-rose-50 text-rose-800" } : null,
-    job.petNotes ? { label: "Pets", value: job.petNotes, icon: Cat, tone: "border-amber-200 bg-amber-50 text-amber-900" } : null,
-    job.importantToCustomer ? { label: "Important", value: job.importantToCustomer, icon: Sparkles, tone: "border-violet-200 bg-violet-50 text-violet-900" } : null,
+    job.doNotClean ? { label: "Do not clean", value: cleanNoteText(job.doNotClean), icon: CircleAlert, tone: "border-rose-200 bg-rose-50 text-rose-800" } : null,
+    job.petNotes ? { label: "Pets", value: cleanNoteText(job.petNotes), icon: Cat, tone: "border-amber-200 bg-amber-50 text-amber-900" } : null,
+    job.importantToCustomer ? { label: "Important", value: cleanNoteText(job.importantToCustomer), icon: Sparkles, tone: "border-violet-200 bg-violet-50 text-violet-900" } : null,
   ].filter(Boolean) as Array<{ label: string; value: string; icon: typeof CircleAlert; tone: string }>;
   const beforePhotos = photos.filter((photo) => photo.slot === "before");
   const afterPhotos = photos.filter((photo) => photo.slot === "after");
@@ -224,11 +226,11 @@ export default function JobExecutionClient({
               {job.keyNumber || job.garageCode || job.gateCode || job.alarmCode ? (
                 <div className="flex items-center justify-between py-2">
                   <span className="text-sm text-[var(--co-muted)]">Access</span>
-                  <span className="text-right text-sm font-semibold text-[var(--co-ink)]">
+                  <MaskedCode>
                     {[job.keyNumber && `Key #${job.keyNumber}`, job.garageCode && `Garage ${job.garageCode}`, job.gateCode && `Gate ${job.gateCode}`, job.alarmCode && `Alarm ${job.alarmCode}`]
                       .filter(Boolean)
                       .join(" · ")}
-                  </span>
+                  </MaskedCode>
                 </div>
               ) : null}
               {job.customerPhone ? (
@@ -244,7 +246,7 @@ export default function JobExecutionClient({
             {clientNote ? (
               <div className="mt-4 rounded-lg bg-[var(--co-accent-tint)] p-4">
                 <p className="mb-1 text-xs font-bold uppercase tracking-tight text-[var(--co-evergreen)]">Client notes</p>
-                <p className="text-sm text-[var(--co-ink)]">{clientNote}</p>
+                <p className="whitespace-pre-line text-sm text-[var(--co-ink)]">{clientNote}</p>
               </div>
             ) : null}
 
@@ -252,7 +254,7 @@ export default function JobExecutionClient({
               <div className="mt-4 grid gap-2 sm:grid-cols-3">
                 {instructions.map((instruction) => {
                   const Icon = instruction.icon;
-                  return <section key={instruction.label} className={`rounded-lg border p-3 ${instruction.tone}`}><div className="flex items-center gap-2 text-xs font-bold"><Icon className="h-4 w-4" />{instruction.label}</div><p className="mt-2 text-sm leading-5">{instruction.value}</p></section>;
+                  return <section key={instruction.label} className={`rounded-lg border p-3 ${instruction.tone}`}><div className="flex items-center gap-2 text-xs font-bold"><Icon className="h-4 w-4" />{instruction.label}</div><p className="mt-2 whitespace-pre-line text-sm leading-5">{instruction.value}</p></section>;
                 })}
               </div>
             ) : null}
@@ -260,7 +262,7 @@ export default function JobExecutionClient({
             {notes.length > 0 ? (
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {notes.map((note) => (
-                  <div key={note} className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-3 py-2 text-xs leading-5 text-[var(--co-ink)]">
+                  <div key={note} className="whitespace-pre-line rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-3 py-2 text-xs leading-5 text-[var(--co-ink)]">
                     {note}
                   </div>
                 ))}
