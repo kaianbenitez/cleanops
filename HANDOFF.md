@@ -5,11 +5,59 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-07-29 (random one-time passwords + forced password change, reconciled onto
-this branch from a stale local session — see the note right below and the matching
-`DECISIONS.md` entry).
+Last updated: 2026-07-30 (fixed a broken production build + My Day/customer notes cleanup,
+commit `682b44a` — see the entry right below).
 
 ## Done
+
+- **`main` was broken — commit `ffe77f5` ("Keep staff calendar visible during queue scroll",
+  Codex) shipped a literal backtick-r-backtick-n sequence mangled into one import line in
+  `job-execution-client.tsx` (invalid syntax: `...from "@/lib/my-day/job-format";`r`nimport
+  {...}`). Confirmed via Vercel's deployment list that this exact commit's production build
+  had already failed (`state: "ERROR"`) — the site kept serving the prior good deploy
+  (`02957e5`), so nothing was down, but `main` could not build and nothing on top of it could
+  deploy until this was fixed. Fixed 2026-07-30 as a side effect of editing that same import
+  line for the notes work below; confirmed via `git stash` that `tsc --noEmit` fails against
+  `ffe77f5` and passes clean once the line is split back into two real imports. If a Vercel
+  production deployment shows `ERROR` again, check the deployment list (`mcp__vercel__list_deployments`)
+  for the failing commit before assuming it's something else — this is the second time a
+  parallel-session artifact (`` `r`n `` as literal text, not an actual newline) has silently
+  landed in this exact file; grep for stray literal backtick sequences if it happens again.
+- **My Day / customer profile notes were showing garbled text (`&rsquo;`, `&amp;`, `&#39;`,
+  `&ldquo;`, etc.) — root cause: the TheCustomerFactor CSV backfill imported customer notes
+  straight from an HTML source without decoding entities, confirmed by querying
+  `customers.general_notes`/`do_not_clean`/`pet_notes`/`important_to_customer` directly on the
+  hosted DB (e.g. one row literally reads `Don&rsquo;t adjust the bed`).** Added
+  `cleanNoteText()` (`src/lib/format.ts`) — decodes named + numeric HTML entities and
+  normalizes CRLF/tab clutter into real line breaks — applied everywhere these fields render:
+  My Day job detail (`job-execution-client.tsx`), the customer profile view (`view-cards.tsx`)
+  and its edit form (`page.tsx`). Also deduped My Day's notes grid: `generalNotes` and the
+  key/garage/gate/alarm codes were each being shown twice (once in their own dedicated spot,
+  again as plain boxes in the generic notes list via `groupNotes()` in
+  `src/lib/my-day/job-format.ts`) — removed the duplicates.
+  Extended the Do Not Clean (rose) / Pets (amber) / Important to customer (violet) icon-card
+  treatment that already existed in My Day to the customer profile's "Service notes &
+  preferences" card, and added those three as real editable `Field`s in the customer edit form
+  plus the matching zod fields in `PATCH /api/customers/[customerId]` — previously these three
+  columns existed in the schema and were populated only by the CSV import / GHL webhook, with
+  no way for an admin to set them by hand for a new customer.
+  Garage/gate/alarm/key codes are now masked behind a tap-to-reveal control (new
+  `src/components/ui/masked-code.tsx`) in both My Day's Access row and the customer profile's
+  entrance/access card, instead of sitting in plain text — user's explicit call after asking
+  which of three options (always plain, tap-to-reveal, or split by screen) they wanted.
+  Verified with `npm run verify` (typecheck/lint/build all clean; the 26 lint warnings are
+  pre-existing and untouched by this change). **Not click-through-tested in a real browser**
+  — no admin/employee session available this session; the fix is TypeScript- and
+  build-verified only. Worth an actual pass next time someone's logged in: open a My Day job
+  with real customer notes and confirm the entities are gone and the reveal button works.
+  **Known, deliberately out of scope:** many legacy `general_notes` blobs already contain the
+  same text that also lives in the discrete `do_not_clean`/`pet_notes`/`important_to_customer`
+  columns (the original import copied fragments into both) — this shows up as the same
+  sentence appearing once in the free-text "General notes" card and again in its own colored
+  card. Surgically stripping the duplicated fragment out of hundreds of freeform legacy blobs
+  without risking mangling the rest of the note is its own project, not attempted here; new
+  customers won't have this problem since they'll only ever get entered through the new
+  manual fields, not a bulk import.
 
 - **Every new account gets a random one-time password instead of the old hardcoded
   `password123`, and must set their own before using the app (originally 2026-07-27,
