@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CalendarEmployee, CalendarJob } from "./page";
 import { commitJobPatch } from "./drag-commit";
@@ -90,6 +90,7 @@ export default function StaffBoard({
   } | null>(null);
   const [columnOrder, setColumnOrder] = useState(savedColumnOrder);
   const [draggedEmployeeId, setDraggedEmployeeId] = useState<string | null>(null);
+  const boardScrollRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [selectedJobId, setSelectedJobId] = useState("");
@@ -527,15 +528,27 @@ export default function StaffBoard({
     );
   }
 
+  function scrollBoardWhileDragging(event: React.DragEvent<HTMLDivElement>) {
+    if (!event.dataTransfer.types.includes("text/plain")) return;
+    const board = boardScrollRef.current;
+    if (!board) return;
+    const rect = board.getBoundingClientRect();
+    const edgeSize = 80;
+    const scrollStep = 28;
+    if (event.clientX < rect.left + edgeSize) board.scrollLeft -= scrollStep;
+    if (event.clientX > rect.right - edgeSize) board.scrollLeft += scrollStep;
+  }
+
   function queueCard(job: CalendarJob, retained = false) {
     return (
       <button
         key={job.id}
         type="button"
         draggable={!retained}
-        onDragStart={(event) =>
-          event.dataTransfer.setData("text/plain", job.id)
-        }
+        onDragStart={(event) => {
+          event.dataTransfer.setData("text/plain", job.id);
+          event.dataTransfer.effectAllowed = "move";
+        }}
         data-testid="unassigned-job-card"
         onClick={() => setOpenJobId(job.id)}
         aria-label={`Assign a cleaner for ${customerName(job)}`}
@@ -670,9 +683,10 @@ export default function StaffBoard({
                   job={job}
                   employees={employees}
                   draggable
-                  onDragStart={(event) =>
-                    event.dataTransfer.setData("text/plain", job.id)
-                  }
+                  onDragStart={(event) => {
+          event.dataTransfer.setData("text/plain", job.id);
+          event.dataTransfer.effectAllowed = "move";
+        }}
                   onOpen={setDetailJobId}
                 />
               ))}
@@ -695,14 +709,14 @@ export default function StaffBoard({
             Scheduling warning: {warning}
           </p>
         ) : null}
-        <div className="overflow-x-auto overscroll-x-contain [scrollbar-gutter:stable]">
+        <div ref={boardScrollRef} onDragOver={scrollBoardWhileDragging} className="max-h-[calc(100dvh-13rem)] overflow-auto overscroll-contain [scrollbar-gutter:stable]">
           <div
             style={{
               minWidth: `${120 + Math.max(sortedEmployees.length, 1) * 180}px`,
             }}
           >
             <div
-              className="grid divide-x divide-[var(--co-line-soft)] border-b border-[var(--co-line-soft)]"
+              className="sticky top-0 z-30 grid divide-x divide-[var(--co-line-soft)] border-b border-[var(--co-line-soft)] shadow-sm"
               style={{
                 gridTemplateColumns: `120px repeat(${Math.max(sortedEmployees.length, 1)}, minmax(180px, 1fr))`,
               }}
@@ -843,9 +857,10 @@ export default function StaffBoard({
                             job={job}
                             employees={employees}
                             draggable
-                            onDragStart={(event) =>
-                              event.dataTransfer.setData("text/plain", job.id)
-                            }
+                            onDragStart={(event) => {
+          event.dataTransfer.setData("text/plain", job.id);
+          event.dataTransfer.effectAllowed = "move";
+        }}
                             onOpen={setDetailJobId}
                           />
                           {placement.overflowCount > 0 ? (
