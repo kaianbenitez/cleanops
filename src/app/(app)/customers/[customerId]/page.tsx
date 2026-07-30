@@ -82,7 +82,7 @@ function Field({
     <label className="block text-sm">
       <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">{label}</span>
       {textarea ? (
-        <textarea rows={3} value={value} onChange={(event) => onChange(event.target.value)} className={`${input} resize-none`} />
+        <textarea rows={3} value={value} onChange={(event) => onChange(event.target.value)} className={`${input} min-h-24 resize-y overflow-auto`} />
       ) : (
         <input type={type} value={value} onChange={(event) => onChange(event.target.value)} className={input} />
       )}
