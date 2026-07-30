@@ -174,13 +174,11 @@ export function CustomerViewCards({
               <House className="h-5 w-5 text-[var(--co-evergreen)]" />
               <div><h2 className="text-lg font-semibold tracking-[-0.02em]">House details</h2><p className="text-xs text-[var(--co-muted)]">At-a-glance service information</p></div>
             </div>
-            <div className="p-5">
+            <div className="flex flex-wrap items-center gap-2 p-5">
               {roomSummary.length ? (
-                <div className="grid grid-cols-3 gap-x-5 gap-y-3">
-                  {roomSummary.map((room) => <div key={room.name} className="flex items-center justify-between gap-3 border-b border-[var(--co-line-soft)] pb-2" title={room.name}><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--co-surface-muted)]"><RoomIcon roomName={room.name} /><span className="sr-only">{room.name}</span></span><span className="text-sm font-semibold text-[var(--co-ink)]">{room.count}</span></div>)}
-                </div>
+                roomSummary.map((room) => <div key={room.name} className="inline-flex h-9 items-center gap-2 rounded-lg bg-[var(--co-surface-muted)] px-2.5" title={room.name}><RoomIcon roomName={room.name} /><span className="sr-only">{room.name}</span><span className="text-sm font-semibold text-[var(--co-ink)]">{room.count}</span></div>)
               ) : <p className="text-sm text-[var(--co-muted)]">No room counts recorded yet.</p>}
-              {houseDetails.length ? <div className="mt-4 flex flex-wrap gap-2">{houseDetails.map((detail) => { const Icon = detail.icon; return <span key={detail.label} title={detail.label} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--co-surface-muted)] px-2.5 py-1 text-xs font-semibold text-[var(--co-ink)]"><Icon className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden /><span className="sr-only">{detail.label}: </span>{detail.value}</span>; })}</div> : null}
+              {houseDetails.map((detail) => { const Icon = detail.icon; return <span key={detail.label} title={detail.label} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--co-surface-muted)] px-2.5 text-xs font-semibold text-[var(--co-ink)]"><Icon className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden /><span className="sr-only">{detail.label}: </span>{detail.value}</span>; })}
             </div>
           </section>
           </div>
