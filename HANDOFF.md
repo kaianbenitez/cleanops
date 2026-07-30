@@ -5,10 +5,44 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-07-30 (fixed a broken production build + My Day/customer notes cleanup,
-commit `682b44a` — see the entry right below).
+Last updated: 2026-07-30 (My Day payment method + damage notes at close-out, commit
+`cddc7fc` — see the entry right below).
 
 ## Done
+
+- **My Day: cleaners can now mark the payment method collected on-site and log
+  damages/notes at job close-out (2026-07-30).** User request: "have ability to mark which
+  payment method the client is using for the specific job + any damages / notes from the
+  cleaner." This is intentionally separate from the real invoice/Square payment flow
+  (`invoices/[invoiceId]`, `invoiceMethodEnum`) — most customers are on card-on-file
+  recurring billing, so this is a lightweight field-report, not a financial transaction.
+  Added `jobs.payment_method_collected` (`jobPaymentMethodEnum`: cash / check / credit_card /
+  not_collected / other) and `jobs.cleaner_notes` (free text), both nullable — migration
+  `drizzle/0021_job_payment_and_cleaner_notes.sql`, **applied to the hosted DB and confirmed
+  via `check:drift`** (approved by the user before applying, since every job-related page
+  reads from `jobs` and would otherwise 500 the moment this shipped). `POST
+  /api/jobs/[jobId]/clock-out` now accepts an optional `{ paymentMethodCollected, cleanerNotes }`
+  body (zod-validated) and writes it onto the job row inside the existing clock-out
+  transaction; both are folded into that endpoint's audit log entry too. My Day's job screen
+  (`job-execution-client.tsx`) has a new "Close out" card (payment method select + damages
+  textarea) shown once clocked in, sent along with the "Complete job" request. Admin Job
+  Detail (`job-detail-client.tsx`) shows a "Reported from the field" card with the same two
+  controls, editable via the existing `save()` → `PATCH /api/jobs/[jobId]` path, so the office
+  can see or correct what the cleaner reported — `loadJobDetail` and `updateJobSchema` both
+  updated to carry the two fields end to end.
+  Verified: `npm run verify` clean (0 errors, 26 pre-existing warnings, untouched by this
+  change), `check:drift` clean after applying the migration, `smoke:routes` (5/5) and
+  `smoke:auth` (22/22) against a local production build. Live-checked the admin Job Detail
+  card via the Chrome extension against the hosted DB — the "Reported from the field" select
+  and textarea render with the correct five payment-method options and the right placeholder
+  text on a real job — **read-only**, never selected an option (would have written to that
+  real job). **The My Day close-out form itself was not live-clicked-through**: the admin
+  test account had no job assigned/in-progress today to open without creating a real
+  clock-in/time-entry/payroll-recalc side effect on production data, and TESTING.md rules out
+  submitting writes to the hosted DB in a throwaway check. Build- and type-verified only for
+  that half; worth an actual clock-in on a real (or newly created) job next time someone's
+  using My Day, to confirm the "Close out" card renders correctly at the started-not-completed
+  state and that "Complete job" round-trips the two fields.
 
 - **`main` was broken — commit `ffe77f5` ("Keep staff calendar visible during queue scroll",
   Codex) shipped a literal backtick-r-backtick-n sequence mangled into one import line in
