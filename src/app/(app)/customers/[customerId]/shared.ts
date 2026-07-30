@@ -20,6 +20,7 @@ export type Customer = {
   homeDetails?: Record<string, unknown>;
   tags?: unknown;
   gateCodeOrKeyNotes?: string | null;
+  doNotClean?: string | null;
   petNotes?: string | null;
   importantToCustomer?: string | null;
   operationalNotes?: string | null;

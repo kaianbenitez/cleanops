@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { dateLabel, formatElapsed, formatEstimatedTime, groupNotes, jobAddress, jobTypeLabel, timeLabel } from "@/lib/my-day/job-format";`r`nimport { Cat, CircleAlert, Sparkles } from "lucide-react";
+import { dateLabel, formatElapsed, formatEstimatedTime, groupNotes, jobAddress, jobTypeLabel, timeLabel } from "@/lib/my-day/job-format";
+import { Cat, CircleAlert, Sparkles } from "lucide-react";
 
 type Job = {
   jobId: string;

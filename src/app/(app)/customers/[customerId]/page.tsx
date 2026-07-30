@@ -8,6 +8,7 @@ import AddressAutocomplete from "../address-autocomplete";
 import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { CustomerViewCards } from "./view-cards";
 import { TYPE_LABELS, money, type Customer, type Location, type CustomerJob, type AuditEntry } from "./shared";
+import { cleanNoteText } from "@/lib/format";
 
 type EmployeeOption = { id: string; firstName: string; lastName: string };
 
@@ -175,11 +176,15 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
     };
     setCustomer({
       ...rawCustomer,
-      generalNotes:
+      generalNotes: cleanNoteText(
         rawCustomer.generalNotes ??
-        ([rawCustomer.notes, rawCustomer.operationalNotes, rawCustomer.importantToCustomer, rawCustomer.doNotClean, rawCustomer.petNotes]
-          .filter((value): value is string => Boolean(value?.trim()))
-          .join("\n\n") || null),
+          ([rawCustomer.notes, rawCustomer.operationalNotes, rawCustomer.importantToCustomer, rawCustomer.doNotClean, rawCustomer.petNotes]
+            .filter((value): value is string => Boolean(value?.trim()))
+            .join("\n\n") || null)
+      ) || null,
+      doNotClean: cleanNoteText(rawCustomer.doNotClean) || null,
+      petNotes: cleanNoteText(rawCustomer.petNotes) || null,
+      importantToCustomer: cleanNoteText(rawCustomer.importantToCustomer) || null,
       preferredDays: rawCustomer.preferredDays ?? (rawCustomer.preferredDay ? [rawCustomer.preferredDay.toLowerCase()] : []),
       preferredTimeOfDay: rawCustomer.preferredTimeOfDay ?? (rawCustomer.preferredTime === "PM" ? "PM" : rawCustomer.preferredTime ? "AM" : null),
       paymentMethods: rawCustomer.paymentMethods ?? (rawCustomer.paymentMethod ? [rawCustomer.paymentMethod] : []),
@@ -294,6 +299,9 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         preferredTimeOfDay: customer.preferredTimeOfDay || null,
         paymentMethods: customer.paymentMethods ?? [],
         generalNotes: customer.generalNotes || null,
+        doNotClean: customer.doNotClean || null,
+        petNotes: customer.petNotes || null,
+        importantToCustomer: customer.importantToCustomer || null,
         homeDetails: customer.homeDetails ?? {},
         locations: locations.map((item) => ({ ...item, id: item.id || undefined })),
       }),
@@ -664,7 +672,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               </a>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <InfoCard label="Entrance notes" value={location?.accessInstructions || "No instructions"} sub="Visible to internal team" />
+              <InfoCard label="Entrance notes" value={cleanNoteText(location?.accessInstructions) || "No instructions"} sub="Visible to internal team" />
               <InfoCard label="Subdivision" value={location?.subdivision || "Not recorded"} sub="Useful for route recall" />
             </div>
           </div>
@@ -672,7 +680,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
           {location ? (
             <div className="mt-4 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/50 p-4 text-sm">
               <p className="font-medium">Entry instructions</p>
-              <p className="mt-1 text-[var(--co-muted)]">{location.accessInstructions || "No entry instructions recorded."}</p>
+              <p className="mt-1 whitespace-pre-line text-[var(--co-muted)]">{cleanNoteText(location.accessInstructions) || "No entry instructions recorded."}</p>
             </div>
           ) : null}
         </div>
@@ -753,7 +761,12 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
 
       <section className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
         <Section eyebrow="Notes" title="General notes" description="One place for the context the team should remember about this customer.">
-          <Field label="General notes" value={customer.generalNotes ?? ""} onChange={(value) => updateCustomer("generalNotes", value)} textarea />
+          <div className="space-y-4">
+            <Field label="General notes" value={customer.generalNotes ?? ""} onChange={(value) => updateCustomer("generalNotes", value)} textarea />
+            <Field label="Do not clean" value={customer.doNotClean ?? ""} onChange={(value) => updateCustomer("doNotClean", value || null)} textarea />
+            <Field label="Pet notes" value={customer.petNotes ?? ""} onChange={(value) => updateCustomer("petNotes", value || null)} textarea />
+            <Field label="Important to customer" value={customer.importantToCustomer ?? ""} onChange={(value) => updateCustomer("importantToCustomer", value || null)} textarea />
+          </div>
         </Section>
 
         <Section eyebrow="Preferences" title="Scheduling and payment" description="Keep repeat-visit preferences compact and easy to scan.">

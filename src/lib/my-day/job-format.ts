@@ -1,3 +1,5 @@
+import { cleanNoteText } from "@/lib/format";
+
 type AddressLike = {
   addressLine1: string | null;
   city: string | null;
@@ -41,14 +43,16 @@ export function jobAddress(job: AddressLike) {
   return [job.addressLine1, job.city, job.state, job.zip].filter(Boolean).join(", ");
 }
 
+/**
+ * General notes and the key/garage/gate/alarm codes each already get their own
+ * dedicated spot (the "Client notes" callout and the masked Access row) —
+ * repeating them here as plain grid boxes was the "everything looks the same"
+ * clutter this list used to produce. This only covers the leftover
+ * operational details that don't have a home of their own yet.
+ */
 export function groupNotes(job: NotesLike) {
   return [
-    job.generalNotes,
-    job.accessInstructions,
-    job.keyNumber ? `Key #: ${job.keyNumber}` : null,
-    job.garageCode ? `Garage: ${job.garageCode}` : null,
-    job.gateCode ? `Gate: ${job.gateCode}` : null,
-    job.alarmCode ? `Alarm: ${job.alarmCode}` : null,
+    job.accessInstructions ? `Access: ${cleanNoteText(job.accessInstructions)}` : null,
     job.vacuumLocation ? `Vacuum: ${job.vacuumLocation}` : null,
     job.mopHeadsNeeded ? `Mop heads: ${job.mopHeadsNeeded}` : null,
     job.trashBags ? `Trash bags: ${job.trashBags}` : null,
