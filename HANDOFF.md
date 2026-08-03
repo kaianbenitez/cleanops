@@ -5,11 +5,59 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-04 (cancellation-reason prompt on the unassigned-queue quick-cancel
-panel brought onto `main`, cherry-picked from `claude/work`'s `553df69` — see the entry
-right below).
+Last updated: 2026-08-04 (backlog items #7, #8, #9 — the full 9-item customer/quote
+backlog — brought onto `main` together; see the entry right below).
 
 ## Done
+
+- **Full 9-item customer/quote backlog now on `main` (2026-08-04) — items #7, #8, #9
+  integrated together.** Each was built independently on its own branch, off `main`,
+  by Codex (delegated from Claude Code, own isolated worktree per item), reviewed
+  (full diff read, `npm run verify` re-run independently) and hosted-DB-verified before
+  integration; items #1–#6 of this same backlog already landed on `main` in earlier
+  sessions.
+  - **#7 — plain-English errors on `/customers/new`** (`82ebd11` on `claude/work`).
+    Failed validation used to show the raw zod error object as text; now it's a
+    readable sentence plus the specific bad field outlined in red with its own message.
+  - **#8 — inline "New customer" option on the New Quote screen**
+    (`e7ce607`/`fdc44cc` on `codex/quote-new-customer`). The "Who is this for?" card on
+    `/quotes/new` now has an Existing/New customer toggle; picking New customer swaps
+    the search box for an inline create-customer form, and saving the quote creates the
+    customer and quote together. Cherry-picked onto `main` cleanly — `quotes/new/page.tsx`
+    wasn't touched by #7 or #9.
+  - **#9 — room counts/notes/access codes at customer creation**
+    (`38c70f4`/`bacc960` on `codex/customer-creation-preferences`). `/customers/new` gained
+    an optional second panel: room-count grid, the same four house-notes fields the
+    customer profile has, and address-gated entry/garage/gate codes — all prefilled the
+    first time anyone opens that customer's profile or builds them a quote. Cherry-picked
+    cleanly (`POST /api/customers`'s new optional fields).
+  - **Merge conflict, resolved by hand**: #7 and #9 both modified
+    `customers/new/page.tsx`'s error-display code — #9 was built off `main` before #7
+    landed, so it independently reimplemented a similar-but-different version. #9's
+    cherry-pick was taken as the base (it's the superset — includes the full #7-equivalent
+    error parsing plus the new room/notes/access panel); #7's two improvements that #9's
+    version had NOT picked up were folded in by hand on top: (1) per-field
+    `fieldErrors` set immediately on a missing first/last name, before any network
+    round-trip, not just a generic banner message; (2) red border + `aria-invalid` on
+    the flagged input itself, not just red text underneath. No functionality from
+    either branch was dropped.
+  Verified on the integrated result (all three combined) before pushing: `npm run
+  check:env`, `check:drift` (clean — only the known pre-existing `quote_line_items`
+  live-but-unused-table note, unrelated to this change), `verify` (0 errors, same 26
+  pre-existing warnings), a full production build, and both `smoke:routes` (5/5) and
+  `smoke:auth` (22/22) against a local production server on a free port. Each item was
+  also independently verified against the hosted DB before integration (see each
+  branch's own now-superseded HANDOFF entries for that detail); all throwaway test
+  records created during those checks were found, confirmed as test data by fingerprint,
+  and deleted with user approval before this integration.
+  **Not click-through-tested live by a human in a browser** — `.env.local` is still
+  missing `BROWSER_ADMIN_PASSWORD`. Worth an actual pass next time someone's logged in:
+  open `/customers/new`, fill in the optional home-profile panel, save, and confirm the
+  profile page shows it; open `/quotes/new`, toggle to "New customer," and confirm the
+  create-then-quote flow lands on the new quote.
+  Advanced search/filtering on the Customers list (a related but separate item from an
+  earlier session, also still on `claude/work`) was deliberately **not** included in
+  this integration — user asked specifically for #7/#8/#9.
 
 - **Unassigned-queue quick-cancel now asks for a cancellation reason (2026-08-04,
   cherry-picked from `claude/work`'s `553df69`, cleanly — `unassigned-panel.tsx` was
