@@ -5,10 +5,28 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-04 (Customers list: advanced search/filtering brought onto `main`
-this session, cherry-picked from `claude/work`'s `2ae9a2b` — see the entry right below).
+Last updated: 2026-08-04 (cancellation-reason prompt on the unassigned-queue quick-cancel
+panel brought onto `main`, cherry-picked from `claude/work`'s `553df69` — see the entry
+right below).
 
 ## Done
+
+- **Unassigned-queue quick-cancel now asks for a cancellation reason (2026-08-04,
+  cherry-picked from `claude/work`'s `553df69`, cleanly — `unassigned-panel.tsx` was
+  byte-identical between the two branches beforehand).** Part of the same 9-item backlog as
+  the two Customers-list entries below. The server has required a reason for cancelling a
+  job for a while (rejects with "Enter a cancellation reason before cancelling this job."
+  otherwise), and every other cancel entry point in the app (calendar job panel, the
+  day-list Cancel button, full Job Detail) already prompted for one — this was the one spot
+  that didn't: the "Confirm cancel" button in the quick-assign panel opened from the Staff
+  Board's unassigned queue sent a bare cancel with no reason, so it always failed silently
+  against the server's own validation. Now it prompts first, same as the other three places.
+  Single-file, 4-line change (`src/app/(app)/calendar/unassigned-panel.tsx`).
+  Build/type-verified only (`tsc --noEmit` clean on both `claude/work` and again after this
+  cherry-pick onto `main`) — not click-through-tested in a real browser, same constraint as
+  the two entries below (`.env.local` has no `BROWSER_ADMIN_PASSWORD`). Worth confirming
+  next time someone's logged in: open the Staff Board, quick-assign an unassigned job, hit
+  Cancel, and confirm the reason prompt now appears before it submits.
 
 - **Customers list: advanced search/filtering added (2026-08-04, cherry-picked from
   `claude/work`'s `2ae9a2b`, cleanly — `page.tsx` was byte-identical between the two
