@@ -5,8 +5,10 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-04 (Customers list: advanced search/filtering on `claude/work` — see
-the entry right below; not yet integrated onto `main`).
+Last updated: 2026-08-04 (confirmed backlog item #7 — plain-English error display on customer
+creation — was already implemented and pushed to `claude/work` as `82ebd11` but never logged
+here; documented below. Customers list advanced search/filtering is the other pending item on
+`claude/work`, not yet integrated onto `main`).
 
 ## Done
 
@@ -47,9 +49,25 @@ the entry right below; not yet integrated onto `main`).
   `TESTING.md`). Worth an actual pass next time someone's logged in: open `/customers`, try
   each Service history option and the two new pills, and confirm the pill counts match what
   you'd expect for a few real customers you know the history of.
-  **Remaining items from the same 9-item backlog, not yet started**: proper (non-JSON) error
-  display on customer creation, combining new-customer + new-quote into one flow with
-  preferences pre-filled.
+  **Remaining items from the same 9-item backlog, not yet started**: combining new-customer +
+  new-quote into one flow with preferences pre-filled (item #8/#9 — see below, #7 is done).
+
+- **Customer creation: plain-English error display (2026-08-03, `82ebd11` on `claude/work`,
+  not yet integrated onto `main`).** Item #7 of the same 9-item backlog. Previously any
+  validation failure on `/customers/new` rendered the raw zod `.flatten()` object as text —
+  e.g. `{"formErrors":[],"fieldErrors":{"email":[...]}}}` — straight in the error banner.
+  New `parseApiError()` in `src/app/(app)/customers/new/page.tsx` turns that shape (or the
+  API's plain-string error, used for the "GHL contact already linked" case) into a readable
+  sentence in the banner, plus outlines the specific offending field in red with its own
+  short message underneath (cleared as soon as the user edits that field). Confirmed this
+  session that it matches the API's actual error shape — `POST /api/customers` returns either
+  `{ error: parsed.error.flatten() }` on a zod validation failure or `{ error: "<string>" }`
+  for the GHL-conflict case, both handled. Re-verified `npm run verify` clean (0 errors, same
+  26 pre-existing warnings) before treating this as done — this entry was missing from Done
+  even though the commit had already landed and was pushed; found and logged this session.
+  Same raw-error pattern likely exists on ~35 other API routes across the app (all use zod's
+  `.flatten()`) — only this one form was in scope for backlog item #7. Not click-through-
+  tested live (same `BROWSER_ADMIN_PASSWORD` gap as the rest of this backlog).
 
 - **Small-screen navigation fixed: consistent menu, working search/bell/create
   (2026-08-03, `be091c2` on `claude/work`, not yet integrated onto `main`).** User handed
