@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { ADD_ONS, detectRequestedAddOns, type AddOnKey } from "@/lib/pricing/add-ons";
 import { resolveServiceAreaNameForZip } from "@/lib/pricing/service-area-zips";
+import AddressAutocomplete from "../../customers/address-autocomplete";
 
 type Customer = {
   id: string;
@@ -37,6 +38,61 @@ type Customer = {
   zip?: string | null;
 };
 type CustomerAddress = { id: string; label: string; addressLine1: string; city?: string | null; state?: string | null; zip?: string | null; subdivision?: string | null };
+type CustomerMode = "existing" | "new";
+type NewCustomerForm = {
+  firstName: string;
+  lastName: string;
+  companyName: string;
+  email: string;
+  phone: string;
+  addressLine1: string;
+  city: string;
+  state: string;
+  zip: string;
+  county: string;
+  clientType: "residential" | "commercial";
+};
+
+const EMPTY_NEW_CUSTOMER_FORM: NewCustomerForm = {
+  firstName: "",
+  lastName: "",
+  companyName: "",
+  email: "",
+  phone: "",
+  addressLine1: "",
+  city: "",
+  state: "OK",
+  zip: "",
+  county: "",
+  clientType: "residential",
+};
+
+const NEW_CUSTOMER_FIELDS: Array<{ key: Exclude<keyof NewCustomerForm, "companyName" | "county" | "clientType">; label: string; placeholder?: string }> = [
+  { key: "firstName", label: "First name" },
+  { key: "lastName", label: "Last name" },
+  { key: "email", label: "Email", placeholder: "name@example.com" },
+  { key: "phone", label: "Phone", placeholder: "(555) 555-5555" },
+  { key: "addressLine1", label: "Address", placeholder: "123 Main St" },
+  { key: "city", label: "City" },
+  { key: "state", label: "State" },
+  { key: "zip", label: "Zip" },
+];
+
+function parseApiError(error: unknown) {
+  if (typeof error === "string") return { message: error, fieldErrors: {} as Partial<Record<keyof NewCustomerForm, string>> };
+  if (error && typeof error === "object") {
+    const flattened = error as { formErrors?: unknown; fieldErrors?: Record<string, unknown> };
+    const fieldErrors = Object.fromEntries(
+      Object.entries(flattened.fieldErrors ?? {}).flatMap(([key, messages]) => {
+        const message = Array.isArray(messages) ? messages.find((entry): entry is string => typeof entry === "string") : undefined;
+        return message ? [[key, message]] : [];
+      })
+    ) as Partial<Record<keyof NewCustomerForm, string>>;
+    const formMessage = Array.isArray(flattened.formErrors) ? flattened.formErrors.find((entry): entry is string => typeof entry === "string") : undefined;
+    return { message: formMessage ?? Object.values(fieldErrors)[0] ?? "Could not create customer.", fieldErrors };
+  }
+  return { message: "Could not create customer.", fieldErrors: {} as Partial<Record<keyof NewCustomerForm, string>> };
+}
 
 type RoomType = { id: string; name: string; sortOrder: number };
 type TravelZone = { id: string; name: string; feeCents: number };
@@ -135,10 +191,13 @@ export default function NewQuotePage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [locations, setLocations] = useState<ServiceLocation[]>([]);
+  const [customerMode, setCustomerMode] = useState<CustomerMode>("existing");
   const [customerId, setCustomerId] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerAddresses, setCustomerAddresses] = useState<CustomerAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [newCustomerForm, setNewCustomerForm] = useState<NewCustomerForm>(EMPTY_NEW_CUSTOMER_FORM);
+  const [newCustomerFieldErrors, setNewCustomerFieldErrors] = useState<Partial<Record<keyof NewCustomerForm, string>>>({});
   const [serviceLocationId, setServiceLocationId] = useState("");
   const [travelZoneId, setTravelZoneId] = useState("");
   const [dirtScore, setDirtScore] = useState<number | "">("");
@@ -196,6 +255,28 @@ export default function NewQuotePage() {
 
   const [autofilledFor, setAutofilledFor] = useState("");
 
+  function updateNewCustomerField<K extends keyof NewCustomerForm>(key: K, value: NewCustomerForm[K]) {
+    setNewCustomerForm((current) => ({ ...current, [key]: value }));
+    setNewCustomerFieldErrors((current) => {
+      const remaining = { ...current };
+      delete remaining[key];
+      return remaining;
+    });
+  }
+
+  function setCustomerModeAndReset(mode: CustomerMode) {
+    setCustomerMode(mode);
+    setError("");
+    if (mode === "new") {
+      setCustomerId("");
+      setCustomerAddresses([]);
+      setSelectedAddressId("");
+      return;
+    }
+    setNewCustomerForm(EMPTY_NEW_CUSTOMER_FORM);
+    setNewCustomerFieldErrors({});
+  }
+
   useEffect(() => {
     if (customerId) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -212,10 +293,12 @@ export default function NewQuotePage() {
   // (e.g. skip a room they don't want cleaned this visit, or un-flag an add-on
   // that isn't actually wanted).
   useEffect(() => {
-    if (!customerId || roomTypes.length === 0 || customerId === autofilledFor) return;
+    if (customerMode !== "existing" || !customerId || roomTypes.length === 0 || customerId === autofilledFor) return;
+    let cancelled = false;
     fetch(`/api/customers/${customerId}`)
       .then((response) => response.json())
       .then((body) => {
+        if (cancelled) return;
         const addresses = (body.locations ?? []) as CustomerAddress[];
         setCustomerAddresses(addresses);
         setSelectedAddressId(addresses.length === 1 ? addresses[0].id : "");
@@ -241,9 +324,13 @@ export default function NewQuotePage() {
         setAutofilledFor(customerId);
       })
       .catch(() => {});
-  }, [customerId, roomTypes, autofilledFor]);
+    return () => {
+      cancelled = true;
+    };
+  }, [autofilledFor, customerId, customerMode, roomTypes]);
 
   useEffect(() => {
+    if (customerMode !== "existing") return;
     const address = customerAddresses.find((entry) => entry.id === selectedAddressId);
     if (!address || locations.length === 0) return;
     const match = matchingPricingArea(address, locations);
@@ -251,7 +338,16 @@ export default function NewQuotePage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronize pricing inputs with the explicitly selected service address.
     setServiceLocationId(match.serviceLocationId);
     setTravelZoneId(match.travelZoneId);
-  }, [customerAddresses, locations, selectedAddressId]);
+  }, [customerAddresses, customerMode, locations, selectedAddressId]);
+
+  useEffect(() => {
+    if (customerMode !== "new" || locations.length === 0) return;
+    const match = matchingPricingArea({ id: "", label: "", addressLine1: newCustomerForm.addressLine1, city: newCustomerForm.city, state: newCustomerForm.state, zip: newCustomerForm.zip }, locations);
+    if (!match) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronize pricing inputs with the inline service address.
+    setServiceLocationId(match.serviceLocationId);
+    setTravelZoneId(match.travelZoneId);
+  }, [customerMode, locations, newCustomerForm.addressLine1, newCustomerForm.city, newCustomerForm.state, newCustomerForm.zip]);
 
   const roomCounts = useMemo(
     () =>
@@ -317,22 +413,50 @@ export default function NewQuotePage() {
 
   async function saveQuote() {
     setError("");
-    if (!customerId || !serviceLocationId || !roomCounts.length || !allTiers) {
+    let quoteCustomerId = customerId;
+    if (customerMode === "new") {
+      const requiredFieldErrors: Partial<Record<keyof NewCustomerForm, string>> = {};
+      if (!newCustomerForm.firstName.trim()) requiredFieldErrors.firstName = "First name is required.";
+      if (!newCustomerForm.lastName.trim()) requiredFieldErrors.lastName = "Last name is required.";
+      if (Object.keys(requiredFieldErrors).length > 0) {
+        setNewCustomerFieldErrors(requiredFieldErrors);
+        setError("First and last name are required.");
+        return;
+      }
+    }
+    if ((!quoteCustomerId && customerMode === "existing") || !serviceLocationId || !roomCounts.length || !allTiers) {
       setError("Customer, location, and at least one room are required.");
       return;
     }
-    if (customerAddresses.length > 1 && !selectedAddressId) {
+    if (customerMode === "existing" && customerAddresses.length > 1 && !selectedAddressId) {
       setError("Choose the service address for this quote.");
       return;
     }
 
     setSubmitting(true);
+    const serviceAddressLocationId = customerMode === "existing" ? selectedAddressId || undefined : undefined;
+    if (customerMode === "new") {
+      const customerResponse = await fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newCustomerForm),
+      });
+      const customerBody = await customerResponse.json().catch(() => ({}));
+      if (!customerResponse.ok) {
+        const parsedError = parseApiError(customerBody.error);
+        setNewCustomerFieldErrors(parsedError.fieldErrors);
+        setError(parsedError.message);
+        setSubmitting(false);
+        return;
+      }
+      quoteCustomerId = customerBody.customer.id;
+    }
     const response = await fetch("/api/quotes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        customerId,
-        serviceAddressLocationId: selectedAddressId || undefined,
+        customerId: quoteCustomerId,
+        serviceAddressLocationId,
         serviceLocationId,
         roomCounts,
         travelZoneId: travelZoneId || null,
@@ -368,6 +492,20 @@ export default function NewQuotePage() {
             <p className="eyebrow">Customer and location</p>
             <h2 className="mt-1 text-lg font-semibold">Who is this for?</h2>
             <div className="mt-4 space-y-3">
+              <div className="flex rounded-xl border border-[var(--co-line)] bg-[var(--co-surface-muted)]/35 p-1 text-sm">
+                {(["existing", "new"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setCustomerModeAndReset(mode)}
+                    className={`flex-1 rounded-lg px-3 py-2 font-medium transition ${customerMode === mode ? "bg-white text-[var(--co-ink)] shadow-sm" : "text-[var(--co-muted)] hover:text-[var(--co-ink)]"}`}
+                  >
+                    {mode === "existing" ? "Existing customer" : "New customer"}
+                  </button>
+                ))}
+              </div>
+
+              {customerMode === "existing" ? <>
               <label className="block text-sm">
                 <span className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-[var(--co-muted)]">
                   <Search className="h-3.5 w-3.5" aria-hidden />
@@ -409,6 +547,55 @@ export default function NewQuotePage() {
               ) : customerAddresses.length === 1 ? (
                 <p className="rounded-xl bg-[var(--co-surface-muted)]/45 px-3 py-2 text-xs text-[var(--co-muted)]">Service address: <span className="font-semibold text-[var(--co-ink)]">{customerAddresses[0].label} · {[customerAddresses[0].addressLine1, customerAddresses[0].city, customerAddresses[0].zip].filter(Boolean).join(", ")}</span></p>
               ) : null}
+              </> : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {NEW_CUSTOMER_FIELDS.map(({ key, label, placeholder }) => {
+                    const fieldError = newCustomerFieldErrors[key];
+                    return (
+                      <label key={key} className={key === "addressLine1" ? "sm:col-span-2" : ""}>
+                        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">{label}</span>
+                        {key === "addressLine1" ? (
+                          <div className={fieldError ? "rounded-xl ring-1 ring-rose-500" : ""}>
+                            <AddressAutocomplete
+                              value={newCustomerForm.addressLine1}
+                              onChange={(value) => updateNewCustomerField("addressLine1", value)}
+                              onAddressSelected={(parts) => {
+                                updateNewCustomerField("addressLine1", parts.addressLine1);
+                                updateNewCustomerField("city", parts.city);
+                                updateNewCustomerField("state", parts.state);
+                                updateNewCustomerField("zip", parts.zip);
+                                updateNewCustomerField("county", parts.county);
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <input
+                            className={`co-input w-full ${fieldError ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500" : ""}`}
+                            value={newCustomerForm[key]}
+                            onChange={(event) => updateNewCustomerField(key, event.target.value)}
+                            placeholder={placeholder}
+                          />
+                        )}
+                        {fieldError ? <p className="mt-1 text-xs text-rose-600">{fieldError}</p> : null}
+                      </label>
+                    );
+                  })}
+                  <label>
+                    <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Client type</span>
+                    <select className="co-input w-full" value={newCustomerForm.clientType} onChange={(event) => updateNewCustomerField("clientType", event.target.value as NewCustomerForm["clientType"])}>
+                      <option value="residential">Residential</option>
+                      <option value="commercial">Commercial</option>
+                    </select>
+                  </label>
+                  {newCustomerForm.clientType === "commercial" ? (
+                    <label>
+                      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Company name</span>
+                      <input className={`co-input w-full ${newCustomerFieldErrors.companyName ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500" : ""}`} value={newCustomerForm.companyName} onChange={(event) => updateNewCustomerField("companyName", event.target.value)} placeholder="e.g. State Farm" />
+                      {newCustomerFieldErrors.companyName ? <p className="mt-1 text-xs text-rose-600">{newCustomerFieldErrors.companyName}</p> : null}
+                    </label>
+                  ) : null}
+                </div>
+              )}
 
               <label className="block text-sm">
                 <span className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-[var(--co-muted)]">
@@ -689,7 +876,7 @@ export default function NewQuotePage() {
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--co-line-soft)] pt-4 text-sm">
             <div className="text-[var(--co-muted)]">
-              <span className="font-medium text-[var(--co-ink)]">{selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : "No customer selected"}</span>
+              <span className="font-medium text-[var(--co-ink)]">{customerMode === "new" ? [newCustomerForm.firstName, newCustomerForm.lastName].filter(Boolean).join(" ") || "New customer" : selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : "No customer selected"}</span>
               {totalRoomCount > 0 ? ` · ${totalRoomCount} rooms` : ""}
               {selectedLocation ? ` · ${selectedLocation.name}` : ""}
             </div>
