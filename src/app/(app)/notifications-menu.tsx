@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Bell, CheckCheck } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type Notification = { id: string; title: string; body: string | null; href: string | null; readAt: Date | string | null; createdAt: Date | string };
+export type Notification = { id: string; title: string; body: string | null; href: string | null; readAt: Date | string | null; createdAt: Date | string };
 
 function timeAgo(value: Date | string) {
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60_000));

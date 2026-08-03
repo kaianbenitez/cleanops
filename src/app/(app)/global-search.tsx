@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from "react";
 
 type Result = { id: string; kind: string; title: string; subtitle: string; meta?: string[]; href: string };
 
-export default function GlobalSearch() {
+export default function GlobalSearch({ variant = "desktop" }: { variant?: "desktop" | "mobile" }) {
+  const isMobile = variant === "mobile";
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Result[]>([]);
   const [open, setOpen] = useState(false);
@@ -54,8 +55,8 @@ export default function GlobalSearch() {
 
   const showResults = open && Boolean(query.trim());
 
-  return <div ref={searchRef} className="relative hidden min-w-0 sm:block">
-    <label className="relative block w-[min(38vw,360px)]">
+  return <div ref={searchRef} className={isMobile ? "relative w-full min-w-0" : "relative hidden min-w-0 sm:block"}>
+    <label className={isMobile ? "relative block w-full" : "relative block w-[min(38vw,360px)]"}>
       <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-[var(--co-muted)]" aria-hidden />
       <input
         value={query}
@@ -71,7 +72,7 @@ export default function GlobalSearch() {
         className="co-input h-10 w-full rounded-lg bg-[var(--co-surface-muted)] pr-3 text-sm"
       />
     </label>
-    {showResults ? <div id="global-search-results" role="listbox" className="absolute left-0 top-full z-50 mt-2 w-[min(38vw,420px)] overflow-hidden rounded-xl border border-[var(--co-line)] bg-white shadow-[0_12px_32px_rgba(18,24,19,0.16)]">
+    {showResults ? <div id="global-search-results" role="listbox" className={`absolute left-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-[var(--co-line)] bg-white shadow-[0_12px_32px_rgba(18,24,19,0.16)] ${isMobile ? "w-full" : "w-[min(38vw,420px)]"}`}>
       {loading ? <p className="px-3 py-4 text-xs text-[var(--co-muted)]">Searching...</p> : error ? <p className="px-3 py-4 text-xs text-rose-700">Search is unavailable right now. Try again.</p> : results.length ? results.map((result) => <Link key={`${result.kind}-${result.id}`} href={result.href} onClick={() => setOpen(false)} role="option" className="block border-b border-[var(--co-line-soft)] px-3 py-2.5 last:border-0 hover:bg-[var(--co-surface-muted)]"><p className="text-sm font-semibold">{result.title}</p><p className="mt-0.5 text-xs text-[var(--co-muted)]">{result.kind} · {result.subtitle}</p>{result.meta?.length ? <p className="mt-1 truncate text-[11px] text-[var(--co-faint)]">{result.meta.join(" · ")}</p> : null}</Link>) : <p className="px-3 py-4 text-xs text-[var(--co-muted)]">No matching customers, invoices, quotes, or employees.</p>}
     </div> : null}
   </div>;
