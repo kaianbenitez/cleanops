@@ -5,10 +5,51 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-03 (small-screen navigation fixes on `claude/work`, `be091c2` — see
+Last updated: 2026-08-04 (Customers list: advanced search/filtering on `claude/work` — see
 the entry right below; not yet integrated onto `main`).
 
 ## Done
+
+- **Customers list: advanced search/filtering added (2026-08-04, `claude/work`, not yet
+  integrated onto `main`).** Next item in the same 9-item backlog referenced below (sort
+  shipped separately and is already on `main` as `dd12208`). User pointed at screenshots of
+  TheCustomerFactor's old "Customers Search" screen and said to take what's useful and adapt
+  it to CleanOps' own data — most of that screen's fields (county, subdivision, star rating,
+  email bounces, call-back scheduling) don't map to anything CleanOps tracks, so only the
+  pieces that translate cleanly were built:
+  - The free-text search box now also matches phone number (previously only name/email/
+    company/address — a real gap, not just an addition).
+  - New "Service history" dropdown: Never serviced / Not serviced in 30, 60, or 90+ days /
+    Has an upcoming job / No upcoming job — for spotting who needs a re-engagement call.
+  - New "Cancelled job" and "Repeat customer" (2+ completed jobs) toggle pills, matching the
+    existing Recurring/Needs attention/Leads pill pattern exactly, counts included.
+  - New "Highest revenue" sort option (sums each customer's non-void invoices).
+  All four are implemented as SQL conditions/order-by directly in the existing filtered
+  query (`src/app/(app)/customers/page.tsx`) using the same correlated-EXISTS-subquery style
+  the file's own `archiveEligible` block already used — no new tables, no schema change.
+  Verified with `tsc --noEmit` and `npm run verify` (clean, same 0 errors / 26 pre-existing
+  warnings as before), a full production build, both smoke scripts (5/5, 22/22) against a
+  local production server, and a throwaway script that hit that local server with every new
+  filter/sort value individually and combined (12 URL variants) while authenticated against
+  the real hosted DB — all returned 200 with no error page. A second throwaway script (raw
+  `postgres` client, deleted after) independently cross-checked the counts against the live
+  data: 217 of 238 active customers have never had a completed job, 0 have a "stale" (30+
+  day) last service (everyone who's been serviced was serviced recently), 8 have a cancelled
+  job, and 0 are repeat customers yet (each has at most one completed job so far) — all
+  plausible for where the business is right now. **"Highest revenue" sort is logically
+  correct but currently a no-op in production**: confirmed directly that the `invoices`
+  table has zero non-void rows company-wide, so every customer ties at $0 — this is the
+  already-known Square invoicing-in-mock-mode gap (see Blocked below), not a bug in this
+  change; the sort will start working the moment real invoices exist. **Not click-through-
+  tested in a real browser** — `.env.local` has `BROWSER_ADMIN_USERNAME` but no
+  `BROWSER_ADMIN_PASSWORD` set, so neither the Playwright suite nor a Chrome-extension login
+  was possible this session (Chrome can't type a password in for you either, per
+  `TESTING.md`). Worth an actual pass next time someone's logged in: open `/customers`, try
+  each Service history option and the two new pills, and confirm the pill counts match what
+  you'd expect for a few real customers you know the history of.
+  **Remaining items from the same 9-item backlog, not yet started**: proper (non-JSON) error
+  display on customer creation, combining new-customer + new-quote into one flow with
+  preferences pre-filled.
 
 - **Small-screen navigation fixed: consistent menu, working search/bell/create
   (2026-08-03, `be091c2` on `claude/work`, not yet integrated onto `main`).** User handed
@@ -38,10 +79,10 @@ the entry right below; not yet integrated onto `main`).
   group on nearly every call (repeatable, not a one-off), so a live phone-width screenshot
   wasn't obtained; worth an actual pass next session at a ~390px viewport to confirm the
   new mobile search row and menu placement look right.
-  **Remaining items from the same backlog, not yet started**: proper (non-JSON) error
-  display on customer creation, a cancellation-reason prompt on job cancel, customer list
-  sort/advanced-search, and combining new-customer + new-quote into one flow with
-  preferences pre-filled.
+  **Remaining items from the same backlog**: proper (non-JSON) error display on customer
+  creation, and combining new-customer + new-quote into one flow with preferences
+  pre-filled — see the entry above for the rest of this backlog (cancellation-reason prompt
+  and customer list sort/advanced-search have since shipped).
 
 - **Vercel Preview deployments were never actually working for any feature branch —
   fixed 2026-07-30.** Found while investigating why `claude/work`'s Vercel build failed
