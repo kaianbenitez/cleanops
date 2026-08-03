@@ -268,8 +268,10 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
                     type="button"
                     disabled={saving}
                     onClick={() => {
-                      patch({ status: "cancelled" });
                       setConfirmingCancel(false);
+                      const reason = window.prompt("Why is this job being cancelled?");
+                      if (!reason?.trim()) return;
+                      patch({ status: "cancelled", cancellationReason: reason.trim() });
                     }}
                     className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
                   >
