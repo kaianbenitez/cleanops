@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { and, eq, ilike, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { customers, invoices, jobs } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -27,6 +27,19 @@ const RECURRENCE_LABELS: Record<string, string> = {
   monthly: "Monthly",
 };
 
+const SORT_LABELS = {
+  name_asc: "Name (A–Z)",
+  name_desc: "Name (Z–A)",
+  newest: "Newest added",
+  oldest: "Oldest added",
+} as const;
+
+type SortKey = keyof typeof SORT_LABELS;
+
+function isSortKey(value: string | undefined): value is SortKey {
+  return !!value && value in SORT_LABELS;
+}
+
 type SearchParams = {
   q?: string;
   status?: string;
@@ -38,6 +51,7 @@ type SearchParams = {
   type?: string;
   archived?: string;
   eligible?: string;
+  sort?: string;
   page?: string;
 };
 
@@ -160,6 +174,19 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
 
   const page = Math.max(1, Math.floor(Number(sp.page)) || 1);
 
+  // Sort is scoped to the normal filtered view — the archive-eligible view has its own
+  // review flow (bulk-archive-bar) and doesn't render this filter form, so it keeps the
+  // long-standing name A-Z order rather than exposing an unreachable control.
+  const sortKey: SortKey = !isEligibleView && isSortKey(sp.sort) ? sp.sort : "name_asc";
+  const orderBy =
+    sortKey === "name_desc"
+      ? [desc(customers.lastName), desc(customers.firstName)]
+      : sortKey === "newest"
+        ? [desc(customers.createdAt)]
+        : sortKey === "oldest"
+          ? [asc(customers.createdAt)]
+          : [asc(customers.lastName), asc(customers.firstName)];
+
   const [rows, [stats], [globalStats], [{ eligibleCount }], zipRows]: [
     CustomerRow[],
     { recurring: number; attention: number; leads: number; total: number }[],
@@ -188,7 +215,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
       })
       .from(customers)
       .where(and(...conditions))
-      .orderBy(customers.lastName, customers.firstName)
+      .orderBy(...orderBy)
       .limit(PAGE_SIZE)
       .offset((page - 1) * PAGE_SIZE),
     db
@@ -378,6 +405,13 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
             <select name="payment" defaultValue={sp.payment ?? ""} className="co-input w-full sm:w-auto">
               <option value="">All payment methods</option>
               <option value="missing">Payment method missing</option>
+            </select>
+            <select name="sort" defaultValue={sortKey} className="co-input w-full sm:w-auto">
+              {Object.entries(SORT_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
             </select>
             {sp.recurrence && <input type="hidden" name="recurrence" value={sp.recurrence} />}
             {sp.attention && <input type="hidden" name="attention" value={sp.attention} />}
