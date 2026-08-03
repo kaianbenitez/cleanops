@@ -32,7 +32,23 @@ const SORT_LABELS = {
   name_desc: "Name (Z–A)",
   newest: "Newest added",
   oldest: "Oldest added",
+  revenue_desc: "Highest revenue",
 } as const;
+
+const HISTORY_LABELS = {
+  never: "Never serviced",
+  stale30: "Not serviced in 30+ days",
+  stale60: "Not serviced in 60+ days",
+  stale90: "Not serviced in 90+ days",
+  upcoming: "Has an upcoming job",
+  no_upcoming: "No upcoming job",
+} as const;
+
+type HistoryKey = keyof typeof HISTORY_LABELS;
+
+function isHistoryKey(value: string | undefined): value is HistoryKey {
+  return !!value && value in HISTORY_LABELS;
+}
 
 type SortKey = keyof typeof SORT_LABELS;
 
@@ -53,6 +69,9 @@ type SearchParams = {
   eligible?: string;
   sort?: string;
   page?: string;
+  history?: string;
+  cancelled?: string;
+  repeat?: string;
 };
 
 type CustomerRow = {
@@ -168,7 +187,25 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
     if (sp.archived !== "1") conditions.push(eq(customers.isArchived, false));
     if (sp.q?.trim()) {
       const query = `%${sp.q.trim()}%`;
-      conditions.push(or(ilike(customers.firstName, query), ilike(customers.lastName, query), ilike(customers.companyName, query), ilike(customers.email, query), ilike(customers.addressLine1, query))!);
+      conditions.push(or(ilike(customers.firstName, query), ilike(customers.lastName, query), ilike(customers.companyName, query), ilike(customers.email, query), ilike(customers.addressLine1, query), ilike(customers.phone, query))!);
+    }
+    if (isHistoryKey(sp.history)) {
+      const hasCompletedJob = sql`exists (select 1 from ${jobs} where ${jobs.customerId} = ${customers.id} and ${jobs.status} = 'completed')`;
+      const servicedRecently = (days: number) =>
+        sql`exists (select 1 from ${jobs} where ${jobs.customerId} = ${customers.id} and ${jobs.status} = 'completed' and ${jobs.scheduledDate} >= now() - make_interval(days => ${days}))`;
+      const hasUpcomingJob = sql`exists (select 1 from ${jobs} where ${jobs.customerId} = ${customers.id} and ${jobs.status} in ('scheduled', 'in_progress'))`;
+      if (sp.history === "never") conditions.push(sql`not ${hasCompletedJob}`);
+      if (sp.history === "stale30") conditions.push(and(hasCompletedJob, sql`not ${servicedRecently(30)}`)!);
+      if (sp.history === "stale60") conditions.push(and(hasCompletedJob, sql`not ${servicedRecently(60)}`)!);
+      if (sp.history === "stale90") conditions.push(and(hasCompletedJob, sql`not ${servicedRecently(90)}`)!);
+      if (sp.history === "upcoming") conditions.push(hasUpcomingJob);
+      if (sp.history === "no_upcoming") conditions.push(sql`not ${hasUpcomingJob}`);
+    }
+    if (sp.cancelled === "1") {
+      conditions.push(sql`exists (select 1 from ${jobs} where ${jobs.customerId} = ${customers.id} and ${jobs.status} = 'cancelled')`);
+    }
+    if (sp.repeat === "1") {
+      conditions.push(sql`(select count(*) from ${jobs} where ${jobs.customerId} = ${customers.id} and ${jobs.status} = 'completed') >= 2`);
     }
   }
 
@@ -178,6 +215,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   // review flow (bulk-archive-bar) and doesn't render this filter form, so it keeps the
   // long-standing name A-Z order rather than exposing an unreachable control.
   const sortKey: SortKey = !isEligibleView && isSortKey(sp.sort) ? sp.sort : "name_asc";
+  const lifetimeRevenue = sql`(select coalesce(sum(${invoices.totalCents}), 0) from ${invoices} where ${invoices.customerId} = ${customers.id} and ${invoices.status} <> 'void')`;
   const orderBy =
     sortKey === "name_desc"
       ? [desc(customers.lastName), desc(customers.firstName)]
@@ -185,11 +223,13 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         ? [desc(customers.createdAt)]
         : sortKey === "oldest"
           ? [asc(customers.createdAt)]
-          : [asc(customers.lastName), asc(customers.firstName)];
+          : sortKey === "revenue_desc"
+            ? [desc(lifetimeRevenue)]
+            : [asc(customers.lastName), asc(customers.firstName)];
 
   const [rows, [stats], [globalStats], [{ eligibleCount }], zipRows]: [
     CustomerRow[],
-    { recurring: number; attention: number; leads: number; total: number }[],
+    { recurring: number; attention: number; leads: number; cancelled: number; repeat: number; total: number }[],
     { totalManaged: number; totalManaged30dAgo: number; retentionEligible: number; retentionRetained: number }[],
     { eligibleCount: number }[],
     { zip: string | null }[],
@@ -223,6 +263,8 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         recurring: sql<number>`count(*) filter (where ${customers.recurrence} is not null and ${customers.recurrence} <> 'none')`,
         attention: sql<number>`count(*) filter (where ${paymentMethodsMissing} or ${customers.addressLine1} is null or ${customers.addressLine1} = '')`,
         leads: sql<number>`count(*) filter (where ${customers.status} = 'lead')`,
+        cancelled: sql<number>`count(*) filter (where exists (select 1 from ${jobs} where ${jobs.customerId} = ${customers.id} and ${jobs.status} = 'cancelled'))`,
+        repeat: sql<number>`count(*) filter (where (select count(*) from ${jobs} where ${jobs.customerId} = ${customers.id} and ${jobs.status} = 'completed') >= 2)`,
         total: sql<number>`count(*)`,
       })
       .from(customers)
@@ -298,6 +340,8 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   const recurringCount = Number(stats.recurring);
   const attentionCount = Number(stats.attention);
   const leadCount = Number(stats.leads);
+  const cancelledCount = Number(stats.cancelled);
+  const repeatCount = Number(stats.repeat);
   const totalCount = Number(stats.total);
 
   const totalManaged = Number(globalStats.totalManaged);
@@ -353,6 +397,12 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           <Link href={hrefWith(sp, "status", sp.status === "lead" ? "" : "lead")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.status === "lead" ? "bg-[var(--co-evergreen)] text-white shadow-sm" : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"}`}>
             Leads <span className="ml-1 opacity-80">{leadCount}</span>
           </Link>
+          <Link href={hrefWith(sp, "cancelled", sp.cancelled === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.cancelled === "1" ? "bg-rose-600 text-white shadow-sm" : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-rose-400 hover:text-[var(--co-ink)]"}`}>
+            Cancelled job <span className="ml-1 opacity-80">{cancelledCount}</span>
+          </Link>
+          <Link href={hrefWith(sp, "repeat", sp.repeat === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.repeat === "1" ? "bg-[var(--co-evergreen)] text-white shadow-sm" : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"}`}>
+            Repeat customer <span className="ml-1 opacity-80">{repeatCount}</span>
+          </Link>
           <Link href={hrefWith(sp, "archived", sp.archived === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.archived === "1" ? "bg-slate-600 text-white shadow-sm" : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-slate-400 hover:text-[var(--co-ink)]"}`}>
             {sp.archived === "1" ? "Hide archived" : "Show archived"}
           </Link>
@@ -376,7 +426,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
       <section className="co-card overflow-hidden">
         {!isEligibleView ? (
           <form className="flex flex-wrap gap-3 border-b border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 p-4">
-            <input name="q" defaultValue={sp.q} placeholder="Search customers, email, or address" className="co-input min-w-[240px] flex-1" />
+            <input name="q" defaultValue={sp.q} placeholder="Search name, email, phone, or address" className="co-input min-w-[240px] flex-1" />
             <select name="status" defaultValue={sp.status ?? "all"} className="co-input w-full sm:w-auto">
               <option value="all">All statuses</option>
               {statusOptions("customer").map(({ value, label }) => (
@@ -406,6 +456,14 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
               <option value="">All payment methods</option>
               <option value="missing">Payment method missing</option>
             </select>
+            <select name="history" defaultValue={isHistoryKey(sp.history) ? sp.history : ""} className="co-input w-full sm:w-auto">
+              <option value="">Any service history</option>
+              {Object.entries(HISTORY_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
             <select name="sort" defaultValue={sortKey} className="co-input w-full sm:w-auto">
               {Object.entries(SORT_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -416,6 +474,8 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
             {sp.recurrence && <input type="hidden" name="recurrence" value={sp.recurrence} />}
             {sp.attention && <input type="hidden" name="attention" value={sp.attention} />}
             {sp.archived && <input type="hidden" name="archived" value={sp.archived} />}
+            {sp.cancelled && <input type="hidden" name="cancelled" value={sp.cancelled} />}
+            {sp.repeat && <input type="hidden" name="repeat" value={sp.repeat} />}
             <button type="submit" className="co-button-secondary">
               Filter customers
             </button>

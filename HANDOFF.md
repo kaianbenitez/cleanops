@@ -5,10 +5,46 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-03 (small-screen nav fix and customers-list sort options both
-brought onto `main` this session as `dd12208` — see the two entries right below).
+Last updated: 2026-08-04 (Customers list: advanced search/filtering brought onto `main`
+this session, cherry-picked from `claude/work`'s `2ae9a2b` — see the entry right below).
 
 ## Done
+
+- **Customers list: advanced search/filtering added (2026-08-04, cherry-picked from
+  `claude/work`'s `2ae9a2b`, cleanly — `page.tsx` was byte-identical between the two
+  branches beforehand since it descends from the same `dd12208`/`5f39143` sort commit).**
+  Direct follow-up to the sort feature right below, same backlog. User pointed at
+  screenshots of TheCustomerFactor's old "Customers Search" screen and asked to adapt
+  whatever translates usefully to CleanOps' own data — most of that legacy screen (county,
+  subdivision, star rating, email bounces, call-back scheduling) doesn't map to anything
+  CleanOps tracks, so only these pieces were built:
+  - Free-text search now also matches phone number (previously name/email/company/address
+    only — a real gap, not just an addition).
+  - New "Service history" dropdown: Never serviced / Not serviced in 30, 60, or 90+ days /
+    Has an upcoming job / No upcoming job — for spotting who needs a re-engagement call.
+  - New "Cancelled job" and "Repeat customer" (2+ completed jobs) toggle pills, matching the
+    existing Recurring/Needs attention/Leads pill pattern.
+  - New "Highest revenue" sort option (sums each customer's non-void invoices).
+  All four are SQL conditions/order-by added directly to the existing filtered query in
+  `src/app/(app)/customers/page.tsx`, using the same correlated-EXISTS-subquery style the
+  file's own `archiveEligible` block already used — no schema change.
+  Verified on `claude/work` before integration: `tsc --noEmit`, `npm run verify` (clean, 0
+  errors), both smoke scripts (5/5, 22/22) against a local production build, and a
+  throwaway script that hit that server with all 12 filter/sort combinations (individually
+  and combined) while authenticated against the real hosted DB — all 200, no errors. A
+  second throwaway script independently cross-checked counts against live data: 217 of 238
+  active customers have never had a completed job, 8 have a cancelled job, 0 are repeat
+  customers yet — plausible for where the business is right now. Re-ran `tsc --noEmit`
+  clean on `main` after this cherry-pick (full `verify`/smoke re-run skipped on integration
+  per explicit user instruction, since the file content is identical to what was already
+  verified on `claude/work`).
+  **"Highest revenue" sort is logically correct but currently a no-op in production**:
+  confirmed directly that `invoices` has zero non-void rows company-wide, so every customer
+  ties at $0 — this is the already-known Square-invoicing-in-mock-mode gap (see Blocked
+  below), not a bug in this change. **Not click-through-tested in a real browser** —
+  `.env.local` has no `BROWSER_ADMIN_PASSWORD` set, so neither Playwright nor a Chrome
+  session could log in. Worth an actual pass next time someone's logged in: try each
+  Service history option and the two new pills on `/customers`.
 
 - **Customers list: sort options added (2026-08-03, `dd12208` on `main`, cherry-picked
   from `claude/work`'s `5f39143`).** User request via the shared task backlog: "Add sort
