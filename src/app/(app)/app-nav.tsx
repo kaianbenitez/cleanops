@@ -24,6 +24,9 @@ import {
   LogOut,
   type LucideIcon,
 } from "lucide-react";
+import GlobalSearch from "./global-search";
+import NotificationsMenu, { type Notification } from "./notifications-menu";
+import CreateMenu from "./create-menu";
 
 const links = [
   ["/dashboard", "Dashboard"],
@@ -70,11 +73,13 @@ export default function AppNav({
   isFieldStaff,
   userName,
   userEmail,
+  initialNotifications,
 }: {
   isAdmin: boolean;
   isFieldStaff: boolean;
   userName: string;
   userEmail: string;
+  initialNotifications: Notification[];
 }) {
   const pathname = usePathname();
   const visibleLinks = isAdmin
@@ -134,11 +139,20 @@ export default function AppNav({
             <span className="text-base font-bold text-[var(--co-evergreen)]">ServiceSpark</span>
           </Link>
 
-          <Link href="/account" aria-label="Account" className="rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]">
-            <CircleUserRound aria-hidden="true" strokeWidth={2} className="h-5 w-5 text-[var(--co-muted)]" />
-          </Link>
+          <div className="flex items-center gap-1">
+            {isAdmin ? <CreateMenu compact /> : null}
+            {isAdmin ? <NotificationsMenu initialNotifications={initialNotifications} /> : null}
+            <Link href="/account" aria-label="Account" className="rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]">
+              <CircleUserRound aria-hidden="true" strokeWidth={2} className="h-5 w-5 text-[var(--co-muted)]" />
+            </Link>
+          </div>
         </div>
 
+        {isAdmin ? (
+          <div className="border-t border-[var(--co-line-soft)] px-4 py-2">
+            <GlobalSearch variant="mobile" />
+          </div>
+        ) : null}
       </div>
 
       <div
@@ -284,6 +298,55 @@ export default function AppNav({
               })}
             </div>
           </div>
+
+          <div className="space-y-1 border-t border-[var(--co-line-soft)] pt-3">
+            {isAdmin ? (
+              <>
+                <Link
+                  href="/sync-issues"
+                  aria-current={pathname.startsWith("/sync-issues") ? "page" : undefined}
+                  className={`flex items-center gap-3 rounded-[14px] px-3 py-[0.6875rem] text-[13px] transition ${
+                    pathname.startsWith("/sync-issues")
+                      ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)] font-medium"
+                      : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
+                  }`}
+                >
+                  <span className="ml-1">
+                    <NavIcon href="/sync-issues" />
+                  </span>
+                  <span>Sync issues</span>
+                </Link>
+                <Link
+                  href="/settings"
+                  aria-current={pathname.startsWith("/settings") ? "page" : undefined}
+                  className={`flex items-center gap-3 rounded-[14px] px-3 py-[0.6875rem] text-[13px] transition ${
+                    pathname.startsWith("/settings")
+                      ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)] font-medium"
+                      : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
+                  }`}
+                >
+                  <span className="ml-1">
+                    <NavIcon href="/settings" />
+                  </span>
+                  <span>Settings</span>
+                </Link>
+              </>
+            ) : null}
+            <Link
+              href="/help-center"
+              aria-current={pathname.startsWith("/help-center") ? "page" : undefined}
+              className={`flex items-center gap-3 rounded-[14px] px-3 py-[0.6875rem] text-[13px] transition ${
+                pathname.startsWith("/help-center")
+                  ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)] font-medium"
+                  : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
+              }`}
+            >
+              <span className="ml-1">
+                <NavIcon href="/help-center" />
+              </span>
+              <span>Support</span>
+            </Link>
+          </div>
         </nav>
 
         <div className="mt-auto space-y-3">
@@ -293,42 +356,11 @@ export default function AppNav({
                 role="menu"
                 className="absolute inset-x-0 bottom-full mb-2 overflow-hidden rounded-[18px] border border-[var(--co-line-soft)] bg-white py-1 shadow-[0_10px_32px_rgba(18,24,19,0.12)]"
               >
-                {isAdmin ? (
-                  <Link
-                    href="/sync-issues"
-                    role="menuitem"
-                    onClick={() => setProfileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-[13px] text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
-                  >
-                    <NavIcon href="/sync-issues" />
-                    Sync issues
-                  </Link>
-                ) : null}
-                {isAdmin ? (
-                  <Link
-                    href="/settings"
-                    role="menuitem"
-                    onClick={() => setProfileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-[13px] text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
-                  >
-                    <NavIcon href="/settings" />
-                    Settings
-                  </Link>
-                ) : null}
-                <Link
-                  href="/help-center"
-                  role="menuitem"
-                  onClick={() => setProfileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2.5 text-[13px] text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
-                >
-                  <NavIcon href="/help-center" />
-                  Support
-                </Link>
                 <form action="/api/auth/logout" method="post">
                   <button
                     type="submit"
                     role="menuitem"
-                    className="flex w-full items-center gap-3 border-t border-[var(--co-line-soft)] px-4 py-2.5 text-left text-[13px] text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[13px] text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
                   >
                     <LogOut aria-hidden="true" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0 opacity-90" />
                     Sign out

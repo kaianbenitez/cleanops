@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Plus, ChevronDown, FileText, ClipboardList, UserPlus } from "lucide-react";
 
-export default function CreateMenu() {
+export default function CreateMenu({ compact = false }: { compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -19,11 +19,24 @@ export default function CreateMenu() {
 
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen((current) => !current)} aria-haspopup="menu" aria-expanded={open} className="co-button-primary">
-        <Plus className="h-4 w-4" aria-hidden />
-        Create new
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
-      </button>
+      {compact ? (
+        <button
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-label="Create new"
+          className="rounded-full p-2 text-[var(--co-muted)] transition-colors hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+        >
+          <Plus className="h-5 w-5" strokeWidth={2} aria-hidden />
+        </button>
+      ) : (
+        <button type="button" onClick={() => setOpen((current) => !current)} aria-haspopup="menu" aria-expanded={open} className="co-button-primary">
+          <Plus className="h-4 w-4" aria-hidden />
+          Create new
+          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
+        </button>
+      )}
 
       {open ? (
         <div
