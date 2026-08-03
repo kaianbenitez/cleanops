@@ -165,6 +165,10 @@ export default function NewCustomerPage() {
   async function save() {
     if (!form.firstName.trim() || !form.lastName.trim()) {
       setError("First and last name are required.");
+      setFieldErrors({
+        ...(form.firstName.trim() ? {} : { firstName: "First name is required." }),
+        ...(form.lastName.trim() ? {} : { lastName: "Last name is required." }),
+      });
       return;
     }
 
@@ -248,7 +252,13 @@ export default function NewCustomerPage() {
                     }}
                   />
                 ) : (
-                  <input className="co-input w-full" value={form[key]} onChange={(e) => update(key, e.target.value)} placeholder={placeholder} />
+                  <input
+                    className={`co-input w-full ${fieldErrors[key] ? "border-rose-400 focus:border-rose-400" : ""}`}
+                    value={form[key]}
+                    onChange={(e) => update(key, e.target.value)}
+                    placeholder={placeholder}
+                    aria-invalid={fieldErrors[key] ? true : undefined}
+                  />
                 )}
                 {fieldErrors[key] ? <p className="mt-1 text-xs text-rose-600">{fieldErrors[key]}</p> : null}
               </label>
@@ -267,17 +277,24 @@ export default function NewCustomerPage() {
             {form.clientType === "commercial" ? (
               <label>
                 <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Company name</span>
-                <input className="co-input w-full" value={form.companyName} onChange={(event) => update("companyName", event.target.value)} placeholder="e.g. State Farm" />
+                <input
+                  className={`co-input w-full ${fieldErrors.companyName ? "border-rose-400 focus:border-rose-400" : ""}`}
+                  value={form.companyName}
+                  onChange={(event) => update("companyName", event.target.value)}
+                  placeholder="e.g. State Farm"
+                  aria-invalid={fieldErrors.companyName ? true : undefined}
+                />
                 {fieldErrors.companyName ? <p className="mt-1 text-xs text-rose-600">{fieldErrors.companyName}</p> : null}
               </label>
             ) : null}
             <label>
               <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">GHL contact ID</span>
               <input
-                className="co-input w-full"
+                className={`co-input w-full ${fieldErrors.ghlContactId ? "border-rose-400 focus:border-rose-400" : ""}`}
                 value={form.ghlContactId}
                 onChange={(event) => update("ghlContactId", event.target.value)}
                 placeholder="Optional if manually linking a contact"
+                aria-invalid={fieldErrors.ghlContactId ? true : undefined}
               />
               {fieldErrors.ghlContactId ? <p className="mt-1 text-xs text-rose-600">{fieldErrors.ghlContactId}</p> : null}
             </label>
