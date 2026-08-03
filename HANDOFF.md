@@ -5,11 +5,49 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-07-30 (Vercel Preview builds fixed + admin job-update notifications
-integrated onto `main` as `9f66ccd`/`5409f58` — see the two entries right below).
+Last updated: 2026-08-03 (small-screen nav fix and customers-list sort options both
+brought onto `main` this session as `dd12208` — see the two entries right below).
 
 ## Done
 
+- **Customers list: sort options added (2026-08-03, `dd12208` on `main`, cherry-picked
+  from `claude/work`'s `5f39143`).** User request via the shared task backlog: "Add sort
+  options to customers list." A fresh agent working in the `cleanops-claude` worktree
+  found no existing sort-dropdown pattern anywhere in the app (every list page — jobs,
+  invoices, quotes, employees — has a hardcoded `orderBy`), so this establishes the
+  pattern rather than copying one. Landed on four options: Name (A–Z, unchanged default),
+  Name (Z–A), Newest added, Oldest added — deliberately skipped sorting by next/last
+  service date since those are computed in JS after the paginated SQL query runs, not
+  SQL-orderable columns. New `sort` search param on `src/app/(app)/customers/page.tsx`,
+  gated off in the `?eligible=archive` view (no filter form there, original hardcoded
+  order kept). Fully verified on `claude/work` before merging: `npm run verify` clean (0
+  errors, same 26 pre-existing warnings), `smoke:routes`/`smoke:auth` clean, and a real
+  Playwright click-through signed in via the `signInAsAdmin` magic-link bypass — confirmed
+  the customer order actually changes for each of the four options (not just that the
+  control renders), and screenshotted the filter bar to confirm the new select doesn't
+  break the existing wrapped layout.
+  **Bringing it from `claude/work` to `main` itself was explicitly done without re-running
+  `verify` or a live check on `main` — user asked to skip that step for this one push.**
+  The code was fully proven on `claude/work` moments earlier and the cherry-pick applied
+  clean with no conflicts, but nobody has loaded `/customers` on `main`'s own build since.
+  Worth a quick look next time someone's on the live site.
+- **Small-screen nav fixed on `main` (2026-08-03, `a30dbd9`, cherry-picked from
+  `claude/work`'s `be091c2`).** User reported three related bugs: page content not
+  centered on small screens, the phone drawer listing different nav items than the
+  desktop sidebar, and the search bar disappearing entirely below desktop width. Root
+  cause was one breakpoint mismatch: `layout.tsx` reserved 260px of left padding for the
+  sidebar starting at the `lg` breakpoint (1024px), but `app-nav.tsx`'s actual sidebar and
+  mobile-menu toggle didn't switch until `xl` (1280px) — so anything in that 1024–1280px
+  range got a blank left gutter with no sidebar to justify it, and the header row holding
+  search/notifications/"Create new" was hidden entirely below `xl` with no phone
+  equivalent. The fix already existed (done earlier the same day on `claude/work`, only
+  build/type-verified, never clicked through) — brought over as-is rather than
+  re-implemented, then live-verified before pushing: signed in via the same magic-link
+  bypass and screenshotted `/dashboard` at 390px (phone), 1100px (the broken range), and
+  1440px (desktop). Confirmed phone now gets a working search bar plus a menu that lists
+  Sync issues/Settings/Support the same way the desktop sidebar does, the 1024–1280px gap
+  no longer reserves dead space, and desktop is unchanged. `npm run verify` and
+  `check:drift` both ran clean first (no schema touched).
 - **Vercel Preview deployments were never actually working for any feature branch —
   fixed 2026-07-30.** Found while investigating why `claude/work`'s Vercel build failed
   with `Error: DATABASE_URL is not set` at `/api/account/password`. Checked
