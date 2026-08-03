@@ -195,10 +195,20 @@ export default function MyDayClient({
   }
 
   function discardJob(jobId: string) {
-    clockOut(jobId, {
-      undoLabel: "Job discarded",
-      undoAction: () => onMyWay(jobId),
-    });
+    void undoClockIn(jobId);
+  }
+
+  async function undoClockIn(jobId: string) {
+    setError(null);
+    const res = await fetch(`/api/jobs/${jobId}/clock-in`, { method: "DELETE" });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(typeof body.error === "string" ? body.error : "Could not discard this clock-in.");
+      return;
+    }
+    if (arrivedJobId === jobId) setArrivedJobId(null);
+    setUndoAction({ label: "Clock in discarded", onUndo: () => onMyWay(jobId) });
+    startTransition(() => router.refresh());
   }
 
   return (

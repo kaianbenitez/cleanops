@@ -40,9 +40,11 @@ const STATUSES = [
 export default function FilterBar({
   employees,
   resolvedView,
+  totalJobs,
 }: {
   employees: Employee[];
   resolvedView: "staff" | "staff_vertical" | "week" | "month" | "list";
+  totalJobs: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -92,6 +94,13 @@ export default function FilterBar({
             </button>
           ))}
         </div>
+
+        <p
+          aria-live="polite"
+          className="rounded-full bg-[var(--co-accent-tint)] px-2.5 py-1.5 text-xs font-semibold text-[var(--co-evergreen)]"
+        >
+          {totalJobs} {totalJobs === 1 ? "job" : "jobs"}
+        </p>
 
         <select value={employeeId} onChange={(event) => setParam("employeeId", event.target.value)} aria-label="Filter by employee" className="co-input min-w-[150px] py-2 text-xs">
           <option value="">All technicians</option>

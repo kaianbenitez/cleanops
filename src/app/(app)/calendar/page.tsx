@@ -653,6 +653,16 @@ export default async function CalendarPage({
       : view === "staff" || view === "staff_vertical" || view === "list"
         ? toISODate(dayAnchor)
         : toISODate(weekStart);
+  const totalJobs =
+    view === "month"
+      ? monthRows
+          .filter((summary) =>
+            workingDays.includes(
+              new Date(`${summary.scheduledDate}T00:00:00.000Z`).getUTCDay(),
+            ),
+          )
+          .reduce((total, summary) => total + Number(summary.jobs), 0)
+      : displayedJobs.length;
   return (
     <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
       <CalendarStateSync view={view} anchor={stateAnchor} />
@@ -679,7 +689,11 @@ export default async function CalendarPage({
         </div>
       </header>
 
-      <FilterBar employees={employees} resolvedView={view} />
+      <FilterBar
+        employees={employees}
+        resolvedView={view}
+        totalJobs={totalJobs}
+      />
 
       <main className="p-3 sm:p-4 lg:p-5">
         {weekendOrphans?.count && weekendOrphans.firstDate ? (
