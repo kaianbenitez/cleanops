@@ -5,11 +5,55 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-04 (cancellation-reason prompt on the unassigned-queue quick-cancel
-panel brought onto `main`, cherry-picked from `claude/work`'s `553df69` — see the entry
-right below).
+Last updated: 2026-08-04 (Add-customer screen can now capture room counts/notes/access
+codes at creation — see the entry right below; on `codex/customer-creation-preferences`,
+not yet integrated onto `main`).
 
 ## Done
+
+- **Add-customer screen: optional room counts, house notes, and access codes at
+  creation (2026-08-04, `38c70f4` on `codex/customer-creation-preferences`, not yet
+  integrated onto `main`).** Item #9 of the same 9-item backlog (#7 plain-English
+  errors and #8 inline-new-customer-in-quote-flow already landed separately, each on
+  its own not-yet-integrated branch). Previously this data only existed to enter after
+  the fact, by opening the customer's profile and editing it — meaning the first quote
+  ever built for a brand-new customer always started from a blank room-count grid.
+  Delegated to Codex (own isolated worktree/branch off `origin/main`); reviewed the full
+  diff and re-ran `npm run verify` myself before treating it as done.
+  `/customers/new` now has a second, explicitly-optional panel: a room-count +/- grid
+  (same visual pattern as the quote builder's), the same four house-notes fields the
+  customer profile has (general notes, do not clean, pet notes, important to customer),
+  and address-gated Entry/Garage/Gate code fields (only shown once an address has been
+  entered, since they attach to the address record) — entry code is masked
+  (`type="password"`) matching the profile-edit page's own convention. `POST
+  /api/customers` gained matching optional fields (`generalNotes`, `doNotClean`,
+  `petNotes`, `importantToCustomer`, `roomCounts`, `entryCode`, `garageCode`,
+  `gateCode`), validated with the exact same limits the existing profile-edit `PATCH`
+  endpoint already enforces. Every new field is optional and the schema change is fully
+  backward compatible — confirmed the separate #8 inline-new-customer flow (which calls
+  this same endpoint without any of these fields) is unaffected.
+  Scoped to exactly two files: `src/app/api/customers/route.ts` and
+  `src/app/(app)/customers/new/page.tsx` — no schema/migration, no other files touched.
+  **Known integration snag, not urgent but worth remembering**: this branch was built
+  off `main` *before* #7 landed, so it independently reimplemented its own version of
+  the plain-English-error-parsing code in this same file (`parseApiError`,
+  `FIELD_LABELS`, etc.) rather than building on #7's. When #7 and #9 both get merged
+  onto `main`, `customers/new/page.tsx` will conflict in that region and need a manual
+  merge (keep #9's new room/notes/access fields, reconcile with #7's more complete
+  client-side required-field highlighting) — not done yet since integration is on hold.
+  Verified: `npm run verify` clean (0 errors, same 26 pre-existing warnings), Codex's own
+  `check:env`/`check:drift`/`smoke:routes`/`smoke:auth` runs, plus a hosted-DB
+  create-then-read-back check (confirmed independently by me, not just trusted from
+  Codex's report) that room counts/notes/codes entered at creation round-trip through
+  the exact same columns the customer profile page reads. Left 2 throwaway customers
+  (`Codex Profile Check 20260804`, address "123 Verification Lane", codes literally
+  named `verification-entry-code` etc.) on the hosted DB — confirmed no other table
+  referenced them (jobs/invoices/recurring_series/quotes/app_notifications/
+  ghl_sync_log all zero), then deleted both plus their `customer_locations` rows after
+  user approval. **Not click-through-tested live by a human** — same
+  `BROWSER_ADMIN_PASSWORD` gap as the rest of this backlog.
+  **This closes out the 9-item backlog** — #7, #8, and #9 are all now implemented, each
+  on its own branch, none yet integrated onto `main`.
 
 - **Unassigned-queue quick-cancel now asks for a cancellation reason (2026-08-04,
   cherry-picked from `claude/work`'s `553df69`, cleanly — `unassigned-panel.tsx` was
