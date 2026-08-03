@@ -5,11 +5,48 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-04 (cancellation-reason prompt on the unassigned-queue quick-cancel
-panel brought onto `main`, cherry-picked from `claude/work`'s `553df69` — see the entry
-right below).
+Last updated: 2026-08-04 (New Quote screen can now create a brand-new customer inline —
+see the entry right below; on `codex/quote-new-customer`, not yet integrated onto `main`).
 
 ## Done
+
+- **New Quote screen: inline "New customer" option (2026-08-04, `e7ce607` on
+  `codex/quote-new-customer`, not yet integrated onto `main`).** Item #8 of the same
+  9-item backlog (item #7, plain-English customer-creation errors, already landed
+  separately). Previously, building a quote for someone not yet in CleanOps meant leaving
+  `/quotes/new`, creating them on the separate `/customers/new` page, then coming back
+  and searching for them by name. Delegated to Codex (working in its own isolated git
+  worktree/branch, off `origin/main`, so it couldn't collide with any Claude Code work in
+  progress); reviewed the full diff and re-ran `npm run verify` myself before treating
+  it as done.
+  The "Who is this for?" card on `/quotes/new` now has an Existing/New customer toggle.
+  New customer mode swaps the search box for an inline form (name, email, phone, address
+  via the same autocomplete `/customers/new` uses, client type, company name if
+  commercial) with the same plain-English field-level error handling
+  `/customers/new` already has. Saving the quote creates the customer first (`POST
+  /api/customers`, same endpoint `/customers/new` uses) then the quote, and stops with a
+  clear error — without creating a quote — if the customer step fails. All the
+  existing-customer-only behavior (multi-address picker, prefill from saved room counts/
+  notes/add-ons) is gated off in New customer mode, since a brand-new customer has no
+  saved profile to prefill from. `/quotes/new?customerId=...` (linked from a customer's
+  own profile) is untouched — still opens straight into Existing mode with that customer
+  preselected.
+  Change is scoped to exactly one file, `src/app/(app)/quotes/new/page.tsx` — no API,
+  schema, or `customers/new/page.tsx` changes.
+  Verified: `npm run verify` clean (0 errors, same 26 pre-existing warnings as baseline,
+  re-run independently after Codex's own run), Codex's own production-server smoke tests
+  (routes + auth) and an authenticated Playwright pass (invalid email correctly blocked
+  the quote from being created; a corrected submission created both a customer and a
+  quote and landed on the quote's page). Codex's verification pass left 7 throwaway
+  customer rows (from retries) and 5 draft quotes on the **hosted** database, named `QA
+  Inline Quote 20260804` with a fake `@example.test` email/`555-0100` phone/`1 QA Test
+  Way` address — confirmed via a read-only query that nothing else matched that exact
+  fingerprint, then deleted all 7 customers + 5 quotes + their `customer_locations` rows
+  in one transaction after user approval; confirmed zero references from jobs, invoices,
+  recurring_series, or ghl_sync_log first. **Not click-through-tested live by a human** —
+  same `.env.local` gap as the rest of this backlog (`BROWSER_ADMIN_PASSWORD` missing).
+  **Remaining item from the same 9-item backlog**: #9, prefill customer preferences at
+  creation (separate scope from this).
 
 - **Unassigned-queue quick-cancel now asks for a cancellation reason (2026-08-04,
   cherry-picked from `claude/work`'s `553df69`, cleanly — `unassigned-panel.tsx` was
