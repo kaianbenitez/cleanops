@@ -5,10 +5,43 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-07-30 (Vercel Preview builds fixed + admin job-update notifications
-integrated onto `main` as `9f66ccd`/`5409f58` — see the two entries right below).
+Last updated: 2026-08-03 (small-screen navigation fixes on `claude/work`, `be091c2` — see
+the entry right below; not yet integrated onto `main`).
 
 ## Done
+
+- **Small-screen navigation fixed: consistent menu, working search/bell/create
+  (2026-08-03, `be091c2` on `claude/work`, not yet integrated onto `main`).** User handed
+  over a backlog of 9 items; this is the first group (the three responsive/layout bugs).
+  Root cause of all three: the app shell's breakpoints didn't agree with each other.
+  - **Content pushed right / not centered**: the content wrapper reserved a 260px left
+    gutter for the sidebar starting at the `lg` breakpoint, but the sidebar itself only
+    renders starting at `xl`. Any window between those two widths (roughly tablet /
+    small-laptop) had a blank 260px gap on the left with no sidebar in it, squeezing
+    everything else to the right. Changed the gutter to only reserve space at the same
+    breakpoint the sidebar actually appears.
+  - **Phone menu vs. desktop sidebar showed different items**: the phone drawer listed
+    Sync issues / Settings / Support as plain links; the desktop sidebar hid the same
+    three behind an extra click on the profile card. Added them to the desktop sidebar's
+    main list too (profile card now just holds Sign out), so both surfaces show the same
+    structure.
+  - **Search bar (and notification bell and Create New) disappearing below the desktop
+    breakpoint**: all three lived in a header block that was `hidden` until the `xl`
+    breakpoint, with no phone equivalent at all — so any screen narrower than that
+    (effectively all phones and most tablets) lost search, the notification bell, and the
+    "Create new" button outright. Added a phone-friendly header row (search full-width
+    underneath, bell + compact create icon + account icon on the top row), reusing the
+    existing components with a new `variant`/`compact` prop rather than duplicating them.
+  Verified with `tsc --noEmit`, `npm run verify` (clean, same 0 errors / 26 pre-existing
+  warnings as before this change), and a full production build. **Not click-through-tested
+  in a real browser this session** — the Chrome extension connection was dropping the tab
+  group on nearly every call (repeatable, not a one-off), so a live phone-width screenshot
+  wasn't obtained; worth an actual pass next session at a ~390px viewport to confirm the
+  new mobile search row and menu placement look right.
+  **Remaining items from the same backlog, not yet started**: proper (non-JSON) error
+  display on customer creation, a cancellation-reason prompt on job cancel, customer list
+  sort/advanced-search, and combining new-customer + new-quote into one flow with
+  preferences pre-filled.
 
 - **Vercel Preview deployments were never actually working for any feature branch —
   fixed 2026-07-30.** Found while investigating why `claude/work`'s Vercel build failed
