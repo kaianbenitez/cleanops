@@ -38,6 +38,14 @@ const createCustomerSchema = z.object({
   county: z.string().trim().max(100).optional(),
   ghlContactId: z.string().trim().max(200).optional(),
   clientType: z.enum(["residential", "commercial"]).optional(),
+  generalNotes: z.string().trim().max(10000).optional(),
+  doNotClean: z.string().trim().max(5000).optional(),
+  petNotes: z.string().trim().max(5000).optional(),
+  importantToCustomer: z.string().trim().max(5000).optional(),
+  roomCounts: z.record(z.string(), z.number().int().min(0)).optional(),
+  entryCode: z.string().trim().max(200).optional(),
+  garageCode: z.string().trim().max(200).optional(),
+  gateCode: z.string().trim().max(200).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -76,6 +84,11 @@ export async function POST(req: NextRequest) {
     city: data.city || null,
     state: data.state || null,
     zip: data.zip || null,
+    generalNotes: data.generalNotes || null,
+    doNotClean: data.doNotClean || null,
+    petNotes: data.petNotes || null,
+    importantToCustomer: data.importantToCustomer || null,
+    homeDetails: data.roomCounts ? { roomCounts: data.roomCounts } : {},
     ghlContactId: data.ghlContactId || null,
     clientType: data.clientType || "residential",
     status: "lead",
@@ -94,6 +107,9 @@ export async function POST(req: NextRequest) {
       state: data.state || null,
       zip: data.zip || null,
       county: data.county || null,
+      entryCode: data.entryCode || null,
+      garageCode: data.garageCode || null,
+      gateCode: data.gateCode || null,
       isPrimary: true,
     });
   }
