@@ -24,6 +24,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - For quote changes, verify both the internal quote builder and the unauthenticated public proposal.
 - For My Day changes, verify mobile one-handed use, travel/clock-in/break/finish state, undo behavior, and server refresh ordering.
 - Do not stage `.claude/settings.local.json`, `.codex/`, or other local tool state unless explicitly requested.
+- Whenever a fix or feature ships, add a plain-language entry to the in-app Help Center
+  changelog (`RELEASES` array in `src/app/(app)/help-center/page.tsx`) in the same handoff as
+  the code change — not just an update to `HANDOFF.md`. Bump the version and add a new dated
+  entry rather than editing a past release's list.
 
 ## Common release sequence
 
