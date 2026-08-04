@@ -7,6 +7,18 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.1.1",
+    date: "August 3-4, 2026",
+    title: "Customer tools, smoother navigation, and stronger privacy",
+    changes: [
+      "Improved navigation on phones and mid-size screens: pages stay centered, the menu includes the same items as desktop, and search remains available.",
+      "Customers can now be sorted by name or by when they were added.",
+      "Customer search now finds phone numbers, with new service-history, cancelled-job, and repeat-customer filters plus a highest-revenue sort.",
+      "Quick-cancelling an unassigned job now asks for a cancellation reason first.",
+      "Proactively closed a privacy gap that could have allowed customer and staff records to be viewed without signing in. All data access now requires proper authorization, and we found no evidence of misuse.",
+    ],
+  },
+  {
     version: "v0.1.0",
     date: "July 30, 2026",
     title: "Field updates and customer-profile polish",
