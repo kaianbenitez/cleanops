@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       .limit(1);
     if (existing) {
       return NextResponse.json(
-        { error: `This GHL contact is already linked to ${existing.firstName} ${existing.lastName} in CleanOps.` },
+        { error: `This GHL contact is already linked to ${existing.firstName} ${existing.lastName} in ServiceSpark.` },
         { status: 409 }
       );
     }

@@ -387,7 +387,7 @@ export default function SettingsPage() {
           <p className="eyebrow">Control room</p>
           <h1 className="page-title mt-2">Settings</h1>
           <p className="page-subtitle">
-            Configure how CleanOps represents your company and runs daily
+            Configure how ServiceSpark represents your company and runs daily
             operations.
           </p>
         </div>
@@ -423,7 +423,7 @@ export default function SettingsPage() {
           <p className="eyebrow">API configuration</p>
           <h2 className="mt-1 text-lg font-semibold">Connected services</h2>
           <p className="mt-1 text-sm text-[var(--co-muted)]">
-            These are the integration switches CleanOps expects to find in your
+            These are the integration switches ServiceSpark expects to find in your
             environment and connected accounts.
           </p>
         </div>
@@ -459,7 +459,7 @@ export default function SettingsPage() {
               Verify the test subaccount
             </h2>
             <p className="mt-1 text-sm text-[var(--co-muted)]">
-              This checks whether CleanOps can reach GHL with the configured API
+              This checks whether ServiceSpark can reach GHL with the configured API
               key and location ID.
             </p>
           </div>

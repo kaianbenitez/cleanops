@@ -394,7 +394,7 @@ export async function DELETE(
 
   if (hasHistory && !force) {
     return NextResponse.json(
-      { error: "This employee has history in CleanOps. Archive the employee instead of permanently deleting them.", linkedRecords },
+      { error: "This employee has history in ServiceSpark. Archive the employee instead of permanently deleting them.", linkedRecords },
       { status: 409 }
     );
   }

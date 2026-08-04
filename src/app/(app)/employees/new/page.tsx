@@ -124,7 +124,7 @@ export default function NewEmployeePage() {
             </div>
           </div>
           <p className="text-xs text-[var(--co-warning)]">
-            This one-time password only works for their first login — they&apos;ll be required to set their own before they can use the rest of CleanOps.
+            This one-time password only works for their first login — they&apos;ll be required to set their own before they can use the rest of ServiceSpark.
           </p>
           <button
             onClick={() => router.push(role === "admin" ? "/settings" : "/employees")}

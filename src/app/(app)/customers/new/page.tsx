@@ -372,7 +372,7 @@ export default function NewCustomerPage() {
             <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
               <p className="font-medium text-[var(--co-ink)]">What happens next</p>
               <ul className="mt-2 space-y-2">
-                <li>• The customer opens in CleanOps right after save</li>
+                <li>• The customer opens in ServiceSpark right after save</li>
                 <li>• You can add locations, notes, and jobs from the profile</li>
                 <li>• Later we can map GHL contacts into the same profile automatically</li>
               </ul>
@@ -387,7 +387,7 @@ export default function NewCustomerPage() {
 
       <section className="co-card flex flex-wrap items-center justify-between gap-3 px-6 py-4">
         <div className="text-sm text-[var(--co-muted)]">
-          {error ? <span className="text-rose-600">{error}</span> : "The customer will appear in CleanOps immediately after saving."}
+          {error ? <span className="text-rose-600">{error}</span> : "The customer will appear in ServiceSpark immediately after saving."}
         </div>
         <div className="flex gap-2">
           <button onClick={() => router.push("/customers")} className="co-button-secondary">

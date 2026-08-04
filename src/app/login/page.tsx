@@ -59,7 +59,7 @@ export default function LoginPage() {
           <div className="max-w-xl">
             <div className="flex items-center gap-3">
               <span className="flex h-11 w-11 items-center justify-center rounded-[16px] bg-[var(--co-accent)] text-sm font-black text-[var(--co-evergreen)]">CO</span>
-              <span className="text-xl font-semibold tracking-tight">CleanOps</span>
+              <span className="text-xl font-semibold tracking-tight">ServiceSpark</span>
             </div>
 
             <p className="mt-20 text-6xl font-semibold leading-[0.95] tracking-[-0.07em] text-balance">
@@ -82,7 +82,7 @@ export default function LoginPage() {
             <div className="mb-8 flex items-center gap-3 lg:hidden">
               <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[var(--co-evergreen)] text-sm font-black text-[var(--co-accent)]">CO</span>
               <span>
-                <span className="block text-lg font-semibold text-[var(--co-ink)]">CleanOps</span>
+                <span className="block text-lg font-semibold text-[var(--co-ink)]">ServiceSpark</span>
                 <span className="block text-xs text-[var(--co-muted)]">operations desk</span>
               </span>
             </div>

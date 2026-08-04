@@ -458,7 +458,7 @@ export default function MyDayClient({
             </button>
           </form>
         </nav>
-        <p className="mt-3 text-xs text-[var(--co-faint)]">© {currentYear} CleanOps Professional Services</p>
+        <p className="mt-3 text-xs text-[var(--co-faint)]">© {currentYear} ServiceSpark Professional Services</p>
       </footer>
 
       {undoAction ? (

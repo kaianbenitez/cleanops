@@ -47,7 +47,7 @@ export default function AccountPage() {
       <div>
         <p className="eyebrow">My account</p>
         <h1 className="page-title mt-2">Change password</h1>
-        <p className="page-subtitle">Update the password for your own CleanOps login.</p>
+        <p className="page-subtitle">Update the password for your own ServiceSpark login.</p>
       </div>
 
       <form onSubmit={changePassword} className="co-card space-y-4 p-5">
