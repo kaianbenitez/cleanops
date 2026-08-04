@@ -11,7 +11,7 @@ const RELEASES = [
     date: "August 4, 2026",
     title: "CleanOps is now ServiceSpark",
     changes: [
-      "CleanOps has a new name: ServiceSpark. It&apos;s the same product and team, with the new branding now throughout the app, including navigation and the login screen.",
+      "CleanOps has a new name: ServiceSpark. It's the same product and team, with the new branding now throughout the app, including navigation and the login screen.",
       "A complete Privacy Policy is now available in the Legal section, explaining what information we collect, how we use it, and how we protect it.",
     ],
   },
