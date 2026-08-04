@@ -5,10 +5,54 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-04 (live anon-key data exposure found and closed — RLS enabled on
-every public table; see the entry right below).
+Last updated: 2026-08-04 (product renamed CleanOps → ServiceSpark, user-facing branding only,
+plus a real Privacy Policy published — see the entry right below; also this same day, a live
+anon-key data exposure was found and closed via RLS, see the entry after that).
 
 ## Done
+
+- **CleanOps renamed to ServiceSpark (user-facing branding only) + real Privacy Policy
+  published (2026-08-04).** User's call: rename the product, but scope deliberately limited
+  to what a logged-in admin/employee sees — nav, page titles, Help Center, footer, user-facing
+  error messages (28 spots across 17 files, delegated to Codex, each one individually
+  specified and diffed rather than a blind find-replace). Explicitly **not** renamed, by the
+  user's own choice: the GitHub repo (`kaianbenitez/cleanops`), local worktree folders
+  (`cleanops-v1`/`cleanops-claude`/`cleanops-codex`), the Supabase project name, or any
+  project docs (`AGENTS.md`/`HANDOFF.md`/`CLAUDE.md`/`DECISIONS.md`/`TESTING.md`,
+  `package.json`) — those still say CleanOps on purpose, see
+  [[project_servicespark_rename]] memory. Also left alone: code comments (grepped and
+  confirmed after the fact — every remaining "CleanOps" hit in `src/` is a comment or the
+  seed script's console output), the `@cleanops.local` synthetic auth email domain (backend
+  identifier, not user-visible, renaming it is a separate decision), and the "CO" two-letter
+  logo monogram (a visual-identity call, not a text swap — still says "CO", not "SS").
+  Same session, replaced `/privacy-policy`'s long-standing placeholder (flagged in this doc's
+  own history as a real pre-launch gap) with an actual policy — sourced from Simply Maid
+  LLC's real website privacy policy for entity/legal boilerplate, but substantively rewritten
+  since that policy is for the public ecommerce website (purchases, sweepstakes, GA cookies)
+  and this page is for the internal, auth-gated ops tool with entirely different data (customer
+  gate/alarm codes, job photos, employee payroll). Names actual subprocessors: Supabase,
+  Vercel, Square, Google, Sentry, GoHighLevel. Deliberately did **not** invent a specific
+  numeric retention period or a mailing address — used defensible general retention language
+  instead, since HANDOFF previously flagged both as open gaps and fabricating either would be
+  worse than the honest general version. **Not a lawyer-reviewed document** — worth flagging
+  before treating this as final.
+  Added a `v0.1.2` Help Center changelog entry announcing both. **Caught and fixed a real bug
+  before it shipped**: Codex's first draft of that changelog entry had `&apos;` baked into a
+  plain JS string in the `changes` array — that array is rendered via `{change}` interpolation
+  (a JS string child), not JSX text, so React would have displayed the literal characters
+  `&apos;` on the page instead of an apostrophe. This is the exact bug class already fixed
+  once in this codebase (see the entity-decoding entry further down this doc, from the
+  TheCustomerFactor CSV import) — caught on review, sent back to Codex, fixed
+  (`2fbeaa9`/`3970494`), independently re-scanned the whole `RELEASES` array afterward for
+  any other stray entities (none found).
+  Every commit here independently re-verified before integration: diffs read line-by-line
+  against the exact spec given to Codex (not just Codex's own summary), a fresh `grep -rn
+  "CleanOps" src/` run myself post-change, and `npm run verify` re-run in both the Codex
+  worktree and again on integrated `main`. All clean. On `main`:
+  `6b3c4c8`/`19f280a`/`9170842`/`3970494`.
+  **Not click-through-tested in a real browser** — build/type/grep-verified only. Worth a
+  visual pass next time someone's logged in: confirm the new privacy policy page reads well
+  and the ServiceSpark branding shows correctly on the login screen and nav.
 
 - **Hosted DB was openly readable by anyone with the public anon key — found and fixed
   2026-08-04.** A prior side-finding (2026-07-28, see the old Blocked entry this replaces)
@@ -936,11 +980,10 @@ every public table; see the entry right below).
 
 ## Still open (decisions for the user)
 
-- `/privacy-policy` (`src/app/(app)/privacy-policy/page.tsx`) is explicitly a placeholder — auth-gated
-  correctly, but the page body just says a real policy hasn't been written yet. App collects customer
-  PII (addresses, payroll, job photos), so this is a real pre-general-availability gap, not a nitpick.
-  User decision needed (business entity/address, retention periods, which third parties to disclose —
-  Supabase, Square, Google Maps, Sentry) before this can be more than a stub; deferred for now.
+- ~~`/privacy-policy` placeholder~~ **Resolved 2026-08-04** — real policy published, see the
+  top "Done" entry. Not lawyer-reviewed, and no specific numeric retention period or mailing
+  address was set (deliberately used general language instead of inventing either) — worth a
+  legal pass before treating this as final, but no longer a blank stub.
 - Delete test/demo accounts (QA Tester, Test Cleaner, Maria Gomez — from `src/db/seed.ts`)?
 - Create real pilot cleaner accounts (only admin/test accounts exist today).
 - Test the My Day workflow on an actual phone.
