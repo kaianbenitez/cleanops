@@ -554,7 +554,7 @@ function EmployeeAccountManagement({
 
       {linkedRecords ? (
         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <p className="text-sm font-semibold text-amber-900">{employeeName} has history in CleanOps</p>
+          <p className="text-sm font-semibold text-amber-900">{employeeName} has history in ServiceSpark</p>
           <p className="mt-1 text-xs leading-5 text-amber-900">
             {describeLinkedRecords(linkedRecords)}. They can&apos;t be permanently removed without losing that history — archive
             them instead (button above), or force-delete: their profile is marked inactive and their login is revoked so they

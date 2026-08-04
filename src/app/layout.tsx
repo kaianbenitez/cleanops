@@ -16,8 +16,8 @@ const monoFont = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CleanOps | Operations desk",
-  description: "Internal scheduling, customer, payroll, and invoice operations for CleanOps.",
+  title: "ServiceSpark | Operations desk",
+  description: "Internal scheduling, customer, payroll, and invoice operations for ServiceSpark.",
 };
 
 export default function RootLayout({

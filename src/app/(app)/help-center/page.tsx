@@ -76,7 +76,7 @@ const RELEASES = [
     date: "July 19-23, 2026",
     title: "Core operations foundation",
     changes: [
-      "Introduced the CleanOps design system and refreshed the dashboard, quoting, My Day, and public proposal experiences.",
+      "Introduced the ServiceSpark design system and refreshed the dashboard, quoting, My Day, and public proposal experiences.",
       "Added employee accounts, self-service password changes, configurable payroll brackets, and multi-cleaner job assignment.",
       "Added TheCustomerFactor customer import and recurring-service backfill support.",
       "Improved navigation speed, search, route previews, customer filters, and date handling.",
@@ -86,9 +86,9 @@ const RELEASES = [
   {
     version: "v0.0.1",
     date: "July 18, 2026",
-    title: "Initial CleanOps build",
+    title: "Initial ServiceSpark build",
     changes: [
-      "Launched the first CleanOps operations workspace for customers, jobs, quotes, scheduling, payroll, and field work.",
+      "Launched the first ServiceSpark operations workspace for customers, jobs, quotes, scheduling, payroll, and field work.",
     ],
   },
 ];
@@ -111,7 +111,7 @@ export default async function HelpCenterPage() {
       <div>
         <p className="eyebrow">Support</p>
         <h1 className="page-title mt-2">Help Center</h1>
-        <p className="page-subtitle">Find help, contact the office, and see what&apos;s new in CleanOps.</p>
+        <p className="page-subtitle">Find help, contact the office, and see what&apos;s new in ServiceSpark.</p>
       </div>
 
       <div className="co-card space-y-4 p-5">

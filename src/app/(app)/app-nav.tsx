@@ -266,7 +266,7 @@ export default function AppNav({
         <Link href={isAdmin ? "/dashboard" : "/my-day"} className="mb-8 flex items-center gap-3 rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[var(--co-evergreen)] text-sm font-black tracking-tight text-white">CO</span>
           <span>
-            <span className="block text-[15px] font-semibold tracking-tight">CleanOps</span>
+            <span className="block text-[15px] font-semibold tracking-tight">ServiceSpark</span>
             <span className="block text-[11px] text-[var(--co-faint)]">operations desk</span>
           </span>
         </Link>

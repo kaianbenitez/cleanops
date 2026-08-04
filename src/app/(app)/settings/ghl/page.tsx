@@ -195,7 +195,7 @@ export default function GhlSettingsPage() {
         <div>
           <p className="eyebrow">Settings / Integrations</p>
           <h1 className="page-title mt-2">GHL integration</h1>
-          <p className="page-subtitle">Keep CleanOps status changes aligned with the tags and workflows your GoHighLevel account uses.</p>
+          <p className="page-subtitle">Keep ServiceSpark status changes aligned with the tags and workflows your GoHighLevel account uses.</p>
         </div>
         <Link href="/settings" className="co-button-secondary">← Settings</Link>
       </header>
@@ -205,7 +205,7 @@ export default function GhlSettingsPage() {
         <div>
           <p className="font-semibold">Connection boundary is ready</p>
           <p className="mt-1 text-sm leading-6 text-[var(--co-muted)]">
-            The tag names and workflow IDs below are saved in CleanOps so your test subaccount can route leads, quote events, and completed jobs to the right automations.
+            The tag names and workflow IDs below are saved in ServiceSpark so your test subaccount can route leads, quote events, and completed jobs to the right automations.
           </p>
         </div>
       </section>
@@ -254,7 +254,7 @@ export default function GhlSettingsPage() {
             <p className="eyebrow">GHL smoke test</p>
             <h2 className="mt-1 text-lg font-semibold">Verify the test subaccount</h2>
             <p className="mt-1 text-sm text-[var(--co-muted)]">
-              Confirms CleanOps can reach GHL with the configured API key and location ID — run
+              Confirms ServiceSpark can reach GHL with the configured API key and location ID — run
               it here after editing tags or workflows above.
             </p>
           </div>
