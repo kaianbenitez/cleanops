@@ -5,10 +5,51 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-04 (backlog items #7, #8, #9 — the full 9-item customer/quote
-backlog — brought onto `main` together; see the entry right below).
+Last updated: 2026-08-04 (live anon-key data exposure found and closed — RLS enabled on
+every public table; see the entry right below).
 
 ## Done
+
+- **Hosted DB was openly readable by anyone with the public anon key — found and fixed
+  2026-08-04.** A prior side-finding (2026-07-28, see the old Blocked entry this replaces)
+  had logged "RLS disabled on every public table" as a WARN-level advisory note, reasoned to
+  probably be theoretical since this app enforces authorization at the Next.js/Drizzle layer,
+  not via Postgres RLS. That reasoning was wrong, confirmed by directly testing it rather than
+  just reading the code: Supabase auto-exposes every `public` table via a REST API (PostgREST)
+  at `<project>.supabase.co/rest/v1/<table>`, reachable with `NEXT_PUBLIC_SUPABASE_ANON_KEY` —
+  a key that ships inside the app's own browser bundle by design. A direct, unauthenticated
+  request against that endpoint (count-only, `Prefer: count=exact`, no row data pulled) returned
+  real totals with zero login: 239 `customers`, 21 `users`, 704 `jobs`, 46 `payroll_lines`. Also
+  confirmed the app's own code never uses the anon key for data (grep across `src/`: it's only
+  used for Supabase Auth sign-in/session, never a `.from("<table>")` data query) — the exposure
+  was 100% via the public REST endpoint itself, not anything CleanOps' own pages do.
+  User approved enabling RLS with a **default-deny** policy (no `CREATE POLICY` statements at
+  all) rather than writing per-table policies, since nothing legitimate needs the anon key for
+  data. Before applying, confirmed via `pg_roles` that this is safe: the app's own DB
+  connection (`DATABASE_URL`, user `postgres.dxkirahuqbgvlfyldzqc`) maps to the Postgres
+  `postgres` role, which has `rolbypassrls = true` — RLS never applies to it, so Drizzle
+  queries are completely unaffected. `anon`/`authenticated` (the PostgREST-facing roles) do
+  **not** have that flag, so enabling RLS with zero grants fully blocks them.
+  Delegated to Codex (`drizzle/0023_enable_rls.sql`, `ALTER TABLE ... ENABLE ROW LEVEL
+  SECURITY` on all 27 flagged tables, no policies) — applied by hand to the hosted DB per the
+  usual Supabase-safety workflow, then integrated onto `main` (`08f35d5`). Independently
+  re-verified after the fact, not just taking Codex's report at face value: queried
+  `pg_class.relrowsecurity` directly — `true` on all 27; re-ran `mcp__supabase__get_advisors` —
+  the 27 `rls_disabled_in_public` ERRORs are gone, replaced by 27 informational
+  `rls_enabled_no_policy` notices (expected — that's what default-deny looks like, not a
+  problem); re-ran the same anon-key REST probe myself against `customers`, `users`, `jobs`,
+  `payroll_lines`, `companies`, `audit_log` — every one now returns `Content-Range: */0`
+  (zero rows visible) instead of a real count. `npm run check:drift`, `npm run verify`,
+  `smoke:routes` (5/5), and `smoke:auth` (22/22) all stayed green against a local production
+  build, plus an authenticated Playwright click-through (Dashboard, Customers, Jobs) — all via
+  Codex's own run, reviewed but not independently re-executed by hand.
+  `auth_leaked_password_protection` (WARN) is a separate, smaller Supabase Auth dashboard
+  toggle, not touched — still open, see Blocked below.
+  **Worth remembering:** any *new* table added to `schema.ts` going forward needs its own
+  `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` — Supabase does not inherit this from existing
+  tables, and `check:drift` does not check RLS status, so a new unprotected table would ship
+  silently. Grep `mcp__supabase__get_advisors` (security type) for `rls_disabled_in_public`
+  periodically, especially after adding a table.
 
 - **Full 9-item customer/quote backlog now on `main` (2026-08-04) — items #7, #8, #9
   integrated together.** Each was built independently on its own branch, off `main`,
@@ -804,16 +845,9 @@ backlog — brought onto `main` together; see the entry right below).
   as unverified. Run `npm run check:drift` once real DB credentials are available; if it
   flags this column missing, apply the migration (Supabase SQL Editor or a single transaction,
   per `AGENTS.md`) and re-run `check:drift` clean.
-- **Hosted DB: RLS disabled on every public table, and leaked-password protection off
-  (found 2026-07-28 via `mcp__supabase__get_advisors`).** All 20+ `public.*` tables
-  (`users`, `customers`, `jobs`, `invoices`, `payroll_lines`, etc.) show `rls_disabled_in_public`
-  at ERROR level, and `auth_leaked_password_protection` is WARN. This app enforces
-  company-scoped authorization at the Next.js/API layer (Drizzle + `requireAdmin`/`requireUser`),
-  not via Postgres RLS + PostgREST, so this may be intentional-by-architecture rather than a
-  live hole — but it means any direct PostgREST/anon-key access to these tables would bypass
-  every app-level check. Needs a user decision: confirm nothing talks to these tables via the
-  Supabase client library with the anon key outside this app's own server code, or add RLS
-  policies. Not touched — this was a side finding, not the task.
+- **`auth_leaked_password_protection` still off** (Supabase Auth → Attack Protection, WARN
+  level). Separate, smaller finding than the RLS item resolved below — a dashboard toggle,
+  not a schema change. Not touched.
 - **Confirm the Schema drift workflow is green — the `DATABASE_URL` secret is probably already
   there.** The removed `.github/workflows/db-backup.yml` in this repo used
   `${{ secrets.DATABASE_URL }}`, and its runs failed on a `pg_dump` server-version mismatch,
