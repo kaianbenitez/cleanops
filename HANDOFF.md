@@ -5,10 +5,63 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-06 (cleaning equipment counts on My Day/customer profile shipped — see
-the entry right below).
+Last updated: 2026-08-06 (ServiceSpark login/nav logo mark replaced — see the entry right
+below).
 
 ## Done
+
+- **Login screen simplified to a single centered card, and the "CO" text badge replaced
+  with a new sparkle logo mark, merged to `main` at `8f5cbc6` (2026-08-06).** User request,
+  built through several rounds of design iteration in-conversation (not delegated blind):
+  the login page's old two-column layout (dark marketing panel + stat tiles + two "Internal
+  use"/"Customer quotes" info tiles) is now one centered card with a soft gradient
+  background — logo, "Welcome back," username/password, error message, Turnstile, submit
+  button, nothing else. Separately, the app's logo badge (previously plain white "CO" text
+  on a solid evergreen square, in the nav sidebar/mobile drawer and login screen) is now a
+  small two-tone sparkle mark in blue-grey and white — named "Pure Spark," designed around
+  the user's actual pet rabbit Spark's real coloring (confirmed against two photos of Spark:
+  the mark's blue-grey/white ratio was corrected mid-session after the first draft had the
+  ratio backwards). Several literal "bunny face" directions (ears, whiskers, blaze marking)
+  were explored and shown as an Artifact before the user converged on the abstract sparkle
+  shape in Spark's colors, deliberately without literal bunny features. New `--spark-mark`
+  (`#707C8D`) / `--spark-mark-facet` (`#FCFCFA`) tokens added to `globals.css` alongside the
+  existing `--co-*` tokens — no existing token renamed or changed, so buttons/links/active
+  states are unaffected; this was a scoped swap of one badge, not a rebrand. The browser
+  favicon (`src/app/icon.svg`, new Next.js 16 file-convention icon) now uses the same mark
+  on a small cream rounded-square backing so it stays visible regardless of browser theme.
+  **Deliberately excluded, on purpose — these still show the customer's own company
+  identity, not ServiceSpark's**: the invoice preview's "CO" badge
+  (`invoices/[invoiceId]/page.tsx`), the branding settings "Proposal preview" badge
+  (`settings/branding/page.tsx`), the public quote/proposal page
+  (`quote/[token]/page.tsx`), and the employee-browser's `(company?.name ?? "CO")` avatar
+  fallback (a generic two-letter company-initials avatar, unrelated to ServiceSpark's own
+  logo) — none of these were touched.
+  Built by Codex on `codex/servicespark-logo-mark` off a structured contract with the exact
+  approved SVG markup and hex values specified up front (no design decisions left to
+  Codex). Independently reviewed line-by-line before integration, not just Codex's
+  summary: caught and reverted one out-of-scope edit Codex made to an unrelated My Day
+  label (`my-day-client.tsx`) that had nothing to do with this task — confirmed via `git
+  diff` that the final integrated commit doesn't touch that file at all, and confirmed the
+  four excluded customer-facing files are byte-identical to before. Also had to reconcile
+  this branch with an earlier, separately-approved login-layout redesign
+  (`codex/login-page-minimal-redesign`) that was cut from an older `main` and hadn't merged
+  yet — combined by hand (the approved single-card layout, with its one badge recolored to
+  the new mark) since both pieces were already independently reviewed. The Help Center
+  changelog entry (`v0.1.7`) was also written by Codex, not edited directly, per this
+  project's Claude-plans/Codex-implements convention.
+  Verified independently at each stage, not just Codex's reports: live-viewed both the
+  login page and `/icon.svg` via the Chrome extension against a local production build
+  (screenshot-checked the mark renders correctly at real size), `npm run check:drift` clean
+  (no schema touched), `npm run verify` clean (0 errors, same 26 pre-existing warnings) —
+  run once in the Codex worktree, then re-run in full on integrated `main` before pushing.
+  **Not click-through-tested for the nav-sidebar/mobile-drawer badge specifically** — that
+  needs an authenticated session (`.env.local` still has no `BROWSER_ADMIN_PASSWORD`, the
+  same longstanding gap noted throughout this doc), so only the login page and favicon were
+  visually confirmed live; the nav badges use the identical SVG markup/tokens already
+  confirmed working on the login page, just at different container sizes (28/32/40px),
+  which is a reasonable but unverified inference. Worth an actual look next time someone's
+  logged in: check the sidebar (collapsed and expanded), the mobile drawer, and confirm the
+  mark isn't clipped or misaligned at the smallest 28px size.
 
 - **Cleaning equipment counts (mop heads, rags, vacuum) added to customer profile and My
   Day, merged to `main` at `68ab0c7` (2026-08-06).** User request: an icon+number indicator
