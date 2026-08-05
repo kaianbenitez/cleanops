@@ -36,6 +36,11 @@ const SECTIONS = [
     desc: "Workflow tags and connection settings for GoHighLevel.",
   },
   {
+    href: "/settings/integrations",
+    label: "Square & Google Maps",
+    desc: "Encrypted Square invoicing and Google Maps connection keys.",
+  },
+  {
     href: "/settings/quote-template",
     label: "Quote page content",
     desc: "Intro letter and terms shown on customer proposals.",

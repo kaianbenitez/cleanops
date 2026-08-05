@@ -1,6 +1,6 @@
 export type GooglePlace = { address_components?: Array<{ types?: string[]; long_name?: string; short_name?: string }>; formatted_address?: string; place_id?: string };
 export type GoogleAutocomplete = { getPlace: () => GooglePlace; addListener: (event: string, callback: () => void) => { remove: () => void } };
-export type GoogleLatLng = { lat: number; lng: number };
+export type GoogleLatLng = { lat: number | (() => number); lng: number | (() => number) };
 export type GoogleMap = { fitBounds: (bounds: GoogleBounds) => void };
 export type GoogleBounds = { extend: (point: GoogleLatLng) => void };
 export type GoogleGeocoder = { geocode: (request: { address: string }, callback: (results: Array<{ geometry: { location: GoogleLatLng } }>, status: string) => void) => void };

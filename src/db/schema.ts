@@ -25,6 +25,12 @@ export const companies = pgTable("companies", {
   name: text("name").notNull(),
   timezone: text("timezone").notNull().default("America/Chicago"),
   settings: jsonb("settings").notNull().default({}),
+  // Integration credentials live in dedicated columns so they can never be
+  // included in the client-facing settings JSON blob.
+  squareAccessTokenEncrypted: text("square_access_token_encrypted"),
+  squareEnvironment: text("square_environment", { enum: ["sandbox", "production"] as const }),
+  squareWebhookSignatureKeyEncrypted: text("square_webhook_signature_key_encrypted"),
+  googleMapsApiKeyEncrypted: text("google_maps_api_key_encrypted"),
   ...timestamps,
 });
 
@@ -171,6 +177,11 @@ export const customers = pgTable("customers", {
   isArchived: boolean("is_archived").notNull().default(false),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   archivedReason: text("archived_reason"),
+  // Cached from the Google Maps geocoder the first time a route needs this
+  // address. Keeping it on the customer is compatible with legacy jobs,
+  // which do not reference a customer_locations row.
+  geocodedLatitude: numeric("geocoded_latitude", { precision: 10, scale: 7 }),
+  geocodedLongitude: numeric("geocoded_longitude", { precision: 10, scale: 7 }),
   ...timestamps,
 }, (t) => ({
   companyIdx: index("customers_company_idx").on(t.companyId),

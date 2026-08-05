@@ -5,16 +5,19 @@ import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
 import { auditLog, companies } from "@/db/schema";
 import { validatePayTierBrackets } from "@/lib/payroll/brackets";
+import { encryptSettingSecret } from "@/lib/settings/encryption";
+import { getCompanyIntegrationStatus } from "@/lib/settings/integrations";
 
 export async function GET() {
   const admin = await requireAdmin();
   const [company] = await db
-    .select()
+    .select({ id: companies.id, name: companies.name, timezone: companies.timezone, settings: companies.settings })
     .from(companies)
     .where(eq(companies.id, admin.companyId))
     .limit(1);
   if (!company)
     return NextResponse.json({ error: "Company not found" }, { status: 404 });
+  const integrationStatus = await getCompanyIntegrationStatus(admin.companyId);
   return NextResponse.json({
     company,
     apiConfig: {
@@ -24,9 +27,10 @@ export async function GET() {
         webhookSecretConfigured: Boolean(process.env.GHL_WEBHOOK_SECRET),
       },
       square: {
-        configured: Boolean(process.env.SQUARE_ACCESS_TOKEN),
-        webhookConfigured: Boolean(process.env.SQUARE_WEBHOOK_SIGNATURE_KEY),
+        configured: integrationStatus.squareConfigured,
+        webhookConfigured: integrationStatus.squareWebhookConfigured,
       },
+      googleMaps: { configured: integrationStatus.googleMapsConfigured },
     },
   });
 }
@@ -144,6 +148,10 @@ const schema = z.object({
       reviewUrl: z.string().trim().max(50000).nullable().optional(),
     })
     .optional(),
+  squareAccessToken: z.string().trim().min(1).max(1000).optional(),
+  squareEnvironment: z.enum(["sandbox", "production"]).optional(),
+  squareWebhookSignatureKey: z.string().trim().min(1).max(1000).optional(),
+  googleMapsApiKey: z.string().trim().min(1).max(1000).optional(),
 });
 
 /** PATCH /api/settings — partial update. Only the keys present in the body are
@@ -161,6 +169,7 @@ export async function PATCH(req: NextRequest) {
 
   const [company] = await db
     .select({
+      id: companies.id,
       name: companies.name,
       timezone: companies.timezone,
       settings: companies.settings,
@@ -219,6 +228,27 @@ export async function PATCH(req: NextRequest) {
     changedFields.settings = nextSettings;
   }
 
+  // Blank fields are intentionally omitted by the schema/UI and therefore
+  // leave any existing encrypted secret untouched.
+  const encryptedSecrets: Partial<typeof companies.$inferInsert> = {};
+  try {
+    if (parsed.data.squareAccessToken !== undefined) {
+      encryptedSecrets.squareAccessTokenEncrypted = encryptSettingSecret(parsed.data.squareAccessToken);
+      changedFields.squareAccessTokenConfigured = true;
+    }
+    if (parsed.data.squareWebhookSignatureKey !== undefined) {
+      encryptedSecrets.squareWebhookSignatureKeyEncrypted = encryptSettingSecret(parsed.data.squareWebhookSignatureKey);
+      changedFields.squareWebhookSignatureKeyConfigured = true;
+    }
+    if (parsed.data.googleMapsApiKey !== undefined) {
+      encryptedSecrets.googleMapsApiKeyEncrypted = encryptSettingSecret(parsed.data.googleMapsApiKey);
+      changedFields.googleMapsApiKeyConfigured = true;
+    }
+  } catch {
+    return NextResponse.json({ error: "Settings encryption is not configured. Add SETTINGS_ENCRYPTION_KEY before saving integration keys." }, { status: 503 });
+  }
+  if (parsed.data.squareEnvironment !== undefined) changedFields.squareEnvironment = parsed.data.squareEnvironment;
+
   const [updated] = await db
     .update(companies)
     .set({
@@ -226,9 +256,11 @@ export async function PATCH(req: NextRequest) {
       timezone: parsed.data.timezone ?? company.timezone,
       settings: nextSettings,
       updatedAt: new Date(),
+      ...encryptedSecrets,
+      ...(parsed.data.squareEnvironment !== undefined ? { squareEnvironment: parsed.data.squareEnvironment } : {}),
     })
     .where(eq(companies.id, admin.companyId))
-    .returning();
+    .returning({ id: companies.id, name: companies.name, timezone: companies.timezone, settings: companies.settings });
 
   if (Object.keys(changedFields).length > 0) {
     await db.insert(auditLog).values({
@@ -237,16 +269,8 @@ export async function PATCH(req: NextRequest) {
       action: "settings.updated",
       entityType: "company",
       entityId: admin.companyId,
-      before: {
-        name: company.name,
-        timezone: company.timezone,
-        settings: existingSettings,
-      },
-      after: {
-        name: updated.name,
-        timezone: updated.timezone,
-        settings: updated.settings,
-      },
+      before: { name: company.name, timezone: company.timezone, settings: existingSettings },
+      after: { name: updated.name, timezone: updated.timezone, settings: updated.settings, ...Object.fromEntries(Object.keys(encryptedSecrets).map((field) => [field.replace("Encrypted", "Configured"), true])), ...(parsed.data.squareEnvironment !== undefined ? { squareEnvironment: parsed.data.squareEnvironment } : {}) },
     });
   }
 

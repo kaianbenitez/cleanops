@@ -13,8 +13,16 @@ function componentValue(components: Array<{ types?: string[]; long_name?: string
 
 export default function AddressAutocomplete({ value, onChange, onAddressSelected }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const [apiKey, setApiKey] = useState<string | null>(null);
   const [googleReady, setGoogleReady] = useState(Boolean(typeof window !== "undefined" && window.google?.maps?.places));
+
+  useEffect(() => {
+    fetch("/api/integrations/maps-key").then(async (response) => {
+      if (!response.ok) return;
+      const body = await response.json().catch(() => ({}));
+      setApiKey(typeof body.apiKey === "string" ? body.apiKey : null);
+    }).catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (!apiKey || !inputRef.current || (!googleReady && !window.google?.maps?.places)) return;
@@ -36,6 +44,6 @@ export default function AddressAutocomplete({ value, onChange, onAddressSelected
   return <>
     {apiKey && <Script id="google-maps-places" src={`https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`} strategy="afterInteractive" onLoad={() => setGoogleReady(true)} />}
     <input ref={inputRef} className="co-input w-full" value={value} onChange={(event) => onChange(event.target.value)} placeholder={apiKey ? "Start typing an address..." : "Street address"} />
-    {apiKey ? <p className="mt-1 text-xs text-[var(--co-muted)]">Choose a suggestion to fill city, state, ZIP, and county.</p> : <p className="mt-1 text-xs text-amber-600">Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to enable suggestions.</p>}
+    {apiKey ? <p className="mt-1 text-xs text-[var(--co-muted)]">Choose a suggestion to fill city, state, ZIP, and county.</p> : <p className="mt-1 text-xs text-amber-600">Ask an administrator to configure Google Maps to enable suggestions.</p>}
   </>;
 }

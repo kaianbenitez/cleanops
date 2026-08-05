@@ -4,15 +4,17 @@ import { customers, jobAssignments, jobs, users } from "@/db/schema";
 import { formatTime } from "@/lib/format";
 import { isFieldEligible } from "@/lib/auth/field-staff";
 import TechnicianRoutePreview, { type TechnicianRoute } from "./technician-route-preview";
+import { getCompanyGoogleMapsApiKey } from "@/lib/settings/integrations";
 
 export default async function TechnicianRoutes({ companyId, todayIso }: { companyId: string; todayIso: string }) {
-  const [employees, rows] = await Promise.all([
+  const [employees, rows, apiKey] = await Promise.all([
     db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName }).from(users).where(and(eq(users.companyId, companyId), isFieldEligible, eq(users.isActive, true))).orderBy(users.firstName),
-    db.select({ userId: users.id, jobId: jobs.id, clientType: customers.clientType, firstName: customers.firstName, lastName: customers.lastName, companyName: customers.companyName, address: customers.addressLine1, city: customers.city, zip: customers.zip, time: jobs.scheduledStartTime }).from(jobs).innerJoin(customers, eq(jobs.customerId, customers.id)).innerJoin(jobAssignments, eq(jobAssignments.jobId, jobs.id)).innerJoin(users, eq(jobAssignments.userId, users.id)).where(and(eq(jobs.companyId, companyId), eq(customers.companyId, companyId), eq(users.companyId, companyId), eq(jobs.scheduledDate, todayIso))).orderBy(jobs.scheduledStartTime),
+    db.select({ userId: users.id, jobId: jobs.id, customerId: customers.id, clientType: customers.clientType, firstName: customers.firstName, lastName: customers.lastName, companyName: customers.companyName, address: customers.addressLine1, city: customers.city, zip: customers.zip, latitude: customers.geocodedLatitude, longitude: customers.geocodedLongitude, time: jobs.scheduledStartTime }).from(jobs).innerJoin(customers, eq(jobs.customerId, customers.id)).innerJoin(jobAssignments, eq(jobAssignments.jobId, jobs.id)).innerJoin(users, eq(jobAssignments.userId, users.id)).where(and(eq(jobs.companyId, companyId), eq(customers.companyId, companyId), eq(users.companyId, companyId), eq(jobs.scheduledDate, todayIso))).orderBy(jobs.scheduledStartTime),
+    getCompanyGoogleMapsApiKey(companyId),
   ]);
   const routes: TechnicianRoute[] = employees.map((employee) => ({ employeeId: employee.id, employeeName: employee.firstName + " " + employee.lastName, jobs: rows.filter((row) => row.userId === employee.id).map((row) => {
     const companyName = row.clientType === "commercial" ? row.companyName?.trim() : null;
-    return { id: row.jobId, firstName: companyName || row.firstName, lastName: companyName ? "" : row.lastName, address: row.address || "Address not set", city: row.city || "", zip: row.zip || "", time: formatTime(row.time, "Time not set") };
+    return { id: row.jobId, customerId: row.customerId, firstName: companyName || row.firstName, lastName: companyName ? "" : row.lastName, address: row.address || "Address not set", city: row.city || "", zip: row.zip || "", latitude: row.latitude == null ? null : Number(row.latitude), longitude: row.longitude == null ? null : Number(row.longitude), time: formatTime(row.time, "Time not set") };
   }) }));
-  return <TechnicianRoutePreview routes={routes} />;
+  return <TechnicianRoutePreview routes={routes} apiKey={apiKey} />;
 }
