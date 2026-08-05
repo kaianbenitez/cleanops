@@ -5,10 +5,61 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-06 (encrypted Square/Google Maps API key storage shipped — see the
-entry right below).
+Last updated: 2026-08-06 (cleaning equipment counts on My Day/customer profile shipped — see
+the entry right below).
 
 ## Done
+
+- **Cleaning equipment counts (mop heads, rags, vacuum) added to customer profile and My
+  Day, merged to `main` at `68ab0c7` (2026-08-06).** User request: an icon+number indicator
+  so a cleaner can see what to bring before driving to a house. Built by Codex on
+  `codex/equipment-indicators` (`68ab0c7`), delegated with a structured contract, in a
+  dedicated new worktree (`cleanops-equipment`) rather than the usual `cleanops-codex`
+  because that worktree was mid-use by a concurrent session on
+  `codex/login-page-minimal-redesign` — see `feedback_cleanops_codex_worktree_collision`
+  memory for the pattern going forward.
+  New nullable `customers.mop_head_count`/`rag_count`/`vacuum_count` columns (migration
+  `drizzle/0025_cleaning_equipment_counts.sql`, additive/idempotent). `null` means "not
+  set" — never defaulted to 0 or an invented number. The mop-head estimate shown when no
+  real count is set is computed at render time, never stored: sum of "hard-floor" room
+  counts (bathrooms/kitchens/laundry/hallway, from `homeDetails.roomCounts` joined against
+  `room_types.name`) plus 3, rendered with a muted "~" prefix so it's never confused with a
+  confirmed number. This formula was deliberately chosen despite weak accuracy (~18%
+  correlation against real historical data, mean absolute error ~2) — user's explicit call
+  after being shown the numbers, on the condition that it's always visually marked as a
+  guess. Rags and vacuum have no estimate logic at all (no historical data ever existed for
+  them) — always "Not set" until an admin enters a real number.
+  Before writing any formula, checked what data already existed rather than guessing cold:
+  the legacy TheCustomerFactor import left a real historical mop-head count buried in
+  free-text `notes`/`operationalNotes` for 102 of 239 active customers (formats like "Mop
+  heads: 5", "10 mops", "Mopheads - 7" — regex patterns and a 0–50 garbage guard documented
+  in `work/backfill-mop-head-counts.ts`'s header). A one-time idempotent import script
+  (dry-run by default, `--apply` required for writes, only ever sets `mop_head_count` where
+  currently null, never touches `rag_count`/`vacuum_count`/the source note fields) backfilled
+  those 102 real counts into the new column — **run for real against the hosted DB** after
+  explicit user approval, confirmed via a direct read-only spot check (Mary Anderson=5,
+  Billie Austin=11, Gary and Linda Collins=7 all correct; 102 non-null total; rag/vacuum
+  confirmed still 0 non-null everywhere).
+  UI: customer profile has an editable "Cleaning equipment" card (three number inputs,
+  blank persists as `null`); My Day's home-screen stop list shows the same three as a
+  compact icon row, visible pre-clock-in, same place the job type badge/entry codes already
+  render. Reuses existing `lucide-react` icons only (no new dependency) — `WashingMachine`
+  for mop, `Shirt` for rags, `Wind` for vacuum; these are approximations (no literal
+  mop/vacuum icon exists in the set) worth a glance next time someone's looking at the
+  screen, purely cosmetic.
+  Verified independently before merging, not just Codex's report: read every changed file's
+  diff line-by-line against the original spec (schema, migration SQL, API zod schema, both
+  UI files, the My Day server query for N+1 safety, the import script's regex/guard/dry-run
+  logic), confirmed `git diff --stat` touched only the intended files. `check:drift` clean
+  after the migration was applied, `npm run verify` clean (0 errors, same 26 pre-existing
+  warnings) re-run independently on the integrated `main` after merging, not just on the
+  feature branch.
+  **Not click-through-tested in a real browser** — same `.env.local`
+  `BROWSER_ADMIN_PASSWORD` gap as other recent features, build/type/lint/`check:drift`-
+  verified only. Worth an actual pass next time someone's logged in: open a customer profile,
+  set/clear each of the three fields and confirm it saves and reloads correctly; open My Day
+  and confirm the icon row renders on a real stop, and that a customer with a real imported
+  mop-head count shows it in the bolder/confirmed style rather than the muted estimate style.
 
 - **Admins can now securely save Square and Google Maps API keys under Settings → Square &
   Google Maps (2026-08-06, merged to `main` at `a53e745`).** Built by Codex on
