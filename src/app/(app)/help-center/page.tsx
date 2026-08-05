@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.1.7",
+    date: "August 6, 2026",
+    title: "A refreshed ServiceSpark look",
+    changes: [
+      "The login screen now has a cleaner, centered layout with a fresh ServiceSpark sparkle mark.",
+      "The same updated mark now appears in the app navigation and browser tab for a more consistent look.",
+    ],
+  },
+  {
     version: "v0.1.6",
     date: "August 6, 2026",
     title: "Cleaning equipment counts before each stop",

@@ -135,7 +135,7 @@ export default function AppNav({
           </button>
 
           <Link href={isAdmin ? "/dashboard" : "/my-day"} className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-[10px] bg-[var(--co-evergreen)] text-[10px] font-black tracking-tight text-white">CO</span>
+            <span className="flex h-7 w-7 items-center justify-center"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="h-7 w-7"><path d="M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z" fill="var(--spark-mark)"/><path d="M32 12 L36 27 L51 32 L36 37 L32 52 L28 37 L13 32 L28 27 Z" fill="var(--spark-mark-facet)"/><path d="M49 8 L51.4 14.6 L58 17 L51.4 19.4 L49 26 L46.6 19.4 L40 17 L46.6 14.6 Z" fill="var(--spark-mark)"/></svg></span>
             <span className="text-base font-bold text-[var(--co-evergreen)]">ServiceSpark</span>
           </Link>
 
@@ -173,7 +173,7 @@ export default function AppNav({
       >
         <div className="flex items-center justify-between gap-3 border-b border-[var(--co-line-soft)] px-4 py-4">
           <Link href={isAdmin ? "/dashboard" : "/my-day"} onClick={() => setMenuOpen(false)} className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[var(--co-evergreen)] text-[10px] font-black tracking-tight text-white">CO</span>
+            <span className="flex h-8 w-8 items-center justify-center"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="h-8 w-8"><path d="M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z" fill="var(--spark-mark)"/><path d="M32 12 L36 27 L51 32 L36 37 L32 52 L28 37 L13 32 L28 27 Z" fill="var(--spark-mark-facet)"/><path d="M49 8 L51.4 14.6 L58 17 L51.4 19.4 L49 26 L46.6 19.4 L40 17 L46.6 14.6 Z" fill="var(--spark-mark)"/></svg></span>
             <span className="text-base font-bold text-[var(--co-evergreen)]">ServiceSpark</span>
           </Link>
           <button
@@ -264,7 +264,7 @@ export default function AppNav({
 
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[260px] flex-col border-r border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-4 py-5 text-[var(--co-ink)] xl:flex">
         <Link href={isAdmin ? "/dashboard" : "/my-day"} className="mb-8 flex items-center gap-3 rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[var(--co-evergreen)] text-sm font-black tracking-tight text-white">CO</span>
+          <span className="flex h-10 w-10 items-center justify-center"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="h-10 w-10"><path d="M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z" fill="var(--spark-mark)"/><path d="M32 12 L36 27 L51 32 L36 37 L32 52 L28 37 L13 32 L28 27 Z" fill="var(--spark-mark-facet)"/><path d="M49 8 L51.4 14.6 L58 17 L51.4 19.4 L49 26 L46.6 19.4 L40 17 L46.6 14.6 Z" fill="var(--spark-mark)"/></svg></span>
           <span>
             <span className="block text-[15px] font-semibold tracking-tight">ServiceSpark</span>
             <span className="block text-[11px] text-[var(--co-faint)]">operations desk</span>
