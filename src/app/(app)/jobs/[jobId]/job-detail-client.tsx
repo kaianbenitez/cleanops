@@ -50,6 +50,8 @@ export default function JobDetailClient({
   const [isRefreshing, startTransition] = useTransition();
   const saving = busy || isRefreshing;
   const [paymentMethodCollected, setPaymentMethodCollected] = useState(job.paymentMethodCollected ?? "");
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState("");
 
   const refresh = useCallback(() => {
     startTransition(() => router.refresh());
@@ -113,14 +115,13 @@ export default function JobDetailClient({
   }, [job.customerId, job.id, job.priceCents, router]);
 
   const cancelJob = useCallback(() => {
-    const reason = window.prompt("Why is this job being cancelled?");
-    if (reason === null) return;
-    if (!reason.trim()) {
+    if (!cancellationReason.trim()) {
       setError("Enter a cancellation reason before cancelling this job.");
       return;
     }
-    void save({ status: "cancelled", cancellationReason: reason.trim() });
-  }, [save]);
+    setConfirmingCancel(false);
+    void save({ status: "cancelled", cancellationReason: cancellationReason.trim() });
+  }, [cancellationReason, save]);
 
   const serviceProgress = job.status === "completed" ? 100 : job.status === "in_progress" ? 62 : timeEntries.length > 0 ? 35 : 0;
   const serviceSteps = [
@@ -156,11 +157,22 @@ export default function JobDetailClient({
                 Create draft invoice
               </button>
             )}
-            {job.status === "cancelled" ? null : (
+            {job.status === "cancelled" ? null : confirmingCancel ? (
+              <div className="w-full space-y-2 rounded-lg border border-rose-200 bg-rose-50 p-3 sm:w-[22rem]">
+                <label className="block text-xs font-semibold text-rose-800">
+                  Cancellation reason
+                  <textarea value={cancellationReason} onChange={(event) => setCancellationReason(event.target.value)} rows={2} placeholder="Why is this job being cancelled?" className="co-input mt-1 w-full resize-none" />
+                </label>
+                <div className="flex gap-2">
+                  <button type="button" disabled={saving} onClick={() => { setConfirmingCancel(false); setCancellationReason(""); }} className="co-button-secondary py-1 text-xs disabled:opacity-50">Keep job</button>
+                  <button type="button" disabled={saving || !cancellationReason.trim()} onClick={cancelJob} className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50">Confirm cancel</button>
+                </div>
+              </div>
+            ) : (
               <button
                 type="button"
                 disabled={saving}
-                onClick={cancelJob}
+                onClick={() => setConfirmingCancel(true)}
                 className="co-button-secondary border-rose-200 text-rose-700 hover:bg-rose-50"
               >
                 <XCircle className="h-4 w-4" /> Cancel

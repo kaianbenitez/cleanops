@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.1.5",
+    date: "August 6, 2026",
+    title: "Clearer job cancellations and cleaner route prep",
+    changes: [
+      "Cancelling a job now asks for the reason right in the page or calendar panel, instead of opening a browser popup.",
+      "My Day now shows each job's service type, gives cleaners a Job details link before leaving, and keeps next-stop entry instructions and access codes close at hand.",
+    ],
+  },
+  {
     version: "v0.1.4",
     date: "August 6, 2026",
     title: "Secure Square and Maps setup",

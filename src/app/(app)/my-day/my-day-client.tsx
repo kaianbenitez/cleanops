@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw, Phone, ArrowRight, MapPin, Car, CheckCircle2, Play, X, ChevronRight, CalendarCheck } from "lucide-react";
-import { timeLabel, dateLabel, jobAddress, formatElapsed, formatEstimatedTime } from "@/lib/my-day/job-format";
+import { timeLabel, dateLabel, jobAddress, formatElapsed, formatEstimatedTime, jobTypeLabel } from "@/lib/my-day/job-format";
+import { MaskedCode } from "@/components/ui/masked-code";
 
 type JobCard = {
   jobId: string;
@@ -327,6 +328,9 @@ export default function MyDayClient({
                           <p className="font-medium text-[var(--co-ink)]">
                             {job.customerFirstName} {job.customerLastName}
                           </p>
+                          <span className="co-badge-neutral mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                            {jobTypeLabel(job.type)}
+                          </span>
                           <p className="mt-1 text-xs text-[var(--co-muted)]">
                             {isNextUp
                               ? `${jobAddress(job) || "Address not set"} · ${formatEstimatedTime(job.estimatedDurationMinutes)}`
@@ -348,6 +352,20 @@ export default function MyDayClient({
                       </div>
 
                       {isNextUp ? (
+                        <>
+                          {job.accessInstructions || job.keyNumber || job.garageCode || job.gateCode || job.alarmCode ? (
+                            <details open className="mt-3 rounded-lg border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-3 py-2">
+                              <summary className="cursor-pointer text-xs font-semibold text-[var(--co-ink)]">Entry instructions</summary>
+                              <div className="mt-2 space-y-2 text-xs text-[var(--co-muted)]">
+                                {job.accessInstructions ? <p className="whitespace-pre-line">{job.accessInstructions}</p> : null}
+                                {job.keyNumber || job.garageCode || job.gateCode || job.alarmCode ? (
+                                  <MaskedCode className="max-w-full text-left text-xs">
+                                    {[job.keyNumber && `Key #${job.keyNumber}`, job.garageCode && `Garage ${job.garageCode}`, job.gateCode && `Gate ${job.gateCode}`, job.alarmCode && `Alarm ${job.alarmCode}`].filter(Boolean).join(" · ")}
+                                  </MaskedCode>
+                                ) : null}
+                              </div>
+                            </details>
+                          ) : null}
                         <div className="mt-3 grid grid-cols-2 gap-2">
                           <a
                             href={`https://maps.google.com/?q=${encodeURIComponent(jobAddress(job) || "")}`}
@@ -358,18 +376,21 @@ export default function MyDayClient({
                             <MapPin className="h-4 w-4" aria-hidden />
                             Directions
                           </a>
+                          <Link href={`/my-day/${job.jobId}`} className="co-button-secondary justify-center gap-1.5">
+                            Job details
+                          </Link>
                           {isWorking ? (
                             <button
                               type="button"
                               onClick={() => discardJob(job.jobId)}
-                              className="co-button-secondary justify-center gap-1.5 border-rose-200 text-rose-700 hover:border-rose-300 hover:bg-rose-50"
+                              className="co-button-secondary col-span-2 justify-center gap-1.5 border-rose-200 text-rose-700 hover:border-rose-300 hover:bg-rose-50"
                               disabled={pending}
                             >
                               <X className="h-4 w-4" aria-hidden />
                               Discard
                             </button>
                           ) : (
-                            <button type="button" onClick={() => onMyWay(job.jobId)} className="co-button-secondary justify-center gap-1.5" disabled={pending}>
+                            <button type="button" onClick={() => onMyWay(job.jobId)} className="co-button-primary col-span-2 justify-center gap-1.5" disabled={pending}>
                               <Car className="h-4 w-4" aria-hidden />
                               On my way
                             </button>
@@ -388,16 +409,14 @@ export default function MyDayClient({
                             )
                           ) : null}
                         </div>
+                        </>
                       ) : (
-                        <a
-                          href={`https://maps.google.com/?q=${encodeURIComponent(jobAddress(job) || "")}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="co-button-secondary mt-3 inline-flex gap-1.5"
-                        >
-                          <MapPin className="h-4 w-4" aria-hidden />
-                          Directions
-                        </a>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <a href={`https://maps.google.com/?q=${encodeURIComponent(jobAddress(job) || "")}`} target="_blank" rel="noreferrer" className="co-button-secondary gap-1.5">
+                            <MapPin className="h-4 w-4" aria-hidden /> Directions
+                          </a>
+                          <Link href={`/my-day/${job.jobId}`} className="co-button-secondary">Job details</Link>
+                        </div>
                       )}
                     </div>
                   </div>

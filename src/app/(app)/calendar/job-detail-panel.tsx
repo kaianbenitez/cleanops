@@ -48,6 +48,8 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState("");
 
   async function loadJob(id: string, isCancelled: () => boolean) {
     setLoading(true);
@@ -57,6 +59,8 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
       const data = await res.json();
       if (isCancelled()) return;
       setJob(data.job ?? null);
+      setConfirmingCancel(false);
+      setCancellationReason("");
       // Postgres makes no row-order guarantee without ORDER BY; assignedUserIds[0] must be the lead, so sort explicitly.
       const sortedAssignments = [...(data.assignments ?? [])].sort((a: { role: string }, b: { role: string }) =>
         a.role === b.role ? 0 : a.role === "lead" ? -1 : 1
@@ -109,14 +113,13 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
     });
   }
 
-  function cancelJob() {
-    const reason = window.prompt("Why is this job being cancelled?");
-    if (reason === null) return;
-    if (!reason.trim()) {
+  function confirmCancelJob() {
+    if (!cancellationReason.trim()) {
       setError("Enter a cancellation reason before cancelling this job.");
       return;
     }
-    patch({ status: "cancelled", cancellationReason: reason.trim() });
+    setConfirmingCancel(false);
+    patch({ status: "cancelled", cancellationReason: cancellationReason.trim() });
   }
 
   const location = job ? [job.addressLine1, job.city, job.state, job.zip].filter(Boolean).join(", ") : "";
@@ -199,7 +202,14 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
               <select
                 key={`status-${job.status}`}
                 defaultValue={job.status}
-                onChange={(event) => event.target.value === "cancelled" ? cancelJob() : patch({ status: event.target.value })}
+                onChange={(event) => {
+                  if (event.target.value === "cancelled") {
+                    event.target.value = job.status;
+                    setConfirmingCancel(true);
+                    return;
+                  }
+                  patch({ status: event.target.value });
+                }}
                 className="co-input mt-1 w-full"
               >
                 {STATUS_OPTIONS.map((option) => (
@@ -222,10 +232,19 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
             </div>
 
             <div className="flex flex-wrap gap-2 border-t border-[var(--co-line-soft)] pt-4">
-              {job.status !== "cancelled" ? (
-                <button type="button" onClick={cancelJob} className="co-button-secondary">
-                  Cancel job
-                </button>
+              {job.status !== "cancelled" ? confirmingCancel ? (
+                <div className="w-full space-y-2 rounded-lg border border-rose-200 bg-rose-50 p-3">
+                  <label className="block text-xs font-semibold text-rose-800">
+                    Cancellation reason
+                    <textarea value={cancellationReason} onChange={(event) => setCancellationReason(event.target.value)} rows={2} placeholder="Why is this job being cancelled?" className="co-input mt-1 w-full resize-none" />
+                  </label>
+                  <div className="flex gap-2">
+                    <button type="button" disabled={saving} onClick={() => { setConfirmingCancel(false); setCancellationReason(""); }} className="co-button-secondary py-1 text-xs disabled:opacity-50">Keep job</button>
+                    <button type="button" disabled={saving || !cancellationReason.trim()} onClick={confirmCancelJob} className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50">Confirm cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setConfirmingCancel(true)} className="co-button-secondary">Cancel job</button>
               ) : null}
               <Link href={`/jobs/${job.id}`} className="co-button-secondary">
                 Open full job page

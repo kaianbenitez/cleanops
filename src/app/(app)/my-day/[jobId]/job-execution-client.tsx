@@ -210,13 +210,14 @@ export default function JobExecutionClient({
 
       {!started ? (
         <section className="co-card p-5">
-          <p className="text-sm text-[var(--co-muted)]">You haven&apos;t clocked in to this job yet.</p>
+          <p className="text-sm text-[var(--co-muted)]">Previewing this job before departure. Review the address and entry details, then return to My Day when you&apos;re ready to head out.</p>
           <button type="button" onClick={clockIn} className="co-button-primary mt-4">
-            Arrive &amp; clock in
+            Clock in when you arrive
           </button>
         </section>
-      ) : (
-        <div className="space-y-4">
+      ) : null}
+
+      <div className="space-y-4">
           <section className="co-card p-5">
             <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-[var(--co-ink)]">Service details</h2>
             <div className="space-y-3">
@@ -281,7 +282,7 @@ export default function JobExecutionClient({
             ) : null}
           </section>
 
-          {!completed ? (
+          {started && !completed ? (
             <>
               <section className="co-card p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
@@ -377,7 +378,7 @@ export default function JobExecutionClient({
                 </div>
               </section>
             </>
-          ) : (
+          ) : completed ? (
             <section className="co-card p-5 text-center">
               <p className="text-lg font-semibold text-[var(--co-evergreen)]">Job completed</p>
               <p className="mt-1 text-sm text-[var(--co-muted)]">
@@ -387,9 +388,8 @@ export default function JobExecutionClient({
                 Back to My day
               </Link>
             </section>
-          )}
-        </div>
-      )}
+          ) : null}
+      </div>
 
       {started && !completed ? (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--co-line-soft)] bg-[var(--co-surface)] p-4">

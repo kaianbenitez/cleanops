@@ -52,6 +52,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
   const [warning, setWarning] = useState<string | null>(null);
   const [assigned, setAssigned] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState("");
 
   async function load(id: string, isCancelled: () => boolean) {
     setLoading(true);
@@ -60,6 +61,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
     setAssigned(false);
     setSelectedIds([]);
     setConfirmingCancel(false);
+    setCancellationReason("");
     try {
       const [jobBody, historyBody] = await Promise.all([
         fetch(`/api/jobs/${id}/summary`).then((res) => res.json()),
@@ -259,24 +261,25 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
               {job.status === "cancelled" ? (
                 <StatusPill domain="job" status="cancelled" />
               ) : confirmingCancel ? (
-                <div className="flex items-center gap-2">
-                  <p className="flex-1 text-xs font-medium text-rose-700">Cancel this appointment?</p>
-                  <button type="button" disabled={saving} onClick={() => setConfirmingCancel(false)} className="co-button-secondary py-1 text-xs disabled:opacity-50">
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-rose-700">Cancel this appointment?</p>
+                  <textarea value={cancellationReason} onChange={(event) => setCancellationReason(event.target.value)} rows={2} placeholder="Why is this job being cancelled?" className="co-input w-full resize-none text-xs" />
+                  <div className="flex gap-2">
+                  <button type="button" disabled={saving} onClick={() => { setConfirmingCancel(false); setCancellationReason(""); }} className="co-button-secondary py-1 text-xs disabled:opacity-50">
                     Keep job
                   </button>
                   <button
                     type="button"
-                    disabled={saving}
+                    disabled={saving || !cancellationReason.trim()}
                     onClick={() => {
                       setConfirmingCancel(false);
-                      const reason = window.prompt("Why is this job being cancelled?");
-                      if (!reason?.trim()) return;
-                      patch({ status: "cancelled", cancellationReason: reason.trim() });
+                      patch({ status: "cancelled", cancellationReason: cancellationReason.trim() });
                     }}
                     className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
                   >
                     Confirm cancel
                   </button>
+                  </div>
                 </div>
               ) : (
                 <button type="button" disabled={saving} onClick={() => setConfirmingCancel(true)} className="text-xs font-semibold text-rose-700 hover:underline disabled:opacity-50">

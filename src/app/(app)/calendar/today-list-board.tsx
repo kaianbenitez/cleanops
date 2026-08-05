@@ -87,6 +87,7 @@ export default function TodayListBoard({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmingCancelId, setConfirmingCancelId] = useState<string | null>(null);
+  const [cancellationReasons, setCancellationReasons] = useState<Record<string, string>>({});
   const [detailJobId, setDetailJobId] = useState<string | null>(null);
   const [now, setNow] = useState(0);
   const { toast, showUndo, dismiss } = useUndoToast();
@@ -215,16 +216,20 @@ export default function TodayListBoard({
   }
 
   function cancelJob(job: ListJob) {
+    const reason = cancellationReasons[job.id]?.trim();
+    if (!reason) {
+      setError("Enter a cancellation reason before cancelling this job.");
+      return;
+    }
     setConfirmingCancelId(null);
-    const reason = window.prompt("Why is this job being cancelled?");
-    if (!reason?.trim()) return;
-    commitStatus(job, "cancelled", reason.trim());
+    setCancellationReasons((current) => ({ ...current, [job.id]: "" }));
+    commitStatus(job, "cancelled", reason);
   }
 
   function changeStatus(job: ListJob, status: string, select: HTMLSelectElement) {
     if (status === "cancelled") {
       select.value = job.status;
-      cancelJob(job);
+      setConfirmingCancelId(job.id);
       return;
     }
     commitStatus(job, status);
@@ -353,13 +358,14 @@ export default function TodayListBoard({
                     ) : confirmingCancelId === job.id ? (
                       <div className="flex flex-col items-start gap-1.5">
                         <p className="text-xs font-medium text-rose-700">Cancel this appointment?</p>
+                        <textarea value={cancellationReasons[job.id] ?? ""} onChange={(event) => setCancellationReasons((current) => ({ ...current, [job.id]: event.target.value }))} rows={2} placeholder="Why is this job being cancelled?" className="co-input w-full resize-none text-xs" />
                         <div className="flex gap-1.5">
-                          <button type="button" disabled={savingId === job.id} onClick={() => setConfirmingCancelId(null)} className="co-button-secondary py-1 text-xs disabled:opacity-50">
+                          <button type="button" disabled={savingId === job.id} onClick={() => { setConfirmingCancelId(null); setCancellationReasons((current) => ({ ...current, [job.id]: "" })); }} className="co-button-secondary py-1 text-xs disabled:opacity-50">
                             Keep job
                           </button>
                           <button
                             type="button"
-                            disabled={savingId === job.id}
+                            disabled={savingId === job.id || !cancellationReasons[job.id]?.trim()}
                             onClick={() => cancelJob(job)}
                             className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
                           >
