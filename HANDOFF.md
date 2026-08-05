@@ -5,11 +5,55 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-04 (product renamed CleanOps → ServiceSpark, user-facing branding only,
-plus a real Privacy Policy published — see the entry right below; also this same day, a live
-anon-key data exposure was found and closed via RLS, see the entry after that).
+Last updated: 2026-08-06 (encrypted Square/Google Maps API key storage shipped — see the
+entry right below).
 
 ## Done
+
+- **Admins can now securely save Square and Google Maps API keys under Settings → Square &
+  Google Maps (2026-08-06, merged to `main` at `a53e745`).** Built by Codex on
+  `codex/encrypted-api-keys` (`c80d82b`), delegated with a structured contract per this
+  repo's Claude-plans/Codex-implements workflow. New encrypted columns on `companies`
+  (`squareAccessTokenEncrypted`, `squareEnvironment`, `squareWebhookSignatureKeyEncrypted`,
+  `googleMapsApiKeyEncrypted`) plus two geocode-cache columns on `customers`
+  (`geocodedLatitude`/`geocodedLongitude`) — migration `drizzle/0024_warm_landau.sql`
+  (renumbered from an auto-generated `0023_warm_landau.sql`, which collided with the
+  already-live `0023_enable_rls.sql`; same journal-fixup pattern as the earlier 0015/0016
+  collision, `prevId` chain confirmed intact). **Applied to the hosted DB and confirmed via
+  `check:drift` before any code was merged.**
+  Independently reviewed line-by-line before integration, not just Codex's summary:
+  `src/lib/settings/encryption.ts` uses AES-256-GCM with a random IV per value and an auth
+  tag, keyed off `SETTINGS_ENCRYPTION_KEY` (fails closed — throws if unset/wrong length
+  rather than storing plaintext); `GET /api/settings` and the settings audit-log entries
+  only ever expose a `configured: true/false` boolean, never the raw or encrypted value;
+  `PATCH /api/settings` encrypts on the way in and the row returned to the client never
+  includes the encrypted columns. The one intentional exception is `GET
+  /api/integrations/maps-key`, which does return the real decrypted Maps key to an
+  authenticated admin's browser — necessary because Google Maps JS keys must run
+  client-side; the UI itself warns to lock it down with HTTP-referrer restrictions in
+  Google Cloud. Settings → Square & Google Maps uses password-style inputs, clears them
+  after save, and only ever shows "Configured"/"Not configured".
+  Also fixes the previously-flagged geocoding cost gap (see the old Blocked entry, now
+  resolved below): `calendar/route-preview.tsx` and the two dashboard technician-route
+  files now call the new `POST /api/maps/geocode-cache` to persist a customer's lat/lng
+  after the first lookup (scoped to the admin's own company, only writes when not already
+  cached) instead of re-geocoding on every render.
+  Verified independently (not just Codex's report) at every stage: `check:drift` clean
+  after the migration, `npm run verify` clean (0 errors, same 26 pre-existing warnings),
+  both `smoke:routes` (5/5) and `smoke:auth` (22/22) against a local production build —
+  run once on the feature branch, then re-run in full on the integrated `main` after
+  merging. Added a `v0.1.4` Help Center changelog entry.
+  **Confirmed nothing changes in production today**: no real Square or Maps keys are
+  configured yet, so Square stays in its existing test/mock mode and Maps behavior is
+  unchanged — this only adds somewhere safe to put real keys once obtained.
+  **One small known side effect**: the address-autocomplete widget on `/customers/new`
+  will only work for users logged in as an admin once a real Maps key is added (the new
+  `maps-key` route is admin-gated) — low-risk since that screen is already mainly used by
+  admins, but worth knowing before it comes up as a surprise.
+  **Not click-through-tested in a real browser** — build/type/lint/smoke-verified only,
+  same `.env.local` `BROWSER_ADMIN_PASSWORD` gap as other recent features. Worth an actual
+  pass next time someone's logged in: open Settings → Square & Google Maps, save a
+  throwaway value, confirm it shows "Configured" and the field stays blank on reload.
 
 - **CleanOps renamed to ServiceSpark (user-facing branding only) + real Privacy Policy
   published (2026-08-04).** User's call: rename the product, but scope deliberately limited
@@ -909,12 +953,14 @@ anon-key data exposure was found and closed via RLS, see the entry after that).
   in Vercel (`src/lib/square/client.ts` falls back to fake invoice IDs/URLs with zero
   warning anywhere in the admin UI when the token is unset). **Explicitly on hold** until the
   client approves the current build — do not chase this until told to.
-- `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` not yet set (user is obtaining one). Once added: the
-  legacy `Autocomplete` widget in `customers/address-autocomplete.tsx` already qualifies for
-  Google's cheaper per-session billing (Basic Data fields only) — no change needed there. But
-  `calendar/route-preview.tsx` re-geocodes every job's address on every render with no
-  caching — cache the resulting lat/lng on the customer/location record after first lookup
-  before this goes live, or it'll scale linearly with usage on the metered Geocoding API.
+- A real Google Maps API key still isn't configured (user is obtaining one) — but there is
+  now somewhere secure to put it, see the top "Done" entry (2026-08-06). Once a real key is
+  saved under Settings → Square & Google Maps: the legacy `Autocomplete` widget in
+  `customers/address-autocomplete.tsx` already qualifies for Google's cheaper per-session
+  billing (Basic Data fields only) — no change needed there. **The re-geocode-on-every-render
+  cost gap this bullet used to flag is resolved** — `calendar/route-preview.tsx` and the
+  dashboard technician-route views now cache each customer's lat/lng after the first lookup
+  via `POST /api/maps/geocode-cache` instead of re-geocoding every render.
 - **Correction 2026-07-24**: the note below (Codex's calendar overflow-cap fix +
   employee-photo-upload feature) described *uncommitted* work when it was first written, but
   a prior session staged and pushed most of it anyway (commits `fb311bc`, `d3a2553`,
