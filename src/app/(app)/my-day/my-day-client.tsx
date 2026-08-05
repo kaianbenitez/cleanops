@@ -46,7 +46,7 @@ function EquipmentRow({ job }: { job: JobCard }) {
   const mopHeads = hasConfirmedMopCount ? String(job.mopHeadCount) : job.mopHeadEstimate === null || job.mopHeadEstimate === undefined ? "Not set" : `~${job.mopHeadEstimate}`;
   return (
     <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--co-muted)]" aria-label={`Equipment: Mop heads ${mopHeads}, rags ${job.ragCount ?? "not set"}, vacuum ${job.vacuumCount ?? "not set"}`}>
-      <span className={hasConfirmedMopCount ? "inline-flex items-center gap-1 font-medium text-[var(--co-ink)]" : "inline-flex items-center gap-1"}><WashingMachine className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden />Mop {mopHeads}{!hasConfirmedMopCount && job.mopHeadEstimate !== null && job.mopHeadEstimate !== undefined ? <span className="sr-only"> estimated</span> : null}</span>
+      <span className={hasConfirmedMopCount ? "inline-flex items-center gap-1 font-medium text-[var(--co-ink)]" : "inline-flex items-center gap-1"}><WashingMachine className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden />Mopheads {mopHeads}{!hasConfirmedMopCount && job.mopHeadEstimate !== null && job.mopHeadEstimate !== undefined ? <span className="sr-only"> estimated</span> : null}</span>
       <span className="inline-flex items-center gap-1"><Shirt className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden />Rags {job.ragCount ?? "Not set"}</span>
       <span className="inline-flex items-center gap-1"><Wind className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden />Vacuum {job.vacuumCount ?? "Not set"}</span>
     </div>
