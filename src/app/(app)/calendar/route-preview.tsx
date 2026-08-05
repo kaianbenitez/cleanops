@@ -7,12 +7,15 @@ import type { GoogleLatLng, GoogleMap, GoogleMarker, GooglePolyline } from "@/li
 
 type RouteJob = {
   id: string;
+  customerId: string;
   firstName: string;
   lastName: string;
   address: string;
   city: string;
   zip: string;
   time: string;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 function minutesFromTime(value: string) {
@@ -26,17 +29,18 @@ export default function RoutePreview({
   showHeader = true,
   showTopStats = true,
   embedded = false,
+  apiKey,
 }: {
   jobs: RouteJob[];
   title: string;
   showHeader?: boolean;
   showTopStats?: boolean;
   embedded?: boolean;
+  apiKey: string | null;
 }) {
   const mapElement = useRef<HTMLDivElement>(null);
   const mapRef = useRef<GoogleMap | null>(null);
   const overlaysRef = useRef<Array<GoogleMarker | GooglePolyline>>([]);
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const [googleReady, setGoogleReady] = useState(Boolean(typeof window !== "undefined" && window.google?.maps));
   const [mapError, setMapError] = useState(false);
 
@@ -72,10 +76,25 @@ export default function RoutePreview({
     let completed = 0;
 
     orderedJobs.forEach((job, index) => {
+      if (job.latitude != null && job.longitude != null) {
+        const position = { lat: job.latitude, lng: job.longitude };
+        completed += 1;
+        points[index] = position;
+        bounds.extend(position);
+        const marker = new maps.Marker({ map, position, label: String(index + 1), title: `${index + 1}. ${job.firstName} ${job.lastName}` });
+        overlaysRef.current.push(marker);
+        if (completed === orderedJobs.length && points.length > 0) {
+          map.fitBounds(bounds);
+          if (points.filter(Boolean).length > 1) overlaysRef.current.push(new maps.Polyline({ map, path: points.filter(Boolean), strokeColor: "#0f4837", strokeOpacity: 0.85, strokeWeight: 3 }));
+        }
+        return;
+      }
       geocoder.geocode({ address: `${job.address}, ${job.city} ${job.zip}` }, (results, status) => {
         completed += 1;
         if (status === "OK" && results[0]) {
           const position = results[0].geometry.location;
+          const latitude = typeof position.lat === "function" ? position.lat() : position.lat;
+          const longitude = typeof position.lng === "function" ? position.lng() : position.lng;
           points[index] = position;
           bounds.extend(position);
           const marker = new maps.Marker({
@@ -85,6 +104,7 @@ export default function RoutePreview({
             title: `${index + 1}. ${job.firstName} ${job.lastName}`,
           });
           overlaysRef.current.push(marker);
+          void fetch("/api/maps/geocode-cache", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customerId: job.customerId, latitude, longitude }) });
         }
 
         if (completed === orderedJobs.length && points.length > 0) {

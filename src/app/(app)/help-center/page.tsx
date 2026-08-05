@@ -7,6 +7,24 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.1.4",
+    date: "August 6, 2026",
+    title: "Secure Square and Maps setup",
+    changes: [
+      "Administrators can now securely save Square and Google Maps API keys under Settings → Square & Google Maps. Keys are encrypted and are never shown again once saved.",
+      "Nothing changes today because no real keys are configured yet: Square remains in its current test mode, and Maps behavior is unchanged.",
+    ],
+  },
+  {
+    version: "v0.1.3",
+    date: "August 5, 2026",
+    title: "Self-service Square and Maps setup",
+    changes: [
+      "Administrators can now save Square invoicing and Google Maps connection keys in Settings. The saved values are encrypted and are never shown again after saving.",
+      "Route maps now remember a customer address after it is first located, reducing repeat Google Maps lookups.",
+    ],
+  },
+  {
     version: "v0.1.2",
     date: "August 4, 2026",
     title: "CleanOps is now ServiceSpark",

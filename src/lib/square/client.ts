@@ -1,4 +1,5 @@
 import { createHmac } from "crypto";
+import type { SquareConfig } from "@/lib/settings/integrations";
 
 /**
  * Thin wrapper around the Square API (Customers + Invoices). Same mock-mode
@@ -10,27 +11,27 @@ import { createHmac } from "crypto";
  * is configured.
  */
 
-function baseUrl(): string {
-  return process.env.SQUARE_ENVIRONMENT === "production"
+function baseUrl(config: SquareConfig): string {
+  return config.environment === "production"
     ? "https://connect.squareup.com/v2"
     : "https://connect.squareupsandbox.com/v2";
 }
 
-function isMockMode(): boolean {
-  return !process.env.SQUARE_ACCESS_TOKEN;
+function isMockMode(config: SquareConfig): boolean {
+  return !config.accessToken;
 }
 
 type SquareResponse = { ok: boolean; status: number; body: unknown; mocked?: boolean };
 
-async function squareFetch(path: string, init: RequestInit): Promise<SquareResponse> {
-  if (isMockMode()) {
+async function squareFetch(config: SquareConfig, path: string, init: RequestInit): Promise<SquareResponse> {
+  if (isMockMode(config)) {
     return { ok: true, status: 200, body: { mock: true, path, method: init.method }, mocked: true };
   }
 
-  const res = await fetch(`${baseUrl()}${path}`, {
+  const res = await fetch(`${baseUrl(config)}${path}`, {
     ...init,
     headers: {
-      Authorization: `Bearer ${process.env.SQUARE_ACCESS_TOKEN}`,
+      Authorization: `Bearer ${config.accessToken}`,
       "Content-Type": "application/json",
       "Square-Version": "2024-01-18",
       ...init.headers,
@@ -42,7 +43,7 @@ async function squareFetch(path: string, init: RequestInit): Promise<SquareRespo
 }
 
 /** Upserts a Square customer, matching by our stored squareCustomerId if present. */
-export async function upsertSquareCustomer(params: {
+export async function upsertSquareCustomer(config: SquareConfig, params: {
   squareCustomerId?: string | null;
   firstName: string;
   lastName: string;
@@ -50,7 +51,7 @@ export async function upsertSquareCustomer(params: {
   phone?: string | null;
 }): Promise<SquareResponse> {
   if (params.squareCustomerId) {
-    return squareFetch(`/customers/${params.squareCustomerId}`, {
+    return squareFetch(config, `/customers/${params.squareCustomerId}`, {
       method: "PUT",
       body: JSON.stringify({
         given_name: params.firstName,
@@ -61,7 +62,7 @@ export async function upsertSquareCustomer(params: {
     });
   }
 
-  return squareFetch(`/customers`, {
+  return squareFetch(config, `/customers`, {
     method: "POST",
     body: JSON.stringify({
       given_name: params.firstName,
@@ -74,14 +75,14 @@ export async function upsertSquareCustomer(params: {
 
 /** Creates and publishes a Square invoice in one step (draft-then-publish under the hood
  * in mock mode; real Square requires two calls, handled inside this function). */
-export async function createAndPublishInvoice(params: {
+export async function createAndPublishInvoice(config: SquareConfig, params: {
   squareCustomerId: string;
   locationId: string;
   title: string;
   totalCents: number;
   idempotencyKey: string;
 }): Promise<SquareResponse & { invoiceId?: string; publicUrl?: string }> {
-  if (isMockMode()) {
+  if (isMockMode(config)) {
     const mockId = `mock-inv-${params.idempotencyKey.slice(0, 8)}`;
     return {
       ok: true,
@@ -93,7 +94,7 @@ export async function createAndPublishInvoice(params: {
     };
   }
 
-  const createRes = await squareFetch(`/invoices`, {
+  const createRes = await squareFetch(config, `/invoices`, {
     method: "POST",
     body: JSON.stringify({
       invoice: {
@@ -117,7 +118,7 @@ export async function createAndPublishInvoice(params: {
   const invoiceId = created.invoice?.id;
   if (!invoiceId) return { ...createRes, ok: false };
 
-  const publishRes = await squareFetch(`/invoices/${invoiceId}/publish`, {
+  const publishRes = await squareFetch(config, `/invoices/${invoiceId}/publish`, {
     method: "POST",
     body: JSON.stringify({ version: created.invoice?.version ?? 0, idempotency_key: `${params.idempotencyKey}-pub` }),
   });
@@ -127,9 +128,7 @@ export async function createAndPublishInvoice(params: {
 }
 
 /** Verifies a Square webhook signature (SHA-256 HMAC of notification URL + body). */
-export function verifySquareSignature(rawBody: string, signature: string, notificationUrl: string): boolean {
-  if (isMockMode()) return true; // no real signing key to check against in mock mode
-  const key = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY ?? "";
+export function verifySquareSignature(rawBody: string, signature: string, notificationUrl: string, key: string | null): boolean {
   if (!key) return false;
   const hmac = createHmac("sha256", key).update(notificationUrl + rawBody).digest("base64");
   return hmac === signature;

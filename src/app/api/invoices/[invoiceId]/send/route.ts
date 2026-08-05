@@ -28,7 +28,7 @@ export async function POST(
     return NextResponse.json({ error: "Only draft invoices can be sent" }, { status: 400 });
   }
 
-  const result = await sendInvoiceViaSquare(invoiceId);
+  const result = await sendInvoiceViaSquare(invoiceId, admin.companyId);
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 502 });
   }

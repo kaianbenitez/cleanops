@@ -15,6 +15,9 @@ export type RouteStop = {
   city: string;
   zip: string;
   time: string;
+  customerId: string;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type TechnicianRoute = {
@@ -26,9 +29,11 @@ export type TechnicianRoute = {
 export default function TechnicianRoutePreview({
   routes,
   fallbackTitle = "Today's route",
+  apiKey,
 }: {
   routes: TechnicianRoute[];
   fallbackTitle?: string;
+  apiKey: string | null;
 }) {
   const [selectedId, setSelectedId] = useState(routes.find((route) => route.jobs.length > 0)?.employeeId ?? "all");
 
@@ -97,7 +102,7 @@ export default function TechnicianRoutePreview({
       </CardHeader>
 
       <div className="border-b border-[var(--co-line-soft)] px-5 py-5">
-        <RoutePreview embedded showHeader={false} showTopStats={false} title={selectedRoute?.employeeName ?? fallbackTitle} jobs={jobs} />
+        <RoutePreview embedded showHeader={false} showTopStats={false} title={selectedRoute?.employeeName ?? fallbackTitle} jobs={jobs} apiKey={apiKey} />
       </div>
 
       <CardContent className="divide-y divide-[var(--co-line-soft)] px-0 py-0">

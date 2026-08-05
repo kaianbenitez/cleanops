@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { webhookEvents, invoices } from "@/db/schema";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { verifySquareSignature } from "@/lib/square/client";
+import { getSquareWebhookKeys } from "@/lib/settings/integrations";
 
 /**
  * Inbound Square webhook — per PLAN.md §6, listens for `invoice.payment_made`
@@ -15,7 +16,9 @@ export async function POST(req: NextRequest) {
   const signature = req.headers.get("x-square-hmacsha256-signature") ?? "";
   const notificationUrl = req.url;
 
-  const signatureValid = verifySquareSignature(rawBody, signature, notificationUrl);
+  const webhookKeys = await getSquareWebhookKeys();
+  // Retain today's permissive mock behavior when no webhook key exists at all.
+  const signatureValid = webhookKeys.length === 0 || webhookKeys.some((key) => verifySquareSignature(rawBody, signature, notificationUrl, key));
 
   let payload: unknown;
   try {
