@@ -1,24 +1,32 @@
 # Claude + Codex collaboration workflow
 
+**Claude plans and evaluates; Codex implements.** Claude Code does not write
+or edit product code directly (small throwaway read-only investigation
+scripts are the only exception) — all feature work, fixes, refactors, and
+data-mutating scripts go through Codex, given a structured contract (goal,
+files in scope, acceptance criteria, constraints, verification commands).
+Claude's job afterward is to review Codex's diff and verification output,
+not to re-implement it.
+
 Use separate worktrees for active feature work. The shared main checkout is for integration only.
 
 ## Worktrees
 
 | Role | Folder | Branch | Purpose |
 | --- | --- | --- | --- |
-| Integration | `C:\Users\kbeni\Downloads\cleanops-v1` | `main` | Keep clean; cherry-pick, verify, and push finished work here. |
-| Claude | `C:\Users\kbeni\Downloads\cleanops-claude` | Claude feature branch | Claude's active implementation work. |
-| Codex | `C:\Users\kbeni\Downloads\cleanops-codex` | Codex feature branch | Codex's active implementation work. |
+| Integration | `C:\Users\kbeni\Downloads\cleanops-v1` | `main` | Keep clean; Claude reviews, verifies, cherry-picks, and pushes finished Codex work here. |
+| Codex (feature) | `C:\Users\kbeni\Downloads\cleanops-claude` | Codex feature branch | Codex's active implementation work, assigned/reviewed by Claude. |
+| Codex (feature) | `C:\Users\kbeni\Downloads\cleanops-codex` | Codex feature branch | Codex's active implementation work. |
 
 Do not actively implement in the integration checkout. Never have both agents edit the same file at the same time, even in separate worktrees, without deciding who owns conflict resolution.
 
 ## Feature workflow
 
-1. Start from the agent's dedicated worktree and update its branch from `main`.
-2. Make only the scoped change, inspect the diff, and run the relevant checks.
+1. Claude scopes the task and hands it to Codex with a structured execution contract (goal, files/areas in scope, acceptance criteria, constraints, verification commands) in the assigned worktree, updated from `main` first.
+2. Codex makes the scoped change; Claude inspects the diff and runs/reviews the relevant checks.
 3. Commit only explicit paths. Never use `git add .` or `git add -A`.
-4. Push the agent's feature branch, not `main`.
-5. Assign one integrator (normally Claude) to use a clean integration worktree:
+4. Push the feature branch, not `main`.
+5. Claude, as integrator, uses a clean integration worktree:
    - fetch current `origin/main`;
    - cherry-pick the feature commit;
    - resolve conflicts only if assigned to do so;
