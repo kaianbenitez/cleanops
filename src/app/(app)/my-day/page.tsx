@@ -1,7 +1,7 @@
 import { and, desc, eq, gt, gte, isNull, isNotNull, lt } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { companies, customerLocations, customers, jobs, jobAssignments, timeEntries } from "@/db/schema";
+import { companies, customerLocations, customers, jobs, jobAssignments, roomTypes, timeEntries } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { payrollWeekRangeForDate } from "@/lib/payroll/periods";
 import MyDayClient from "./my-day-client";
@@ -34,7 +34,28 @@ type JobCard = {
   preferredDays: string[] | null;
   preferredTimeOfDay: string | null;
   subdivision: string | null;
+  mopHeadCount?: number | null;
+  ragCount?: number | null;
+  vacuumCount?: number | null;
+  mopHeadEstimate?: number | null;
 };
+
+const HARD_FLOOR_ROOM_NAMES = new Set(["Master Bathroom", "Full Bathroom", "Half Bathroom", "Kitchen Large", "Kitchen Medium", "Kitchen Small", "Laundry Room", "Hallway"]);
+
+function equipmentForStop(
+  customer: { homeDetails: unknown; mopHeadCount: number | null; ragCount: number | null; vacuumCount: number | null },
+  roomTypeNameById: Map<string, string>
+) {
+  const roomCounts = customer.homeDetails && typeof customer.homeDetails === "object" && !Array.isArray(customer.homeDetails)
+    ? (customer.homeDetails as { roomCounts?: unknown }).roomCounts
+    : null;
+  if (!roomCounts || typeof roomCounts !== "object" || Array.isArray(roomCounts) || Object.keys(roomCounts).length === 0) {
+    return { mopHeadCount: customer.mopHeadCount, ragCount: customer.ragCount, vacuumCount: customer.vacuumCount, mopHeadEstimate: null };
+  }
+  const hardFloorRooms = Object.entries(roomCounts as Record<string, unknown>).reduce((sum, [roomTypeId, count]) =>
+    sum + (HARD_FLOOR_ROOM_NAMES.has(roomTypeNameById.get(roomTypeId) ?? "") ? Number(count) || 0 : 0), 0);
+  return { mopHeadCount: customer.mopHeadCount, ragCount: customer.ragCount, vacuumCount: customer.vacuumCount, mopHeadEstimate: Math.round(hardFloorRooms + 3) };
+}
 
 type TimeEntryCard = {
   id: string;
@@ -129,6 +150,10 @@ export default async function MyDayPage() {
       preferredDays: customers.preferredDays,
       preferredTimeOfDay: customers.preferredTimeOfDay,
       subdivision: customers.subdivision,
+      homeDetails: customers.homeDetails,
+      mopHeadCount: customers.mopHeadCount,
+      ragCount: customers.ragCount,
+      vacuumCount: customers.vacuumCount,
     })
     .from(jobAssignments)
     .innerJoin(jobs, eq(jobAssignments.jobId, jobs.id))
@@ -136,6 +161,10 @@ export default async function MyDayPage() {
     .leftJoin(customerLocations, and(eq(customerLocations.customerId, customers.id), eq(customerLocations.isPrimary, true), eq(customerLocations.isActive, true)))
     .where(and(eq(jobAssignments.userId, user.id), eq(jobs.companyId, user.companyId), eq(jobs.scheduledDate, todayIso), isNull(jobs.completedAt)))
     .orderBy(jobs.scheduledStartTime);
+
+  const companyRoomTypes = await db.select({ id: roomTypes.id, name: roomTypes.name }).from(roomTypes).where(eq(roomTypes.companyId, user.companyId));
+  const roomTypeNameById = new Map(companyRoomTypes.map((roomType) => [roomType.id, roomType.name]));
+  const todayJobsWithEquipment = todayJobs.map((job) => ({ ...job, ...equipmentForStop(job, roomTypeNameById) }));
 
   const upcomingJobs = await db
     .select({
@@ -213,7 +242,7 @@ export default async function MyDayPage() {
     .orderBy(desc(jobs.completedAt))
     .limit(10);
 
-  const currentJob = todayJobs[0] ?? upcomingJobs[0] ?? null;
+  const currentJob = todayJobsWithEquipment[0] ?? upcomingJobs[0] ?? null;
 
   const openEntry = await db
     .select({
@@ -394,7 +423,7 @@ export default async function MyDayPage() {
       weeklyHours={hoursThisPeriod}
       currentJob={currentJobData}
       openEntry={openEntry ? { ...openEntry, clockIn: openEntry.clockIn.toISOString(), clockOut: openEntry.clockOut ? openEntry.clockOut.toISOString() : null } : null}
-      todayJobs={todayJobs.map((job) => ({ ...job }))}
+      todayJobs={todayJobsWithEquipment}
       upcomingJobs={upcomingJobs.map((job) => ({ ...job }))}
       completedJobs={completedJobs.map((job) => ({ ...job }))}
       currentYear={new Date().getFullYear()}

@@ -33,6 +33,9 @@ const updateCustomerSchema = z.object({
   importantToCustomer: z.string().trim().max(5000).nullable().optional(),
   tags: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
   homeDetails: z.record(z.string(), z.unknown()).optional(),
+  mopHeadCount: z.number().int().min(0).nullable().optional(),
+  ragCount: z.number().int().min(0).nullable().optional(),
+  vacuumCount: z.number().int().min(0).nullable().optional(),
   isArchived: z.boolean().optional(),
   archivedReason: z.string().trim().max(500).nullable().optional(),
   locations: z.array(z.object({

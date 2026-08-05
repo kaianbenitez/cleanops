@@ -10,6 +10,12 @@ import { CustomerViewCards } from "./view-cards";
 import { TYPE_LABELS, money, type Customer, type Location, type CustomerJob, type AuditEntry } from "./shared";
 import { cleanNoteText } from "@/lib/format";
 
+type EquipmentCustomer = Customer & {
+  mopHeadCount?: number | null;
+  ragCount?: number | null;
+  vacuumCount?: number | null;
+};
+
 type EmployeeOption = { id: string; firstName: string; lastName: string };
 
 type RoomType = { id: string; name: string; sortOrder: number };
@@ -222,6 +228,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
   }, []);
 
   const location = locations[activeLocationIndex] ?? null;
+  const equipmentCustomer = customer as EquipmentCustomer | null;
   const home = customer?.homeDetails ?? {};
   const roomCounts = (home.roomCounts as Record<string, number>) ?? {};
   const upcomingJobs = useMemo(
@@ -257,6 +264,12 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
       return { ...current, paymentMethods: methods.includes(method) ? methods.filter((value) => value !== method) : [...methods, method] };
     });
   const updateHome = (key: string, value: string) => setCustomer((current) => (current ? { ...current, homeDetails: { ...(current.homeDetails ?? {}), [key]: value } } : current));
+  const updateEquipment = (key: "mopHeadCount" | "ragCount" | "vacuumCount", value: string) =>
+    setCustomer((current) => {
+      if (!current) return current;
+      const parsed = value.trim() === "" ? null : Number(value);
+      return { ...current, [key]: parsed !== null && Number.isInteger(parsed) && parsed >= 0 ? parsed : null } as Customer;
+    });
   const updateRoomCount = (roomTypeId: string, value: string) =>
     setCustomer((current) => {
       if (!current) return current;
@@ -303,6 +316,9 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         petNotes: customer.petNotes || null,
         importantToCustomer: customer.importantToCustomer || null,
         homeDetails: customer.homeDetails ?? {},
+        mopHeadCount: equipmentCustomer?.mopHeadCount ?? null,
+        ragCount: equipmentCustomer?.ragCount ?? null,
+        vacuumCount: equipmentCustomer?.vacuumCount ?? null,
         locations: locations.map((item) => ({ ...item, id: item.id || undefined })),
       }),
     });
@@ -820,6 +836,16 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
       </section>
 
       <section>
+        <Section eyebrow="Equipment" title="Cleaning equipment" description="Set the real counts a cleaner should bring. Leave a field blank when it is not set.">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Mop heads" type="number" value={String(equipmentCustomer?.mopHeadCount ?? "")} onChange={(value) => updateEquipment("mopHeadCount", value)} />
+            <Field label="Rags" type="number" value={String(equipmentCustomer?.ragCount ?? "")} onChange={(value) => updateEquipment("ragCount", value)} />
+            <Field label="Vacuum" type="number" value={String(equipmentCustomer?.vacuumCount ?? "")} onChange={(value) => updateEquipment("vacuumCount", value)} />
+          </div>
+        </Section>
+      </section>
+
+      <section>
         <Section eyebrow="Home profile" title="Rooms and preferences" description="The fields your team needs when they first walk in.">
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Dirt level" value={String(home.dirtLevel ?? "")} onChange={(value) => updateHome("dirtLevel", value)} />
@@ -914,7 +940,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
 
       {mode === "view" && (
         <CustomerViewCards
-          customer={customer}
+          customer={customer as EquipmentCustomer}
           location={location}
           roomTypes={roomTypes}
           locations={locations}

@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.1.6",
+    date: "August 6, 2026",
+    title: "Cleaning equipment counts before each stop",
+    changes: [
+      "Cleaners can now see mop-head, rag, and vacuum counts on My Day before heading to a home.",
+      "Administrators can save the real counts on each customer profile; a clearly marked mop-head estimate is shown only when room details are available and no confirmed count has been set.",
+    ],
+  },
+  {
     version: "v0.1.5",
     date: "August 6, 2026",
     title: "Clearer job cancellations and cleaner route prep",

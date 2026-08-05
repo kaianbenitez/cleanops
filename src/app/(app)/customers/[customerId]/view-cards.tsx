@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useState } from "react";
-import { Bath, BedDouble, Boxes, CalendarDays, Cat, CircleAlert, Clock3, CookingPot, CreditCard, Dog, House, KeyRound, Mail, MapPin, NotebookText, Phone, Sofa, Sparkles, Warehouse, WashingMachine } from "lucide-react";
+import { Bath, BedDouble, Boxes, CalendarDays, Cat, CircleAlert, Clock3, CookingPot, CreditCard, Dog, House, KeyRound, Mail, MapPin, NotebookText, Phone, Shirt, Sofa, Sparkles, Warehouse, WashingMachine, Wind } from "lucide-react";
 import { StatusPill } from "@/components/ui/status-pill";
 import { MaskedCode } from "@/components/ui/masked-code";
 import { TYPE_LABELS, money, formatEstimatedTime, type Customer, type Location, type CustomerJob } from "./shared";
@@ -8,6 +8,9 @@ import { formatDisplayDate } from "@/lib/scheduling/dates";
 import { cleanNoteText } from "@/lib/format";
 
 const UPCOMING_VISITS_PREVIEW_COUNT = 3;
+const HARD_FLOOR_ROOM_NAMES = new Set(["Master Bathroom", "Full Bathroom", "Half Bathroom", "Kitchen Large", "Kitchen Medium", "Kitchen Small", "Laundry Room", "Hallway"]);
+
+type EquipmentCustomer = Customer & { mopHeadCount?: number | null; ragCount?: number | null; vacuumCount?: number | null };
 
 function UpcomingVisits({ upcomingJobs }: { upcomingJobs: CustomerJob[] }) {
   const [expanded, setExpanded] = useState(false);
@@ -114,7 +117,7 @@ export function CustomerViewCards({
   openBalance,
   onEditFocus,
 }: {
-  customer: Customer;
+  customer: EquipmentCustomer;
   location: Location | null;
   roomTypes: { id: string; name: string }[];
   locations: Location[];
@@ -141,6 +144,10 @@ export function CustomerViewCards({
   const roomSummary = roomTypes
     .map((roomType) => ({ name: roomType.name, count: Number(roomCounts[roomType.id] ?? 0) }))
     .filter((room) => Number.isFinite(room.count) && room.count > 0);
+  const hasRoomCounts = Object.keys(roomCounts).length > 0;
+  const estimatedMopHeads = hasRoomCounts
+    ? Math.round(roomTypes.reduce((sum, roomType) => sum + (HARD_FLOOR_ROOM_NAMES.has(roomType.name) ? Number(roomCounts[roomType.id] ?? 0) : 0), 3))
+    : null;
   const houseDetails = [
     homeDetails.dirtLevel ? { label: "Dirt level", value: String(homeDetails.dirtLevel), icon: Sparkles } : null,
     homeDetails.clutterCode ? { label: "Clutter", value: String(homeDetails.clutterCode), icon: Boxes } : null,
@@ -191,6 +198,17 @@ export function CustomerViewCards({
                 roomSummary.map((room) => <div key={room.name} className="inline-flex h-9 items-center gap-2 rounded-lg bg-[var(--co-surface-muted)] px-2.5" title={room.name}><RoomIcon roomName={room.name} /><span className="sr-only">{room.name}</span><span className="text-sm font-semibold text-[var(--co-ink)]">{room.count}</span></div>)
               ) : <p className="text-sm text-[var(--co-muted)]">No room counts recorded yet.</p>}
               {houseDetails.map((detail) => { const Icon = detail.icon; return <span key={detail.label} title={detail.label} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--co-surface-muted)] px-2.5 text-xs font-semibold text-[var(--co-ink)]"><Icon className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden /><span className="sr-only">{detail.label}: </span>{detail.value}</span>; })}
+            </div>
+          </section>
+          <section className="co-card overflow-hidden">
+            <div className="flex items-center gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
+              <WashingMachine className="h-5 w-5 text-[var(--co-evergreen)]" aria-hidden />
+              <div><h2 className="text-lg font-semibold tracking-[-0.02em]">Cleaning equipment</h2><p className="text-xs text-[var(--co-muted)]">What to bring for this home</p></div>
+            </div>
+            <div className="grid gap-3 p-5 sm:grid-cols-3">
+              <div className="flex items-center gap-2 rounded-lg bg-[var(--co-surface-muted)] p-3"><WashingMachine className="h-4 w-4 text-[var(--co-evergreen)]" aria-hidden /><div><p className="text-xs font-medium text-[var(--co-muted)]">Mop heads</p><p className="text-sm font-semibold">{customer.mopHeadCount ?? (estimatedMopHeads === null ? "Not set" : `~${estimatedMopHeads}`)}</p>{customer.mopHeadCount === null || customer.mopHeadCount === undefined ? estimatedMopHeads === null ? null : <p className="text-[10px] text-[var(--co-muted)]">Estimated</p> : null}</div></div>
+              <div className="flex items-center gap-2 rounded-lg bg-[var(--co-surface-muted)] p-3"><Shirt className="h-4 w-4 text-[var(--co-evergreen)]" aria-hidden /><div><p className="text-xs font-medium text-[var(--co-muted)]">Rags</p><p className="text-sm font-semibold">{customer.ragCount ?? "Not set"}</p></div></div>
+              <div className="flex items-center gap-2 rounded-lg bg-[var(--co-surface-muted)] p-3"><Wind className="h-4 w-4 text-[var(--co-evergreen)]" aria-hidden /><div><p className="text-xs font-medium text-[var(--co-muted)]">Vacuum</p><p className="text-sm font-semibold">{customer.vacuumCount ?? "Not set"}</p></div></div>
             </div>
           </section>
           </div>

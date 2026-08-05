@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw, Phone, ArrowRight, MapPin, Car, CheckCircle2, Play, X, ChevronRight, CalendarCheck } from "lucide-react";
+import { RefreshCw, Phone, ArrowRight, MapPin, Car, CheckCircle2, Play, X, ChevronRight, CalendarCheck, Shirt, WashingMachine, Wind } from "lucide-react";
 import { timeLabel, dateLabel, jobAddress, formatElapsed, formatEstimatedTime, jobTypeLabel } from "@/lib/my-day/job-format";
 import { MaskedCode } from "@/components/ui/masked-code";
 
@@ -35,7 +35,23 @@ type JobCard = {
   preferredDays?: string[] | null;
   preferredTimeOfDay?: string | null;
   subdivision: string | null;
+  mopHeadCount?: number | null;
+  ragCount?: number | null;
+  vacuumCount?: number | null;
+  mopHeadEstimate?: number | null;
 };
+
+function EquipmentRow({ job }: { job: JobCard }) {
+  const hasConfirmedMopCount = job.mopHeadCount !== null && job.mopHeadCount !== undefined;
+  const mopHeads = hasConfirmedMopCount ? String(job.mopHeadCount) : job.mopHeadEstimate === null || job.mopHeadEstimate === undefined ? "Not set" : `~${job.mopHeadEstimate}`;
+  return (
+    <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--co-muted)]" aria-label={`Equipment: Mop heads ${mopHeads}, rags ${job.ragCount ?? "not set"}, vacuum ${job.vacuumCount ?? "not set"}`}>
+      <span className={hasConfirmedMopCount ? "inline-flex items-center gap-1 font-medium text-[var(--co-ink)]" : "inline-flex items-center gap-1"}><WashingMachine className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden />Mop {mopHeads}{!hasConfirmedMopCount && job.mopHeadEstimate !== null && job.mopHeadEstimate !== undefined ? <span className="sr-only"> estimated</span> : null}</span>
+      <span className="inline-flex items-center gap-1"><Shirt className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden />Rags {job.ragCount ?? "Not set"}</span>
+      <span className="inline-flex items-center gap-1"><Wind className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden />Vacuum {job.vacuumCount ?? "Not set"}</span>
+    </div>
+  );
+}
 
 type TimeEntry = {
   id: string;
@@ -336,6 +352,7 @@ export default function MyDayClient({
                               ? `${jobAddress(job) || "Address not set"} · ${formatEstimatedTime(job.estimatedDurationMinutes)}`
                               : `${timeLabel(job.scheduledStartTime)} · ${jobAddress(job) || "Address not set"} · ${formatEstimatedTime(job.estimatedDurationMinutes)}`}
                           </p>
+                          <EquipmentRow job={job} />
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-2">
                           <span
