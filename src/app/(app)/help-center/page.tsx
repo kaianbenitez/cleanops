@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.1.4",
+    date: "August 6, 2026",
+    title: "Secure Square and Maps setup",
+    changes: [
+      "Administrators can now securely save Square and Google Maps API keys under Settings → Square & Google Maps. Keys are encrypted and are never shown again once saved.",
+      "Nothing changes today because no real keys are configured yet: Square remains in its current test mode, and Maps behavior is unchanged.",
+    ],
+  },
+  {
     version: "v0.1.3",
     date: "August 5, 2026",
     title: "Self-service Square and Maps setup",
