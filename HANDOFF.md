@@ -5,10 +5,70 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-06 (isolated demo/test company created for outside review + a GHL
-webhook company-scoping fix — see the entry right below).
+Last updated: 2026-08-06 (Dashboard rebuilt around a new sales/performance overview, on top
+of the existing operational widgets — see the entry right below).
 
 ## Done
+
+- **Dashboard rebuilt with a client/revenue/quote "Performance overview" section, on top of
+  (not replacing) the existing operational widgets, merged to `main` at `6551560`
+  (2026-08-06).** Source: a design exported from the team's Stitch account ("Operations
+  Dashboard: Overhauled Layout" project) — the raw Stitch mockup (static HTML, Tailwind CDN,
+  fake numbers) was used only as a visual/structural reference and was never committed. Built
+  by Codex on `codex/dashboard-overhaul-layout` across three rounds (delegated with a
+  structured contract; the layout scope changed twice mid-flight based on live user feedback,
+  see below), cherry-picked here as three commits (`ba0cdcc`/`125a97d`/`71f1a8e` →
+  `7d6ed27`/`c2b21cf`/`6551560`).
+  Final layout, top to bottom: a new **"Performance overview"** section (client
+  total/gained/lost, quote conversion rate, a real weekly-paid-revenue bar chart, a quote
+  pipeline funnel Sent→Accepted→Booked, a sales summary, and a short auto-generated insights
+  list — conversion trend vs. the prior period, progress toward the configured revenue
+  target, and quotes that have sat unanswered 7+ days), then an **"Operations today"**
+  section carrying over three of the prior dashboard's widgets unchanged: `TodaysRun`
+  (today's schedule), `TechnicianRoutes` (cleaner routes), `CashToCollect` (overdue/uncollected
+  invoices). `PulseTiles`, `RevenueVsTarget`, `CrewCapacity`, and `ExceptionStrip` were
+  deliberately deleted (confirmed unused anywhere else in `src/` first) — the new Performance
+  overview section supersedes what `RevenueVsTarget`/`PulseTiles` showed; crew coverage and
+  the unassigned/missing-hours exception strip were dropped from this page rather than kept,
+  the user's explicit call after seeing the merged layout.
+  New `getOperationsDashboard()` query (`src/lib/dashboard/queries.ts`) — company-scoped SQL
+  aggregates, `Promise.all`'d, no client-side full-table scans, matching this repo's existing
+  dashboard-query conventions. No hardcoded numbers survived from the Stitch mockup. The
+  **region filter shown in the Stitch design was deliberately omitted** — Codex checked and
+  found no durable region field spanning customers/jobs/invoices (only service-area/travel-zone
+  data, which doesn't map cleanly), and building it would have produced misleading metrics.
+  `DateRangeControls` now offers Today / Last 7 days / Last 30 days / This month / Last month /
+  current quarter / Custom — the first three preserved from before, the rest new for
+  Performance overview's month/quarter views. The schedule/routes/invoices section stays
+  today-anchored regardless of this control, same as before, and the page still says so.
+  Added a `v0.2.0` Help Center changelog entry.
+  Verified independently before pushing, not just Codex's own reports across the three rounds:
+  read every file in the diff line-by-line (`git diff main origin/codex/dashboard-overhaul-layout`),
+  confirmed via `git grep` that the four deleted widget files had zero references anywhere
+  outside the dashboard folder before trusting the deletion. Then, since Codex's own worktree
+  had no `DATABASE_URL` configured and could only get a clean typecheck/lint (build failed at
+  the page-data-collection step for that reason), copied this checkout's own `.env.local` into
+  the Codex worktree and **independently re-ran everything against the real hosted DB**: `npm
+  run check:env` (11/16 configured, passed), `npm run check:drift` (clean — only the
+  known pre-existing `quote_line_items` live-but-unused note), a full `npm run verify`
+  (build succeeded, including `/dashboard` itself compiling against live data), `npm run
+  smoke:routes` (6/6) and `npm run smoke:auth` (22/22, including a live authenticated `200` on
+  `/dashboard` itself) against a real local production server. All of that was then repeated a
+  second time on this integration checkout after the cherry-pick, before pushing — identical
+  results (`check:drift` clean, `verify` clean, `smoke:routes` 6/6, `smoke:auth` 22/22).
+  **Not click-through-tested in a real browser** — same longstanding `.env.local` gap as
+  most other entries in this doc (`BROWSER_ADMIN_PASSWORD` still isn't set, so Chrome/Playwright
+  can't log in interactively; the smoke script itself uses separate hardcoded fallback
+  credentials that don't unlock a real browser session). Worth an actual visual pass next time
+  someone's logged in: confirm the weekly revenue bar chart, quote pipeline bars, and the three
+  restored operational cards all render and look right together on one page, especially at
+  mobile width.
+  **One open question surfaced during the build, not yet decided:** the Stitch reference's
+  weekly revenue chart shows all 7 days (Mon–Sun), but this business's real job/invoice
+  activity is concentrated Monday–Friday. Codex could not check actual weekend revenue
+  levels from its own worktree (no DB access at the time) and shipped 7 bars as designed.
+  Worth pulling real numbers next session and deciding whether Saturday/Sunday should collapse
+  out of the chart if they're consistently at or near zero.
 
 - **Isolated demo/test company created for an outside reviewer (the founder's CEO), plus a
   latent multi-tenant safety gap fixed and old test-account clutter removed, merged to `main`
