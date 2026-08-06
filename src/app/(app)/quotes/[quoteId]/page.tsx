@@ -33,6 +33,12 @@ type QuoteDetails = Quote & {
   lastViewedAt?: string | null;
 };
 
+type BookingOverride = {
+  reason: string;
+  bookedAt: string;
+  staffName: string | null;
+};
+
 const LABELS: Record<string, string> = {
   supreme_deep: "Supreme Deep",
   deep: "Deep Clean",
@@ -86,6 +92,9 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
+  const [bookingOverride, setBookingOverride] = useState<BookingOverride | null>(null);
+  const [showOverrideDialog, setShowOverrideDialog] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
 
   const load = useCallback(async () => {
     const response = await fetch(`/api/quotes/${quoteId}`, { cache: "no-store" });
@@ -104,6 +113,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
     );
     setLocationName(body.locationName ?? "");
     setHourlyRateCents(typeof body.hourlyRateCents === "number" ? body.hourlyRateCents : null);
+    setBookingOverride(body.bookingOverride ?? null);
     setLoaded(true);
   }, [quoteId]);
 
@@ -136,15 +146,19 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
     setTimeout(() => setCopied(false), 1400);
   }
 
-  async function convert(forceJob = false) {
+  async function convert(forceJob = false, reason?: string) {
     if (!convertDate) {
       setError("Choose a start date first.");
+      return;
+    }
+    if (forceJob && quote?.status !== "accepted" && !reason?.trim()) {
+      setError("Enter the reason for scheduling without acceptance.");
       return;
     }
     const response = await fetch(`/api/quotes/${quoteId}/convert`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ startDate: convertDate, serviceType: selectedServiceType || undefined, forceJob }),
+      body: JSON.stringify({ startDate: convertDate, serviceType: selectedServiceType || undefined, forceJob, overrideReason: reason?.trim() || undefined }),
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -152,6 +166,15 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
       return;
     }
     router.push(body.series ? "/calendar" : `/jobs/${body.job.id}`);
+  }
+
+  async function confirmOverride() {
+    if (!overrideReason.trim()) {
+      setError("Enter the reason for scheduling without acceptance.");
+      return;
+    }
+    setShowOverrideDialog(false);
+    await convert(true, overrideReason);
   }
 
   if (!loaded) {
@@ -192,6 +215,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <p className="eyebrow">Sales / Quote detail</p>
             <span className="rounded-full border border-[var(--co-line)] bg-[var(--co-surface-muted)] px-2.5 py-1 text-xs font-medium">{quote.status}</span>
+            {bookingOverride ? <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-900">Staff override — customer did not sign</span> : null}
           </div>
           <h1 className="page-title mt-2">{customerName}</h1>
           <p className="page-subtitle">
@@ -349,9 +373,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
                   Schedule selected service
                 </button>
               ) : null}
-              <button onClick={() => convert(true)} className={`w-full ${quote.status === "accepted" ? "co-button-secondary" : "co-button-primary"}`} type="button">
-                Schedule without acceptance
-              </button>
+              {quote.status !== "accepted" ? <button onClick={() => setShowOverrideDialog(true)} className="co-button-secondary w-full" type="button">Schedule without acceptance</button> : null}
             </div>
             <p className="mt-3 text-xs text-[var(--co-muted)]">
               This bypasses the customer acceptance gate for internal scheduling when approval was received elsewhere.
@@ -359,6 +381,13 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
           </PageCard>
 
           <PageCard eyebrow="Payment status" title="Quote state" description="This helps the office know what happened without opening the public page.">
+            {bookingOverride ? (
+              <div className="mb-3 border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                <p className="font-semibold">Staff override — customer did not sign</p>
+                <p className="mt-1">{bookingOverride.reason}</p>
+                <p className="mt-1 text-xs text-amber-900">Scheduled <LocalDateTime value={bookingOverride.bookedAt} />{bookingOverride.staffName ? ` by ${bookingOverride.staffName}` : ""}.</p>
+              </div>
+            ) : null}
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Sent</p>
@@ -408,6 +437,20 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
           </PageCard>
         </aside>
       </div>
+      {showOverrideDialog ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="override-dialog-title">
+          <div className="w-full max-w-lg rounded-lg bg-white p-5 shadow-lg">
+            <h2 id="override-dialog-title" className="text-lg font-semibold">Schedule without customer acceptance?</h2>
+            <p className="mt-2 text-sm text-[var(--co-muted)]">Record how approval was received before creating the scheduled work.</p>
+            <label className="mt-4 block text-sm font-medium" htmlFor="override-reason">Reason</label>
+            <textarea id="override-reason" value={overrideReason} onChange={(event) => setOverrideReason(event.target.value)} className="co-input mt-1 min-h-24 w-full" maxLength={1000} placeholder="Customer approved by phone on 8/7" autoFocus />
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" className="co-button-secondary" onClick={() => setShowOverrideDialog(false)}>Cancel</button>
+              <button type="button" className="co-button-primary" onClick={confirmOverride} disabled={!overrideReason.trim()}>Confirm schedule</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

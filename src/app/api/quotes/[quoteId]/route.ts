@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { auditLog, quotes, customers, serviceLocations, travelZones } from "@/db/schema";
+import { auditLog, quotes, customers, serviceLocations, travelZones, users } from "@/db/schema";
 import { and, count, desc, eq } from "drizzle-orm";
 
 export async function GET(
@@ -47,6 +47,18 @@ export async function GET(
     .where(and(eq(auditLog.companyId, admin.companyId), eq(auditLog.entityType, "quote"), eq(auditLog.entityId, quoteId), eq(auditLog.action, "quote.viewed")))
     .orderBy(desc(auditLog.createdAt))
     .limit(1);
+  const [bookingOverride] = await db
+    .select({
+      reason: auditLog.after,
+      bookedAt: auditLog.createdAt,
+      staffFirstName: users.firstName,
+      staffLastName: users.lastName,
+    })
+    .from(auditLog)
+    .leftJoin(users, eq(auditLog.userId, users.id))
+    .where(and(eq(auditLog.companyId, admin.companyId), eq(auditLog.entityType, "quote"), eq(auditLog.entityId, quoteId), eq(auditLog.action, "quote.booked_without_acceptance")))
+    .orderBy(desc(auditLog.createdAt))
+    .limit(1);
 
   return NextResponse.json({
     quote: row.quote,
@@ -62,5 +74,12 @@ export async function GET(
     travelZoneName: row.travelZoneName,
     viewCount: Number(viewCountRow?.viewCount ?? 0),
     lastViewedAt: lastViewedRow?.lastViewedAt ?? null,
+    bookingOverride: bookingOverride
+      ? {
+          reason: (bookingOverride.reason as { reason?: string } | null)?.reason ?? "Reason not recorded",
+          bookedAt: bookingOverride.bookedAt,
+          staffName: [bookingOverride.staffFirstName, bookingOverride.staffLastName].filter(Boolean).join(" ") || null,
+        }
+      : null,
   });
 }

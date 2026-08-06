@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
   const dirtyCodeLevel = data.dirtScore == null ? null : data.dirtScore <= 2 ? 1 : data.dirtScore <= 5 ? 2 : data.dirtScore <= 8 ? 3 : 4;
 
   const [customer] = await db
-    .select({ id: customers.id, zip: customers.zip })
+    .select({ id: customers.id, zip: customers.zip, homeDetails: customers.homeDetails })
     .from(customers)
     .where(and(eq(customers.id, data.customerId), eq(customers.companyId, admin.companyId)))
     .limit(1);
@@ -128,6 +128,19 @@ export async function POST(req: NextRequest) {
       validUntil: data.validUntil,
     })
     .returning();
+
+  // Quotes store counts as an array for pricing; the customer profile stores
+  // them as a record for direct lookup. Keep the profile in sync with the
+  // latest quote without relying on the client to submit the same data twice.
+  await db
+    .update(customers)
+    .set({
+      homeDetails: {
+        ...(customer.homeDetails as Record<string, unknown>),
+        roomCounts: Object.fromEntries(data.roomCounts.map(({ roomTypeId, count }) => [roomTypeId, count])),
+      },
+    })
+    .where(and(eq(customers.id, customer.id), eq(customers.companyId, admin.companyId)));
 
   return NextResponse.json({ quote }, { status: 201 });
 }

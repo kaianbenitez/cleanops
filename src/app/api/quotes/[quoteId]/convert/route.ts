@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { quotes, jobs, recurringSeries, customers, serviceLocations } from "@/db/schema";
+import { auditLog, quotes, jobs, recurringSeries, customers, serviceLocations } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { generateJobsForSeries } from "@/lib/scheduling/generate-jobs";
 import { estimateDurationMinutesFromPrice, SERVICE_TYPES, type PricingBreakdown, type ServiceType } from "@/lib/pricing/calculate";
@@ -15,6 +15,7 @@ const convertSchema = z.object({
   // scheduling with recorded approval, even before the public quote is accepted.
   serviceType: z.enum(SERVICE_TYPES).optional(),
   forceJob: z.boolean().optional(),
+  overrideReason: z.string().trim().min(1).max(1000).optional(),
 });
 
 // Recurring service types spin up a recurring_series (+ at least its first 3
@@ -62,6 +63,10 @@ export async function POST(
   if (quote.status !== "accepted" && !parsed.data.forceJob) {
     return NextResponse.json({ error: "Only accepted quotes can be converted" }, { status: 400 });
   }
+  const isBookingOverride = quote.status !== "accepted";
+  if (isBookingOverride && !parsed.data.overrideReason) {
+    return NextResponse.json({ error: "A reason is required when scheduling without customer acceptance." }, { status: 400 });
+  }
   const serviceType = parsed.data.serviceType ?? (quote.acceptedServiceType as ServiceType | null) ?? (quote.requestedServiceType as ServiceType | null);
   if (!serviceType) {
     return NextResponse.json({ error: "Choose a service to schedule." }, { status: 400 });
@@ -99,6 +104,17 @@ export async function POST(
 
     const generation = await generateJobsForSeries(series.id);
 
+    if (isBookingOverride) {
+      await db.insert(auditLog).values({
+        companyId: admin.companyId,
+        userId: admin.id,
+        action: "quote.booked_without_acceptance",
+        entityType: "quote",
+        entityId: quote.id,
+        after: { reason: parsed.data.overrideReason, serviceType, seriesId: series.id, startDate },
+      });
+    }
+
     // PLAN.md §6: "Customer -> client + recurrence set" -> tags client +
     // recurrence-<freq>, removes sales-stage tags.
     await db
@@ -130,6 +146,17 @@ export async function POST(
       priceCents: selectedBreakdown.finalCents,
     })
     .returning();
+
+  if (isBookingOverride) {
+    await db.insert(auditLog).values({
+      companyId: admin.companyId,
+      userId: admin.id,
+      action: "quote.booked_without_acceptance",
+      entityType: "quote",
+      entityId: quote.id,
+      after: { reason: parsed.data.overrideReason, serviceType, jobId: job.id, startDate },
+    });
+  }
 
   // PLAN.md §6: "First clean scheduled" -> set first_cleaning_date, tag
   // first-clean-booked (kills the manual GHL date entry). Only for the

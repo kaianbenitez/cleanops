@@ -49,14 +49,14 @@ export async function getOperationsDashboard(companyId: string, range: Dashboard
       lost: sql<number>`count(*) filter (where ${customers.isArchived} = true and ${timestampRangeCondition(customers.archivedAt, range.fromIso, range.toIso, range.timeZone)})`,
     }).from(customers).where(eq(customers.companyId, companyId)),
     db.select({
-      sent: sql<number>`count(*) filter (where ${quotes.status} <> 'draft')`,
-      accepted: sql<number>`count(*) filter (where ${quotes.status} = 'accepted')`,
-      booked: sql<number>`count(*) filter (where ${quotes.status} = 'accepted' and ${bookedQuote})`,
-    }).from(quotes).where(and(eq(quotes.companyId, companyId), timestampRangeCondition(quotes.createdAt, range.fromIso, range.toIso, range.timeZone))),
+      sent: sql<number>`count(*) filter (where ${quotes.status} <> 'draft' and ${timestampRangeCondition(quotes.createdAt, range.fromIso, range.toIso, range.timeZone)})`,
+      accepted: sql<number>`count(*) filter (where ${quotes.status} = 'accepted' and ${timestampRangeCondition(quotes.acceptedAt, range.fromIso, range.toIso, range.timeZone)})`,
+      booked: sql<number>`count(*) filter (where ${quotes.status} = 'accepted' and ${bookedQuote} and ${timestampRangeCondition(quotes.acceptedAt, range.fromIso, range.toIso, range.timeZone)})`,
+    }).from(quotes).where(eq(quotes.companyId, companyId)),
     db.select({
-      sent: sql<number>`count(*) filter (where ${quotes.status} <> 'draft')`,
-      accepted: sql<number>`count(*) filter (where ${quotes.status} = 'accepted')`,
-    }).from(quotes).where(and(eq(quotes.companyId, companyId), timestampRangeCondition(quotes.createdAt, range.prevFromIso, range.prevToIso, range.timeZone))),
+      sent: sql<number>`count(*) filter (where ${quotes.status} <> 'draft' and ${timestampRangeCondition(quotes.createdAt, range.prevFromIso, range.prevToIso, range.timeZone)})`,
+      accepted: sql<number>`count(*) filter (where ${quotes.status} = 'accepted' and ${timestampRangeCondition(quotes.acceptedAt, range.prevFromIso, range.prevToIso, range.timeZone)})`,
+    }).from(quotes).where(eq(quotes.companyId, companyId)),
     db.select({ day: paidDay, amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)` }).from(invoices).where(paidRangeCondition(companyId, weekStartIso, weekEndIso, range.timeZone)).groupBy(sql`1`),
     db.select({ count: sql<number>`count(*)` }).from(quotes).where(and(eq(quotes.companyId, companyId), eq(quotes.status, "sent"), lte(quotes.sentAt, sql`now() - interval '7 days'`))),
   ]);
@@ -89,8 +89,7 @@ export async function getExceptionCounts(companyId: string, todayIso: string): P
   return { unassigned: n(jobRows[0]?.unassigned), missingHours: n(jobRows[0]?.missingHours), awaitingInvoice: n(jobRows[0]?.awaitingInvoice), paymentMethod: n(customerRows[0]?.paymentMethod), incompleteNotes: n(customerRows[0]?.incompleteNotes), sync: n(syncRows[0]?.count), lowSupplies: inventory.filter((item) => item.onHand <= item.reorderAt).length };
 }
 export async function getPulseMetrics(companyId: string, range: DashboardRange): Promise<PulseMetrics> {
-  const from = new Date(range.fromIso + "T00:00:00.000Z"); const to = new Date(range.toIso + "T00:00:00.000Z"); to.setUTCDate(to.getUTCDate() + 1);
-  const [today, revenue, previous, conversion, collections] = await Promise.all([getTodaysRun(companyId, range.todayIso), db.select({ amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)`, count: sql<number>`count(*)` }).from(invoices).where(paidRangeCondition(companyId, range.fromIso, range.toIso, range.timeZone)), db.select({ amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)` }).from(invoices).where(paidRangeCondition(companyId, range.prevFromIso, range.prevToIso, range.timeZone)), db.select({ sent: sql<number>`count(*) filter (where ${quotes.status} <> 'draft')`, accepted: sql<number>`count(*) filter (where ${quotes.status} = 'accepted')` }).from(quotes).where(and(eq(quotes.companyId, companyId), gte(quotes.createdAt, from), lt(quotes.createdAt, to))), db.select({ count: sql<number>`count(*)`, amount: sql<number>`coalesce(sum(greatest(${invoices.totalCents} - ${invoices.amountPaidCents}, 0)), 0)` }).from(invoices).where(and(eq(invoices.companyId, companyId), overdueSqlCondition()))]);
+  const [today, revenue, previous, conversion, collections] = await Promise.all([getTodaysRun(companyId, range.todayIso), db.select({ amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)`, count: sql<number>`count(*)` }).from(invoices).where(paidRangeCondition(companyId, range.fromIso, range.toIso, range.timeZone)), db.select({ amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)` }).from(invoices).where(paidRangeCondition(companyId, range.prevFromIso, range.prevToIso, range.timeZone)), db.select({ sent: sql<number>`count(*) filter (where ${quotes.status} <> 'draft' and ${timestampRangeCondition(quotes.createdAt, range.fromIso, range.toIso, range.timeZone)})`, accepted: sql<number>`count(*) filter (where ${quotes.status} = 'accepted' and ${timestampRangeCondition(quotes.acceptedAt, range.fromIso, range.toIso, range.timeZone)})` }).from(quotes).where(eq(quotes.companyId, companyId)), db.select({ count: sql<number>`count(*)`, amount: sql<number>`coalesce(sum(greatest(${invoices.totalCents} - ${invoices.amountPaidCents}, 0)), 0)` }).from(invoices).where(and(eq(invoices.companyId, companyId), overdueSqlCondition()))]);
   return { jobsToday: { scheduled: today.scheduled, completed: today.completed, atRisk: today.atRisk }, revenue: { receivedCents: n(revenue[0]?.amount), previousCents: n(previous[0]?.amount), hasData: n(revenue[0]?.count) > 0 }, conversion: { sent: n(conversion[0]?.sent), accepted: n(conversion[0]?.accepted), hasData: n(conversion[0]?.sent) > 0 }, collections: { overdueCents: n(collections[0]?.amount), overdueCount: n(collections[0]?.count) } };
 }
 

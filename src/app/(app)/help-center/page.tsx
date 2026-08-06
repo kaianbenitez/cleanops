@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.3",
+    date: "August 7, 2026",
+    title: "Safer quote scheduling and clearer sales records",
+    changes: [
+      "Room counts entered while creating a quote now update the customer profile automatically.",
+      "Dashboard accepted and booked quote totals now use the date the customer accepted the quote.",
+      "Scheduling a quote without a customer signature now requires a staff reason and is clearly recorded on the quote.",
+    ],
+  },
+  {
     version: "v0.2.2",
     date: "August 7, 2026",
     title: "Clearer navigation and calendar notes",
