@@ -27,13 +27,15 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const isRootRoute = request.nextUrl.pathname === "/";
   const isAuthRoute = request.nextUrl.pathname.startsWith("/login");
   const isPublicRoute =
     request.nextUrl.pathname.startsWith("/quote/") ||
     request.nextUrl.pathname.startsWith("/api/webhooks/") ||
-    request.nextUrl.pathname.startsWith("/api/public/");
+    request.nextUrl.pathname.startsWith("/api/public/") ||
+    request.nextUrl.pathname.startsWith("/api/leads");
 
-  if (!user && !isAuthRoute && !isPublicRoute) {
+  if (!user && !isRootRoute && !isAuthRoute && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

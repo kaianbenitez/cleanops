@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.1.9",
+    date: "August 6, 2026",
+    title: "Early access requests are ready",
+    changes: [
+      "The public ServiceSpark page is now available to visitors who are not signed in.",
+      "Early-access requests now reach the ServiceSpark team without sending visitors to the login screen.",
+    ],
+  },
+  {
     version: "v0.1.8",
     date: "August 6, 2026",
     title: "ServiceSpark early access is open",

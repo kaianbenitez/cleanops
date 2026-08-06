@@ -10,3 +10,7 @@ CREATE TABLE IF NOT EXISTS "product_leads" (
   "message" text,
   "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
+
+-- Default-deny: the app writes through its privileged database connection;
+-- prospects must never access submitted lead data through Supabase's REST API.
+ALTER TABLE "product_leads" ENABLE ROW LEVEL SECURITY;
