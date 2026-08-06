@@ -5,10 +5,41 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-06 (ServiceSpark login/nav logo mark replaced — see the entry right
-below).
+Last updated: 2026-08-06 (ServiceSpark public landing page + early-access lead capture
+shipped — see the entry right below).
 
 ## Done
+
+- **Public ServiceSpark landing page and early-access lead capture shipped, merged to `main`
+  at `d9637a9` then corrected before push at `a94d6a3` (2026-08-06).** Built by Codex across
+  two passes: logged-out visitors to `/` now see a public marketing page pitching ServiceSpark
+  to cleaning-business owners as operations software, with a “Request early access” form.
+  The page deliberately showcases only real, already-shipped product features; it includes no
+  invented capabilities, pricing, or fake testimonials. Logged-in routing remains exactly as
+  before: admins redirect from `/` to `/dashboard`, employees to `/my-day`. Early-access
+  submissions write to the new `product_leads` table via `POST /api/leads`; this table
+  intentionally has **no `company_id`** because it holds product-marketing leads, not
+  operational customer data. Migration `drizzle/0026_product_leads.sql` was applied to the
+  hosted DB and confirmed with `check:drift`.
+  The review pass caught two real pre-merge bugs worth retaining: first, the root
+  `middleware.ts`/`updateSession()` gate still redirected anonymous `/` requests to `/login`,
+  so the new page could never render; fixed with an exact `pathname === "/"` match and by
+  adding `/api/leads` to the public allowlist so the logged-out form can submit. Second, the
+  first migration draft left `product_leads` without RLS, which would have exposed submitted
+  names, emails, and phone numbers through Supabase's anon-key REST API; corrected before the
+  migration was applied with `ALTER TABLE product_leads ENABLE ROW LEVEL SECURITY`, using the
+  repo's established default-deny/no-policies pattern from `drizzle/0023_enable_rls.sql`.
+  On integrated `main` (not just the feature branch), `npm run check:env`, `npm run
+  check:drift`, `npm run verify`, `npm run smoke:routes`, and `npm run smoke:auth` all passed
+  before push. Direct anonymous/no-cookie requests against a local production server also
+  confirmed that `/` returns 200 with the landing page rather than redirecting, `/dashboard`
+  still redirects anonymous visitors, and a honeypot-triggered `POST /api/leads` succeeds
+  without inserting a row — checked directly, not inferred from code review.
+  **Deliberately not built yet:** no admin UI for viewing submitted leads (query
+  `product_leads` directly when needed for now), no pricing anywhere on the landing page, and
+  no email/notification on a new lead because this project has no SMTP configured. This shipped
+  after production-build and direct HTTP/curl-level verification, **not a live browser
+  click-through**; an actual-browser pass is worth doing next time someone is looking.
 
 - **Login screen simplified to a single centered card, and the "CO" text badge replaced
   with a new sparkle logo mark, merged to `main` at `8f5cbc6` (2026-08-06).** User request,
