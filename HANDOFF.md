@@ -5,10 +5,37 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-06 (Dashboard polish pass on the Performance overview shipped earlier
-today — see the entry right below).
+Last updated: 2026-08-06 (Dashboard header/filter layout corrected same day — see the entry
+right below).
 
 ## Done
+
+- **Dashboard header + date filter corrected to a real one-line layout, merged to `main` at
+  `d5e3147` (2026-08-06).** Same-day follow-up after the user reviewed the polish pass right
+  below and it didn't match what they'd asked for: the title and the filter were still in two
+  stacked rows, and the "Custom" option hid plain date inputs behind a dropdown selection
+  rather than showing an actual visible date picker. Confirmed the intended layout with the
+  user via a mockup before rebuilding (`AskUserQuestion`, since a second wrong guess would
+  have meant a third expensive round-trip): title on the left, preset dropdown + a persistent
+  date-range button on the right, all one row on desktop.
+  Built by Codex as a follow-up on the same thread (`codex/dashboard-refine`, `41a5487`),
+  cherry-picked here cleanly as `d5e3147`. `page.tsx`'s `<header>` and `<DateRangeControls>`
+  now share one flex row (wraps only at narrow/mobile widths). The preset dropdown lost its
+  "Custom" entry (7 items: Yesterday/This week/Last week/This month/Last month/This year/Last
+  year) since a new always-visible button next to it now shows the actual resolved date range
+  as text (e.g. "Aug 1 – 6, 2026") and opens a popover with From/Through date inputs + Apply —
+  reusing the trigger-button/outside-click/Escape-to-close interaction pattern already
+  established in `src/app/(app)/calendar/date-picker.tsx` (not its calendar-grid rendering,
+  just the popover mechanics). Added one line to the existing `v0.2.1` Help Center changelog
+  entry rather than bumping the version again, since this corrects the same-day release.
+  Verified the same way as the polish pass below: diff read line-by-line against the
+  corrected spec, then a full `check:env`/`verify`/local-prod-server/`smoke:routes`(6/6)/
+  `smoke:auth`(22/22) pass in the feature worktree and again on this integration checkout
+  after the cherry-pick — both clean.
+  **Not click-through-tested in a real browser** — same longstanding `.env.local`
+  `BROWSER_ADMIN_PASSWORD` gap as the rest of this doc. Worth a visual check next time
+  someone's logged in, particularly the date-range popover's position/closing behavior on a
+  phone screen.
 
 - **Dashboard polish pass: compact single-row date filter, new date presets, removed
   duplicate controls/numbers, and a real schedule table — merged to `main` at `93114b5`
