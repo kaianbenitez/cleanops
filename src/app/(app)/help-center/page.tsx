@@ -16,7 +16,7 @@ const RELEASES = [
     ],
   },
   {
-    version: "v0.2.6",
+    version: "v0.2.7",
     date: "August 7, 2026",
     title: "Customer added dates",
     changes: [
