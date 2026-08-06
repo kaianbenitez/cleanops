@@ -5,9 +5,9 @@ import { productLeads } from "@/db/schema";
 
 const leadSchema = z.object({
   businessName: z.string().trim().min(1, "Enter your business name.").max(200),
-  contactName: z.string().trim().min(1, "Enter your name.").max(200),
+  contactName: z.string().trim().max(200).nullish().transform((value) => value || null),
   email: z.string().trim().email("Enter a valid email address.").max(320),
-  phone: z.string().trim().min(1, "Enter your phone number.").max(50),
+  phone: z.string().trim().max(50).nullish().transform((value) => value || null),
   crewSize: z.enum(["1-5", "6-15", "16+"]).nullable(),
   message: z.string().trim().max(2_000).nullable(),
   companyWebsite: z.string().optional(),
