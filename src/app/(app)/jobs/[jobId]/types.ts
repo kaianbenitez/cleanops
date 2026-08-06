@@ -14,6 +14,7 @@ export type JobDetail = {
   scheduledDate: string;
   scheduledStartTime: string | null;
   estimatedDurationMinutes: number | null;
+  jthManualOverride: boolean;
   priceCents: number;
   completionNotes: string | null;
   paymentMethodCollected: string | null;

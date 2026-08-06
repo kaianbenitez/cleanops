@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.6",
+    date: "August 7, 2026",
+    title: "Per-visit price and Job Ticket Hours adjustments",
+    changes: [
+      "Administrators can now adjust the price charged or Job Ticket Hours for one job occurrence without changing its recurring schedule.",
+      "Manually set Job Ticket Hours now stay in place when payroll is refreshed.",
+    ],
+  },
+  {
     version: "v0.2.5",
     date: "August 7, 2026",
     title: "Sales reports and smoother previews",
