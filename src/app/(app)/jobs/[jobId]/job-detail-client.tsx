@@ -495,6 +495,8 @@ export default function JobDetailClient({
 
           <TimeEntriesPanel
             jobId={job.id}
+            scheduledDate={job.scheduledDate}
+            scheduledStartTime={job.scheduledStartTime}
             assignedEmployees={assignedEmployees}
             timeEntries={timeEntries}
             editedEntryIds={editedEntryIds}

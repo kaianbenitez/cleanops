@@ -13,6 +13,8 @@ import { CARD_CLASS, formatTime, readableError, toDateTimeInputValue, type Emplo
  */
 export default function TimeEntriesPanel({
   jobId,
+  scheduledDate,
+  scheduledStartTime,
   assignedEmployees,
   timeEntries,
   editedEntryIds,
@@ -20,6 +22,8 @@ export default function TimeEntriesPanel({
   onError,
 }: {
   jobId: string;
+  scheduledDate: string;
+  scheduledStartTime: string | null;
   assignedEmployees: Employee[];
   timeEntries: TimeEntry[];
   editedEntryIds: string[];
@@ -30,6 +34,8 @@ export default function TimeEntriesPanel({
   const [notice, setNotice] = useState<string | null>(null);
 
   const [employeeId, setEmployeeId] = useState("");
+  const [entryMode, setEntryMode] = useState<"total-hours" | "times">("total-hours");
+  const [totalHours, setTotalHours] = useState("");
   const [clockIn, setClockIn] = useState("");
   const [clockOut, setClockOut] = useState("");
   const [notes, setNotes] = useState("");
@@ -48,15 +54,45 @@ export default function TimeEntriesPanel({
 
   function clearForm() {
     setEmployeeId("");
+    setTotalHours("");
     setClockIn("");
     setClockOut("");
     setNotes("");
   }
 
   async function recordTime() {
-    if (!employeeId || !clockIn || !clockOut) {
-      onError("Select a technician and enter both times.");
+    if (!employeeId) {
+      onError("Select a technician.");
       return;
+    }
+
+    const dateAtTime = (time: string) => {
+      const [year, month, day] = scheduledDate.split("-").map(Number);
+      const [hours, minutes] = time.split(":").map(Number);
+      return new Date(year, month - 1, day, hours, minutes);
+    };
+
+    let entryClockIn: Date;
+    let entryClockOut: Date;
+    if (entryMode === "total-hours") {
+      const hours = Number(totalHours);
+      const minutesWorked = Math.round(hours * 60);
+      if (!Number.isFinite(hours) || hours <= 0 || hours > 16 || minutesWorked <= 0) {
+        onError("Enter total hours between 0.01 and 16.");
+        return;
+      }
+
+      entryClockIn = dateAtTime(scheduledStartTime ?? "09:00");
+      entryClockOut = new Date(entryClockIn.getTime() + minutesWorked * 60_000);
+    } else {
+      if (!clockIn || !clockOut) {
+        onError("Enter both start and end times.");
+        return;
+      }
+
+      entryClockIn = dateAtTime(clockIn);
+      entryClockOut = dateAtTime(clockOut);
+      if (entryClockOut <= entryClockIn) entryClockOut.setDate(entryClockOut.getDate() + 1);
     }
 
     setBusy(true);
@@ -65,8 +101,8 @@ export default function TimeEntriesPanel({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         userId: employeeId,
-        clockIn: new Date(clockIn).toISOString(),
-        clockOut: new Date(clockOut).toISOString(),
+        clockIn: entryClockIn.toISOString(),
+        clockOut: entryClockOut.toISOString(),
         notes: notes || null,
       }),
     });
@@ -200,6 +236,29 @@ export default function TimeEntriesPanel({
         ) : (
           <>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <fieldset className="flex flex-wrap gap-4 text-sm md:col-span-2">
+                <legend className="sr-only">Manual time entry method</legend>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="manual-time-entry-mode"
+                    value="total-hours"
+                    checked={entryMode === "total-hours"}
+                    onChange={() => setEntryMode("total-hours")}
+                  />
+                  Total hours
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="manual-time-entry-mode"
+                    value="times"
+                    checked={entryMode === "times"}
+                    onChange={() => setEntryMode("times")}
+                  />
+                  Time in / time out
+                </label>
+              </fieldset>
               <select aria-label="Technician" value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} className="co-input md:col-span-2">
                 <option value="">Select technician</option>
                 {assignedEmployees.map((employee) => (
@@ -208,8 +267,25 @@ export default function TimeEntriesPanel({
                   </option>
                 ))}
               </select>
-              <input aria-label="Clock in" type="datetime-local" value={clockIn} onChange={(event) => setClockIn(event.target.value)} className="co-input" />
-              <input aria-label="Clock out" type="datetime-local" value={clockOut} onChange={(event) => setClockOut(event.target.value)} className="co-input" />
+              {entryMode === "total-hours" ? (
+                <input
+                  aria-label="Total hours worked"
+                  type="number"
+                  min="0.01"
+                  max="16"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={totalHours}
+                  onChange={(event) => setTotalHours(event.target.value)}
+                  placeholder="Total hours worked"
+                  className="co-input md:col-span-2"
+                />
+              ) : (
+                <>
+                  <input aria-label="Clock in" type="time" value={clockIn} onChange={(event) => setClockIn(event.target.value)} className="co-input" />
+                  <input aria-label="Clock out" type="time" value={clockOut} onChange={(event) => setClockOut(event.target.value)} className="co-input" />
+                </>
+              )}
               <input type="text" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Note (optional)" className="co-input md:col-span-2" />
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
