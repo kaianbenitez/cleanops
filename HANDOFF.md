@@ -5,9 +5,54 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-07 (Customer "date added" corrected with real historical data, and an "Added on" display shipped — see the entry right below).
+Last updated: 2026-08-07 (Manual time entry redesign shipped — see the entry right below).
 
 ## Done
+
+- **Job Detail's "Add time manually" form now supports total-hours entry and drops the date
+  picker entirely, merged to `main` at `31e4e9a` (2026-08-07).** #2-ranked item from the
+  2026-08-07 client feedback backlog, surfaced while the user was doing last week's payroll by
+  hand: the only way to log a technician's time was two `datetime-local` inputs (clock-in,
+  clock-out), forcing a full date-and-time pick twice for every entry, with no way to just type
+  a number of hours.
+  Added a mode toggle on the **add-new-entry form only**: "Total hours" (a single decimal
+  input, 0.01–16, validated) or "Time in / time out" (two `type="time"` inputs — still no date
+  picker). Both modes compute the actual `clockIn`/`clockOut` client-side using the job's own
+  `scheduledDate` (falling back to `scheduledStartTime`, or this codebase's existing 9:00 AM
+  default when a job has no start time set, matching the convention already used in
+  `api/jobs/[jobId]/route.ts`'s overlap check) — the admin never picks a date. A shift crossing
+  midnight (e.g. 11:30 PM → 12:15 AM) correctly rolls the end time to the next calendar day
+  instead of erroring. Neither time-entry API route nor the database schema changed at all —
+  the client still POSTs the identical `{ userId, clockIn, clockOut, notes }` shape as before,
+  just computed differently.
+  **Deliberately excluded, by design, not an oversight:** the separate "Edit time entry"
+  correction form (for fixing an already-logged entry) was left completely untouched, still
+  using full date-and-time pickers — a correction may legitimately need to fix the actual date
+  a job was worked on (e.g. a cleaner who didn't clock out until after midnight), so
+  auto-locking the date there would trade one annoyance for a real regression. Only the
+  add-new-entry flow got the redesign.
+  Built by Codex in a dedicated worktree (`cleanops-manual-time-entry`,
+  `codex/manual-time-entry-redesign`) off a structured contract that included the exact
+  existing-convention fallback (9:00 AM) to reuse and the scope decision on the Edit form up
+  front. Diff reviewed line-by-line before integrating — confirmed the date-math (local time
+  construction via the same semantics the old `datetime-local` inputs already used, then
+  `.toISOString()`) is correct by hand-tracing both the total-hours and midnight-rollover
+  cases, and confirmed via `git status` that only the two intended files changed, with the Edit
+  form's block byte-for-byte untouched.
+  Verified independently, not just Codex's own report (its sandbox had no `.env.local`):
+  copied real credentials into the feature worktree, then `check:env`, `check:drift` (clean, no
+  schema touched), `npm run verify` (0 errors, same 26 pre-existing warnings, build compiled),
+  `smoke:routes` (6/6) and `smoke:auth` (22/22) against a local production server — repeated a
+  second time on the integrated `main` after merging, both clean. Because the time-entry API
+  routes are provably unchanged (confirmed via diff, not assumption) and the only new logic is
+  client-side date arithmetic already hand-verified, a live database round-trip test was judged
+  unnecessary for this change, unlike the higher-risk payroll JTH-override fix shipped earlier
+  the same day.
+  **Not click-through-tested in a real browser** — same longstanding `.env.local`
+  `BROWSER_ADMIN_PASSWORD` gap as most other entries in this doc. Worth an actual look next
+  time someone's logged in: open a job, try logging time both as total hours and as a
+  time-in/time-out pair (including one that crosses midnight), and confirm the correction
+  ("Edit") form still looks and works exactly as before.
 
 - **Backfilled real historical `customers.created_at` for 217 imported customers, using a
   source-system export, run directly against the hosted DB (2026-08-07, data-only — no code
