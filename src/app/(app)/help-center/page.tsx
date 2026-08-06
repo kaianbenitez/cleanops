@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.1.8",
+    date: "August 6, 2026",
+    title: "ServiceSpark early access is open",
+    changes: [
+      "Cleaning-business owners can now learn about ServiceSpark's scheduling, field, customer, quoting, invoicing, payroll, and visibility tools on a new public page.",
+      "Interested owners can request early access with a simple form, without needing to create an account first.",
+    ],
+  },
+  {
     version: "v0.1.7",
     date: "August 6, 2026",
     title: "A refreshed ServiceSpark look",

@@ -2,6 +2,7 @@ import process from "node:process";
 
 const baseUrl = (process.argv[2] ?? process.env.SMOKE_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const checks = [
+  ["/", 200],
   ["/login", 200],
   ["/quote/not-a-real-token", 200],
   ["/dashboard", 307],

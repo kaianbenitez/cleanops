@@ -34,6 +34,20 @@ export const companies = pgTable("companies", {
   ...timestamps,
 });
 
+// ---------- product leads ----------
+// These leads concern ServiceSpark itself, so they intentionally have no
+// company_id or relationship to a customer's operational data.
+export const productLeads = pgTable("product_leads", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  businessName: text("business_name").notNull(),
+  contactName: text("contact_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  crewSize: text("crew_size"),
+  message: text("message"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 // ---------- users (mirrors supabase auth uid) ----------
 export const roleEnum = ["admin", "employee"] as const;
 // commission_jth: cleaning techs — paid Job Ticket Hours (the job's quoted/

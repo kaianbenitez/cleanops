@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import MarketingPage from "@/components/marketing/marketing-page";
 
 export default async function Home() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) return <MarketingPage />;
   redirect(user.role === "admin" ? "/dashboard" : "/my-day");
 }
