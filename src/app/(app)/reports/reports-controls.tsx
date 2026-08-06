@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Download, Eye, X } from "lucide-react";
+import { CalendarDays, Download, Eye } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -173,11 +173,9 @@ export type PreviewTable = {
 
 export function ReportActions({
   exportHref,
-  name,
   preview,
 }: {
   exportHref: string;
-  name: string;
   preview: PreviewTable;
 }) {
   const [open, setOpen] = useState(false);
@@ -187,10 +185,11 @@ export function ReportActions({
         <button
           type="button"
           className="co-button-secondary gap-1.5"
-          onClick={() => setOpen(true)}
+          onClick={() => setOpen((value) => !value)}
+          aria-expanded={open}
         >
           <Eye className="h-4 w-4" aria-hidden />
-          Preview
+          {open ? "Hide" : "Preview"}
         </button>
         <a className="co-button-primary gap-1.5" href={exportHref}>
           <Download className="h-4 w-4" aria-hidden />
@@ -198,58 +197,36 @@ export function ReportActions({
         </a>
       </div>
       {open ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="report-preview-title"
-        >
-          <div className="co-card max-h-[80vh] w-full max-w-5xl overflow-hidden">
-            <div className="flex items-start justify-between gap-4 border-b border-[var(--co-line-soft)] px-5 py-4">
-              <div>
-                <h2 id="report-preview-title" className="text-lg font-semibold">
-                  {name} preview
-                </h2>
-                <p className="mt-1 text-sm text-[var(--co-muted)]">
-                  {preview.summary ?? `Showing ${preview.rows.length} rows`}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="co-button-secondary p-2"
-                onClick={() => setOpen(false)}
-                aria-label="Close preview"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="max-h-[60vh] overflow-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 bg-[var(--co-surface-muted)] text-[var(--co-muted)]">
-                  <tr>
-                    {preview.columns.map((column) => (
-                      <th
-                        key={column}
-                        className="whitespace-nowrap px-4 py-3 font-medium"
-                      >
-                        {column}
-                      </th>
+        <div className="mt-4 border-t border-[var(--co-line-soft)] pt-4">
+          <p className="mb-3 text-sm text-[var(--co-muted)]">
+            {preview.summary ?? `Showing ${preview.rows.length} rows`}
+          </p>
+          <div className="max-h-96 overflow-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="sticky top-0 bg-[var(--co-surface-muted)] text-[var(--co-muted)]">
+                <tr>
+                  {preview.columns.map((column) => (
+                    <th
+                      key={column}
+                      className="whitespace-nowrap px-4 py-3 font-medium"
+                    >
+                      {column}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--co-line-soft)]">
+                {preview.rows.map((row, index) => (
+                  <tr key={`${row.join("-")}-${index}`}>
+                    {row.map((value, cell) => (
+                      <td key={cell} className="whitespace-nowrap px-4 py-3">
+                        {value}
+                      </td>
                     ))}
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--co-line-soft)]">
-                  {preview.rows.map((row, index) => (
-                    <tr key={`${row.join("-")}-${index}`}>
-                      {row.map((value, cell) => (
-                        <td key={cell} className="whitespace-nowrap px-4 py-3">
-                          {value}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       ) : null}

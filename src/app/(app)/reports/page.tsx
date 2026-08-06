@@ -6,6 +6,7 @@ import {
   FileText,
   HandCoins,
   ReceiptText,
+  TrendingUp,
 } from "lucide-react";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
@@ -20,6 +21,8 @@ import {
   getJobsReportSummary,
   getLastExports,
   getPayrollReport,
+  getSalesReport,
+  getSalesReportSummary,
   getTipsReport,
   type ReportKey,
   type ReportsRange,
@@ -101,7 +104,7 @@ function ReportCard({
         {relativeDate(lastExported)}
       </p>
       <div className="mt-3 border-t border-[var(--co-line-soft)] pt-4">
-        <ReportActions name={name} exportHref={exportHref} preview={preview} />
+        <ReportActions exportHref={exportHref} preview={preview} />
       </div>
     </article>
   );
@@ -153,9 +156,62 @@ function href(reportKey: ReportKey, range: ReportsRange, area?: string) {
     from: range.fromIso,
     to: range.toIso,
   });
-  if (area && (reportKey === "accounts-receivable" || reportKey === "jobs"))
+  if (
+    area &&
+    (reportKey === "accounts-receivable" ||
+      reportKey === "jobs" ||
+      reportKey === "sales")
+  )
     params.set("area", area);
   return `/api/reports/${reportKey}/export?${params.toString()}`;
+}
+
+async function SalesReports({
+  companyId,
+  range,
+  area,
+}: {
+  companyId: string;
+  range: ReportsRange;
+  area?: string;
+}) {
+  const [sales, summary, exports] = await Promise.all([
+    getSalesReport(companyId, range, area),
+    getSalesReportSummary(companyId, range, area),
+    getLastExports(companyId),
+  ]);
+  const preview: PreviewTable = {
+    columns: ["Type", "Customer", "Area", "Date"],
+    rows: sales
+      .slice(0, 50)
+      .map((row) => [
+        row.type,
+        row.customerName,
+        row.area ?? "—",
+        date(row.eventDate),
+      ]),
+    summary: `Showing ${Math.min(sales.length, 50)} of ${sales.length} events · ${summary.newLeads} new leads, ${summary.quotesSent} quotes sent, ${summary.quotesAccepted} accepted, ${summary.acquiredRecurring} acquired recurring, ${summary.lostRecurring} lost recurring`,
+  };
+  return (
+    <section>
+      <div className="mb-3 flex items-center gap-2">
+        <TrendingUp className="h-5 w-5 text-[var(--co-accent)]" aria-hidden />
+        <h2 className="text-base font-semibold text-[var(--co-ink)]">
+          Sales Reports
+        </h2>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <ReportCard
+          name="Sales"
+          icon={<TrendingUp className="h-5 w-5" />}
+          description="New leads, quote progress, recurring clients acquired, and recurring clients lost."
+          lastExported={exports.sales}
+          exportHref={href("sales", range, area)}
+          preview={preview}
+        />
+      </div>
+    </section>
+  );
 }
 
 async function FinancialReports({
@@ -408,6 +464,9 @@ export default async function ReportsPage({
           range={range}
           area={area}
         />
+      </Suspense>
+      <Suspense fallback={<SectionSkeleton />}>
+        <SalesReports companyId={user.companyId} range={range} area={area} />
       </Suspense>
     </div>
   );

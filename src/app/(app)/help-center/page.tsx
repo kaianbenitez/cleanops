@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.5",
+    date: "August 7, 2026",
+    title: "Sales reports and smoother previews",
+    changes: [
+      "Sales report added to Reports & Exports, with leads, quote progress, and recurring client activity in one place.",
+      "Report previews now expand directly in their cards instead of popping up as a separate window.",
+    ],
+  },
+  {
     version: "v0.2.4",
     date: "August 7, 2026",
     title: "Reports and exports center",

@@ -8,6 +8,7 @@ import {
   getAccountsReceivableReport,
   getJobsReport,
   getPayrollReport,
+  getSalesReport,
   getTipsReport,
   type ReportKey,
 } from "@/lib/reports/queries";
@@ -17,6 +18,7 @@ const reportKeys = new Set<ReportKey>([
   "tips",
   "accounts-receivable",
   "jobs",
+  "sales",
 ]);
 
 function escapeCsv(value: string | number | null | undefined) {
@@ -127,7 +129,7 @@ export async function GET(
         row.overdue ? "Yes" : "No",
       ]),
     ]);
-  } else {
+  } else if (key === "jobs") {
     const rows = await getJobsReport(admin.companyId, range, area);
     output = csv([
       [
@@ -147,14 +149,25 @@ export async function GET(
         row.estimatedDurationMinutes,
       ]),
     ]);
+  } else {
+    const rows = await getSalesReport(admin.companyId, range, area);
+    output = csv([
+      ["Type", "Customer", "Area", "Date"],
+      ...rows.map((row) => [
+        row.type,
+        row.customerName,
+        row.area,
+        row.eventDate instanceof Date
+          ? row.eventDate.toISOString()
+          : row.eventDate,
+      ]),
+    ]);
   }
-  await db
-    .insert(reportExports)
-    .values({
-      companyId: admin.companyId,
-      reportKey: key,
-      exportedByUserId: admin.id,
-    });
+  await db.insert(reportExports).values({
+    companyId: admin.companyId,
+    reportKey: key,
+    exportedByUserId: admin.id,
+  });
   return new NextResponse(output, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

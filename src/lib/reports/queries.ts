@@ -1,4 +1,14 @@
-import { and, asc, desc, eq, gte, lt, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  lt,
+  or,
+  sql,
+  type AnyColumn,
+} from "drizzle-orm";
 import { db } from "@/db";
 import {
   customers,
@@ -6,6 +16,8 @@ import {
   jobs,
   payrollLines,
   payrollPeriods,
+  quotes,
+  recurringSeries,
   reportExports,
   users,
 } from "@/db/schema";
@@ -18,14 +30,12 @@ export type ReportsRange = {
   timeZone: string;
 };
 
-export type ReportKey = "payroll" | "tips" | "accounts-receivable" | "jobs";
+export type ReportKey =
+  "payroll" | "tips" | "accounts-receivable" | "jobs" | "sales";
 
 const numberValue = (value: unknown) => Number(value ?? 0);
 
-function timestampRange(
-  column: typeof invoices.createdAt | typeof jobs.completedAt,
-  range: ReportsRange,
-) {
+function timestampRange(column: AnyColumn, range: ReportsRange) {
   const toExclusiveIso = addDaysIso(range.toIso, 1);
   return and(
     gte(
@@ -250,6 +260,200 @@ export async function getJobsReportSummary(
     scheduled: numberValue(row?.scheduled),
     cancelled: numberValue(row?.cancelled),
     estimatedMinutes: numberValue(row?.estimatedMinutes),
+  };
+}
+
+export async function getSalesReport(
+  companyId: string,
+  range: ReportsRange,
+  area?: string,
+) {
+  const customerName = sql<string>`coalesce(nullif(${customers.companyName}, ''), concat(${customers.firstName}, ' ', ${customers.lastName}))`;
+  const [
+    newLeads,
+    quotesSent,
+    quotesAccepted,
+    acquiredRecurring,
+    lostRecurring,
+  ] = await Promise.all([
+    db
+      .select({
+        type: sql<"New lead">`'New lead'`,
+        customerName,
+        area: customers.city,
+        eventDate: customers.createdAt,
+      })
+      .from(customers)
+      .where(
+        and(
+          eq(customers.companyId, companyId),
+          timestampRange(customers.createdAt, range),
+          area ? eq(customers.city, area) : undefined,
+        ),
+      ),
+    db
+      .select({
+        type: sql<"Quote sent">`'Quote sent'`,
+        customerName,
+        area: customers.city,
+        eventDate: quotes.sentAt,
+      })
+      .from(quotes)
+      .innerJoin(customers, eq(quotes.customerId, customers.id))
+      .where(
+        and(
+          eq(quotes.companyId, companyId),
+          eq(customers.companyId, companyId),
+          timestampRange(quotes.sentAt, range),
+          area ? eq(customers.city, area) : undefined,
+        ),
+      ),
+    db
+      .select({
+        type: sql<"Quote accepted">`'Quote accepted'`,
+        customerName,
+        area: customers.city,
+        eventDate: quotes.acceptedAt,
+      })
+      .from(quotes)
+      .innerJoin(customers, eq(quotes.customerId, customers.id))
+      .where(
+        and(
+          eq(quotes.companyId, companyId),
+          eq(customers.companyId, companyId),
+          timestampRange(quotes.acceptedAt, range),
+          area ? eq(customers.city, area) : undefined,
+        ),
+      ),
+    db
+      .select({
+        type: sql<"Acquired recurring">`'Acquired recurring'`,
+        customerName,
+        area: customers.city,
+        eventDate: recurringSeries.startDate,
+      })
+      .from(recurringSeries)
+      .innerJoin(customers, eq(recurringSeries.customerId, customers.id))
+      .where(
+        and(
+          eq(recurringSeries.companyId, companyId),
+          eq(customers.companyId, companyId),
+          gte(recurringSeries.startDate, range.fromIso),
+          lt(recurringSeries.startDate, addDaysIso(range.toIso, 1)),
+          area ? eq(customers.city, area) : undefined,
+        ),
+      ),
+    db
+      .select({
+        type: sql<"Lost recurring">`'Lost recurring'`,
+        customerName,
+        area: customers.city,
+        eventDate: recurringSeries.endDate,
+      })
+      .from(recurringSeries)
+      .innerJoin(customers, eq(recurringSeries.customerId, customers.id))
+      .where(
+        and(
+          eq(recurringSeries.companyId, companyId),
+          eq(customers.companyId, companyId),
+          gte(recurringSeries.endDate, range.fromIso),
+          lt(recurringSeries.endDate, addDaysIso(range.toIso, 1)),
+          area ? eq(customers.city, area) : undefined,
+        ),
+      ),
+  ]);
+  return [
+    ...newLeads,
+    ...quotesSent,
+    ...quotesAccepted,
+    ...acquiredRecurring,
+    ...lostRecurring,
+  ].sort(
+    (a, b) =>
+      new Date(b.eventDate ?? 0).getTime() -
+      new Date(a.eventDate ?? 0).getTime(),
+  );
+}
+
+export async function getSalesReportSummary(
+  companyId: string,
+  range: ReportsRange,
+  area?: string,
+) {
+  const [
+    newLeads,
+    quotesSent,
+    quotesAccepted,
+    acquiredRecurring,
+    lostRecurring,
+  ] = await Promise.all([
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(customers)
+      .where(
+        and(
+          eq(customers.companyId, companyId),
+          timestampRange(customers.createdAt, range),
+          area ? eq(customers.city, area) : undefined,
+        ),
+      ),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(quotes)
+      .innerJoin(customers, eq(quotes.customerId, customers.id))
+      .where(
+        and(
+          eq(quotes.companyId, companyId),
+          eq(customers.companyId, companyId),
+          timestampRange(quotes.sentAt, range),
+          area ? eq(customers.city, area) : undefined,
+        ),
+      ),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(quotes)
+      .innerJoin(customers, eq(quotes.customerId, customers.id))
+      .where(
+        and(
+          eq(quotes.companyId, companyId),
+          eq(customers.companyId, companyId),
+          timestampRange(quotes.acceptedAt, range),
+          area ? eq(customers.city, area) : undefined,
+        ),
+      ),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(recurringSeries)
+      .innerJoin(customers, eq(recurringSeries.customerId, customers.id))
+      .where(
+        and(
+          eq(recurringSeries.companyId, companyId),
+          eq(customers.companyId, companyId),
+          gte(recurringSeries.startDate, range.fromIso),
+          lt(recurringSeries.startDate, addDaysIso(range.toIso, 1)),
+          area ? eq(customers.city, area) : undefined,
+        ),
+      ),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(recurringSeries)
+      .innerJoin(customers, eq(recurringSeries.customerId, customers.id))
+      .where(
+        and(
+          eq(recurringSeries.companyId, companyId),
+          eq(customers.companyId, companyId),
+          gte(recurringSeries.endDate, range.fromIso),
+          lt(recurringSeries.endDate, addDaysIso(range.toIso, 1)),
+          area ? eq(customers.city, area) : undefined,
+        ),
+      ),
+  ]);
+  return {
+    newLeads: numberValue(newLeads[0]?.count),
+    quotesSent: numberValue(quotesSent[0]?.count),
+    quotesAccepted: numberValue(quotesAccepted[0]?.count),
+    acquiredRecurring: numberValue(acquiredRecurring[0]?.count),
+    lostRecurring: numberValue(lostRecurring[0]?.count),
   };
 }
 
