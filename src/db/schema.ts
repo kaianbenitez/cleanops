@@ -40,9 +40,9 @@ export const companies = pgTable("companies", {
 export const productLeads = pgTable("product_leads", {
   id: uuid("id").primaryKey().defaultRandom(),
   businessName: text("business_name").notNull(),
-  contactName: text("contact_name").notNull(),
+  contactName: text("contact_name"),
   email: text("email").notNull(),
-  phone: text("phone").notNull(),
+  phone: text("phone"),
   crewSize: text("crew_size"),
   message: text("message"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

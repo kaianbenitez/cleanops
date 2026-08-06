@@ -37,6 +37,8 @@ export default function LeadForm() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
+        contactName: form.contactName || null,
+        phone: form.phone || null,
         crewSize: form.crewSize || null,
         message: form.message || null,
       }),
@@ -73,13 +75,13 @@ export default function LeadForm() {
       <Field label="Business name" name="businessName" required error={errors.businessName}>
         <input id="businessName" className={inputClass("businessName")} value={form.businessName} onChange={(event) => update("businessName", event.target.value)} autoComplete="organization" aria-invalid={Boolean(errors.businessName)} />
       </Field>
-      <Field label="Your name" name="contactName" required error={errors.contactName}>
+      <Field label="Your name" name="contactName" error={errors.contactName}>
         <input id="contactName" className={inputClass("contactName")} value={form.contactName} onChange={(event) => update("contactName", event.target.value)} autoComplete="name" aria-invalid={Boolean(errors.contactName)} />
       </Field>
       <Field label="Email" name="email" required error={errors.email}>
         <input id="email" type="email" className={inputClass("email")} value={form.email} onChange={(event) => update("email", event.target.value)} autoComplete="email" aria-invalid={Boolean(errors.email)} />
       </Field>
-      <Field label="Phone" name="phone" required error={errors.phone}>
+      <Field label="Phone" name="phone" error={errors.phone}>
         <input id="phone" type="tel" className={inputClass("phone")} value={form.phone} onChange={(event) => update("phone", event.target.value)} autoComplete="tel" aria-invalid={Boolean(errors.phone)} />
       </Field>
       <Field label="Crew size" name="crewSize" error={errors.crewSize}>
