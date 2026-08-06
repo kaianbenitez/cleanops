@@ -5,10 +5,45 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-07 (Sidebar account-card cropping + Calendar note-decoding gap fixed —
-see the entry right below).
+Last updated: 2026-08-07 (Quote-to-customer room sync, dashboard accepted-quote undercount, and
+unsafe booking-override fixes shipped — see the entry right below).
 
 ## Done
+
+- **Three quote-related bugs fixed and merged to `main` at `576e697` (2026-08-07).** User
+  reported via three items in one message: (1) room/house details entered while creating a
+  quote weren't showing up on the customer's profile afterward, especially for new customers
+  created inline from the quote builder; (2) the dashboard's Sales summary showed only 1
+  accepted quote when the user had 2 accepted; (3) quotes could get scheduled/booked without
+  the customer ever explicitly accepting.
+  Root cause of (1): `quotes.roomCounts` and `customers.homeDetails.roomCounts` are separate
+  storage locations in different shapes (array on the quote, keyed record on the customer) and
+  nothing copied one into the other — not just for new customers, existing-customer corrections
+  made on a quote were lost too. Fix: `POST /api/quotes` now upserts the customer's
+  `homeDetails.roomCounts` from the quote's room counts on every quote creation.
+  Root cause of (2): the dashboard's accepted/booked quote counts filtered the whole query by
+  `quotes.createdAt` falling in the selected date range before checking `status = 'accepted'`,
+  so a quote created outside the range but accepted inside it (or vice versa) was invisible —
+  inconsistent with the Reports page, which already filters accepted quotes by `acceptedAt`.
+  Fix: `getOperationsDashboard` and `getPulseMetrics` in `src/lib/dashboard/queries.ts` now
+  filter accepted/booked counts by `quotes.acceptedAt`, leaving `sent` on `createdAt`.
+  Root cause of (3): no code path silently flips `quotes.status` to accepted — the actual issue
+  was the "Schedule without acceptance" button (a legitimate internal override for
+  phone/verbal approvals) being a single click with no confirmation, no recorded reason, and
+  styled as the primary button on the page. Per the user's decision, kept the override but made
+  it safe: it now requires a typed reason via a confirmation dialog, records it in `audit_log`
+  (no new schema/migration — reused the existing table), is restyled as secondary, and the
+  quote detail page shows a persistent "Staff override — customer did not sign" badge with the
+  reason once used.
+  Built by Codex in a dedicated worktree (`cleanops-quote-bugfixes`, `codex/quote-bugfixes-aug7`),
+  delegated with a structured contract after Claude Code investigated and cited exact files/
+  lines for all three root causes up front. Independently reviewed diff-by-diff before
+  integrating. Verified in the feature worktree with real env vars: `npm run typecheck` (clean),
+  `npm run build` (clean), `npm run check:env` (11/16 configured, passed), `npm run check:drift`
+  (OK, no drift), and both `npm run smoke:routes` and `npm run smoke:auth` against a local
+  `next start` server (all checks passed, including the quote detail page's new
+  `bookingOverride` field). Fast-forward merged into `main` and pushed — no rebase needed.
+
 
 - **Desktop sidebar's account card was getting cropped on shorter browser windows, and five
   Calendar render sites were missing the entity-decoding fix — both fixed, merged to `main`
