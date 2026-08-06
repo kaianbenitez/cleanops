@@ -5,10 +5,55 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-06 (Dashboard rebuilt around a new sales/performance overview, on top
-of the existing operational widgets — see the entry right below).
+Last updated: 2026-08-06 (Dashboard polish pass on the Performance overview shipped earlier
+today — see the entry right below).
 
 ## Done
+
+- **Dashboard polish pass: compact single-row date filter, new date presets, removed
+  duplicate controls/numbers, and a real schedule table — merged to `main` at `93114b5`
+  (2026-08-06).** Direct user follow-up to the same-day Performance overview rebuild (entry
+  right below). Built by Codex on `codex/dashboard-refine` (`17a7fcc`), delegated with a
+  structured six-item contract, cherry-picked here cleanly (no conflicts) as `93114b5`.
+  1. `DateRangeControls` (`src/app/(app)/dashboard/date-range-controls.tsx`) rebuilt as a
+     single-row control: one preset `<select>` (Yesterday / This week / Last week / This
+     month / Last month / This year / Last year / Custom) instead of a wrapped row of pill
+     buttons plus a permanently-visible second row of date inputs. Custom date inputs now
+     only appear inline when "Custom" is selected. The quarter preset and its region-picker
+     equivalent (never existed in code, confirmed before starting — not added) are both gone.
+  2. `src/lib/dashboard/range.ts` gained `yesterday`/`this_week`/`last_week`/`this_year`/
+     `last_year` preset resolution + labels; `quarterRangeFor` and the `quarter` preset were
+     removed (grepped first — only `page.tsx` referenced it, updated in the same commit). The
+     default preset when no query param is present changed from `last_30_days` to
+     `this_month`, since Last 30 days is no longer a selectable option in the new dropdown
+     (the old preset values still resolve correctly if reached by URL, just aren't offered in
+     the UI — harmless).
+  3. Removed the redundant "New job"/"New quote" buttons from the Dashboard header
+     (`page.tsx`) — the app's global "Create new" menu already covers both from anywhere.
+  4. Removed the "Quote pipeline" card from `operations-overview.tsx` — it duplicated the
+     Sent/Accepted/win-rate numbers already shown in "Sales summary". Weekly revenue now
+     takes the full row width on its own; Sales summary + System insights keep their existing
+     two-column row below.
+  5. `todays-run.tsx`'s bare list of customer names is now a real table — Time, Customer,
+     Cleaning type, Location, Cleaner(s), Status — using the existing shared `StatusPill`
+     component (`src/components/ui/status-pill.tsx`) for the status column rather than
+     inventing a new badge style. No query changes needed; `getTodaysRun` already returned
+     every field the table needed. Wrapped in `overflow-x-auto` so it doesn't break layout on
+     a phone; each row keeps one focusable link to `/jobs/{id}` for accessibility.
+  6. Added a `v0.2.1` Help Center changelog entry describing all of the above in plain
+     language.
+  Verified independently before integrating, not just Codex's report: read every changed
+  file's diff line-by-line against the six-item spec (all six confirmed correctly scoped, no
+  unrelated files touched, `StatusPill` reused rather than reinvented). Then ran the full
+  release sequence for real, twice — once in the feature worktree, once again on this
+  integration checkout after the cherry-pick: `npm run check:env`, `npm run verify` (build
+  succeeded against live data both times), a local production server, `npm run smoke:routes`
+  (6/6 both times) and `npm run smoke:auth` (22/22 both times, including a live authenticated
+  `200` on `/dashboard` itself).
+  **Not click-through-tested in a real browser** — same longstanding `.env.local`
+  `BROWSER_ADMIN_PASSWORD` gap as other entries in this doc. Worth an actual look next time
+  someone's logged in, especially the new preset dropdown and the schedule table at mobile
+  width.
 
 - **Dashboard rebuilt with a client/revenue/quote "Performance overview" section, on top of
   (not replacing) the existing operational widgets, merged to `main` at `6551560`
