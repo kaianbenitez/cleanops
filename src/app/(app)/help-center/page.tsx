@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.8",
+    date: "August 7, 2026",
+    title: "Faster manual time entry",
+    changes: [
+      "When logging a technician's time by hand on a job, you can now enter total hours worked instead of separate start and end times.",
+      "Manual time entry no longer asks you to pick a date -- it always uses the job's own scheduled date.",
+    ],
+  },
+  {
     version: "v0.2.6",
     date: "August 7, 2026",
     title: "Per-visit price and Job Ticket Hours adjustments",
