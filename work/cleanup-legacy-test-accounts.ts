@@ -86,15 +86,19 @@ async function main() {
     authUsers.push(...data.users.map((user) => ({ id: user.id, email: user.email })));
     if (data.users.length < 1000) break;
   }
-  const authTargets = targets.map((target) => {
+  const authTargets: Array<{ id: string; email: string; authId: string }> = [];
+  const missingAuthEmails: string[] = [];
+  for (const target of targets) {
     const matches = authUsers.filter((user) => user.email?.toLowerCase() === target.email);
-    if (matches.length !== 1) throw new Error(`Safety check failed: expected exactly one Supabase Auth account for ${target.email}, found ${matches.length}. No changes were made.`);
-    return { ...target, authId: matches[0].id };
-  });
+    if (matches.length > 1) throw new Error(`Safety check failed: expected at most one Supabase Auth account for ${target.email}, found ${matches.length}. No changes were made.`);
+    if (matches.length === 1) authTargets.push({ ...target, authId: matches[0].id });
+    else missingAuthEmails.push(target.email);
+  }
 
   console.log(`Verified ${targets.length} exact Simply Maid users, ${foreignKeys.length} live foreign-key columns to users.id, and ${payrollRows.length} safe open/$0 payroll line(s).`);
   for (const reference of references) console.log(`- ${reference.table}.${reference.column}: ${reference.count}`);
-  console.log(`Would delete ${payrollRows.length} payroll_lines row(s), 3 users rows, and 3 matching Supabase Auth accounts.`);
+  console.log(`Would delete ${payrollRows.length} payroll_lines row(s), 3 users rows, and ${authTargets.length} matching Supabase Auth account(s).`);
+  if (missingAuthEmails.length) console.log(`No Supabase Auth account exists for ${missingAuthEmails.join(", ")}; those Auth deletions will be skipped.`);
   if (!apply) {
     console.log("Dry run complete. Re-run with --apply to perform this exact checked cleanup.");
     await sql.end();
@@ -113,7 +117,8 @@ async function main() {
   } finally {
     await sql.end();
   }
-  console.log(`Deleted ${payrollRows.length} payroll_lines row(s), 3 users rows, and 3 matching Supabase Auth accounts.`);
+  console.log(`Deleted ${payrollRows.length} payroll_lines row(s), 3 users rows, and ${authTargets.length} matching Supabase Auth account(s).`);
+  if (missingAuthEmails.length) console.log(`Skipped ${missingAuthEmails.length} absent Supabase Auth account(s): ${missingAuthEmails.join(", ")}.`);
 }
 
 main().catch(async (error) => {

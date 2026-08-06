@@ -3,6 +3,7 @@
  *
  * Usage:
  *   npx tsx work/seed-demo-company.ts           (dry run; no writes)
+ *   npx tsx work/seed-demo-company.ts --verify-sql (executes inserts, then rolls them back)
  *   npx tsx work/seed-demo-company.ts --apply   (creates the demo tenant and its data)
  *
  * This script only inserts rows belonging to DEMO_COMPANY_NAME. It never reads
@@ -18,6 +19,8 @@ config({ path: ".env.local" });
 
 const DEMO_COMPANY_NAME = "Demo Cleaning Co. — Fictional Training Tenant";
 const apply = process.argv.includes("--apply");
+const verifySql = process.argv.includes("--verify-sql");
+const VERIFY_SQL_ROLLBACK = new Error("VERIFY_SQL_ROLLBACK");
 const sql = postgres(process.env.DATABASE_URL!, { prepare: false });
 
 const isoDate = (offset: number) => {
@@ -51,34 +54,36 @@ const accountSeed = [
 ];
 
 async function main() {
-  if (!process.env.DATABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error("DATABASE_URL, NEXT_PUBLIC_SUPABASE_URL, and SUPABASE_SERVICE_ROLE_KEY must be configured.");
-  }
+  if (apply && verifySql) throw new Error("Use either --apply or --verify-sql, not both.");
+  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL must be configured.");
+  if (apply && (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY)) throw new Error("NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be configured for --apply.");
 
   const existing = await sql`select id from companies where name = ${DEMO_COMPANY_NAME} limit 1`;
-  console.log(`Mode: ${apply ? "APPLY (will write to DB and Supabase Auth)" : "DRY RUN (no writes)"}`);
+  console.log(`Mode: ${apply ? "APPLY (will write to DB and Supabase Auth)" : verifySql ? "VERIFY SQL (will execute DB inserts, then roll back)" : "DRY RUN (no writes)"}`);
   if (existing.length) throw new Error(`Refusing to run: company \"${DEMO_COMPANY_NAME}\" already exists (${existing[0].id}). No changes were made.`);
 
   console.log(`Would create company: ${DEMO_COMPANY_NAME}`);
   console.log(`Would create accounts: ${accountSeed.map((account) => usernameToEmail(slugifyUsername(account.firstName, account.lastName))).join(", ")}`);
   console.log("Would create: 5 services (3 main, 2 add-on), 14 customers, 2 recurring series, 18 jobs, 2 quotes, 1 invoice, 1 payroll period, and 2 non-zero payroll lines.");
   console.log("All addresses, phone numbers, emails, and notes are fictional demo data. Integration credentials and GHL settings will remain unset.");
-  if (!apply) {
+  if (!apply && !verifySql) {
     console.log("Dry run complete. Re-run with --apply to create this isolated demo tenant.");
     await sql.end();
     return;
   }
 
-  const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const credentials = accountSeed.map((account) => ({ ...account, username: slugifyUsername(account.firstName, account.lastName), email: usernameToEmail(slugifyUsername(account.firstName, account.lastName)), password: generateTemporaryPassword(), id: "" }));
+  const supabaseAdmin = apply ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!) : null;
+  const credentials = accountSeed.map((account) => ({ ...account, username: slugifyUsername(account.firstName, account.lastName), email: usernameToEmail(slugifyUsername(account.firstName, account.lastName)), password: apply ? generateTemporaryPassword() : "", id: verifySql ? randomUUID() : "" }));
   const createdAuthIds: string[] = [];
 
   try {
-    for (const account of credentials) {
-      const { data, error } = await supabaseAdmin.auth.admin.createUser({ email: account.email, password: account.password, email_confirm: true });
-      if (error || !data.user) throw new Error(`Could not create auth account ${account.email}: ${error?.message ?? "unknown error"}`);
-      account.id = data.user.id;
-      createdAuthIds.push(data.user.id);
+    if (apply) {
+      for (const account of credentials) {
+        const { data, error } = await supabaseAdmin!.auth.admin.createUser({ email: account.email, password: account.password, email_confirm: true });
+        if (error || !data.user) throw new Error(`Could not create auth account ${account.email}: ${error?.message ?? "unknown error"}`);
+        account.id = data.user.id;
+        createdAuthIds.push(data.user.id);
+      }
     }
 
     await sql.begin(async (tx) => {
@@ -175,9 +180,14 @@ async function main() {
         { payroll_period_id: period.id, user_id: hourly.id, jobs_count: 4, regular_hours: "10.50", commission_cents: 0, office_hours: "10.50", office_pay_cents: 23625, mileage_miles: "18.00", mileage_cents: 630, calculation: JSON.stringify([{ source: "fictional demo time entries" }]), final_cents: 24255 },
         { payroll_period_id: period.id, user_id: commission.id, jobs_count: 6, regular_hours: "15.00", commission_cents: 39000, office_hours: "0", office_pay_cents: 0, mileage_miles: "22.00", mileage_cents: 770, calculation: JSON.stringify([{ source: "fictional demo completed jobs" }]), final_cents: 39770 },
       ])}`;
+      if (verifySql) throw VERIFY_SQL_ROLLBACK;
     });
   } catch (error) {
-    await Promise.all(createdAuthIds.map((id) => supabaseAdmin.auth.admin.deleteUser(id).catch(() => undefined)));
+    if (error === VERIFY_SQL_ROLLBACK) {
+      console.log("SUCCESS: all inserts executed against the real schema with no SQL error, then rolled back; nothing was persisted.");
+      return;
+    }
+    if (supabaseAdmin) await Promise.all(createdAuthIds.map((id) => supabaseAdmin.auth.admin.deleteUser(id).catch(() => undefined)));
     throw error;
   } finally {
     await sql.end();
