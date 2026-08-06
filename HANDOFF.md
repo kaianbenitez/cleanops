@@ -5,9 +5,42 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-07 (Reports & Exports Center shipped — see the entry right below).
+Last updated: 2026-08-07 (Sales report + preview-flicker fix shipped — see the entry right below).
 
 ## Done
+
+- **Reports & Exports Center: added a Sales report and fixed a flickering preview, merged to
+  `main` at `bbc3659` (2026-08-07).** Follow-up to the Reports & Exports Center rebuild directly
+  below. Two user-reported items: (1) the Preview button's popup modal was glitching/flickering
+  in the browser — replaced entirely with an inline expand inside the report card (table grows
+  the card downward, no `fixed`/backdrop/portal), which is also just a simpler pattern; (2) added
+  a new **Sales Reports** section with one card covering the funnel the user asked for by name:
+  new leads, quotes sent, quotes accepted, recurring clients acquired, and recurring clients
+  lost. Metric definitions (grounded in the real schema, no leads/CRM table exists separately
+  from `customers`): New leads = `customers` rows created in the range; Quote sent/accepted =
+  `quotes.sentAt`/`acceptedAt` in the range; Acquired recurring = `recurring_series.startDate` in
+  the range; Lost recurring = `recurring_series.endDate` in the range. Same date-range and Area
+  filtering as the other report cards; CSV export is a row-level activity log (`Type, Customer,
+  Area, Date`), not just the 5 headline numbers, and those numbers also appear in the card's
+  summary line. No schema change needed — reused the existing `report_exports` tracking table
+  (`reportKey: "sales"`).
+  **Data caveat worth knowing, not a bug:** I independently queried the live database before
+  shipping and found all 213 `recurring_series` rows have a `start_date` between 2026-07-09 and
+  2026-09-02 — a ~2-month window centered on today, with 209 of those 213 rows actually created
+  in the database on 2026-07-22 (the bulk data-import date). That means "Acquired recurring" for
+  any date range that overlaps this window will look artificially high — it's mostly reflecting
+  the one-time import backfilling real clients' service-start dates, not genuine new sales
+  happening right now. The same is true of "New leads" for ranges touching 2026-07-22 (230 of the
+  customers in the system were created that same day). This will self-correct as real time passes
+  and the import date rolls out of whatever range someone selects; until then, treat 30-day/month
+  ranges that include late July 2026 with that in mind. Not something to fix in code — it's a
+  property of the imported data, and the report is counting it correctly.
+  Verified: `check:drift` clean (no schema change), `npm run verify` clean, both re-run
+  independently by me in addition to Codex's own run of the full release sequence
+  (`check:env`, `check:drift`, `verify`, `smoke:routes`, `smoke:auth`, plus an authenticated
+  `/reports` check across presets/areas and a real Sales CSV download). Same "not click-through-
+  tested live in a browser myself" caveat as the entry below, for the same reason (would require
+  typing a login password).
 
 - **`/reports` completely rebuilt into a "Reports & Exports Center," merged to `main` at
   `6ad69a6` (2026-08-07).** User request: scan an approved Stitch mockup ("Reports & Exports
