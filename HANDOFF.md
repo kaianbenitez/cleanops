@@ -5,9 +5,13 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-07 (Manual time entry redesign shipped — see the entry right below).
+Last updated: 2026-08-07 (ServiceSpark public landing-page polish shipped — see the entry right below).
 
 ## Done
+
+- **Rebuilt the public ServiceSpark landing page around real product screens and made early-access requests lower-friction (2026-08-07).** The original public page described the shipped operations features only as six text cards, making it harder for a prospective cleaning-business owner to assess whether the product is real and relevant. Replaced that grid with an alternating, responsive text-and-screenshot sequence for Scheduling, My Day, Customers, Quotes, Invoicing, and payroll-related team tracking, plus the real dashboard screen immediately below the hero. Added the approved trust line: “Not a concept — this is the same system a real cleaning business runs its day-to-day operations on.” All seven images are from the safe fictional Demo Cleaning Co. account; the payroll image deliberately uses the team directory rather than the known-broken demo Payroll screen. Each Next Image now uses the source file's real dimensions, including the taller 1568×778 invoicing screen, so screenshots retain their native aspect ratios.
+  The early-access form now requires only business name and email; name, phone, crew size, and message remain available but optional. Updated client normalization, API validation, and the Drizzle schema together, and added `drizzle/0029_product_leads_optional_contact.sql` to drop the live table's `contact_name` and `phone` NOT NULL constraints. Help Center v0.2.9 records the public-facing change.
+  Verified in this worktree: `npm run check:env`, `npm run check:drift`, and `npm run verify` all passed (the existing lint warnings remain warnings only); a built production server returned 200 for anonymous `/`, `smoke:routes` passed 6/6, and `smoke:auth` passed 22/22. Confirmed the output contains the dashboard, feature screenshots, and trust copy. **Not done / required follow-up:** do not apply the migration automatically. It needs review, explicit approval, and a manual hosted-DB apply. Until then, a request containing only the two required fields validates but cannot insert because the current database still rejects null `contact_name`/`phone`; the attempted validation submission failed and created no lead row. Re-test that real two-field submission after the migration is applied.
 
 - **Job Detail's "Add time manually" form now supports total-hours entry and drops the date
   picker entirely, merged to `main` at `31e4e9a` (2026-08-07).** #2-ranked item from the

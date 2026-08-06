@@ -3,12 +3,12 @@ import Link from "next/link";
 import LeadForm from "./lead-form";
 
 const features = [
-  ["Scheduling that stays ahead", "Plan work on a day, week, or month view, move assignments as things change, and keep recurring visits from slipping through.", "/marketing/scheduling.jpg"],
-  ["A crew app for the workday", "Give cleaners job details, protected entry codes, checklists, photos, and a simple place to log what happened on site.", "/marketing/my-day.jpg"],
-  ["Customer details in one record", "Keep service history, home notes, preferences, and safely masked access information close to every job.", "/marketing/customers.jpg"],
-  ["Quotes customers can accept online", "Create a branded proposal, share one clear link, and turn an approved quote into the next step without extra back-and-forth.", "/marketing/quotes.jpg"],
-  ["Built-in invoicing", "Create invoices in the same system you use to run the work, so the office does not have to juggle a separate tool to get paid.", "/marketing/invoicing.jpg"],
-  ["Payroll tied to tracked time", "Use tiered hourly rates and commission support, with time tracking flowing straight into payroll runs.", "/marketing/payroll-team.jpg"],
+  ["Scheduling that stays ahead", "Plan work on a day, week, or month view, move assignments as things change, and keep recurring visits from slipping through.", "/marketing/scheduling.jpg", 1568, 744],
+  ["A crew app for the workday", "Give cleaners job details, protected entry codes, checklists, photos, and a simple place to log what happened on site.", "/marketing/my-day.jpg", 1568, 745],
+  ["Customer details in one record", "Keep service history, home notes, preferences, and safely masked access information close to every job.", "/marketing/customers.jpg", 1568, 745],
+  ["Quotes customers can accept online", "Create a branded proposal, share one clear link, and turn an approved quote into the next step without extra back-and-forth.", "/marketing/quotes.jpg", 1568, 744],
+  ["Built-in invoicing", "Create invoices in the same system you use to run the work, so the office does not have to juggle a separate tool to get paid.", "/marketing/invoicing.jpg", 1568, 778],
+  ["Payroll tied to tracked time", "Use tiered hourly rates and commission support, with time tracking flowing straight into payroll runs.", "/marketing/payroll-team.jpg", 1568, 744],
 ] as const;
 
 const steps = [
@@ -22,7 +22,7 @@ function SparkMark() {
   return <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="h-9 w-9"><path d="M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z" fill="var(--spark-mark)"/><path d="M32 12 L36 27 L51 32 L36 37 L32 52 L28 37 L13 32 L28 27 Z" fill="var(--spark-mark-facet)"/><path d="M49 8 L51.4 14.6 L58 17 L51.4 19.4 L49 26 L46.6 19.4 L40 17 L46.6 14.6 Z" fill="var(--spark-mark)"/></svg>;
 }
 
-function ProductScreenshot({ alt, priority = false, src }: { alt: string; priority?: boolean; src: string }) {
+function ProductScreenshot({ alt, height, priority = false, src, width }: { alt: string; height: number; priority?: boolean; src: string; width: number }) {
   return (
     <div className="overflow-hidden rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] shadow-sm">
       <div className="flex h-9 items-center gap-1.5 border-b border-[var(--co-line-soft)] px-4" aria-hidden="true">
@@ -30,7 +30,7 @@ function ProductScreenshot({ alt, priority = false, src }: { alt: string; priori
         <span className="h-2 w-2 rounded-full bg-[var(--co-line)]" />
         <span className="h-2 w-2 rounded-full bg-[var(--co-line)]" />
       </div>
-      <Image src={src} alt={alt} width={1568} height={744} priority={priority} sizes="(min-width: 1024px) 576px, 100vw" className="h-auto w-full" />
+      <Image src={src} alt={alt} width={width} height={height} priority={priority} sizes="(min-width: 1024px) 576px, 100vw" className="h-auto w-full" />
     </div>
   );
 }
@@ -60,7 +60,7 @@ export default function MarketingPage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 lg:px-8">
-        <ProductScreenshot src="/marketing/dashboard.jpg" alt="ServiceSpark dashboard showing a cleaning business performance overview" priority />
+        <ProductScreenshot src="/marketing/dashboard.jpg" alt="ServiceSpark dashboard showing a cleaning business performance overview" width={1568} height={744} priority />
         <p className="mt-5 max-w-3xl text-sm font-medium leading-6 text-[var(--co-muted)]">Not a concept — this is the same system a real cleaning business runs its day-to-day operations on.</p>
       </section>
 
@@ -68,7 +68,7 @@ export default function MarketingPage() {
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="max-w-2xl"><h2 className="text-3xl font-semibold tracking-[-0.025em]">The operations work, connected.</h2><p className="mt-3 leading-7 text-[var(--co-muted)]">The essentials your office and crews need to keep a busy cleaning business moving.</p></div>
           <div className="mt-12 space-y-16 sm:mt-16 lg:space-y-24">
-            {features.map(([title, description, screenshot], index) => (
+            {features.map(([title, description, screenshot, width, height], index) => (
               <article key={title} className="grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-14">
                 <div className={index % 2 === 0 ? "order-2 lg:order-1" : "order-2"}>
                   <p className="font-mono text-sm font-semibold text-[var(--co-accent)]">0{index + 1}</p>
@@ -76,7 +76,7 @@ export default function MarketingPage() {
                   <p className="mt-4 max-w-xl leading-7 text-[var(--co-muted)]">{description}</p>
                 </div>
                 <div className={index % 2 === 0 ? "order-1 lg:order-2" : "order-1"}>
-                  <ProductScreenshot src={screenshot} alt={`${title} in the ServiceSpark app`} />
+                  <ProductScreenshot src={screenshot} alt={`${title} in the ServiceSpark app`} width={width} height={height} />
                 </div>
               </article>
             ))}
