@@ -12,6 +12,7 @@ const RELEASES = [
     title: "Clearer dashboard reporting",
     changes: [
       "Simplified the Dashboard date filter into one compact control, with quick choices for recent weeks, months, and years plus a custom date range when needed.",
+      "Dashboard reporting controls now stay alongside the page heading, with the selected date range always visible and ready to adjust.",
       "Removed duplicate quote numbers and extra create buttons so the Dashboard stays focused on the information that matters.",
       "Today’s schedule is now a full table with the time, customer, cleaning type, location, assigned cleaners, and job status for every visit.",
     ],
