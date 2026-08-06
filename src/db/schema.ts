@@ -642,6 +642,21 @@ export const payrollLines = pgTable("payroll_lines", {
   userIdx: index("payroll_lines_user_idx").on(t.userId),
 }));
 
+// ---------- report exports ----------
+export const reportExports = pgTable("report_exports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull().references(() => companies.id),
+  reportKey: text("report_key").notNull(),
+  exportedByUserId: uuid("exported_by_user_id").notNull().references(() => users.id),
+  exportedAt: timestamp("exported_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  companyReportExportedIdx: index("report_exports_company_report_exported_idx").on(
+    t.companyId,
+    t.reportKey,
+    t.exportedAt,
+  ),
+}));
+
 // ---------- ghl sync log ----------
 export const syncDirectionEnum = ["inbound", "outbound"] as const;
 export const syncStatusEnum = ["ok", "failed", "retrying"] as const;

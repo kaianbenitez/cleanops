@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.4",
+    date: "August 7, 2026",
+    title: "Reports and exports center",
+    changes: [
+      "Administrators can now preview and download payroll, tips, accounts receivable, and jobs reports from one place.",
+      "Reports support a shared date range, and accounts receivable and jobs can be narrowed to a customer area.",
+    ],
+  },
+  {
     version: "v0.2.3",
     date: "August 7, 2026",
     title: "Safer quote scheduling and clearer sales records",

@@ -1,114 +1,268 @@
-import { and, eq, gte, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { customers, invoices, jobs } from "@/db/schema";
+import {
+  customers,
+  invoices,
+  jobs,
+  payrollLines,
+  payrollPeriods,
+  reportExports,
+  users,
+} from "@/db/schema";
 import { addDaysIso } from "@/lib/dashboard/range";
 import { overdueSqlCondition } from "@/lib/invoices/overdue";
-import type {
-  CustomerHealthCounts,
-  ReportOperationsCounts,
-  ReportRange,
-} from "./types";
+
+export type ReportsRange = {
+  fromIso: string;
+  toIso: string;
+  timeZone: string;
+};
+
+export type ReportKey = "payroll" | "tips" | "accounts-receivable" | "jobs";
 
 const numberValue = (value: unknown) => Number(value ?? 0);
 
-function paidRangeCondition(companyId: string, range: ReportRange) {
+function timestampRange(
+  column: typeof invoices.createdAt | typeof jobs.completedAt,
+  range: ReportsRange,
+) {
   const toExclusiveIso = addDaysIso(range.toIso, 1);
-
   return and(
-    eq(invoices.companyId, companyId),
-    eq(invoices.status, "paid"),
     gte(
-      invoices.paidAt,
+      column,
       sql`(${range.fromIso}::date::timestamp AT TIME ZONE ${range.timeZone})`,
     ),
     lt(
-      invoices.paidAt,
+      column,
       sql`(${toExclusiveIso}::date::timestamp AT TIME ZONE ${range.timeZone})`,
     ),
   );
 }
 
-export async function getRevenueSeries(
-  companyId: string,
-  range: ReportRange,
-) {
-  const day = sql<string>`to_char(${invoices.paidAt} AT TIME ZONE ${range.timeZone}, 'YYYY-MM-DD')`;
+export async function getPayrollReport(companyId: string, range: ReportsRange) {
   const rows = await db
     .select({
-      day,
-      amountCents: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)`,
+      employeeName: sql<string>`concat(${users.firstName}, ' ', ${users.lastName})`,
+      periodStart: payrollPeriods.startDate,
+      periodEnd: payrollPeriods.endDate,
+      regularHours: payrollLines.regularHours,
+      officeHours: payrollLines.officeHours,
+      tipsPaycheckCents: payrollLines.tipsPaycheckCents,
+      tipsCashCents: payrollLines.tipsCashCents,
+      grossPayCents: payrollLines.finalCents,
     })
-    .from(invoices)
-    .where(paidRangeCondition(companyId, range))
-    .groupBy(sql`1`);
-
+    .from(payrollLines)
+    .innerJoin(
+      payrollPeriods,
+      eq(payrollLines.payrollPeriodId, payrollPeriods.id),
+    )
+    .innerJoin(users, eq(payrollLines.userId, users.id))
+    .where(
+      and(
+        eq(payrollPeriods.companyId, companyId),
+        eq(users.companyId, companyId),
+        lt(payrollPeriods.startDate, addDaysIso(range.toIso, 1)),
+        gte(payrollPeriods.endDate, range.fromIso),
+      ),
+    )
+    .orderBy(
+      desc(payrollPeriods.endDate),
+      asc(users.lastName),
+      asc(users.firstName),
+    );
   return rows.map((row) => ({
-    day: row.day,
-    amountCents: numberValue(row.amountCents),
+    ...row,
+    regularHours: numberValue(row.regularHours),
+    officeHours: numberValue(row.officeHours),
   }));
 }
 
-export async function getCashToCollect(companyId: string) {
-  const [totalRow] = await db
+export async function getTipsReport(companyId: string, range: ReportsRange) {
+  const rows = await db
     .select({
-      count: sql<number>`count(*)`,
-      amountCents: sql<number>`coalesce(sum(greatest(${invoices.totalCents} - ${invoices.amountPaidCents}, 0)), 0)`,
+      employeeName: sql<string>`concat(${users.firstName}, ' ', ${users.lastName})`,
+      periodStart: payrollPeriods.startDate,
+      periodEnd: payrollPeriods.endDate,
+      paycheckTipsCents: sql<number>`coalesce(sum(${payrollLines.tipsPaycheckCents}), 0)`,
+      cashTipsCents: sql<number>`coalesce(sum(${payrollLines.tipsCashCents}), 0)`,
     })
-    .from(invoices)
-    .where(and(eq(invoices.companyId, companyId), overdueSqlCondition()));
-
-  return {
-    count: numberValue(totalRow?.count),
-    amountCents: numberValue(totalRow?.amountCents),
-  };
+    .from(payrollLines)
+    .innerJoin(
+      payrollPeriods,
+      eq(payrollLines.payrollPeriodId, payrollPeriods.id),
+    )
+    .innerJoin(users, eq(payrollLines.userId, users.id))
+    .where(
+      and(
+        eq(payrollPeriods.companyId, companyId),
+        eq(users.companyId, companyId),
+        lt(payrollPeriods.startDate, addDaysIso(range.toIso, 1)),
+        gte(payrollPeriods.endDate, range.fromIso),
+      ),
+    )
+    .groupBy(
+      users.firstName,
+      users.lastName,
+      payrollPeriods.startDate,
+      payrollPeriods.endDate,
+    )
+    .orderBy(
+      desc(payrollPeriods.endDate),
+      asc(users.lastName),
+      asc(users.firstName),
+    );
+  return rows.map((row) => ({
+    ...row,
+    paycheckTipsCents: numberValue(row.paycheckTipsCents),
+    cashTipsCents: numberValue(row.cashTipsCents),
+  }));
 }
 
-export async function getReportOperationsCounts(
+export async function getAccountsReceivableReport(
   companyId: string,
-  fromIso: string,
-  toIso: string,
-): Promise<ReportOperationsCounts> {
-  const toExclusiveIso = addDaysIso(toIso, 1);
+  range: ReportsRange,
+  area?: string,
+) {
+  const rows = await db
+    .select({
+      customerName: sql<string>`coalesce(nullif(${customers.companyName}, ''), concat(${customers.firstName}, ' ', ${customers.lastName}))`,
+      area: customers.city,
+      invoiceCreatedAt: invoices.createdAt,
+      totalCents: invoices.totalCents,
+      amountPaidCents: invoices.amountPaidCents,
+      outstandingCents: sql<number>`greatest(${invoices.totalCents} - ${invoices.amountPaidCents}, 0)`,
+      overdue: sql<boolean>`case when ${overdueSqlCondition()} then true else false end`,
+      agingBucket: sql<string>`case when now() - ${invoices.createdAt} < interval '31 days' then '0-30 days' when now() - ${invoices.createdAt} < interval '61 days' then '31-60 days' else '61-90+ days' end`,
+    })
+    .from(invoices)
+    .innerJoin(customers, eq(invoices.customerId, customers.id))
+    .where(
+      and(
+        eq(invoices.companyId, companyId),
+        eq(customers.companyId, companyId),
+        eq(invoices.status, "sent"),
+        timestampRange(invoices.createdAt, range),
+        area ? eq(customers.city, area) : undefined,
+      ),
+    )
+    .orderBy(desc(invoices.createdAt));
+  return rows.map((row) => ({
+    ...row,
+    outstandingCents: numberValue(row.outstandingCents),
+  }));
+}
+
+export async function getAccountsReceivableSummary(
+  companyId: string,
+  range: ReportsRange,
+  area?: string,
+) {
   const [row] = await db
     .select({
-      unassigned: sql<number>`count(*) filter (where not exists (select 1 from job_assignments ja where ja.job_id = ${jobs.id}))`,
-      missingHours: sql<number>`count(*) filter (where ${jobs.status} = 'completed' and not exists (select 1 from time_entries te where te.job_id = ${jobs.id}))`,
-      awaitingInvoicing: sql<number>`count(*) filter (where ${jobs.status} = 'completed' and not exists (select 1 from invoices i where i.job_id = ${jobs.id} and i.company_id = ${companyId}))`,
+      totalOutstandingCents: sql<number>`coalesce(sum(greatest(${invoices.totalCents} - ${invoices.amountPaidCents}, 0)), 0)`,
+    })
+    .from(invoices)
+    .innerJoin(customers, eq(invoices.customerId, customers.id))
+    .where(
+      and(
+        eq(invoices.companyId, companyId),
+        eq(customers.companyId, companyId),
+        eq(invoices.status, "sent"),
+        timestampRange(invoices.createdAt, range),
+        area ? eq(customers.city, area) : undefined,
+      ),
+    );
+  return numberValue(row?.totalOutstandingCents);
+}
+
+export async function getJobsReport(
+  companyId: string,
+  range: ReportsRange,
+  area?: string,
+) {
+  const toExclusiveIso = addDaysIso(range.toIso, 1);
+  const selectedRangeCondition = or(
+    and(eq(jobs.status, "completed"), timestampRange(jobs.completedAt, range)),
+    and(
+      sql`${jobs.status} <> 'completed'`,
+      gte(jobs.scheduledDate, range.fromIso),
+      lt(jobs.scheduledDate, toExclusiveIso),
+    ),
+  );
+  const rows = await db
+    .select({
+      customerName: sql<string>`coalesce(nullif(${customers.companyName}, ''), concat(${customers.firstName}, ' ', ${customers.lastName}))`,
+      area: customers.city,
+      status: jobs.status,
+      scheduledDate: jobs.scheduledDate,
+      completedAt: jobs.completedAt,
+      estimatedDurationMinutes: jobs.estimatedDurationMinutes,
     })
     .from(jobs)
+    .innerJoin(customers, eq(jobs.customerId, customers.id))
     .where(
       and(
         eq(jobs.companyId, companyId),
-        gte(jobs.scheduledDate, fromIso),
-        lt(jobs.scheduledDate, toExclusiveIso),
+        eq(customers.companyId, companyId),
+        selectedRangeCondition,
+        area ? eq(customers.city, area) : undefined,
+      ),
+    )
+    .orderBy(desc(jobs.scheduledDate));
+  return rows;
+}
+
+export async function getJobsReportSummary(
+  companyId: string,
+  range: ReportsRange,
+  area?: string,
+) {
+  const toExclusiveIso = addDaysIso(range.toIso, 1);
+  const [row] = await db
+    .select({
+      completed: sql<number>`count(*) filter (where ${jobs.status} = 'completed')`,
+      scheduled: sql<number>`count(*) filter (where ${jobs.status} = 'scheduled')`,
+      cancelled: sql<number>`count(*) filter (where ${jobs.status} = 'cancelled')`,
+      estimatedMinutes: sql<number>`coalesce(sum(${jobs.estimatedDurationMinutes}), 0)`,
+    })
+    .from(jobs)
+    .innerJoin(customers, eq(jobs.customerId, customers.id))
+    .where(
+      and(
+        eq(jobs.companyId, companyId),
+        eq(customers.companyId, companyId),
+        or(
+          and(
+            eq(jobs.status, "completed"),
+            timestampRange(jobs.completedAt, range),
+          ),
+          and(
+            sql`${jobs.status} <> 'completed'`,
+            gte(jobs.scheduledDate, range.fromIso),
+            lt(jobs.scheduledDate, toExclusiveIso),
+          ),
+        ),
+        area ? eq(customers.city, area) : undefined,
       ),
     );
-
   return {
-    unassigned: numberValue(row?.unassigned),
-    missingHours: numberValue(row?.missingHours),
-    awaitingInvoicing: numberValue(row?.awaitingInvoicing),
+    completed: numberValue(row?.completed),
+    scheduled: numberValue(row?.scheduled),
+    cancelled: numberValue(row?.cancelled),
+    estimatedMinutes: numberValue(row?.estimatedMinutes),
   };
 }
 
-export async function getCustomerHealthCounts(
-  companyId: string,
-): Promise<CustomerHealthCounts> {
-  const [row] = await db
+export async function getLastExports(companyId: string) {
+  const rows = await db
     .select({
-      missingPaymentMethod: sql<number>`count(*) filter (where ${customers.paymentMethods} is null or cardinality(${customers.paymentMethods}) = 0)`,
-      incompleteNotes: sql<number>`count(*) filter (where ${customers.generalNotes} is null or trim(${customers.generalNotes}) = '')`,
+      reportKey: reportExports.reportKey,
+      exportedAt: sql<Date | string>`max(${reportExports.exportedAt})`,
     })
-    .from(customers)
-    .where(
-      and(
-        eq(customers.companyId, companyId),
-        eq(customers.isArchived, false),
-      ),
-    );
-
-  return {
-    missingPaymentMethod: numberValue(row?.missingPaymentMethod),
-    incompleteNotes: numberValue(row?.incompleteNotes),
-  };
+    .from(reportExports)
+    .where(eq(reportExports.companyId, companyId))
+    .groupBy(reportExports.reportKey);
+  return Object.fromEntries(
+    rows.map((row) => [row.reportKey, new Date(row.exportedAt)]),
+  ) as Partial<Record<ReportKey, Date>>;
 }
