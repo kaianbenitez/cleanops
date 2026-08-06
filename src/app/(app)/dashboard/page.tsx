@@ -47,17 +47,20 @@ export default async function DashboardPage({
       : null;
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="page-title">Performance overview</h1>
-        <p className="page-subtitle">
-          Client growth, paid revenue, and quote performance for your business.
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="page-title">Performance overview</h1>
+          <p className="page-subtitle">
+            Client growth, paid revenue, and quote performance for your
+            business.
+          </p>
+        </div>
+        <DateRangeControls
+          preset={range.preset}
+          fromIso={range.fromIso}
+          toIso={range.toIso}
+        />
       </header>
-      <DateRangeControls
-        preset={range.preset}
-        fromIso={range.fromIso}
-        toIso={range.toIso}
-      />
       <Suspense
         fallback={
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
