@@ -5,10 +5,55 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-06 (Dashboard header/filter layout corrected same day — see the entry
-right below).
+Last updated: 2026-08-07 (Sidebar account-card cropping + Calendar note-decoding gap fixed —
+see the entry right below).
 
 ## Done
+
+- **Desktop sidebar's account card was getting cropped on shorter browser windows, and five
+  Calendar render sites were missing the entity-decoding fix — both fixed, merged to `main`
+  at `fecda7c` (2026-08-07).** User reported via two screenshots: the "Elaine Gascon" account
+  card at the bottom of the sidebar was cut off, and job notes in the Calendar List view were
+  showing raw HTML entity codes (`&#39;`) instead of apostrophes.
+  Root cause of the first bug: the desktop `<aside>` in `app-nav.tsx` is `fixed inset-y-0`
+  (pinned to full viewport height), `flex-col`, with no `overflow-y-auto`/`min-h-0` anywhere
+  in the column — so on a window shorter than the combined height of the logo, nav links, and
+  account card, the flex children didn't shrink and the account card silently rendered past
+  the visible viewport edge with no way to scroll to it. Fixed by making just the middle
+  `<nav>` section `flex-1 min-h-0 overflow-y-auto`, so only the link list scrolls when it
+  doesn't fit — logo and account card stay pinned top/bottom and always fully visible. Same
+  `min-h-0` precaution applied to the mobile drawer nav.
+  Root cause of the second bug: this is the same legacy-CSV-import entity problem already
+  fixed once (see the 2026-07-30 "My Day / customer profile notes were showing garbled text"
+  entry below, which added `cleanNoteText()` in `src/lib/format.ts`) — it just was never
+  applied to Calendar. Codex grepped the calendar directory for every render site touching
+  the four legacy note fields (`customerNotes`, `gateCodeOrKeyNotes`, `petNotes`,
+  `doNotClean`) and found five spots missing the fix, not just the one the user saw:
+  `today-list-board.tsx` (List view's expanded notes row), `client-home-symbols.tsx` (the
+  pet/entry icon tooltips shared across Calendar), `job-card.tsx` (the truncated note preview
+  on Staff-board job cards), `job-detail-panel.tsx` (the drag-and-drop detail popup), and
+  `staff-vertical-board.tsx` (Staff Vertical view). All five now decode through the same
+  existing `cleanNoteText()` helper — no new decoding logic added.
+  Built by Codex in a dedicated worktree (`cleanops-sidebar-notes-fixes`,
+  `codex/sidebar-notes-fixes`), delegated with a structured contract specifying the exact
+  files, line numbers, and root cause up front. Independently reviewed line-by-line before
+  integrating — confirmed via `git diff --ignore-space-at-eol` (the worktree had LF/CRLF
+  noise from line-ending config) that every changed file's diff was exactly the intended
+  scoped fix, nothing else touched. A required Help Center changelog entry (`v0.2.2`) was
+  added in the same handoff, per this repo's own working rule.
+  Verified independently, not just Codex's own report (whose sandbox had no `.env.local` or
+  installed dependencies and couldn't run its own verification): copied `.env.local` into the
+  feature worktree, ran `npm install`, then a clean `npx tsc --noEmit` and `npm run verify`
+  (0 errors, same 26 pre-existing warnings) — in the feature worktree, then again after the
+  cherry-pick onto this integration checkout, plus `npm run check:drift` (clean, no schema
+  touched).
+  **Not click-through-tested in a real browser** — the Chrome extension and the alternate
+  browser-automation tool were both unavailable this session. User explicitly chose to ship
+  on the strength of the code review + build/type/lint verification rather than wait. Worth
+  an actual look next time someone's logged in: check the sidebar at a short window height
+  (e.g. ~700px) and confirm the account card is reachable, and open Calendar's List/Staff
+  Vertical views on a customer with legacy notes containing apostrophes and confirm they read
+  as normal punctuation, not `&#39;`.
 
 - **Dashboard header + date filter corrected to a real one-line layout, merged to `main` at
   `d5e3147` (2026-08-06).** Same-day follow-up after the user reviewed the polish pass right
