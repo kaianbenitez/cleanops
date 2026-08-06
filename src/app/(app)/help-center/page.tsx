@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.2",
+    date: "August 7, 2026",
+    title: "Clearer navigation and calendar notes",
+    changes: [
+      "The account menu at the bottom of the sidebar now stays available, even in shorter browser windows.",
+      "Older customer notes in Calendar now show normal punctuation instead of stray text codes.",
+    ],
+  },
+  {
     version: "v0.2.1",
     date: "August 6, 2026",
     title: "Clearer dashboard reporting",

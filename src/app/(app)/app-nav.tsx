@@ -186,7 +186,7 @@ export default function AppNav({
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+        <nav className="flex-1 min-h-0 space-y-1 overflow-y-auto px-3 py-4">
           {visibleLinks.map(([href, label]) => {
             const active = isActive(pathname, href);
             return (
@@ -271,7 +271,7 @@ export default function AppNav({
           </span>
         </Link>
 
-        <nav className="space-y-6">
+        <nav className="min-h-0 flex-1 space-y-6 overflow-y-auto">
           <div>
             <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--co-faint)]">Workspace</p>
             <div className="space-y-1">

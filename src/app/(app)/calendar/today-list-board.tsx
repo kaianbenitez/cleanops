@@ -9,6 +9,7 @@ import AssigneePicker from "./assignee-picker";
 import JobDetailPanel from "./job-detail-panel";
 import { StatusPill } from "@/components/ui/status-pill";
 import { formatElapsed } from "@/lib/my-day/job-format";
+import { cleanNoteText } from "@/lib/format";
 import ClientHomeSymbols from "./client-home-symbols";
 
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
@@ -389,25 +390,25 @@ export default function TodayListBoard({
                         {job.gateCodeOrKeyNotes ? (
                           <p className="whitespace-pre-wrap break-words">
                             <span className="font-semibold text-[var(--co-ink)]">Access: </span>
-                            {job.gateCodeOrKeyNotes}
+                            {cleanNoteText(job.gateCodeOrKeyNotes)}
                           </p>
                         ) : null}
                         {job.petNotes ? (
                           <p className="whitespace-pre-wrap break-words">
                             <span className="font-semibold text-[var(--co-ink)]">Pets: </span>
-                            {job.petNotes}
+                            {cleanNoteText(job.petNotes)}
                           </p>
                         ) : null}
                         {job.doNotClean ? (
                           <p className="whitespace-pre-wrap break-words">
                             <span className="font-semibold text-rose-700">Don&apos;t clean: </span>
-                            {job.doNotClean}
+                            {cleanNoteText(job.doNotClean)}
                           </p>
                         ) : null}
                         {job.customerNotes ? (
                           <p className="whitespace-pre-wrap break-words sm:col-span-2">
                             <span className="font-semibold text-[var(--co-ink)]">Notes: </span>
-                            {job.customerNotes}
+                            {cleanNoteText(job.customerNotes)}
                           </p>
                         ) : null}
                       </div>

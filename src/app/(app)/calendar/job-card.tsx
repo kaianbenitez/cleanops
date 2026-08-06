@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { displayCustomer, employeeCardStyle, employeeColor, formatClockLabel, formatEstimatedTime, isPlainClick, recurrenceLabel, TYPE_LABELS } from "./shared";
 import { statusLabel } from "@/components/ui/status-pill";
+import { cleanNoteText } from "@/lib/format";
 import ClientHomeSymbols from "./client-home-symbols";
 
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean; calendarColor?: string };
@@ -77,7 +78,7 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
           </span>
           <span className="shrink-0 font-medium text-[var(--co-evergreen)]">{statusLabel("job", job.status)}</span>
         </div>
-        {job.customerNotes ? <p className="mt-1 truncate text-[10px] leading-4 text-[var(--co-muted)]" title={job.customerNotes}>Note: {job.customerNotes}</p> : null}
+        {job.customerNotes ? <p className="mt-1 truncate text-[10px] leading-4 text-[var(--co-muted)]" title={cleanNoteText(job.customerNotes)}>Note: {cleanNoteText(job.customerNotes)}</p> : null}
         {job.recurringSeriesId ? <p className="mt-1 text-[10px] font-medium text-[var(--co-faint)]">↻ {recurrenceLabel(job.recurrenceFrequency)}</p> : null}
       </Link>
     </>

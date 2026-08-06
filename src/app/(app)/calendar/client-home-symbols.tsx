@@ -1,4 +1,5 @@
 import { Bath, BedDouble, KeyRound, PawPrint } from "lucide-react";
+import { cleanNoteText } from "@/lib/format";
 
 type ClientHomeSymbolsProps = {
   roomCounts?: { name: string; count: number }[];
@@ -14,8 +15,8 @@ export default function ClientHomeSymbols({ roomCounts = [], gateCodeOrKeyNotes,
   const symbols = [
     bedrooms ? { icon: BedDouble, label: `${bedrooms} bedroom${bedrooms === 1 ? "" : "s"}`, tone: "text-[var(--co-evergreen)]", count: bedrooms } : null,
     bathrooms ? { icon: Bath, label: `${bathrooms} bathroom${bathrooms === 1 ? "" : "s"}`, tone: "text-[var(--co-evergreen)]", count: bathrooms } : null,
-    petNotes ? { icon: PawPrint, label: `Pets: ${petNotes}`, tone: "text-[var(--co-ink)]", count: null } : null,
-    gateCodeOrKeyNotes ? { icon: KeyRound, label: `Entry: ${gateCodeOrKeyNotes}`, tone: "text-[var(--co-ink)]", count: null } : null,
+    petNotes ? { icon: PawPrint, label: `Pets: ${cleanNoteText(petNotes)}`, tone: "text-[var(--co-ink)]", count: null } : null,
+    gateCodeOrKeyNotes ? { icon: KeyRound, label: `Entry: ${cleanNoteText(gateCodeOrKeyNotes)}`, tone: "text-[var(--co-ink)]", count: null } : null,
   ].filter((symbol): symbol is { icon: typeof BedDouble; label: string; tone: string; count: number | null } => Boolean(symbol));
 
   if (!symbols.length) return null;

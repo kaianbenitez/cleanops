@@ -8,6 +8,7 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { commitJobPatch } from "./drag-commit";
 import AssigneePicker from "./assignee-picker";
 import ClientHomeSymbols from "./client-home-symbols";
+import { cleanNoteText } from "@/lib/format";
 
 type Employee = { id: string; firstName: string; lastName: string };
 
@@ -155,7 +156,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
               <p className="mt-1 text-sm text-[var(--co-ink)]">{location || "No address recorded"}</p>
             </div>
 
-            {(job.roomCounts.length || job.customerNotes || job.gateCodeOrKeyNotes || job.petNotes || job.doNotClean) ? <div className="border-t border-[var(--co-line-soft)] pt-4"><p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">House details</p><ClientHomeSymbols className="mt-2" roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} />{job.customerNotes ? <p className="mt-3 whitespace-pre-wrap text-sm leading-5 text-[var(--co-ink)]">{job.customerNotes}</p> : null}</div> : null}
+            {(job.roomCounts.length || job.customerNotes || job.gateCodeOrKeyNotes || job.petNotes || job.doNotClean) ? <div className="border-t border-[var(--co-line-soft)] pt-4"><p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">House details</p><ClientHomeSymbols className="mt-2" roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} />{job.customerNotes ? <p className="mt-3 whitespace-pre-wrap text-sm leading-5 text-[var(--co-ink)]">{cleanNoteText(job.customerNotes)}</p> : null}</div> : null}
 
             <div className="grid grid-cols-2 gap-3">
               <label className="block text-xs font-semibold text-[var(--co-muted)]">
