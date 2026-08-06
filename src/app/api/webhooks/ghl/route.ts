@@ -177,8 +177,11 @@ async function processLead(payload: unknown): Promise<void> {
     throw new Error("Payload has no usable contact fields");
   }
 
-  const [company] = await db.select().from(companies).limit(1);
-  if (!company) throw new Error("No company configured");
+  const companyId = process.env.GHL_PRIMARY_COMPANY_ID;
+  if (!companyId) throw new Error("GHL_PRIMARY_COMPANY_ID is not configured");
+
+  const [company] = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
+  if (!company) throw new Error("No company configured for GHL_PRIMARY_COMPANY_ID");
 
   const matchConditions = [];
   if (p.contact_id) matchConditions.push(eq(customers.ghlContactId, p.contact_id));
