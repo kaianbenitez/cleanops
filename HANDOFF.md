@@ -5,10 +5,84 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-07 (Quote-to-customer room sync, dashboard accepted-quote undercount, and
-unsafe booking-override fixes shipped — see the entry right below).
+Last updated: 2026-08-07 (Reports & Exports Center shipped — see the entry right below).
 
 ## Done
+
+- **`/reports` completely rebuilt into a "Reports & Exports Center," merged to `main` at
+  `6ad69a6` (2026-08-07).** User request: scan an approved Stitch mockup ("Reports & Exports
+  Center," project `6245096507068354660`) and rebuild the Reports page around it — a catalog
+  of report cards grouped by category, each with a real CSV export — replacing the old page's
+  entire KPI-dashboard-shaped layout (hero stat tiles, executive summary, sales funnel,
+  duplicated numbers). This supersedes `HANDOFF.dashboard-reports-redesign.md`'s §5 "Reports
+  target structure" for `/reports` specifically (that doc's dashboard-only content is
+  unrelated). There is also an old, unmerged, abandoned attempt at a *different* KPI-tile
+  redesign of this same page sitting in a leftover worktree (`codex/dashboard-reports-dataviz`)
+  — never referenced, never merged, left alone.
+  The mockup's colors were **not** copied — it used a generic green, but this app's real live
+  brand color is blue (`--co-accent` `#2457ff`); rebuilt in the app's actual palette.
+  Layout: page header (title + subtitle, an Area filter, and the same `resolveRange`
+  `?preset=&from=&to=` date-range contract the dashboard already uses) above two sections —
+  **Financial Reports** (Payroll, Tips, Accounts Receivable) and **Operations Reports** (Jobs,
+  plus a disabled "Quality & Inspections — Coming soon" placeholder). Each real card shows a
+  "Last exported" timestamp, a **Preview** button (real data in a pop-up table, capped at 50
+  rows with a total count), and a **CSV** button (full, uncapped download).
+  Three scope decisions made with the user up front rather than guessed, following a
+  data-availability check of the real schema first: (1) a 5th "Quality & Inspections" card
+  from the mockup has zero backing data anywhere in this schema (no inspection/rating table
+  exists) — shown as a disabled "Coming soon" card, nothing fabricated; (2) the mockup's
+  "Schedule Auto-Export" button was left out entirely — this app has no recurring-export/email
+  infrastructure, and building one is a separate project; (3) "Last exported" memory and a real
+  Preview (not just working downloads) were both built, which required one small new table.
+  Payroll's card deliberately does not mention "overtime" — `gusto-csv.ts` already hardcodes
+  overtime to 0 (not tracked in this schema), so the report only describes what's real: hours,
+  tips, and gross pay. Tips reports stay employee-level only (no per-job breakdown attempted —
+  the data isn't cleanly pre-aggregated for that). Accounts Receivable adds real aging buckets
+  (0-30/31-60/61-90+ days) on top of the existing `overdueSqlCondition()`/cash-to-collect logic.
+  Area filtering (the "Area = customers.city" substitution already established for this app's
+  dashboard work — there is no region/hub concept anywhere in the schema) applies only to
+  Accounts Receivable and Jobs, the two report types with a customer relationship; Payroll and
+  Tips are employee/pay-period based and ignore it, by design.
+  New `report_exports` table (companyId, reportKey, exportedByUserId, exportedAt) tracks every
+  successful CSV download so the "Last exported" timestamp is real, not guessed — migration
+  `drizzle/0027_report_exports.sql`, **applied to the hosted DB and confirmed via
+  `check:drift`** (approved by the user first). Caught on review before integrating: Codex's
+  first pass created the table without enabling Row Level Security, which every other table in
+  this app has had since the 2026-08-04 RLS sweep (`HANDOFF.md`'s own documented rule for any
+  *new* table going forward) — sent back and fixed with the same default-deny,
+  no-`CREATE POLICY` pattern as `drizzle/0023_enable_rls.sql`, confirmed in the final diff
+  before merging. Also caught: `getLastExports`' TypeScript return type claimed a real `Date`
+  object from a raw SQL `max(...)` aggregate without actually coercing it — fixed to explicitly
+  `new Date(...)` the value so the type isn't lying about what the driver returns.
+  Built by Codex in a dedicated fresh worktree (`cleanops-reports-exports-center`,
+  `codex/reports-exports-center`) off a structured contract that included the schema
+  data-availability findings up front (what's real per report type, what's a substitute, what
+  to omit) so Codex wasn't left guessing mid-build. Independently reviewed file-by-file before
+  integrating — confirmed scope stayed to the 7 intended files (`git diff --stat`), the Area
+  filter really is scoped to just AR/Jobs in the query layer, and every card's copy matches
+  what its query can actually prove.
+  Verified for real, not just Codex's own report (its sandbox had no `.env.local` and couldn't
+  run past `check:env`): copied this checkout's `.env.local` into the feature worktree, applied
+  the migration, then ran the full sequence twice — once in the feature worktree, once again on
+  this integration checkout after the fast-forward merge (no conflicts): `npm run check:env`,
+  `check:drift` (clean both times), `npm run verify` (0 errors, same 26 pre-existing warnings,
+  build compiled including `/reports` itself against live data), `smoke:routes` (6/6) and
+  `smoke:auth` (22/22) against a local production server, both times. Additionally ran a
+  throwaway authenticated script (magic-link bypass, same pattern as `smoke-test.mjs`) that hit
+  `/reports` directly and confirmed every section/card renders, then called all four CSV export
+  routes directly: Payroll, Tips, and Jobs all returned real multi-row CSVs; Accounts
+  Receivable correctly returned header-only — checked directly against the DB and confirmed
+  honest, not a bug: this company has exactly one invoice on record company-wide (already
+  paid), the same known Square-invoicing-mock-mode gap already tracked elsewhere in this doc.
+  Also confirmed the new `report_exports` table was actually being written to (4 real rows
+  after the test exports). Script and the copied `.env.local` both deleted after.
+  **Not click-through-tested in a real browser** — the login form requires typing a password,
+  which is outside what this session does directly; the direct authenticated HTTP checks above
+  (real session, real cookies, real database) are the closest available substitute. Worth an
+  actual visual pass next time someone's logged in: open `/reports`, try the Area and date
+  filters, open a Preview pop-up, and download a real CSV.
+
+
 
 - **Three quote-related bugs fixed and merged to `main` at `576e697` (2026-08-07).** User
   reported via three items in one message: (1) room/house details entered while creating a
