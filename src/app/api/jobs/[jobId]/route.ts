@@ -55,7 +55,7 @@ export async function PATCH(
   }
 
   const [existing] = await db
-    .select({ id: jobs.id, type: jobs.type, status: jobs.status, customerId: jobs.customerId, quoteId: jobs.quoteId, scheduledDate: jobs.scheduledDate, scheduledStartTime: jobs.scheduledStartTime, estimatedDurationMinutes: jobs.estimatedDurationMinutes, priceCents: jobs.priceCents, completionNotes: jobs.completionNotes, paymentMethodCollected: jobs.paymentMethodCollected, checkNumberCollected: jobs.checkNumberCollected, cleanerNotes: jobs.cleanerNotes, cancellationReason: jobs.cancellationReason })
+    .select({ id: jobs.id, type: jobs.type, status: jobs.status, customerId: jobs.customerId, quoteId: jobs.quoteId, scheduledDate: jobs.scheduledDate, scheduledStartTime: jobs.scheduledStartTime, estimatedDurationMinutes: jobs.estimatedDurationMinutes, jthManualOverride: jobs.jthManualOverride, priceCents: jobs.priceCents, completionNotes: jobs.completionNotes, paymentMethodCollected: jobs.paymentMethodCollected, checkNumberCollected: jobs.checkNumberCollected, cleanerNotes: jobs.cleanerNotes, cancellationReason: jobs.cancellationReason })
     .from(jobs)
     .where(and(eq(jobs.id, jobId), eq(jobs.companyId, admin.companyId)))
     .limit(1);
@@ -64,7 +64,8 @@ export async function PATCH(
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  const { employeeIds, ...jobFields } = parsed.data;
+  const { employeeIds, ...parsedJobFields } = parsed.data;
+  const jobFields: Partial<typeof jobs.$inferInsert> = { ...parsedJobFields };
   if (jobFields.status === "cancelled" && existing.status !== "cancelled" && !jobFields.cancellationReason) {
     return NextResponse.json({ error: "Enter a cancellation reason before cancelling this job." }, { status: 400 });
   }
@@ -97,12 +98,15 @@ export async function PATCH(
     }
   }
 
-  // A price edit re-derives Job Ticket Hours (amount due ÷ the customer's
-  // branch rate) so duration stays accurate to what's actually being charged.
-  // Skipped whenever the caller sets estimatedDurationMinutes itself in the
-  // same request — the calendar's resize handle is a deliberate manual
-  // override and must not be clobbered by this.
-  if (jobFields.priceCents !== undefined && jobFields.estimatedDurationMinutes === undefined) {
+  // An explicit JTH edit (including the calendar resize handle) is a
+  // per-occurrence override and must survive payroll refreshes and price edits.
+  if (jobFields.estimatedDurationMinutes !== undefined) {
+    jobFields.jthManualOverride = true;
+  }
+
+  // A price edit re-derives JTH only while the job is auto-managed. Once an
+  // admin explicitly sets JTH, changing the charge must leave it untouched.
+  if (jobFields.priceCents !== undefined && jobFields.estimatedDurationMinutes === undefined && !existing.jthManualOverride) {
     const resolvedMinutes = await resolveJobTicketMinutes({
       companyId: admin.companyId,
       priceCents: jobFields.priceCents,
@@ -127,7 +131,7 @@ export async function PATCH(
       action: "job.updated",
       entityType: "job",
       entityId: jobId,
-      before: { status: existing.status, scheduledDate: existing.scheduledDate, scheduledStartTime: existing.scheduledStartTime, priceCents: existing.priceCents, completionNotes: existing.completionNotes, paymentMethodCollected: existing.paymentMethodCollected, checkNumberCollected: existing.checkNumberCollected, cleanerNotes: existing.cleanerNotes, cancellationReason: existing.cancellationReason },
+      before: { status: existing.status, scheduledDate: existing.scheduledDate, scheduledStartTime: existing.scheduledStartTime, priceCents: existing.priceCents, estimatedDurationMinutes: existing.estimatedDurationMinutes, jthManualOverride: existing.jthManualOverride, completionNotes: existing.completionNotes, paymentMethodCollected: existing.paymentMethodCollected, checkNumberCollected: existing.checkNumberCollected, cleanerNotes: existing.cleanerNotes, cancellationReason: existing.cancellationReason },
       after: jobFields,
     });
   }

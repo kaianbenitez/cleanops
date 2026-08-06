@@ -481,6 +481,8 @@ export const jobs = pgTable("jobs", {
   scheduledDate: date("scheduled_date").notNull(),
   scheduledStartTime: time("scheduled_start_time"),
   estimatedDurationMinutes: integer("estimated_duration_minutes"),
+  // A per-occurrence JTH edit must survive payroll refreshes and price edits.
+  jthManualOverride: boolean("jth_manual_override").notNull().default(false),
   priceCents: integer("price_cents").notNull(),
   recurringSeriesId: uuid("recurring_series_id").references(() => recurringSeries.id),
   // Custom main-job preset this job was created from (services.category =

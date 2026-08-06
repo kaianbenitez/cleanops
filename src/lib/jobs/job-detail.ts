@@ -39,6 +39,7 @@ export async function loadJobDetail(jobId: string, companyId: string) {
       scheduledDate: jobs.scheduledDate,
       scheduledStartTime: jobs.scheduledStartTime,
       estimatedDurationMinutes: jobs.estimatedDurationMinutes,
+      jthManualOverride: jobs.jthManualOverride,
       priceCents: jobs.priceCents,
       completionNotes: jobs.completionNotes,
       paymentMethodCollected: jobs.paymentMethodCollected,

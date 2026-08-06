@@ -5,9 +5,65 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-07 (Sales report + preview-flicker fix shipped — see the entry right below).
+Last updated: 2026-08-07 (Per-job payroll price/JTH overrides shipped — see the entry right below).
 
 ## Done
+
+- **Admins can now edit the price charged and Job Ticket Hours (JTH) on an individual job
+  occurrence, merged to `main` at `1922d62` (2026-08-07).** Highest-priority item from the
+  2026-08-07 client feedback backlog: while mimicking last week's payroll, the user found no
+  way to correct a recurring job's hours or charge for one specific visit when actual work
+  differed from the template (extra room cleaned, or a room skipped) — a pay-correctness gap,
+  not just UX.
+  Root cause was two-fold, both found before writing code: (1) `PATCH /api/jobs/[jobId]`
+  already accepted `priceCents`/`estimatedDurationMinutes` for a single job, but Job Detail had
+  no UI exposing either as editable — both only ever rendered as static text; (2) even a manual
+  edit (via that API, or the calendar's existing resize handle) would have been **silently
+  reverted** the next time payroll was generated or refreshed for that period —
+  `refreshJobTicketHours()` unconditionally recomputed every completed job's JTH from
+  price ÷ branch rate with no memory of a deliberate override.
+  Fixed with a new `jobs.jth_manual_override` boolean (migration
+  `drizzle/0028_job_jth_manual_override.sql`, additive, applied to the hosted DB and confirmed
+  via `check:drift`). `PATCH /api/jobs/[jobId]` now sets it whenever `estimatedDurationMinutes`
+  is set explicitly, and skips its own price-triggered auto-recalculation once a job carries the
+  flag (so a later price-only edit can't quietly discard a manual JTH either).
+  `refreshJobTicketHours()` skips any job with the flag entirely — never recomputes it, never
+  reports it as unresolved. Job Detail's "Service package" card gained two independent inline
+  editors (price, JTH — each its own save call, matching the server's per-field semantics) with
+  a small "Manually set" badge when JTH is overridden. The recurring series template itself
+  (`recurringSeries.priceCents`/`estimatedDurationMinutes`) is never touched by any of this —
+  only the one occurrence.
+  Built by Codex in a dedicated worktree (`cleanops-payroll-jth`, `codex/payroll-jth-edit`) off
+  a structured contract citing the exact root-cause files/lines up front. Diff reviewed
+  line-by-line before integrating — scope matched the contract exactly (8 files, no stray
+  changes). Verified independently, not just Codex's own report (its sandbox had no
+  `.env.local`): copied real credentials into the feature worktree, then `check:env`,
+  `check:drift` (correctly flagged only the new column before the migration was applied),
+  `npm run verify` (0 errors, same 26 pre-existing warnings, build compiled), `smoke:routes`
+  (6/6) and `smoke:auth` (21/22 — the one expected failure was `GET /api/jobs/[jobId]` 500ing
+  on the not-yet-applied column). After user approval, had Codex (not Claude directly, since
+  applying hosted-DB migrations and running data-mutating verification scripts is Codex's job
+  per this project's collaboration rules) apply the migration for real in a single transaction,
+  then re-ran `check:drift` (clean) and `smoke:auth` (22/22, job route now 200). Codex also ran
+  a disposable-job round-trip proof against the hosted DB with real before/after values: a
+  manually-set JTH (315 min) survived both a `refreshJobTicketHours` call and a subsequent
+  price-only edit unchanged, while a second, never-overridden job's JTH still auto-recalculated
+  normally (180 min) on the same refresh call — proving the exact bug is fixed, not just that
+  the code compiles. All disposable test rows and the throwaway script were confirmed deleted
+  afterward (0 remaining).
+  Merged onto `main` with one real conflict, resolved by hand: this feature and the
+  concurrently-shipped Sales Reports feature (see the entry above/below) both independently
+  claimed Help Center changelog version `v0.2.5` off the same base commit — renumbered this
+  feature's entry to `v0.2.6`, kept both entries, no content lost. Re-verified the full sequence
+  a second time on the integrated `main` (not just the feature branch) before pushing:
+  `check:drift` clean, `verify` clean, `smoke:routes` (6/6) and `smoke:auth` (22/22, including
+  the previously-failing job route) both against a fresh local production server.
+  **Not click-through-tested in a real browser** — same longstanding `.env.local`
+  `BROWSER_ADMIN_PASSWORD` gap as most other entries in this doc; the disposable-job round trip
+  and authenticated HTTP checks above are the closest available substitute. Worth an actual
+  look next time someone's logged in: open a job's detail page, edit the price and separately
+  the Job Ticket Hours, confirm both save and the "Manually set" badge appears, and confirm a
+  price-only edit afterward doesn't reset the hours back.
 
 - **Reports & Exports Center: added a Sales report and fixed a flickering preview, merged to
   `main` at `bbc3659` (2026-08-07).** Follow-up to the Reports & Exports Center rebuild directly
