@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.6",
+    date: "August 7, 2026",
+    title: "Customer added dates",
+    changes: [
+      "You can now see when each customer was added, on their customer list card and on their profile page.",
+    ],
+  },
+  {
     version: "v0.2.5",
     date: "August 7, 2026",
     title: "Sales reports and smoother previews",

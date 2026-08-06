@@ -442,6 +442,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
             {customer.customerNumber ? `Customer ID ${customer.customerNumber}` : "Customer profile"}
             {customer.recurrence && customer.recurrence !== "none" ? ` · ${customer.recurrence.replace("biweekly", "every other week")}` : ""}
           </p>
+          <p className="mt-1 text-sm text-[var(--co-muted)]">Customer since {formatCustomerDate(customer.createdAt.slice(0, 10))}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">

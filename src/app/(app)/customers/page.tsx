@@ -89,6 +89,7 @@ type CustomerRow = {
   zip: string | null;
   phone: string | null;
   email: string | null;
+  createdAt: Date;
   isArchived: boolean;
   tags: unknown;
 };
@@ -121,7 +122,7 @@ function paymentStatus(invoices: InvoiceRow[]) {
   return { label: "Paid", className: "text-emerald-700" };
 }
 
-function formatDate(date: string) {
+function formatDate(date: string | Date) {
   return formatDisplayDate(date);
 }
 
@@ -250,6 +251,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         zip: customers.zip,
         phone: customers.phone,
         email: customers.email,
+        createdAt: customers.createdAt,
         isArchived: customers.isArchived,
         tags: customers.tags,
       })
@@ -537,6 +539,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                             <p className="text-xs text-[var(--co-muted)]">
                               {clientTypeLabel} · {planLabel}
                             </p>
+                            <p className="text-xs text-[var(--co-muted)]">Added {formatDate(row.createdAt)}</p>
                           </div>
                         </div>
                       </td>

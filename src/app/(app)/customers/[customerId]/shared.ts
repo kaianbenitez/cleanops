@@ -7,6 +7,7 @@ export type Customer = {
   companyName?: string | null;
   salutation?: string | null;
   customerNumber?: string | null;
+  createdAt: string;
   phone?: string | null;
   email?: string | null;
   textMessagingAllowed?: boolean;
