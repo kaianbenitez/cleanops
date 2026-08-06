@@ -8,8 +8,8 @@ const leadSchema = z.object({
   contactName: z.string().trim().max(200).nullish().transform((value) => value || null),
   email: z.string().trim().email("Enter a valid email address.").max(320),
   phone: z.string().trim().max(50).nullish().transform((value) => value || null),
-  crewSize: z.enum(["1-5", "6-15", "16+"]).nullable(),
-  message: z.string().trim().max(2_000).nullable(),
+  crewSize: z.enum(["1-5", "6-15", "16+"]).nullish().transform((value) => value || null),
+  message: z.string().trim().max(2_000).nullish().transform((value) => value || null),
   companyWebsite: z.string().optional(),
 });
 
