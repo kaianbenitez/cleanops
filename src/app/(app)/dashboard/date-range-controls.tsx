@@ -1,10 +1,112 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-export default function DateRangeControls({ todayIso, thisMonthStartIso, lastMonthStartIso, lastMonthEndIso, quarterStartIso, quarterEndIso, fromIso, toIso }: { todayIso: string; thisMonthStartIso: string; lastMonthStartIso: string; lastMonthEndIso: string; quarterStartIso: string; quarterEndIso: string; fromIso: string; toIso: string }) {
- const router=useRouter(); const params=useSearchParams(); const [from,setFrom]=useState(fromIso); const [to,setTo]=useState(toIso);
- function setRange(nextFrom:string,nextTo:string,preset:string){const next=new URLSearchParams(params.toString());next.set("from",nextFrom);next.set("to",nextTo);next.set("preset",preset);router.push("/dashboard?"+next.toString());}
- return <section aria-label="Performance reporting date range" className="co-card p-4"><div className="flex flex-wrap gap-2"><Button type="button" onClick={()=>setRange(thisMonthStartIso,todayIso,"this_month")} className="min-h-11">This month</Button><Button type="button" variant="outline" onClick={()=>setRange(lastMonthStartIso,lastMonthEndIso,"last_month")} className="min-h-11">Last month</Button><Button type="button" variant="outline" onClick={()=>setRange(quarterStartIso,quarterEndIso,"quarter")} className="min-h-11">Q{Math.floor((Number(todayIso.slice(5,7))-1)/3)+1}</Button><Button type="button" variant="outline" onClick={()=>setRange(from,to,"custom")} className="min-h-11">Custom range</Button></div><div className="mt-3 flex flex-wrap gap-2"><label className="grid gap-1 text-xs"><span>From</span><Input type="date" value={from} onChange={(event)=>setFrom(event.target.value)} className="min-h-11" /></label><label className="grid gap-1 text-xs"><span>Through</span><Input type="date" value={to} onChange={(event)=>setTo(event.target.value)} className="min-h-11" /></label><Button type="button" variant="outline" onClick={()=>setRange(from,to,"custom")} className="min-h-11 self-end">Apply custom range</Button></div><p className="mt-3 text-xs text-[var(--co-muted)]">Schedule, routes, and due invoices below always show current data.</p></section>;
+
+const PRESETS = [
+  ["yesterday", "Yesterday"],
+  ["this_week", "This week"],
+  ["last_week", "Last week"],
+  ["this_month", "This month"],
+  ["last_month", "Last month"],
+  ["this_year", "This year"],
+  ["last_year", "Last year"],
+] as const;
+type Preset = (typeof PRESETS)[number][0] | "custom";
+function isPreset(value: string | undefined): value is Preset {
+  return value === "custom" || PRESETS.some(([preset]) => preset === value);
+}
+
+export default function DateRangeControls({
+  fromIso,
+  preset,
+  toIso,
+}: {
+  fromIso: string;
+  preset: string;
+  toIso: string;
+}) {
+  const router = useRouter();
+  const params = useSearchParams();
+  const [from, setFrom] = useState(fromIso);
+  const [to, setTo] = useState(toIso);
+  const [selectedPreset, setSelectedPreset] = useState<Preset>(
+    isPreset(preset) ? preset : "custom",
+  );
+  function setRange(nextFrom: string, nextTo: string, nextPreset: Preset) {
+    const next = new URLSearchParams(params.toString());
+    next.set("from", nextFrom);
+    next.set("to", nextTo);
+    next.set("preset", nextPreset);
+    router.push(`/dashboard?${next.toString()}`);
+  }
+  function selectPreset(nextPreset: Preset) {
+    setSelectedPreset(nextPreset);
+    if (nextPreset === "custom") return;
+    const next = new URLSearchParams(params.toString());
+    next.delete("from");
+    next.delete("to");
+    next.set("preset", nextPreset);
+    router.push(`/dashboard?${next.toString()}`);
+  }
+  return (
+    <section
+      aria-label="Performance reporting date range"
+      className="co-card px-4 py-3"
+    >
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="grid gap-1 text-xs font-medium text-[var(--co-muted)]">
+          <span>Reporting period</span>
+          <select
+            aria-label="Reporting period"
+            className="co-input min-h-11 w-full min-w-44 sm:w-48"
+            value={selectedPreset}
+            onChange={(event) => selectPreset(event.target.value as Preset)}
+          >
+            {PRESETS.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+            <option value="custom">Custom</option>
+          </select>
+        </label>
+        {selectedPreset === "custom" ? (
+          <>
+            <label className="grid gap-1 text-xs font-medium text-[var(--co-muted)]">
+              <span>From</span>
+              <Input
+                type="date"
+                value={from}
+                onChange={(event) => setFrom(event.target.value)}
+                className="min-h-11 w-40"
+              />
+            </label>
+            <label className="grid gap-1 text-xs font-medium text-[var(--co-muted)]">
+              <span>Through</span>
+              <Input
+                type="date"
+                value={to}
+                onChange={(event) => setTo(event.target.value)}
+                className="min-h-11 w-40"
+              />
+            </label>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setRange(from, to, "custom")}
+              className="min-h-11"
+            >
+              Apply
+            </Button>
+          </>
+        ) : null}
+        <p className="pb-1 text-xs text-[var(--co-muted)] sm:ml-auto">
+          Schedule, routes, and due invoices below always show current data.
+        </p>
+      </div>
+    </section>
+  );
 }

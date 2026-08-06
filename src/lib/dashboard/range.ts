@@ -21,7 +21,9 @@ export function todayInTimeZone(now: Date, timeZone: string): string {
     month: "2-digit",
     day: "2-digit",
   }).formatToParts(now);
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const values = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  );
 
   return `${values.year}-${values.month}-${values.day}`;
 }
@@ -40,17 +42,13 @@ export function startOfMonthIso(value: string): string {
 export function monthRangeBefore(value: string) {
   const firstOfMonth = startOfMonthIso(value);
   const toIso = addDaysIso(firstOfMonth, -1);
-  return { fromIso: addDaysIso(firstOfMonth, -new Date(`${toIso}T00:00:00.000Z`).getUTCDate()), toIso };
-}
-
-export function quarterRangeFor(value: string) {
-  const year = Number(value.slice(0, 4));
-  const month = Number(value.slice(5, 7));
-  const quarterStartMonth = Math.floor((month - 1) / 3) * 3 + 1;
-  const fromIso = `${year}-${String(quarterStartMonth).padStart(2, "0")}-01`;
-  const nextQuarter = new Date(Date.UTC(year, quarterStartMonth + 2, 1));
-  nextQuarter.setUTCMonth(nextQuarter.getUTCMonth() + 1);
-  return { fromIso, toIso: addDaysIso(nextQuarter.toISOString().slice(0, 10), -1) };
+  return {
+    fromIso: addDaysIso(
+      firstOfMonth,
+      -new Date(`${toIso}T00:00:00.000Z`).getUTCDate(),
+    ),
+    toIso,
+  };
 }
 
 export function resolveRange(
@@ -59,27 +57,41 @@ export function resolveRange(
   now = new Date(),
 ) {
   const todayIso = todayInTimeZone(now, timeZone);
-  const preset = sp.preset ?? (sp.from || sp.to ? "custom" : "last_30_days");
+  const preset = sp.preset ?? (sp.from || sp.to ? "custom" : "this_month");
   const presetRange =
-    preset === "last_7_days" || preset === "week"
-      ? { fromIso: addDaysIso(todayIso, -6), toIso: todayIso }
-      : preset === "last_30_days" || preset === "month"
-        ? { fromIso: addDaysIso(todayIso, -29), toIso: todayIso }
-        : preset === "last_90_days"
-          ? { fromIso: addDaysIso(todayIso, -89), toIso: todayIso }
-        : preset === "this_month"
-            ? { fromIso: startOfMonthIso(todayIso), toIso: todayIso }
-            : preset === "last_month"
-              ? monthRangeBefore(todayIso)
-              : preset === "quarter"
-                ? quarterRangeFor(todayIso)
-            : preset === "today"
-              ? { fromIso: todayIso, toIso: todayIso }
-              : null;
+    preset === "yesterday"
+      ? { fromIso: addDaysIso(todayIso, -1), toIso: addDaysIso(todayIso, -1) }
+      : preset === "this_week"
+        ? { fromIso: startOfWeekIso(todayIso), toIso: todayIso }
+        : preset === "last_week"
+          ? {
+              fromIso: addDaysIso(startOfWeekIso(todayIso), -7),
+              toIso: addDaysIso(startOfWeekIso(todayIso), -1),
+            }
+          : preset === "this_year"
+            ? { fromIso: `${todayIso.slice(0, 4)}-01-01`, toIso: todayIso }
+            : preset === "last_year"
+              ? {
+                  fromIso: `${Number(todayIso.slice(0, 4)) - 1}-01-01`,
+                  toIso: `${Number(todayIso.slice(0, 4)) - 1}-12-31`,
+                }
+              : preset === "last_7_days" || preset === "week"
+                ? { fromIso: addDaysIso(todayIso, -6), toIso: todayIso }
+                : preset === "last_30_days" || preset === "month"
+                  ? { fromIso: addDaysIso(todayIso, -29), toIso: todayIso }
+                  : preset === "last_90_days"
+                    ? { fromIso: addDaysIso(todayIso, -89), toIso: todayIso }
+                    : preset === "this_month"
+                      ? { fromIso: startOfMonthIso(todayIso), toIso: todayIso }
+                      : preset === "last_month"
+                        ? monthRangeBefore(todayIso)
+                        : preset === "today"
+                          ? { fromIso: todayIso, toIso: todayIso }
+                          : null;
   const fromIso = isIsoDate(sp.from)
     ? sp.from
-    : presetRange?.fromIso ?? addDaysIso(todayIso, -29);
-  const toIso = isIsoDate(sp.to) ? sp.to : presetRange?.toIso ?? todayIso;
+    : (presetRange?.fromIso ?? addDaysIso(todayIso, -29));
+  const toIso = isIsoDate(sp.to) ? sp.to : (presetRange?.toIso ?? todayIso);
   const rangeDays = Math.max(
     1,
     Math.round(
@@ -97,23 +109,31 @@ export function resolveRange(
     prevFromIso: addDaysIso(fromIso, -rangeDays),
     prevToIso: addDaysIso(fromIso, -1),
     label:
-      preset === "today"
-        ? "Today"
-        : preset === "last_7_days" || preset === "week"
-          ? "Last 7 days"
-          : preset === "last_30_days" || preset === "month"
-            ? "Last 30 days"
-            : preset === "last_90_days"
-              ? "Last 90 days"
-              : preset === "this_month"
-                ? "This month"
-                : preset === "last_month"
-                  ? "Last month"
-                  : preset === "quarter"
-                    ? `Q${Math.floor((Number(todayIso.slice(5, 7)) - 1) / 3) + 1}`
-                : preset === "custom"
-                  ? "Custom range"
-                  : "Last 30 days",
+      preset === "yesterday"
+        ? "Yesterday"
+        : preset === "this_week"
+          ? "This week"
+          : preset === "last_week"
+            ? "Last week"
+            : preset === "this_year"
+              ? "This year"
+              : preset === "last_year"
+                ? "Last year"
+                : preset === "today"
+                  ? "Today"
+                  : preset === "last_7_days" || preset === "week"
+                    ? "Last 7 days"
+                    : preset === "last_30_days" || preset === "month"
+                      ? "Last 30 days"
+                      : preset === "last_90_days"
+                        ? "Last 90 days"
+                        : preset === "this_month"
+                          ? "This month"
+                          : preset === "last_month"
+                            ? "Last month"
+                            : preset === "custom"
+                              ? "Custom range"
+                              : "Last 30 days",
     timeZone,
   };
 }
