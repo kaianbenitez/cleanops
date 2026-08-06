@@ -5,10 +5,70 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-06 (ServiceSpark public landing page + early-access lead capture
-shipped — see the entry right below).
+Last updated: 2026-08-06 (isolated demo/test company created for outside review + a GHL
+webhook company-scoping fix — see the entry right below).
 
 ## Done
+
+- **Isolated demo/test company created for an outside reviewer (the founder's CEO), plus a
+  latent multi-tenant safety gap fixed and old test-account clutter removed, merged to `main`
+  at `8d6e9fe` (2026-08-06).** User request: a separate test account an outside client/CEO
+  could try without seeing real Simply Maid customer data. Investigation found this app has
+  only ever run one real company row ("Simply Maid") despite every operational table already
+  being `companyId`-scoped — so a second, fully isolated company was architecturally safe to
+  add, with one real exception found first: the inbound GoHighLevel lead webhook
+  (`processLead` in `src/app/api/webhooks/ghl/route.ts`) resolved "the company" with an
+  unscoped `db.select().from(companies).limit(1)` — harmless with one company row, a real risk
+  of misattributing a live lead once a second row existed. Fixed by adding a required
+  `GHL_PRIMARY_COMPANY_ID` env var (Simply Maid's id) that the webhook now looks up explicitly,
+  throwing a clear error instead of guessing if it's unset or doesn't match — set in Vercel
+  (Production + Preview) and in local `.env.local`/`.env.local.example`/`scripts/check-env.mjs`.
+  Built by Codex on `codex/ghl-webhook-company-scope`, delegated with a structured contract;
+  independently reviewed (3-file diff, `npx tsc --noEmit` and `npm run check:env` both clean).
+  The new company ("Demo Cleaning Co. — Fictional Training Tenant") was created via a new
+  one-time script, `work/seed-demo-company.ts` (dry-run by default, `--apply` required to
+  write, matching this repo's existing one-off-script convention) — 1 admin + 2 employee
+  logins created the same secure way every real account is created (`generateTemporaryPassword()`,
+  `<username>@cleanops.local`, `mustChangePassword: true`), NOT the old hardcoded-password
+  pattern in `src/db/seed.ts`. Seeded: a 5-service catalog (3 main, 2 add-on), 14 customers
+  spanning every pipeline status with fake room counts/notes/access codes/mop-rag-vacuum
+  equipment counts, 2 recurring series, 18 jobs (past-completed, upcoming, one cancelled), one
+  sent and one accepted quote, one invoice, and one payroll period with real (non-zero) lines —
+  enough to exercise every major screen. No Square/GHL/Maps credentials configured on the new
+  company, so it stays in the app's existing safe mock mode for those integrations. Before
+  trusting `--apply` against the hosted DB, added a third `--verify-sql` mode that runs the
+  exact same insert transaction for real (using throwaway random ids, no real Supabase Auth
+  accounts created) and then deliberately rolls back — this is what actually proved the raw-SQL
+  column names/enum values/JSON shapes were correct against the live schema, since the script
+  uses untyped `postgres` tagged-SQL, not Drizzle's typed query builder, so `tsc` passing alone
+  didn't prove it. Ran clean with zero trace left in the DB before the real `--apply`.
+  Separately, `work/cleanup-legacy-test-accounts.ts` removed three leftover test/demo user rows
+  (QA Tester, Test Cleaner, Maria Gomez) that had been sitting inside the *real* Simply Maid
+  company since an earlier session (flagged in this doc's own history) — dynamically discovers
+  every foreign key to `users.id` and aborts if any of the three has an unexpected reference;
+  the only real references found were 8 `payroll_lines` rows, all confirmed `$0`/open-period
+  auto-generated placeholders before deleting. None of the three had a live Supabase Auth
+  account at all (confirmed independently before running), so the script was corrected to treat
+  0-or-1 Auth matches as valid rather than requiring exactly one.
+  Verified independently after both `--apply` runs, not just the scripts' own success output:
+  direct DB query confirmed exactly two companies exist, the demo company has its 14 customers
+  cleanly separated from Simply Maid's (240), the three legacy accounts are fully gone, and no
+  demo customer has a real-looking (non-fictional) address. The demo admin login was confirmed
+  genuinely reachable via `auth.admin.generateLink` (a scripted plain password sign-in
+  correctly failed on Cloudflare Turnstile/CAPTCHA — expected, since that protects real sign-in
+  — not evidence of a broken account). `npm run verify` and a fresh Vercel production build
+  both passed after merging.
+  **Mid-session note:** this integration checkout briefly had unrelated, unpushed work in
+  progress from a concurrent Codex session (the public landing page entry above) — merging was
+  intentionally paused and the user was asked before pushing anything, rather than pushing over
+  work I hadn't reviewed. Resolved once that session pushed its own work first.
+  **Demo login, for reference:** username `drewdemoadmin` (admin), one-time password already
+  handed to the founder directly — not repeated here since it's a live credential.
+  **Not yet done:** no live browser click-through of the demo account's screens (login/API-level
+  verification only, per this repo's usual `.env.local` `BROWSER_ADMIN_PASSWORD` gap) — worth
+  an actual look next time someone can log in as `drewdemoadmin` and click through Dashboard,
+  Calendar, Customers, the two quotes (including the public unauthenticated proposal link for
+  each), the invoice, and Payroll.
 
 - **Public ServiceSpark landing page and early-access lead capture shipped, merged to `main`
   at `d9637a9` then corrected before push at `a94d6a3` (2026-08-06).** Built by Codex across
