@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.0",
+    date: "August 6, 2026",
+    title: "Operations dashboard refresh",
+    changes: [
+      "The Dashboard now brings client growth, quote conversion, weekly paid revenue, quote pipeline, and sales performance into one view.",
+      "Dashboard insights now call out conversion changes, progress toward the configured revenue target, and sent quotes that have been waiting more than seven days.",
+    ],
+  },
+  {
     version: "v0.1.9",
     date: "August 6, 2026",
     title: "Early access requests are ready",

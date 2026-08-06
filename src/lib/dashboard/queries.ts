@@ -1,9 +1,9 @@
-import { and, asc, eq, gte, inArray, lt, lte, ne, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lt, lte, ne, sql, type AnyColumn } from "drizzle-orm";
 import { db } from "@/db";
 import { companies, customers, employeePto, ghlSyncLog, invoices, jobAssignments, jobs, quotes, users } from "@/db/schema";
 import { overdueSqlCondition } from "@/lib/invoices/overdue";
 import { isFieldEligible } from "@/lib/auth/field-staff";
-import type { CashToCollect, CrewCoverage, DashboardRange, ExceptionCounts, PulseMetrics, RevenueSeries, TodayRun } from "./types";
+import type { CashToCollect, CrewCoverage, DashboardRange, ExceptionCounts, OperationsDashboard, PulseMetrics, RevenueSeries, TodayRun } from "./types";
 import { addDaysIso } from "./range";
 const n = (value: unknown) => Number(value ?? 0);
 
@@ -26,6 +26,49 @@ function paidRangeCondition(companyId: string, fromIso: string, toIsoInclusive: 
     gte(invoices.paidAt, sql`(${fromIso}::date::timestamp AT TIME ZONE ${timeZone})`),
     lt(invoices.paidAt, sql`(${toExclusiveIso}::date::timestamp AT TIME ZONE ${timeZone})`),
   );
+}
+
+function timestampRangeCondition(column: AnyColumn, fromIso: string, toIsoInclusive: string, timeZone: string) {
+  const toExclusiveIso = addDaysIso(toIsoInclusive, 1);
+  return and(
+    gte(column, sql`(${fromIso}::date::timestamp AT TIME ZONE ${timeZone})`),
+    lt(column, sql`(${toExclusiveIso}::date::timestamp AT TIME ZONE ${timeZone})`),
+  );
+}
+
+export async function getOperationsDashboard(companyId: string, range: DashboardRange, revenueTargetCents: number | null): Promise<OperationsDashboard> {
+  const weekEndIso = range.toIso;
+  const weekStartIso = addDaysIso(weekEndIso, -6);
+  const weeklyDates = Array.from({ length: 7 }, (_, index) => addDaysIso(weekStartIso, index));
+  const paidDay = sql<string>`to_char(${invoices.paidAt} AT TIME ZONE ${range.timeZone}, 'YYYY-MM-DD')`;
+  const bookedQuote = sql`exists (select 1 from jobs where jobs.company_id = ${companyId} and jobs.quote_id = ${quotes.id})`;
+  const [clientRows, quoteRows, previousQuoteRows, weeklyRevenueRows, agingRows] = await Promise.all([
+    db.select({
+      total: sql<number>`count(*) filter (where ${customers.isArchived} = false)`,
+      gained: sql<number>`count(*) filter (where ${customers.isArchived} = false and ${timestampRangeCondition(customers.createdAt, range.fromIso, range.toIso, range.timeZone)})`,
+      lost: sql<number>`count(*) filter (where ${customers.isArchived} = true and ${timestampRangeCondition(customers.archivedAt, range.fromIso, range.toIso, range.timeZone)})`,
+    }).from(customers).where(eq(customers.companyId, companyId)),
+    db.select({
+      sent: sql<number>`count(*) filter (where ${quotes.status} <> 'draft')`,
+      accepted: sql<number>`count(*) filter (where ${quotes.status} = 'accepted')`,
+      booked: sql<number>`count(*) filter (where ${quotes.status} = 'accepted' and ${bookedQuote})`,
+    }).from(quotes).where(and(eq(quotes.companyId, companyId), timestampRangeCondition(quotes.createdAt, range.fromIso, range.toIso, range.timeZone))),
+    db.select({
+      sent: sql<number>`count(*) filter (where ${quotes.status} <> 'draft')`,
+      accepted: sql<number>`count(*) filter (where ${quotes.status} = 'accepted')`,
+    }).from(quotes).where(and(eq(quotes.companyId, companyId), timestampRangeCondition(quotes.createdAt, range.prevFromIso, range.prevToIso, range.timeZone))),
+    db.select({ day: paidDay, amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)` }).from(invoices).where(paidRangeCondition(companyId, weekStartIso, weekEndIso, range.timeZone)).groupBy(sql`1`),
+    db.select({ count: sql<number>`count(*)` }).from(quotes).where(and(eq(quotes.companyId, companyId), eq(quotes.status, "sent"), lte(quotes.sentAt, sql`now() - interval '7 days'`))),
+  ]);
+  const revenueByDay = new Map(weeklyRevenueRows.map((row) => [row.day, n(row.amount)]));
+  const amountsCents = weeklyDates.map((date) => revenueByDay.get(date) ?? 0);
+  const weeklyRevenueTargetCents = revenueTargetCents === null ? null : weeklyDates.reduce((total, date) => total + revenueTargetCents / daysInMonth(date), 0);
+  return {
+    clients: { total: n(clientRows[0]?.total), gained: n(clientRows[0]?.gained), lost: n(clientRows[0]?.lost) },
+    quotes: { sent: n(quoteRows[0]?.sent), accepted: n(quoteRows[0]?.accepted), booked: n(quoteRows[0]?.booked), aging: n(agingRows[0]?.count), previousSent: n(previousQuoteRows[0]?.sent), previousAccepted: n(previousQuoteRows[0]?.accepted) },
+    weeklyRevenue: { dates: weeklyDates, amountsCents, totalCents: amountsCents.reduce((total, amount) => total + amount, 0) },
+    weeklyRevenueTargetCents,
+  };
 }
 export async function getTodaysRun(companyId: string, todayIso: string): Promise<TodayRun> {
   const rows = await db.select({ id: jobs.id, status: jobs.status, type: jobs.type, scheduledStartTime: jobs.scheduledStartTime, clientType: customers.clientType, companyName: customers.companyName, firstName: customers.firstName, lastName: customers.lastName, address: customers.addressLine1, city: customers.city }).from(jobs).innerJoin(customers, eq(jobs.customerId, customers.id)).where(and(eq(jobs.companyId, companyId), eq(customers.companyId, companyId), eq(jobs.scheduledDate, todayIso))).orderBy(jobs.scheduledStartTime);
