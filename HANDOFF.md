@@ -64,11 +64,13 @@ webhook company-scoping fix — see the entry right below).
   work I hadn't reviewed. Resolved once that session pushed its own work first.
   **Demo login, for reference:** username `drewdemoadmin` (admin), one-time password already
   handed to the founder directly — not repeated here since it's a live credential.
-  **Not yet done:** no live browser click-through of the demo account's screens (login/API-level
-  verification only, per this repo's usual `.env.local` `BROWSER_ADMIN_PASSWORD` gap) — worth
-  an actual look next time someone can log in as `drewdemoadmin` and click through Dashboard,
-  Calendar, Customers, the two quotes (including the public unauthenticated proposal link for
-  each), the invoice, and Payroll.
+  **Update 2026-08-06, same day:** the founder logged in as `drewdemoadmin` in a real browser
+  and confirmed the login works and the app renders correctly — closes the "no live browser
+  check yet" gap for the login/general-rendering path. Not yet individually confirmed by that
+  pass: the two quotes' public unauthenticated proposal links specifically (this repo's own
+  working rules call out that quote changes need both the internal builder and the public
+  proposal page checked) — worth a specific look at those two links, plus the invoice and
+  Payroll screens, next time someone's in there.
 
 - **Public ServiceSpark landing page and early-access lead capture shipped, merged to `main`
   at `d9637a9` then corrected before push at `a94d6a3` (2026-08-06).** Built by Codex across
