@@ -37,6 +37,22 @@ export function startOfMonthIso(value: string): string {
   return `${value.slice(0, 7)}-01`;
 }
 
+export function monthRangeBefore(value: string) {
+  const firstOfMonth = startOfMonthIso(value);
+  const toIso = addDaysIso(firstOfMonth, -1);
+  return { fromIso: addDaysIso(firstOfMonth, -new Date(`${toIso}T00:00:00.000Z`).getUTCDate()), toIso };
+}
+
+export function quarterRangeFor(value: string) {
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(5, 7));
+  const quarterStartMonth = Math.floor((month - 1) / 3) * 3 + 1;
+  const fromIso = `${year}-${String(quarterStartMonth).padStart(2, "0")}-01`;
+  const nextQuarter = new Date(Date.UTC(year, quarterStartMonth + 2, 1));
+  nextQuarter.setUTCMonth(nextQuarter.getUTCMonth() + 1);
+  return { fromIso, toIso: addDaysIso(nextQuarter.toISOString().slice(0, 10), -1) };
+}
+
 export function resolveRange(
   sp: RangeSearchParams,
   timeZone: string,
@@ -51,8 +67,12 @@ export function resolveRange(
         ? { fromIso: addDaysIso(todayIso, -29), toIso: todayIso }
         : preset === "last_90_days"
           ? { fromIso: addDaysIso(todayIso, -89), toIso: todayIso }
-          : preset === "this_month"
+        : preset === "this_month"
             ? { fromIso: startOfMonthIso(todayIso), toIso: todayIso }
+            : preset === "last_month"
+              ? monthRangeBefore(todayIso)
+              : preset === "quarter"
+                ? quarterRangeFor(todayIso)
             : preset === "today"
               ? { fromIso: todayIso, toIso: todayIso }
               : null;
@@ -87,6 +107,10 @@ export function resolveRange(
               ? "Last 90 days"
               : preset === "this_month"
                 ? "This month"
+                : preset === "last_month"
+                  ? "Last month"
+                  : preset === "quarter"
+                    ? `Q${Math.floor((Number(todayIso.slice(5, 7)) - 1) / 3) + 1}`
                 : preset === "custom"
                   ? "Custom range"
                   : "Last 30 days",
