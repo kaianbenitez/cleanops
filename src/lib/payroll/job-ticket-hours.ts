@@ -79,6 +79,7 @@ export async function refreshJobTicketHours(params: {
       id: jobs.id,
       priceCents: jobs.priceCents,
       currentMinutes: jobs.estimatedDurationMinutes,
+      jthManualOverride: jobs.jthManualOverride,
       quoteHourlyRateCents: serviceLocations.hourlyRateCents,
       customerZip: customers.zip,
     })
@@ -90,7 +91,10 @@ export async function refreshJobTicketHours(params: {
 
   if (!rows.length) return { updated: 0, unresolved: [] };
 
-  const areaNames = [...new Set(rows.map((row) => resolveServiceAreaNameForZip(row.customerZip)).filter((name): name is string => Boolean(name)))];
+  // A manually set per-occurrence JTH is already resolved. Never derive it
+  // again from price/rate, and do not report it as unresolved.
+  const autoManagedRows = rows.filter((row) => !row.jthManualOverride);
+  const areaNames = [...new Set(autoManagedRows.map((row) => resolveServiceAreaNameForZip(row.customerZip)).filter((name): name is string => Boolean(name)))];
   const areas = areaNames.length
     ? await db
         .select({ name: serviceLocations.name, hourlyRateCents: serviceLocations.hourlyRateCents })
@@ -101,7 +105,7 @@ export async function refreshJobTicketHours(params: {
 
   const updates: Array<{ id: string; minutes: number }> = [];
   const unresolved: string[] = [];
-  for (const row of rows) {
+  for (const row of autoManagedRows) {
     const areaName = resolveServiceAreaNameForZip(row.customerZip);
     const zipRate = areaName ? rateByAreaName.get(areaName) : undefined;
     const rate = row.quoteHourlyRateCents ?? zipRate;

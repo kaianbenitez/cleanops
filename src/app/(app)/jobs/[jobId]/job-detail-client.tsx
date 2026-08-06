@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState, useTransition } from "react";
-import { ArrowLeft, CalendarClock, Check, CircleUserRound, Mail, MapPin, Phone, UserPlus, XCircle } from "lucide-react";
+import { ArrowLeft, CalendarClock, Check, CircleUserRound, Mail, MapPin, Pencil, Phone, UserPlus, XCircle } from "lucide-react";
 import { StatusPill, statusOptions } from "@/components/ui/status-pill";
 import { formatDisplayDate } from "@/lib/scheduling/dates";
 import HandoffPanel from "./handoff-panel";
@@ -52,6 +52,12 @@ export default function JobDetailClient({
   const [paymentMethodCollected, setPaymentMethodCollected] = useState(job.paymentMethodCollected ?? "");
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
+  const [editingPrice, setEditingPrice] = useState(false);
+  const [priceInput, setPriceInput] = useState("");
+  const [priceEditError, setPriceEditError] = useState<string | null>(null);
+  const [editingJth, setEditingJth] = useState(false);
+  const [jthInput, setJthInput] = useState("");
+  const [jthEditError, setJthEditError] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
     startTransition(() => router.refresh());
@@ -122,6 +128,42 @@ export default function JobDetailClient({
     setConfirmingCancel(false);
     void save({ status: "cancelled", cancellationReason: cancellationReason.trim() });
   }, [cancellationReason, save]);
+
+  const beginPriceEdit = useCallback(() => {
+    setPriceInput((job.priceCents / 100).toFixed(2));
+    setPriceEditError(null);
+    setEditingJth(false);
+    setEditingPrice(true);
+  }, [job.priceCents]);
+
+  const savePrice = useCallback(async () => {
+    const dollars = Number(priceInput);
+    if (!Number.isFinite(dollars) || dollars < 0) {
+      setPriceEditError("Enter a non-negative dollar amount.");
+      return;
+    }
+    const saved = await save({ priceCents: Math.round(dollars * 100) });
+    if (saved) setEditingPrice(false);
+  }, [priceInput, save]);
+
+  const beginJthEdit = useCallback(() => {
+    const minutes = job.estimatedDurationMinutes ?? 0;
+    setJthInput(`${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}`);
+    setJthEditError(null);
+    setEditingPrice(false);
+    setEditingJth(true);
+  }, [job.estimatedDurationMinutes]);
+
+  const saveJth = useCallback(async () => {
+    const match = /^(\d+):([0-5]\d)$/.exec(jthInput.trim());
+    const minutes = match ? Number(match[1]) * 60 + Number(match[2]) : Number.NaN;
+    if (!Number.isInteger(minutes) || minutes < 15 || minutes > 600) {
+      setJthEditError("Enter a duration from 0:15 to 10:00 (HH:MM).");
+      return;
+    }
+    const saved = await save({ estimatedDurationMinutes: minutes });
+    if (saved) setEditingJth(false);
+  }, [jthInput, save]);
 
   const serviceProgress = job.status === "completed" ? 100 : job.status === "in_progress" ? 62 : timeEntries.length > 0 ? 35 : 0;
   const serviceSteps = [
@@ -236,7 +278,29 @@ export default function JobDetailClient({
             <div className="mt-5 rounded-xl border border-[#d3e0d2] bg-[#f1f7ef] p-4">
               <div className="flex items-start justify-between gap-2">
                 <p className="font-bold text-[var(--co-evergreen)]">{job.serviceName ?? TYPE_LABELS[job.type] ?? job.type}</p>
-                <span className="text-sm font-bold text-[var(--co-evergreen)]">{money(job.priceCents)}</span>
+                {editingPrice ? (
+                  <form
+                    className="flex flex-col items-end gap-1"
+                    onSubmit={(event) => { event.preventDefault(); void savePrice(); }}
+                  >
+                    <label className="text-xs text-[var(--co-muted)]" htmlFor="job-price">Price charged</label>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-semibold text-[var(--co-evergreen)]">$</span>
+                      <input id="job-price" aria-invalid={Boolean(priceEditError)} type="number" min="0" step="0.01" value={priceInput} onChange={(event) => setPriceInput(event.target.value)} className="co-input w-24 py-1 text-sm" autoFocus disabled={saving} />
+                      <button type="submit" disabled={saving} className="co-button-secondary px-2 py-1 text-xs disabled:opacity-50">Save</button>
+                      <button type="button" disabled={saving} onClick={() => { setEditingPrice(false); setPriceEditError(null); }} className="co-button-secondary px-2 py-1 text-xs disabled:opacity-50">Cancel</button>
+                    </div>
+                    {priceEditError ? <p role="alert" className="max-w-48 text-right text-xs text-rose-700">{priceEditError}</p> : null}
+                  </form>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-[var(--co-muted)]">Price charged</span>
+                    <span className="text-sm font-bold text-[var(--co-evergreen)]">{money(job.priceCents)}</span>
+                    <button type="button" aria-label="Edit price charged" disabled={saving} onClick={beginPriceEdit} className="rounded p-1 text-[var(--co-evergreen)] hover:bg-white disabled:opacity-50">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
               <p className="mt-1 text-xs text-[var(--co-muted)]">One-time appointment</p>
               {job.addOnNames.length > 0 ? (
@@ -260,7 +324,25 @@ export default function JobDetailClient({
               </div>
               <div className="col-span-2 rounded-xl border border-[#d3e0d2] bg-[#f7fbf5] p-3">
                 <p className="text-xs text-[var(--co-muted)]">Job Ticket Hours</p>
-                <p className="mt-1 font-semibold">{formatEstimatedTime(job.estimatedDurationMinutes)}</p>
+                {editingJth ? (
+                  <form className="mt-1" onSubmit={(event) => { event.preventDefault(); void saveJth(); }}>
+                    <label className="sr-only" htmlFor="job-ticket-hours">Job Ticket Hours in hours and minutes</label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input id="job-ticket-hours" aria-invalid={Boolean(jthEditError)} aria-describedby={jthEditError ? "job-ticket-hours-error" : undefined} type="text" inputMode="numeric" pattern="\\d+:\\d{2}" value={jthInput} onChange={(event) => setJthInput(event.target.value)} placeholder="HH:MM" className="co-input w-24 py-1 text-sm" autoFocus disabled={saving} />
+                      <button type="submit" disabled={saving} className="co-button-secondary px-2 py-1 text-xs disabled:opacity-50">Save</button>
+                      <button type="button" disabled={saving} onClick={() => { setEditingJth(false); setJthEditError(null); }} className="co-button-secondary px-2 py-1 text-xs disabled:opacity-50">Cancel</button>
+                    </div>
+                    {jthEditError ? <p id="job-ticket-hours-error" role="alert" className="mt-1 text-xs text-rose-700">{jthEditError}</p> : <p className="mt-1 text-xs text-[var(--co-muted)]">Use HH:MM, from 0:15 to 10:00.</p>}
+                  </form>
+                ) : (
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <p className="font-semibold">{formatEstimatedTime(job.estimatedDurationMinutes)}</p>
+                    {job.jthManualOverride ? <span className="rounded border border-[#b8c6b8] px-1.5 py-0.5 text-xs text-[var(--co-muted)]">Manually set</span> : null}
+                    <button type="button" aria-label="Edit Job Ticket Hours" disabled={saving} onClick={beginJthEdit} className="rounded p-1 text-[var(--co-evergreen)] hover:bg-white disabled:opacity-50">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
             {job.customerNotes ? (
