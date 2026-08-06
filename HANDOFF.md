@@ -5,9 +5,47 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-07 (Per-job payroll price/JTH overrides shipped — see the entry right below).
+Last updated: 2026-08-07 (Customer "date added" corrected with real historical data, and an "Added on" display shipped — see the entry right below).
 
 ## Done
+
+- **Backfilled real historical `customers.created_at` for 217 imported customers, using a
+  source-system export, run directly against the hosted DB (2026-08-07, data-only — no code
+  changed, no commit).** Follow-up to the Sales report shipped earlier the same day: while
+  investigating why "Acquired recurring"/"New leads" looked inflated for recent date ranges, the
+  user pointed me at `C:\Users\kbeni\Downloads\customers-2026-08-06.csv`, a real export from
+  their old system ("TheCustomerFactor"). Cross-checking it against the live DB (read-only,
+  by me directly) proved that the 2026-07-22 bulk import had stamped every migrated customer's
+  `created_at` with the import timestamp instead of their real historical signup date — e.g. Mary
+  Anderson's real add date was 2018-01-23, but the app showed 2026-07-22. `customers.customer_number`
+  turned out to be an exact carryover of the old system's row `Id`, giving a reliable join key.
+  With explicit user approval, had Codex write a throwaway single-transaction script (deleted
+  after running, nothing committed) that matched CSV `Id` → `customer_number` **and** required
+  the customer's name to also match before touching anything; anything ambiguous was left alone
+  and reported instead of guessed. Result: 217 of 221 CSV rows matched and were corrected to
+  their real `Date Added` (set to noon UTC on that date, to avoid day-boundary drift in report
+  bucketing); 4 were skipped and are still on the import-date stamp — 2 name mismatches (`1024`
+  CSV "David Eastin" vs live "Becky Eastin"; `1244` CSV blank name vs live "PDG (no last name)")
+  and 2 with no matching `customer_number` live at all (`1486` "Lori Malone", `1488` "Quentin
+  Turner") — worth a manual look if those 4 matter, otherwise harmless as-is. Independently
+  verified by me afterward: live customers went from ~230 stuck on 2026-07-22 down to 13, real
+  `created_at` values now span 2016-06-27 through today.
+  **Updates the caveat in the Sales report entry below:** "New leads" is now accurate for these
+  217 customers for any date range. The `recurring_series.start_date`/`end_date` clustering
+  issue (used by "Acquired recurring"/"Lost recurring") is **not** fixed by this — the source CSV
+  only had a customer-level add date, not per-service-cycle recurring dates, so that caveat still
+  stands.
+  Also shipped in the same session, now that the underlying data is accurate: a small "Added on
+  [date]" / "Customer since [date]" display on the customer list and profile page respectively,
+  merged to `main` at `192159d` — built and reviewed *before* the backfill was approved,
+  deliberately held back from merging until the data itself was correct, since showing the old
+  import-date stamp would have been actively misleading. `check:drift` and `npm run verify`
+  both re-run clean after merging with the concurrently-shipped payroll JTH feature (one
+  Help Center changelog conflict, resolved by keeping both entries and renumbering this one to
+  `v0.2.7` to avoid a duplicate version number with the payroll entry's `v0.2.6`).
+  Not applied: `customers.status`/`recurrence`-derived history, and the CSV's own "Date Canceled
+  Service" column, which could similarly improve "Lost recurring" accuracy — flagged as a
+  possible future follow-up, not requested or built.
 
 - **Admins can now edit the price charged and Job Ticket Hours (JTH) on an individual job
   occurrence, merged to `main` at `1922d62` (2026-08-07).** Highest-priority item from the
