@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.11",
+    date: "August 7, 2026",
+    title: "A clearer, more complete ServiceSpark landing page",
+    changes: [
+      "The public ServiceSpark page now focuses on the product itself, with the previous comparison table removed.",
+      "Product examples are easier to read, and the crew app is now shown in a real phone frame.",
+      "The page has more visual variety from section to section, and its examples now show a fuller cleaning business with more customers, paid invoices, and team members.",
+    ],
+  },
+  {
     version: "v0.2.10",
     date: "August 7, 2026",
     title: "A more complete ServiceSpark landing page",
