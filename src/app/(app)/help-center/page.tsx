@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.16",
+    date: "August 7, 2026",
+    title: "A full unassigned queue in Calendar",
+    changes: [
+      "Calendar now lets dispatchers expand the unassigned queue into the page, so every waiting job remains reachable without a cramped nested scroll area.",
+    ],
+  },
+  {
     version: "v0.2.15",
     date: "August 7, 2026",
     title: "Start recurring service from a customer profile",

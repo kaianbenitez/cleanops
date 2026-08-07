@@ -910,7 +910,7 @@ export default function StaffBoard({
           </div>
         </div>
       </section>
-      <aside className="space-y-4 lg:sticky lg:top-5 lg:max-h-[calc(100dvh-2.5rem)] lg:self-start lg:overflow-y-auto lg:pb-5">
+      <aside className="space-y-4 lg:sticky lg:top-5 lg:self-start lg:pb-5">
         <section className="border border-[var(--co-line)] bg-[var(--co-surface)] p-3">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -925,7 +925,7 @@ export default function StaffBoard({
               {activeUnassignedJobs.length} to assign
             </span>
           </div>
-          <div className="mt-3 space-y-2">
+          <div id="unassigned-queue-list" className="mt-3 space-y-2">
             {activeUnassignedJobs.length ? (
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700">
                 Needs assignment
@@ -964,11 +964,13 @@ export default function StaffBoard({
               data-day={dayIso}
               type="button"
               onClick={() => setQueueExpanded((expanded) => !expanded)}
+              aria-controls="unassigned-queue-list"
+              aria-expanded={queueExpanded}
               className="mt-3 block w-full border-t border-[var(--co-line-soft)] pt-3 text-center text-xs font-semibold text-[var(--co-evergreen)] hover:underline"
             >
               {queueExpanded
                 ? "Show less"
-                : `View all unassigned (${unassignedJobs.length})`}
+                : `Show all unassigned jobs (${unassignedJobs.length})`}
             </button>
           ) : null}
           {unassignedJobs.length > 0 && !queueExpanded && hasMoreQueueJobs ? (
