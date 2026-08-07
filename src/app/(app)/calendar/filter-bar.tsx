@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
+import { Inbox, SlidersHorizontal } from "lucide-react";
 
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
@@ -78,19 +79,20 @@ export default function FilterBar({
   }).format(projectedRevenueCents / 100);
 
   return (
-    <section aria-busy={isPending} className="border-y border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-3 sm:px-4">
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <p
-          aria-live="polite"
-          className="rounded-full bg-[var(--co-accent-tint)] px-2.5 py-1.5 text-xs font-semibold text-[var(--co-evergreen)]"
-        >
-          {totalJobs} {totalJobs === 1 ? "job" : "jobs"}
-        </p>
+    <section aria-busy={isPending} className="bg-[var(--co-surface)] px-3 py-3 sm:px-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex overflow-hidden rounded-lg border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]">
+          <p aria-live="polite" className="px-3 py-1.5 text-xs leading-tight">
+            <span className="block text-[10px] font-medium text-[var(--co-muted)]">Total jobs</span>
+            <span className="font-semibold text-[var(--co-ink)]">{totalJobs} {totalJobs === 1 ? "job" : "jobs"}</span>
+          </p>
+          <p className="border-l border-[var(--co-line-soft)] px-3 py-1.5 text-xs leading-tight">
+            <span className="block text-[10px] font-medium text-[var(--co-muted)]">Projected revenue</span>
+            <span className="font-semibold text-[var(--co-evergreen)]">{projectedRevenue}</span>
+          </p>
+        </div>
 
-        <p className="rounded-full bg-[var(--co-surface-muted)] px-2.5 py-1.5 text-xs font-semibold text-[var(--co-ink)]">
-          Projected {projectedRevenue}
-        </p>
-
+        <div className="flex flex-wrap items-center justify-end gap-2">
         <select value={employeeId} onChange={(event) => setParam("employeeId", event.target.value)} aria-label="Filter by employee" className="co-input min-w-[150px] py-2 text-xs">
           <option value="">All technicians</option>
           {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}{employee.isActive === false ? " (Inactive)" : ""}</option>)}
@@ -105,15 +107,18 @@ export default function FilterBar({
           Unassigned only
         </button>
 
-        <button type="button" onClick={() => setAdvancedOpen((open) => !open)} aria-expanded={advancedOpen} className={`co-button-secondary py-2 text-xs ${advancedOpen ? "border-[var(--co-evergreen)] text-[var(--co-evergreen)]" : ""}`}>
+        <button type="button" onClick={() => setAdvancedOpen((open) => !open)} aria-expanded={advancedOpen} className={`co-button-secondary gap-2 py-2 text-xs ${advancedOpen ? "border-[var(--co-evergreen)] text-[var(--co-evergreen)]" : ""}`}>
+          <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
           More filters{hasFilters ? ` (${[employeeId, type, recurrence, status, assignment, searchParams.get("zip")].filter(Boolean).length})` : ""}
         </button>
 
-        {unassignedJobs ? <button type="button" onClick={() => setParam("queue", queueOpen ? "" : "unassigned")} aria-controls="unassigned-queue-list" aria-expanded={queueOpen} className={`co-button-secondary py-2 text-xs ${queueOpen ? "border-[var(--co-evergreen)] text-[var(--co-evergreen)]" : ""}`}>
+        {unassignedJobs ? <button type="button" onClick={() => setParam("queue", queueOpen ? "" : "unassigned")} aria-controls="unassigned-queue-list" aria-expanded={queueOpen} className={`co-button-secondary gap-2 py-2 text-xs ${queueOpen ? "border-[var(--co-evergreen)] text-[var(--co-evergreen)]" : ""}`}>
+          <Inbox className="h-3.5 w-3.5" aria-hidden />
           {queueOpen ? "Hide unassigned jobs" : `Unassigned jobs (${unassignedJobs})`}
         </button> : null}
 
         {hasFilters ? <button type="button" onClick={clearAll} className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">Clear filters</button> : null}
+        </div>
       </div>
 
       {isPending ? <p role="status" className="mt-2 text-xs text-[var(--co-muted)]">Updating calendar…</p> : null}

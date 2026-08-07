@@ -670,7 +670,8 @@ export default async function CalendarPage({
   return (
     <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
       <CalendarStateSync view={view} anchor={stateAnchor} />
-      <header className="overflow-x-auto border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-3 lg:px-6">
+      <section className="co-card mx-3 mt-3 overflow-hidden sm:mx-4 lg:mx-5">
+      <header className="overflow-x-auto border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-3 lg:px-5">
         <div className="flex w-full min-w-max items-center justify-between gap-5">
           <div className="flex items-center gap-2">
             <DatePicker view={view} value={currentDate} label={dateLabel} />
@@ -702,6 +703,7 @@ export default async function CalendarPage({
         unassignedJobs={view === "staff" ? unassignedRows.length : 0}
         projectedRevenueCents={projectedRevenueCents}
       />
+      </section>
 
       <main className="p-3 sm:p-4 lg:p-5">
         {weekendOrphans?.count && weekendOrphans.firstDate ? (

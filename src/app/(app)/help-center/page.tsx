@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.21",
+    date: "August 7, 2026",
+    title: "A compact Calendar control panel",
+    changes: [
+      "Calendar navigation, view tabs, summaries, and filters now live in one clearer dispatch control panel.",
+      "Daily job count and projected revenue now use labeled summary metrics, with icons for filter and unassigned-work actions.",
+    ],
+  },
+  {
     version: "v0.2.20",
     date: "August 7, 2026",
     title: "Simpler Calendar dispatch controls",
