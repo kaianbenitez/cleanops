@@ -19,6 +19,8 @@
   --co-evergreen-soft: #1737a8;
   --co-accent: #2457ff;
   --co-accent-soft: #1737a8;
+  --co-spark-accent: #e4942b;
+  --co-spark-accent-tint: #fff4e3;
   --spark-mark: #707C8D;
   --spark-mark-facet: #FCFCFA;
   --co-accent-tint: #edf1ff;
@@ -220,10 +222,19 @@ button:active { transform: translateY(1px); }
 :focus-visible { outline: 3px solid var(--co-focus-ring); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: no-preference) {
+  .marketing-hero-content { animation: marketing-enter 560ms ease-out both; }
+  .marketing-hero-visual { animation: marketing-enter 560ms 110ms ease-out both; }
+  .marketing-reveal.is-pending { opacity: 0; transform: translateY(18px); transition: opacity 500ms ease-out, transform 500ms ease-out; }
+  .marketing-reveal.is-pending.is-visible { opacity: 1; transform: translateY(0); }
   .co-card:hover {
     transform: translateY(-1px);
     box-shadow: 0px 10px 32px rgba(15, 23, 42, 0.1);
   }
+}
+
+@keyframes marketing-enter {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -233,6 +244,7 @@ button:active { transform: translateY(1px); }
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+  .marketing-hero-content, .marketing-hero-visual, .marketing-reveal { animation: none !important; opacity: 1 !important; transform: none !important; }
 }
 
 .dark {
