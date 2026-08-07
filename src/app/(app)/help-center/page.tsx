@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.10",
+    date: "August 7, 2026",
+    title: "A more complete ServiceSpark landing page",
+    changes: [
+      "The ServiceSpark page now shows how it compares with pen and paper, spreadsheets, calendars, and generic scheduling software.",
+      "You can browse the full lineup of scheduling, field work, customer, quote, invoicing, and payroll features in one place.",
+      "The page now explains the real cleaning-business experience behind ServiceSpark and answers common early-access questions.",
+    ],
+  },
+  {
     version: "v0.2.9",
     date: "August 7, 2026",
     title: "A clearer ServiceSpark early-access page",
