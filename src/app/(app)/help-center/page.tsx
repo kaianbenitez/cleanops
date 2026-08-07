@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.19",
+    date: "August 7, 2026",
+    title: "Visible Calendar views and right-aligned filters",
+    changes: [
+      "Calendar now shows Week, Month, Day, Employee vertical, and Employee horizontal as visible view buttons.",
+      "Calendar job counts and filters now align to the right side of their row.",
+    ],
+  },
+  {
     version: "v0.2.18",
     date: "August 7, 2026",
     title: "A full-width Calendar dispatch board",

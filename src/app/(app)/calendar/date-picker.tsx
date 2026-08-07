@@ -9,10 +9,10 @@ function mondayIndex(date: Date) { return (date.getUTCDay() + 6) % 7; }
 
 const VIEWS = [
   { value: "week", label: "Week" },
-  { value: "staff", label: "Staff" },
-  { value: "staff_vertical", label: "Staff vertical" },
   { value: "month", label: "Month" },
-  { value: "list", label: "List" },
+  { value: "list", label: "Day" },
+  { value: "staff_vertical", label: "Employee vertical" },
+  { value: "staff", label: "Employee horizontal" },
 ] as const;
 
 export default function DatePicker({ view, value, label }: { view: string; value: Date; label: string }) {
@@ -82,5 +82,5 @@ export function CalendarViewSelector({ view, value }: { view: string; value: Dat
     router.push(`${pathname}?${params.toString()}`);
   }
 
-  return <><label className="sr-only" htmlFor="calendar-view">Calendar view</label><select id="calendar-view" value={view} onChange={(event) => selectView(event.target.value as (typeof VIEWS)[number]["value"])} className="co-input min-w-[108px] py-2 text-xs">{VIEWS.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></>;
+  return <div role="group" aria-label="Calendar view" className="flex overflow-hidden rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-0.5">{VIEWS.map((entry) => <button key={entry.value} type="button" aria-pressed={view === entry.value} onClick={() => selectView(entry.value)} className={`whitespace-nowrap px-3 py-1.5 text-xs font-semibold ${view === entry.value ? "bg-[var(--co-evergreen)] text-white" : "text-[var(--co-muted)] hover:bg-white hover:text-[var(--co-ink)]"}`}>{entry.label}</button>)}</div>;
 }

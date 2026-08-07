@@ -69,7 +69,7 @@ export default function FilterBar({
 
   return (
     <section aria-busy={isPending} className="border-y border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-3 sm:px-4">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <p
           aria-live="polite"
           className="rounded-full bg-[var(--co-accent-tint)] px-2.5 py-1.5 text-xs font-semibold text-[var(--co-evergreen)]"
@@ -95,7 +95,7 @@ export default function FilterBar({
           More filters{hasFilters ? ` (${[employeeId, type, recurrence, status, assignment, searchParams.get("zip")].filter(Boolean).length})` : ""}
         </button>
 
-        {hasFilters ? <button type="button" onClick={clearAll} className="ml-auto text-xs font-semibold text-[var(--co-evergreen)] hover:underline">Clear filters</button> : null}
+        {hasFilters ? <button type="button" onClick={clearAll} className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">Clear filters</button> : null}
       </div>
 
       {isPending ? <p role="status" className="mt-2 text-xs text-[var(--co-muted)]">Updating calendar…</p> : null}
