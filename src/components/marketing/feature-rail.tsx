@@ -1,9 +1,9 @@
 "use client";
 
 import { useRef } from "react";
-import { ProductScreenshot } from "./marketing-visuals";
+import Image from "next/image";
 
-type Feature = readonly [string, string, string, number, number];
+type Feature = readonly [string, string, string, string];
 
 export function FeatureRail({ features }: { features: readonly Feature[] }) {
   const rail = useRef<HTMLDivElement>(null);
@@ -35,14 +35,28 @@ export function FeatureRail({ features }: { features: readonly Feature[] }) {
         onPointerUp={() => { drag.current = null; }}
         onPointerCancel={() => { drag.current = null; }}
       >
-        {features.map(([title, description, screenshot, width, height], index) => (
-          <article key={title} className="w-[86vw] shrink-0 snap-start rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] p-4 sm:w-[34rem] sm:p-5">
-            <ProductScreenshot src={screenshot} alt={`${title} in the ServiceSpark app`} width={width} height={height} />
+        {features.map(([title, description, screenshot, objectPosition], index) => {
+          const isCrewApp = screenshot === "/marketing/my-day-mobile.png";
+          return (
+          <article key={title} className={`w-[86vw] shrink-0 snap-start rounded-xl border p-4 sm:w-[38rem] sm:p-5 ${isCrewApp ? "border-[var(--co-accent)] bg-[var(--co-accent-tint)]" : "border-[var(--co-line)] bg-[var(--co-surface)]"}`}>
+            {isCrewApp ? (
+              <div className="flex min-h-[31rem] items-center justify-center overflow-hidden rounded-lg bg-[var(--co-accent-soft)] px-5 py-8 sm:min-h-[35rem]">
+                <div className="relative w-[14rem] overflow-hidden rounded-[2.25rem] border-[5px] border-[var(--co-ink)] bg-[var(--co-ink)] shadow-[0_16px_28px_rgba(24,33,61,0.28)] sm:w-[15.5rem]">
+                  <div aria-hidden="true" className="absolute left-1/2 top-2 z-10 h-5 w-[5.625rem] -translate-x-1/2 rounded-full bg-[var(--co-ink)]" />
+                  <Image src={screenshot} alt={`${title} in the ServiceSpark app`} width={400} height={1190} priority sizes="(min-width: 640px) 248px, 224px" className="block h-auto w-full" />
+                </div>
+              </div>
+            ) : (
+              <div className="relative aspect-[3/2] overflow-hidden rounded-lg border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]">
+                <Image src={screenshot} alt={`${title} in the ServiceSpark app`} fill sizes="(min-width: 640px) 608px, 86vw" className="object-cover" style={{ objectPosition }} />
+              </div>
+            )}
             <p className="mt-5 font-mono text-sm font-semibold text-[var(--co-accent)]">0{index + 1}</p>
             <h3 className="mt-3 text-2xl font-semibold tracking-[-0.025em]">{title}</h3>
             <p className="mt-3 leading-7 text-[var(--co-muted)]">{description}</p>
           </article>
-        ))}
+          );
+        })}
       </div>
       <div className="mt-1 flex items-center justify-between gap-4 text-sm text-[var(--co-muted)]">
         <p>Scroll, drag, or use the arrow keys to explore.</p>
