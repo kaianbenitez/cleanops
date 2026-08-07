@@ -31,11 +31,9 @@ const STATUSES = [
 
 export default function FilterBar({
   employees,
-  resolvedView,
   totalJobs,
 }: {
   employees: Employee[];
-  resolvedView: "staff" | "staff_vertical" | "week" | "month" | "list";
   totalJobs: number;
 }) {
   const router = useRouter();

@@ -47,7 +47,7 @@ export default function DatePicker({ view, value, label }: { view: string; value
     params.delete("week"); params.delete("day"); params.delete("month");
     const selected = iso(date);
     if (view === "month") params.set("month", selected.slice(0, 7));
-    else if (view === "staff" || view === "list") params.set("day", selected);
+    else if (view === "staff" || view === "staff_vertical" || view === "list") params.set("day", selected);
     else {
       const monday = new Date(date);
       const offset = mondayIndex(monday);

@@ -691,7 +691,6 @@ export default async function CalendarPage({
 
       <FilterBar
         employees={employees}
-        resolvedView={view}
         totalJobs={totalJobs}
       />
 
