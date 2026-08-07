@@ -666,8 +666,8 @@ export default async function CalendarPage({
   return (
     <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
       <CalendarStateSync view={view} anchor={stateAnchor} />
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-3 lg:px-6">
-        <div className="flex flex-wrap items-center gap-2">
+      <header className="overflow-x-auto border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-3 lg:px-6">
+        <div className="flex min-w-max items-center gap-2">
           <DatePicker view={view} value={currentDate} label={dateLabel} />
           <Link
             href={`/calendar${prev}`}
@@ -736,7 +736,6 @@ export default async function CalendarPage({
               assignedUserIds: [],
             }))}
             ptoRecords={ptoRows}
-            isHoliday={holidays.includes(toISODate(dayAnchor))}
           />
         ) : null}
         {view === "staff_vertical" ? <StaffVerticalBoard employees={employees} jobs={displayedJobs} /> : null}

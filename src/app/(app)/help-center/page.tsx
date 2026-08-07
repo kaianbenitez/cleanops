@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.17",
+    date: "August 7, 2026",
+    title: "A single-row Calendar toolbar",
+    changes: [
+      "The date picker, calendar view selector, and date navigation now stay together on one scrollable row instead of stacking.",
+      "The Staff board starts directly with dispatch controls, without the redundant Staff Daily heading and sort action.",
+    ],
+  },
+  {
     version: "v0.2.16",
     date: "August 7, 2026",
     title: "A full unassigned queue in Calendar",

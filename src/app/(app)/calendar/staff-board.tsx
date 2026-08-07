@@ -69,7 +69,6 @@ export default function StaffBoard({
   jobs: initialJobs,
   unassignedJobs,
   ptoRecords,
-  isHoliday,
 }: {
   dayIso: string;
   dayLabel: string;
@@ -79,7 +78,6 @@ export default function StaffBoard({
   jobs: CalendarJob[];
   unassignedJobs: CalendarJob[];
   ptoRecords: EmployeePtoRecord[];
-  isHoliday: boolean;
 }) {
   const router = useRouter();
   const [jobs, setJobs] = useState(initialJobs);
@@ -157,9 +155,6 @@ export default function StaffBoard({
     void saveColumnOrder(nextOrder);
   }
 
-  function resetColumnsToTenure() {
-    void saveColumnOrder([]);
-  }
   const activeUnassignedJobs = useMemo(
     () =>
       unassignedJobs.filter(
@@ -583,35 +578,6 @@ export default function StaffBoard({
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
       <section className="min-w-0 overflow-hidden border border-[var(--co-line)] bg-[var(--co-surface)]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--co-line-soft)] px-4 py-3">
-          <div>
-            <h2 className="text-base font-semibold">
-              Staff Daily — {dayLabel}
-            </h2>
-            <p className="mt-0.5 text-xs text-[var(--co-muted)]">
-              Employees are ordered by tenure. Drag a column header to set a
-              custom order. Scroll sideways to see every cleaner; drag jobs
-              between columns to assign the team.
-            </p>
-            {isHoliday ? (
-              <p className="mt-1 text-xs font-semibold text-amber-800">
-                Holiday — dispatch capacity is closed.
-              </p>
-            ) : null}
-          </div>
-          <span className="text-xs font-medium text-[var(--co-muted)]">
-            {jobs.length} jobs
-          </span>
-          {!laneEmployeeId ? (
-            <button
-              type="button"
-              onClick={resetColumnsToTenure}
-              className="co-button-secondary text-xs"
-            >
-              Sort by tenure
-            </button>
-          ) : null}
-        </div>
         <form
           onSubmit={(event) => {
             event.preventDefault();

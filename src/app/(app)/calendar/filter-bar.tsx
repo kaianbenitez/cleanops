@@ -5,14 +5,6 @@ import { useState, useTransition } from "react";
 
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
-const VIEWS = [
-  { value: "week", label: "Week" },
-  { value: "staff", label: "Staff" },
-  { value: "staff_vertical", label: "Staff vertical" },
-  { value: "month", label: "Month" },
-  { value: "list", label: "List" },
-] as const;
-
 const TYPES = [
   { value: "first_clean", label: "First clean" },
   { value: "recurring", label: "Recurring" },
@@ -70,7 +62,6 @@ export default function FilterBar({
     setZipDraft("");
   }
 
-  const view = searchParams.get("view") ?? resolvedView;
   const employeeId = searchParams.get("employeeId") ?? "";
   const type = searchParams.get("type") ?? "";
   const recurrence = searchParams.get("recurrence") ?? "";
@@ -81,20 +72,6 @@ export default function FilterBar({
   return (
     <section aria-busy={isPending} className="border-y border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-3 sm:px-4">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex overflow-hidden rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-0.5">
-          {VIEWS.map((entry) => (
-            <button
-              key={entry.value}
-              type="button"
-              aria-pressed={view === entry.value}
-              onClick={() => setParam("view", entry.value)}
-              className={`px-3 py-1.5 text-xs font-semibold transition-colors ${view === entry.value ? "bg-[var(--co-evergreen)] text-white" : "text-[var(--co-muted)] hover:bg-white hover:text-[var(--co-ink)]"}`}
-            >
-              {entry.label}
-            </button>
-          ))}
-        </div>
-
         <p
           aria-live="polite"
           className="rounded-full bg-[var(--co-accent-tint)] px-2.5 py-1.5 text-xs font-semibold text-[var(--co-evergreen)]"
