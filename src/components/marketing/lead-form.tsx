@@ -102,7 +102,7 @@ export default function LeadForm() {
       <div className="sm:col-span-2">
         {serverError ? <p role="alert" className="mb-3 text-sm text-rose-700">{serverError}</p> : null}
         <button type="submit" disabled={submitting} className="co-button-primary w-full sm:w-auto">
-          {submitting ? "Sending request…" : "Request early access"}
+          {submitting ? "Sending…" : "Join the beta"}
         </button>
       </div>
     </form>

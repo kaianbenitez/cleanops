@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.12",
+    date: "August 7, 2026",
+    title: "A clearer beta sign-up page",
+    changes: [
+      "The ServiceSpark feature list is now easier to scan without side-scrolling.",
+      "The FAQ now answers more of the practical questions people ask before switching.",
+      "Every sign-up button now clearly says ServiceSpark is in beta and free to join, rather than implying a paid product.",
+    ],
+  },
+  {
     version: "v0.2.11",
     date: "August 7, 2026",
     title: "A clearer, more complete ServiceSpark landing page",
