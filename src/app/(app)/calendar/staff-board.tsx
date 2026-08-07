@@ -66,6 +66,7 @@ export default function StaffBoard({
   employees,
   savedColumnOrder,
   laneEmployeeId,
+  queueOpen,
   jobs: initialJobs,
   unassignedJobs,
   ptoRecords,
@@ -75,6 +76,7 @@ export default function StaffBoard({
   employees: CalendarEmployee[];
   savedColumnOrder: string[];
   laneEmployeeId?: string;
+  queueOpen: boolean;
   jobs: CalendarJob[];
   unassignedJobs: CalendarJob[];
   ptoRecords: EmployeePtoRecord[];
@@ -91,9 +93,6 @@ export default function StaffBoard({
   const boardScrollRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
-  const [selectedJobId, setSelectedJobId] = useState("");
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
-  const [queueExpanded, setQueueExpanded] = useState(false);
   const [openJobId, setOpenJobId] = useState<string | null>(null);
   const [detailJobId, setDetailJobId] = useState<string | null>(null);
   const [resizing, setResizing] = useState<{
@@ -277,127 +276,6 @@ export default function StaffBoard({
     );
   }
 
-  function addTechnician(jobId: string, employeeId: string) {
-    const job = jobs.find((entry) => entry.id === jobId);
-    if (
-      !job ||
-      !employeeId ||
-      ["completed", "cancelled", "no_show"].includes(job.status)
-    )
-      return;
-    if (job.assignedUserIds.includes(employeeId)) {
-      setWarning("That technician is already assigned to this job.");
-      return;
-    }
-    if (!employees.find((candidate) => candidate.id === employeeId)?.isActive) {
-      setWarning("That technician is inactive and can't be assigned to new jobs.");
-      return;
-    }
-    const previousEmployees = job.assignedUserIds;
-    const nextEmployees = [...previousEmployees, employeeId];
-    setJobs((current) =>
-      current.map((entry) =>
-        entry.id === job.id
-          ? { ...entry, assignedUserIds: nextEmployees }
-          : entry,
-      ),
-    );
-    commitJobPatch(
-      job.id,
-      { employeeIds: nextEmployees },
-      {
-        onOptimistic: () => undefined,
-        onSuccess: () => {
-          router.refresh();
-          showUndo("Technician added to the crew", () =>
-            commitJobPatch(
-              job.id,
-              { employeeIds: previousEmployees },
-              {
-                onOptimistic: () =>
-                  setJobs((current) =>
-                    current.map((entry) =>
-                      entry.id === job.id
-                        ? { ...entry, assignedUserIds: previousEmployees }
-                        : entry,
-                    ),
-                  ),
-                onSuccess: () => router.refresh(),
-                onError: setError,
-              },
-            ),
-          );
-        },
-        onWarning: setWarning,
-        onError: (message) => {
-          setError(message);
-          setJobs((current) =>
-            current.map((entry) =>
-              entry.id === job.id
-                ? { ...entry, assignedUserIds: previousEmployees }
-                : entry,
-            ),
-          );
-        },
-      },
-    );
-  }
-
-  function removeTechnician(jobId: string, employeeId: string) {
-    const job = jobs.find((entry) => entry.id === jobId);
-    if (!job || !employeeId || !job.assignedUserIds.includes(employeeId)) {
-      setWarning("That technician is not assigned to this job.");
-      return;
-    }
-    const previousEmployees = job.assignedUserIds;
-    const nextEmployees = previousEmployees.filter((id) => id !== employeeId);
-    setJobs((current) =>
-      current.map((entry) =>
-        entry.id === job.id
-          ? { ...entry, assignedUserIds: nextEmployees }
-          : entry,
-      ),
-    );
-    commitJobPatch(
-      job.id,
-      { employeeIds: nextEmployees },
-      {
-        onOptimistic: () => undefined,
-        onSuccess: () => {
-          router.refresh();
-          showUndo("Technician removed from the crew", () =>
-            commitJobPatch(
-              job.id,
-              { employeeIds: previousEmployees },
-              {
-                onOptimistic: () =>
-                  setJobs((current) =>
-                    current.map((entry) =>
-                      entry.id === job.id
-                        ? { ...entry, assignedUserIds: previousEmployees }
-                        : entry,
-                    ),
-                  ),
-                onSuccess: () => router.refresh(),
-                onError: setError,
-              },
-            ),
-          );
-        },
-        onError: (message) => {
-          setError(message);
-          setJobs((current) =>
-            current.map((entry) =>
-              entry.id === job.id
-                ? { ...entry, assignedUserIds: previousEmployees }
-                : entry,
-            ),
-          );
-        },
-      },
-    );
-  }
-
   function startMinutesOf(job: CalendarJob) {
     const [hour, minute] = (job.scheduledStartTime ?? "09:00")
       .slice(0, 5)
@@ -569,7 +447,7 @@ export default function StaffBoard({
   return (
     <div className="space-y-4">
       <section className="min-w-0 overflow-hidden border border-[var(--co-line)] bg-[var(--co-surface)]">
-        <form
+        {/* <form
           onSubmit={(event) => {
             event.preventDefault();
             addTechnician(selectedJobId, selectedEmployeeId);
@@ -640,8 +518,8 @@ export default function StaffBoard({
               {queueExpanded ? "Hide unassigned jobs" : `Unassigned jobs (${unassignedJobs.length})`}
             </button>
           ) : null}
-        </form>
-        {queueExpanded ? (
+        </form> */}
+        {queueOpen ? (
           <section id="unassigned-queue-list" className="border-b border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-sm font-semibold">Unassigned jobs</h2>

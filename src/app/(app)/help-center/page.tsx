@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.20",
+    date: "August 7, 2026",
+    title: "Simpler Calendar dispatch controls",
+    changes: [
+      "Calendar view buttons now use the shorter Vertical and Horizontal labels.",
+      "The staff-board assignment strip was removed; the calendar toolbar now includes daily projected revenue and an Unassigned jobs button.",
+    ],
+  },
+  {
     version: "v0.2.19",
     date: "August 7, 2026",
     title: "Visible Calendar views and right-aligned filters",

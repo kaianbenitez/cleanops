@@ -32,9 +32,13 @@ const STATUSES = [
 export default function FilterBar({
   employees,
   totalJobs,
+  unassignedJobs,
+  projectedRevenueCents,
 }: {
   employees: Employee[];
   totalJobs: number;
+  unassignedJobs: number;
+  projectedRevenueCents: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -65,7 +69,13 @@ export default function FilterBar({
   const recurrence = searchParams.get("recurrence") ?? "";
   const status = searchParams.get("status") ?? "";
   const assignment = searchParams.get("assignment") ?? "";
+  const queueOpen = searchParams.get("queue") === "unassigned";
   const hasFilters = employeeId || type || recurrence || status || assignment || searchParams.get("zip");
+  const projectedRevenue = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(projectedRevenueCents / 100);
 
   return (
     <section aria-busy={isPending} className="border-y border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-3 sm:px-4">
@@ -75,6 +85,10 @@ export default function FilterBar({
           className="rounded-full bg-[var(--co-accent-tint)] px-2.5 py-1.5 text-xs font-semibold text-[var(--co-evergreen)]"
         >
           {totalJobs} {totalJobs === 1 ? "job" : "jobs"}
+        </p>
+
+        <p className="rounded-full bg-[var(--co-surface-muted)] px-2.5 py-1.5 text-xs font-semibold text-[var(--co-ink)]">
+          Projected {projectedRevenue}
         </p>
 
         <select value={employeeId} onChange={(event) => setParam("employeeId", event.target.value)} aria-label="Filter by employee" className="co-input min-w-[150px] py-2 text-xs">
@@ -95,13 +109,17 @@ export default function FilterBar({
           More filters{hasFilters ? ` (${[employeeId, type, recurrence, status, assignment, searchParams.get("zip")].filter(Boolean).length})` : ""}
         </button>
 
+        {unassignedJobs ? <button type="button" onClick={() => setParam("queue", queueOpen ? "" : "unassigned")} aria-controls="unassigned-queue-list" aria-expanded={queueOpen} className={`co-button-secondary py-2 text-xs ${queueOpen ? "border-[var(--co-evergreen)] text-[var(--co-evergreen)]" : ""}`}>
+          {queueOpen ? "Hide unassigned jobs" : `Unassigned jobs (${unassignedJobs})`}
+        </button> : null}
+
         {hasFilters ? <button type="button" onClick={clearAll} className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">Clear filters</button> : null}
       </div>
 
       {isPending ? <p role="status" className="mt-2 text-xs text-[var(--co-muted)]">Updating calendar…</p> : null}
 
       {advancedOpen ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[var(--co-line-soft)] pt-3">
+        <div className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-[var(--co-line-soft)] pt-3">
           <select value={recurrence} onChange={(event) => setParam("recurrence", event.target.value)} aria-label="Filter by recurrence" className="co-input min-w-[145px] py-2 text-xs">
             <option value="">All recurrence</option>
             {RECURRENCES.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}

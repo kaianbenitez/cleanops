@@ -11,8 +11,8 @@ const VIEWS = [
   { value: "week", label: "Week" },
   { value: "month", label: "Month" },
   { value: "list", label: "Day" },
-  { value: "staff_vertical", label: "Employee vertical" },
-  { value: "staff", label: "Employee horizontal" },
+  { value: "staff_vertical", label: "Vertical" },
+  { value: "staff", label: "Horizontal" },
 ] as const;
 
 export default function DatePicker({ view, value, label }: { view: string; value: Date; label: string }) {
