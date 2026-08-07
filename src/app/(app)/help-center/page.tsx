@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.15",
+    date: "August 7, 2026",
+    title: "Start recurring service from a customer profile",
+    changes: [
+      "Customer profiles now include a Set up recurring service action that opens the schedule with the customer already selected.",
+    ],
+  },
+  {
     version: "v0.2.14",
     date: "August 7, 2026",
     title: "Calendar controls that fit every screen",

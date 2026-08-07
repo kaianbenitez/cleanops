@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import CustomerSearchPicker from "@/components/customer-search-picker";
 import type { NewSeriesOptions } from "@/lib/recurring/new-series-data";
 import CadenceSection from "./cadence-section";
@@ -18,7 +18,13 @@ import type { Submission } from "./types";
  */
 export default function NewSeriesForm({ customers, employees, services }: NewSeriesOptions) {
   const router = useRouter();
-  const [customerId, setCustomerId] = useState("");
+  const searchParams = useSearchParams();
+  const preselectedCustomerId = searchParams.get("customerId") ?? "";
+  const [customerId, setCustomerId] = useState(() =>
+    customers.some((customer) => customer.id === preselectedCustomerId)
+      ? preselectedCustomerId
+      : "",
+  );
   const [frequency, setFrequency] = useState<SeriesFrequency>("weekly");
   const [dayOfWeek, setDayOfWeek] = useState(1);
   const [startDate, setStartDate] = useState("");

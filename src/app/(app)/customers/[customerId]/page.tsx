@@ -3,7 +3,7 @@
 import { StatusPill } from "@/components/ui/status-pill";
 import Link from "next/link";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pencil, Plus } from "lucide-react";
+import { Pencil, Plus, Repeat2 } from "lucide-react";
 import AddressAutocomplete from "../address-autocomplete";
 import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { CustomerViewCards } from "./view-cards";
@@ -450,6 +450,11 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
           <Link href={`/jobs/new?customerId=${customer.id}`} className={customer.status === "lead" ? "co-button-secondary" : "co-button-primary"}>
             <Plus className="h-4 w-4" /> New job
           </Link>
+          {mode === "view" && !customer.isArchived && !activeRecurringSeries ? (
+            <Link href={`/recurring/new?customerId=${customer.id}`} className="co-button-secondary">
+              <Repeat2 className="h-4 w-4" /> Set up recurring service
+            </Link>
+          ) : null}
           {mode === "view" && activeRecurringSeries ? (
             <>
               <button className="co-button-secondary" onClick={() => endRecurringService(activeRecurringSeries.id, "suspend")} disabled={endingSeries}>
