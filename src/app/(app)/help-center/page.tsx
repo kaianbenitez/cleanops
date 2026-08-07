@@ -7,6 +7,17 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.13",
+    date: "August 7, 2026",
+    title: "Clearer product examples on the ServiceSpark page",
+    changes: [
+      "Feature screenshots are now much bigger and easier to read, and each feature has its own icon.",
+      "The crew app now uses the real device photo provided by the founder.",
+      "Customer-record and quote examples now show real customer and public proposal pages instead of internal lists.",
+      "The beta sign-up section now says what it needs to say once, without repeating itself.",
+    ],
+  },
+  {
     version: "v0.2.12",
     date: "August 7, 2026",
     title: "A clearer beta sign-up page",
