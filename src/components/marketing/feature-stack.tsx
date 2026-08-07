@@ -5,6 +5,20 @@ import { useEffect, useRef } from "react";
 
 type Feature = readonly [string, string, string, string];
 
+function FeatureIcon({ index }: { index: number }) {
+  const shared = { fill: "none", stroke: "currentColor", strokeWidth: 2.2, strokeLinejoin: "miter" as const, strokeLinecap: "square" as const };
+  const icons = [
+    <><path {...shared} d="M12 4 20 8 12 12 4 8 12 4Z M4 8v8l8 4 8-4V8 M12 12v8" /><path {...shared} d="m16 2 1.5 3.5L21 7l-3.5 1.5L16 12l-1.5-3.5L11 7l3.5-1.5L16 2Z" /></>,
+    <><path {...shared} d="M8 3h8l3 3v12l-3 3H8l-3-3V6l3-3Z" /><path {...shared} d="M9 12h6M12 9v6" /><path {...shared} d="m18 2 1 2.5L22 6l-3 1.5-1 2.5-1-2.5L14 6l3-1.5L18 2Z" /></>,
+    <><path {...shared} d="M12 3 20 8v8l-8 5-8-5V8l8-5Z" /><path {...shared} d="M8 15v-3.5C8 9.6 9.8 8 12 8s4 1.6 4 3.5V15" /><path {...shared} d="M6 19h12" /></>,
+    <><path {...shared} d="M7 3h10l3 3v15H7V3Z" /><path {...shared} d="M17 3v4h3M10 11h7M10 15h4" /><path {...shared} d="m5 8 1.5 3.5L10 13l-3.5 1.5L5 18l-1.5-3.5L0 13l3.5-1.5L5 8Z" /></>,
+    <><path {...shared} d="M5 5h14v14H5z" /><path {...shared} d="M8 9h8M8 13h3" /><path {...shared} d="m16 15 2 2 4-5" /></>,
+    <><path {...shared} d="M4 7 12 3l8 4v10l-8 4-8-4V7Z" /><path {...shared} d="M4 7l8 4 8-4M12 11v10" /><path {...shared} d="m18 2 1 2.5L22 6l-3 1.5-1 2.5-1-2.5L14 6l3-1.5L18 2Z" /></>,
+  ];
+
+  return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6 text-[var(--co-ink)]">{icons[index]}</svg>;
+}
+
 export function FeatureStack({ features }: { features: readonly Feature[] }) {
   const section = useRef<HTMLDivElement>(null);
 
@@ -18,12 +32,17 @@ export function FeatureStack({ features }: { features: readonly Feature[] }) {
     return () => observer.disconnect();
   }, []);
 
-  return <div ref={section} className="space-y-12 lg:space-y-16">
+  return <div ref={section} className="space-y-14 lg:space-y-20">
     {features.map(([title, description, screenshot, objectPosition], index) => {
-      const isCrewApp = screenshot === "/marketing/my-day-mobile.png";
-      return <article key={title} data-reveal className="marketing-reveal grid gap-7 border-t border-[var(--co-line-soft)] pt-10 first:border-t-0 first:pt-0 lg:grid-cols-2 lg:items-center lg:gap-14">
-        <div className={index % 2 === 1 ? "lg:order-2" : ""}><p className="font-mono text-sm font-semibold text-[var(--co-accent)]">0{index + 1}</p><h3 className="mt-3 text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">{title}</h3><p className="mt-3 max-w-xl leading-7 text-[var(--co-muted)]">{description}</p></div>
-        {isCrewApp ? <div className="flex justify-center bg-[var(--co-accent-soft)] px-5 py-7 sm:px-8 sm:py-8"><div className="relative w-[14rem] overflow-hidden rounded-[2.25rem] border-[5px] border-[var(--co-ink)] bg-[var(--co-ink)] shadow-[0_16px_28px_rgba(24,33,61,0.28)] sm:w-[15.5rem]"><div aria-hidden="true" className="absolute left-1/2 top-2 z-10 h-5 w-[5.625rem] -translate-x-1/2 rounded-full bg-[var(--co-ink)]" /><div className="h-[24.5rem] overflow-hidden sm:h-[27rem]"><Image src={screenshot} alt={`${title} in the ServiceSpark app`} width={400} height={1190} sizes="(min-width: 640px) 248px, 224px" className="block h-full w-full object-cover object-top" /></div></div></div> : <div className="relative aspect-[3/2] overflow-hidden border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]"><Image src={screenshot} alt={`${title} in the ServiceSpark app`} fill sizes="(min-width: 1024px) 552px, 100vw" className="object-cover" style={{ objectPosition }} /></div>}
+      const isCrewApp = screenshot === "/marketing/crew-app-mockup.png";
+      return <article key={title} data-reveal className="marketing-reveal border-t border-[var(--co-line-soft)] pt-9 first:border-t-0 first:pt-0 lg:pt-11">
+        <div className="flex max-w-3xl items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center bg-[linear-gradient(135deg,color-mix(in_srgb,var(--co-accent)_22%,white),color-mix(in_srgb,var(--co-spark-accent)_30%,white))]">
+            <FeatureIcon index={index} />
+          </div>
+          <div><div className="flex items-center gap-3"><p className="font-mono text-xs font-semibold text-[var(--co-accent)]">0{index + 1}</p><div className="h-px w-8 bg-[linear-gradient(90deg,var(--co-accent),var(--co-spark-accent))]" /></div><h3 className="mt-2 text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">{title}</h3><p className="mt-2 max-w-2xl leading-7 text-[var(--co-muted)]">{description}</p></div>
+        </div>
+        {isCrewApp ? <div className="mt-7 flex justify-center border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-6 py-8 sm:px-10 sm:py-10"><Image src={screenshot} alt={`${title} in the ServiceSpark app`} width={926} height={1698} sizes="(min-width: 640px) 352px, 80vw" className="h-auto w-full max-w-[22rem] object-contain" /></div> : <div className="relative mt-7 aspect-[3/2] overflow-hidden border border-[var(--co-line-soft)] bg-[var(--co-surface)]"><Image src={screenshot} alt={`${title} in the ServiceSpark app`} fill sizes="(min-width: 1024px) 1152px, 100vw" quality={90} className="object-cover" style={{ objectPosition }} /></div>}
       </article>;
     })}
   </div>;
