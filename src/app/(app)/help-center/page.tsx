@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.18",
+    date: "August 7, 2026",
+    title: "A full-width Calendar dispatch board",
+    changes: [
+      "The calendar view selector now sits at the far right of the date-navigation row.",
+      "Unassigned work no longer reserves a permanent right column; use the Unassigned jobs button to open it only when needed.",
+    ],
+  },
+  {
     version: "v0.2.17",
     date: "August 7, 2026",
     title: "A single-row Calendar toolbar",

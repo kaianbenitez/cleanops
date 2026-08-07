@@ -168,15 +168,6 @@ export default function StaffBoard({
       unassignedJobs.filter((job) => RETAINED_STATUSES.includes(job.status)),
     [unassignedJobs],
   );
-  const visibleActiveJobs = queueExpanded
-    ? activeUnassignedJobs
-    : activeUnassignedJobs.slice(0, 4);
-  const visibleRetainedJobs = queueExpanded
-    ? retainedUnassignedJobs
-    : retainedUnassignedJobs.slice(0, 2);
-  const hasMoreQueueJobs =
-    activeUnassignedJobs.length > visibleActiveJobs.length ||
-    retainedUnassignedJobs.length > visibleRetainedJobs.length;
   const timedJobs = jobs.filter((job) => job.scheduledStartTime);
   const unscheduledJobs = jobs.filter((job) => !job.scheduledStartTime);
   const ptoByEmployee = useMemo(() => {
@@ -576,7 +567,7 @@ export default function StaffBoard({
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+    <div className="space-y-4">
       <section className="min-w-0 overflow-hidden border border-[var(--co-line)] bg-[var(--co-surface)]">
         <form
           onSubmit={(event) => {
@@ -636,7 +627,33 @@ export default function StaffBoard({
           >
             Remove technician
           </button>
+          {unassignedJobs.length ? (
+            <button
+              data-testid="view-all-unassigned"
+              data-day={dayIso}
+              type="button"
+              onClick={() => setQueueExpanded((expanded) => !expanded)}
+              aria-controls="unassigned-queue-list"
+              aria-expanded={queueExpanded}
+              className={`co-button-secondary py-1.5 text-xs ${queueExpanded ? "border-[var(--co-evergreen)] text-[var(--co-evergreen)]" : ""}`}
+            >
+              {queueExpanded ? "Hide unassigned jobs" : `Unassigned jobs (${unassignedJobs.length})`}
+            </button>
+          ) : null}
         </form>
+        {queueExpanded ? (
+          <section id="unassigned-queue-list" className="border-b border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold">Unassigned jobs</h2>
+              <span className="text-xs font-medium text-[var(--co-muted)]">{dayLabel}</span>
+            </div>
+            {activeUnassignedJobs.length ? <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700">Needs assignment</p> : null}
+            <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              {activeUnassignedJobs.map((job) => queueCard(job))}
+            </div>
+            {retainedUnassignedJobs.length ? <><p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">On hold / cancelled</p><div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{retainedUnassignedJobs.map((job) => queueCard(job, true))}</div></> : null}
+          </section>
+        ) : null}
         {unscheduledJobs.length ? (
           <div className="border-b border-amber-200 bg-amber-50 px-4 py-3">
             <p className="text-xs font-semibold text-amber-900">
@@ -876,76 +893,6 @@ export default function StaffBoard({
           </div>
         </div>
       </section>
-      <aside className="space-y-4 lg:sticky lg:top-5 lg:self-start lg:pb-5">
-        <section className="border border-[var(--co-line)] bg-[var(--co-surface)] p-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold">Unassigned queue</h3>
-              <p className="mt-0.5 text-[11px] text-[var(--co-muted)]">
-                {dayLabel}
-              </p>
-            </div>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${activeUnassignedJobs.length ? "bg-rose-100 text-rose-700" : "bg-[var(--co-surface-muted)] text-[var(--co-muted)]"}`}
-            >
-              {activeUnassignedJobs.length} to assign
-            </span>
-          </div>
-          <div id="unassigned-queue-list" className="mt-3 space-y-2">
-            {activeUnassignedJobs.length ? (
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700">
-                Needs assignment
-              </p>
-            ) : null}
-            {visibleActiveJobs.map((job) => queueCard(job))}
-            {!activeUnassignedJobs.length ? (
-              <p className="rounded-lg bg-[var(--co-accent-tint)] px-3 py-3 text-center text-xs text-[var(--co-evergreen)]">
-                No jobs need assignment for this day.
-              </p>
-            ) : null}
-            {retainedUnassignedJobs.length ? (
-              <div className="pt-2">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">
-                    On hold / cancelled
-                  </p>
-                  <span className="text-[10px] text-[var(--co-muted)]">
-                    {retainedUnassignedJobs.length}
-                  </span>
-                </div>
-                <div className="mt-2 space-y-2">
-                  {visibleRetainedJobs.map((job) => queueCard(job, true))}
-                </div>
-              </div>
-            ) : null}
-            {unassignedJobs.length === 0 ? (
-              <p className="py-2 text-center text-xs text-[var(--co-muted)]">
-                No unassigned jobs for this day.
-              </p>
-            ) : null}
-          </div>
-          {unassignedJobs.length > 0 ? (
-            <button
-              data-testid="view-all-unassigned"
-              data-day={dayIso}
-              type="button"
-              onClick={() => setQueueExpanded((expanded) => !expanded)}
-              aria-controls="unassigned-queue-list"
-              aria-expanded={queueExpanded}
-              className="mt-3 block w-full border-t border-[var(--co-line-soft)] pt-3 text-center text-xs font-semibold text-[var(--co-evergreen)] hover:underline"
-            >
-              {queueExpanded
-                ? "Show less"
-                : `Show all unassigned jobs (${unassignedJobs.length})`}
-            </button>
-          ) : null}
-          {unassignedJobs.length > 0 && !queueExpanded && hasMoreQueueJobs ? (
-            <p className="mt-2 text-center text-[10px] text-[var(--co-muted)]">
-              Open a job to review its details or assign cleaners.
-            </p>
-          ) : null}
-        </section>
-      </aside>
       <UndoToast toast={toast} onDismiss={dismiss} />
       <UnassignedPanel
         jobId={openJobId}

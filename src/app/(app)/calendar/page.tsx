@@ -43,7 +43,7 @@ import StaffVerticalBoard from "./staff-vertical-board";
 import WeekBoard from "./week-board";
 import MonthBoard from "./month-board";
 import TodayListBoard from "./today-list-board";
-import DatePicker from "./date-picker";
+import DatePicker, { CalendarViewSelector } from "./date-picker";
 import CalendarStateSync from "./state-sync";
 import WeekendOrphanBanner from "./weekend-orphan-banner";
 import { employeeColorAt } from "./shared";
@@ -667,8 +667,9 @@ export default async function CalendarPage({
     <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
       <CalendarStateSync view={view} anchor={stateAnchor} />
       <header className="overflow-x-auto border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-3 lg:px-6">
-        <div className="flex min-w-max items-center gap-2">
-          <DatePicker view={view} value={currentDate} label={dateLabel} />
+        <div className="flex w-full min-w-max items-center justify-between gap-5">
+          <div className="flex items-center gap-2">
+            <DatePicker view={view} value={currentDate} label={dateLabel} />
           <Link
             href={`/calendar${prev}`}
             className="co-button-secondary"
@@ -686,6 +687,8 @@ export default async function CalendarPage({
           >
             Next
           </Link>
+          </div>
+          <CalendarViewSelector view={view} value={currentDate} />
         </div>
       </header>
 
