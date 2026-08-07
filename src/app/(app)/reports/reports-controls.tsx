@@ -126,7 +126,7 @@ export function ReportsFilters({
           <div
             role="dialog"
             aria-label="Custom date range"
-            className="co-card absolute right-0 top-full z-50 mt-2 w-72 p-3"
+            className="co-date-popover co-date-popover-responsive absolute right-0 top-full z-50 mt-2 w-72 max-w-[calc(100vw-2rem)] p-3"
           >
             <label className="grid gap-1 text-sm text-[var(--co-muted)]">
               From

@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.14",
+    date: "August 7, 2026",
+    title: "Calendar controls that fit every screen",
+    changes: [
+      "The Calendar date picker now stays fully visible on smaller screens.",
+      "Calendar, dashboard, report, and form date controls now share clearer calendar styling and more comfortable touch targets.",
+    ],
+  },
+  {
     version: "v0.2.13",
     date: "August 7, 2026",
     title: "Clearer product examples on the ServiceSpark page",

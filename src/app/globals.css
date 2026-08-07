@@ -211,6 +211,50 @@ body {
 }
 .co-button-secondary:hover { border-color: var(--co-faint); background: var(--co-surface-muted); }
 
+/* Shared date controls: compact on desktop, comfortably tappable on phones. */
+.co-date-popover {
+  border: 1px solid var(--co-line);
+  border-radius: var(--co-radius-card);
+  background: var(--co-surface);
+  box-shadow: 0 4px 8px rgba(24, 33, 61, 0.12);
+}
+
+.co-date-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--co-radius-control);
+  color: var(--co-muted);
+}
+.co-date-nav:hover { background: var(--co-surface-muted); color: var(--co-ink); }
+
+.co-date-day {
+  min-height: 2rem;
+  border-radius: var(--co-radius-control);
+  color: var(--co-ink);
+  font-size: 0.75rem;
+}
+.co-date-day:hover { background: var(--co-accent-tint); }
+.co-date-day-selected { background: var(--co-evergreen); color: white; font-weight: 700; }
+.co-date-day-selected:hover { background: var(--co-evergreen-soft); }
+
+input[type="date"], input[type="datetime-local"] {
+  color-scheme: light;
+}
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.72;
+}
+input[type="date"]:focus::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]:focus::-webkit-calendar-picker-indicator { opacity: 1; }
+
+@media (max-width: 40rem) {
+  .co-date-popover-responsive { left: 0; right: auto; }
+}
+
 button, a, input, select, textarea { transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
 button:active { transform: translateY(1px); }
 

@@ -132,7 +132,7 @@ export default function DateRangeControls({
           <div
             role="dialog"
             aria-label="Custom date range"
-            className="co-card absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] p-3"
+            className="co-date-popover co-date-popover-responsive absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] p-3"
           >
             <div className="grid gap-3">
               <label className="grid gap-1 text-xs font-medium text-[var(--co-muted)]">
