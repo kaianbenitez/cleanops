@@ -19,6 +19,8 @@ import {
   Settings,
   HelpCircle,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   CircleUserRound,
   ChevronDown,
   LogOut,
@@ -83,7 +85,13 @@ export default function AppNav({
   const visibleLinks = isAdmin ? links : [["/my-day", "My day"], ["/schedule", "Schedule"] as const];
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  function setDesktopNavCollapsed(collapsed: boolean) {
+    document.documentElement.style.setProperty("--app-nav-width", collapsed ? "76px" : "260px");
+    setNavCollapsed(collapsed);
+  }
 
   useEffect(() => {
     if (!profileMenuOpen) return;
@@ -256,18 +264,46 @@ export default function AppNav({
         </div>
       </div>
 
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[260px] flex-col border-r border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-4 py-5 text-[var(--co-ink)] xl:flex">
-        <Link href={isAdmin ? "/dashboard" : "/my-day"} className="mb-8 flex items-center gap-3 rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-3">
+      <aside className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] py-5 text-[var(--co-ink)] transition-[width,padding] duration-200 xl:flex ${
+        navCollapsed ? "w-[76px] px-3" : "w-[260px] px-4"
+      }`}>
+        <div className={`mb-8 flex items-center ${navCollapsed ? "justify-center" : "gap-2"}`}>
+          <Link
+            href={isAdmin ? "/dashboard" : "/my-day"}
+            aria-label="ServiceSpark home"
+            title={navCollapsed ? "ServiceSpark home" : undefined}
+            className={`flex items-center rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] ${navCollapsed ? "h-12 w-12 justify-center" : "flex-1 gap-3 px-3 py-3"}`}
+          >
           <span className="flex h-10 w-10 items-center justify-center"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="h-10 w-10"><path d="M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z" fill="var(--spark-mark)"/><path d="M32 12 L36 27 L51 32 L36 37 L32 52 L28 37 L13 32 L28 27 Z" fill="var(--spark-mark-facet)"/><path d="M49 8 L51.4 14.6 L58 17 L51.4 19.4 L49 26 L46.6 19.4 L40 17 L46.6 14.6 Z" fill="var(--spark-mark)"/></svg></span>
-          <span>
+          {navCollapsed ? null : <span>
             <span className="block text-[15px] font-semibold tracking-tight">ServiceSpark</span>
             <span className="block text-[11px] text-[var(--co-faint)]">operations desk</span>
-          </span>
-        </Link>
+          </span>}
+          </Link>
+          {navCollapsed ? null : <button
+            type="button"
+            onClick={() => setDesktopNavCollapsed(true)}
+            aria-label="Minimize navigation"
+            title="Minimize navigation"
+            className="rounded-full p-2 text-[var(--co-muted)] transition hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
+          >
+            <PanelLeftClose aria-hidden="true" className="h-5 w-5" />
+          </button>}
+        </div>
+
+        {navCollapsed ? <button
+          type="button"
+          onClick={() => setDesktopNavCollapsed(false)}
+          aria-label="Expand navigation"
+          title="Expand navigation"
+          className="mb-4 self-center rounded-full p-2 text-[var(--co-muted)] transition hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
+        >
+          <PanelLeftOpen aria-hidden="true" className="h-5 w-5" />
+        </button> : null}
 
         <nav className="min-h-0 flex-1 space-y-6 overflow-y-auto">
           <div>
-            <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--co-faint)]">Workspace</p>
+            {navCollapsed ? null : <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--co-faint)]">Workspace</p>}
             <div className="space-y-1">
               {visibleLinks.map(([href, label]) => {
                 const active = isActive(pathname, href);
@@ -276,17 +312,19 @@ export default function AppNav({
                     key={href}
                     href={href}
                     aria-current={active ? "page" : undefined}
-                    className={`group relative flex items-center gap-3 rounded-[14px] px-3 py-[0.6875rem] text-[13px] transition ${
+                    aria-label={navCollapsed ? label : undefined}
+                    title={navCollapsed ? label : undefined}
+                    className={`group relative flex items-center rounded-[14px] py-[0.6875rem] text-[13px] transition ${navCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${
                       active
                         ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)] font-medium"
                         : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
                     }`}
                   >
                     {active ? <span className="absolute inset-y-2 left-1 w-1 rounded-full bg-[var(--co-evergreen)]" /> : null}
-                    <span className="ml-1">
+                    <span className={navCollapsed ? "" : "ml-1"}>
                       <NavIcon href={href} />
                     </span>
-                    <span>{label}</span>
+                    {navCollapsed ? null : <span>{label}</span>}
                   </Link>
                 );
               })}
@@ -299,56 +337,62 @@ export default function AppNav({
                 <Link
                   href="/sync-issues"
                   aria-current={pathname.startsWith("/sync-issues") ? "page" : undefined}
-                  className={`flex items-center gap-3 rounded-[14px] px-3 py-[0.6875rem] text-[13px] transition ${
+                  aria-label={navCollapsed ? "Sync issues" : undefined}
+                  title={navCollapsed ? "Sync issues" : undefined}
+                  className={`flex items-center rounded-[14px] py-[0.6875rem] text-[13px] transition ${navCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${
                     pathname.startsWith("/sync-issues")
                       ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)] font-medium"
                       : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
                   }`}
                 >
-                  <span className="ml-1">
+                  <span className={navCollapsed ? "" : "ml-1"}>
                     <NavIcon href="/sync-issues" />
                   </span>
-                  <span>Sync issues</span>
+                  {navCollapsed ? null : <span>Sync issues</span>}
                 </Link>
                 <Link
                   href="/settings"
                   aria-current={pathname.startsWith("/settings") ? "page" : undefined}
-                  className={`flex items-center gap-3 rounded-[14px] px-3 py-[0.6875rem] text-[13px] transition ${
+                  aria-label={navCollapsed ? "Settings" : undefined}
+                  title={navCollapsed ? "Settings" : undefined}
+                  className={`flex items-center rounded-[14px] py-[0.6875rem] text-[13px] transition ${navCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${
                     pathname.startsWith("/settings")
                       ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)] font-medium"
                       : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
                   }`}
                 >
-                  <span className="ml-1">
+                  <span className={navCollapsed ? "" : "ml-1"}>
                     <NavIcon href="/settings" />
                   </span>
-                  <span>Settings</span>
+                  {navCollapsed ? null : <span>Settings</span>}
                 </Link>
               </>
             ) : null}
             <Link
               href="/help-center"
               aria-current={pathname.startsWith("/help-center") ? "page" : undefined}
-              className={`flex items-center gap-3 rounded-[14px] px-3 py-[0.6875rem] text-[13px] transition ${
+              aria-label={navCollapsed ? "Support" : undefined}
+              title={navCollapsed ? "Support" : undefined}
+              className={`flex items-center rounded-[14px] py-[0.6875rem] text-[13px] transition ${navCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${
                 pathname.startsWith("/help-center")
                   ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)] font-medium"
                   : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
               }`}
             >
-              <span className="ml-1">
+              <span className={navCollapsed ? "" : "ml-1"}>
                 <NavIcon href="/help-center" />
               </span>
-              <span>Support</span>
+              {navCollapsed ? null : <span>Support</span>}
             </Link>
           </div>
         </nav>
 
         <div className="mt-auto space-y-3">
-          <div ref={profileMenuRef} className="relative">
+          <div ref={profileMenuRef} className={`relative ${navCollapsed ? "flex justify-center" : ""}`}>
             {profileMenuOpen ? (
               <div
                 role="menu"
-                className="absolute inset-x-0 bottom-full mb-2 overflow-hidden rounded-[18px] border border-[var(--co-line-soft)] bg-white py-1 shadow-[0_10px_32px_rgba(18,24,19,0.12)]"
+                className={`absolute bottom-full mb-2 overflow-hidden rounded-[18px] border border-[var(--co-line-soft)] bg-white py-1 shadow-[0_10px_32px_rgba(18,24,19,0.12)] ${navCollapsed ? "left-0 w-[180px]" : "inset-x-0"}`}
               >
                 <form action="/api/auth/logout" method="post">
                   <button
@@ -368,16 +412,18 @@ export default function AppNav({
               onClick={() => setProfileMenuOpen((current) => !current)}
               aria-haspopup="menu"
               aria-expanded={profileMenuOpen}
-              className="flex w-full items-center gap-3 rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-2.5 text-left transition hover:border-[var(--co-line)]"
+              aria-label={navCollapsed ? "Account menu" : undefined}
+              title={navCollapsed ? "Account menu" : undefined}
+              className={`flex items-center rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] py-2.5 text-left transition hover:border-[var(--co-line)] ${navCollapsed ? "w-12 justify-center px-0" : "w-full gap-3 px-3"}`}
             >
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--co-accent-tint)] text-sm font-bold text-[var(--co-evergreen)]">
                 {userName.slice(0, 1).toUpperCase()}
               </span>
-              <span className="min-w-0 flex-1">
+              {navCollapsed ? null : <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13px] font-semibold text-[var(--co-ink)]">{userName}</span>
                 <span className="block truncate text-[11px] text-[var(--co-faint)]">{userEmail}</span>
-              </span>
-              <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--co-faint)] transition-transform ${profileMenuOpen ? "rotate-180" : ""}`} aria-hidden />
+              </span>}
+              {navCollapsed ? null : <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--co-faint)] transition-transform ${profileMenuOpen ? "rotate-180" : ""}`} aria-hidden />}
             </button>
           </div>
         </div>

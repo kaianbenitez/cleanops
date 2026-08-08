@@ -35,7 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         ) : (
           <>
             <AppNav isAdmin={isAdmin} userName={`${user.firstName} ${user.lastName}`} userEmail={emailToUsername(user.email)} initialNotifications={initialNotifications} />
-            <div className="xl:pl-[260px]">
+            <div className="transition-[padding] duration-200 xl:pl-[var(--app-nav-width)]">
               <header className="sticky top-0 z-20 hidden border-b border-[var(--co-line-soft)] bg-[var(--co-surface)]/90 backdrop-blur-xl xl:block">
                 <div className="flex h-[64px] items-center justify-end px-4 sm:px-6 lg:px-8">
                   <div className="flex items-center justify-end gap-3">

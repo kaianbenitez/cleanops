@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.23",
+    date: "August 8, 2026",
+    title: "A collapsible desktop navigation",
+    changes: [
+      "Minimize the desktop navigation to an icon-only rail when you need more working space, then expand it again from the sidebar.",
+    ],
+  },
+  {
     version: "v0.2.22",
     date: "August 8, 2026",
     title: "Internally approved quotes now close the loop",

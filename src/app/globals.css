@@ -5,6 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --app-nav-width: 260px;
   /* ServiceSpark: cobalt navigation, bright semantic scheduling cues, calm surfaces. */
   --co-bg: #f6f8ff;
   --co-surface: #ffffff;
