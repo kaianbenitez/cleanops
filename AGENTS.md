@@ -6,6 +6,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## CleanOps working rules
 
+## Context loading
+
+- Start with `AI-CONTEXT.md` and `AI-NOW.md`. They are the compact source for durable context and current state.
+- Read `HANDOFF.md`, `DECISIONS.md`, `PLAN.md`, or `TESTING.md` only when the task calls for the detail they contain. `TESTING.md` remains mandatory before any browser/smoke check.
+
 - Run `npm run verify` before presenting a change as ready.
 - Run `npm run smoke:routes` when a local production server is available.
 - **Read `TESTING.md` before running any browser/smoke check.** It covers the port-collision
