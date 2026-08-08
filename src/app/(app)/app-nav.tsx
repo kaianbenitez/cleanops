@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard,
   LineChart,
+  Star,
   CalendarDays,
   ClipboardList,
   Users,
@@ -33,6 +34,7 @@ import CreateMenu from "./create-menu";
 const links = [
   ["/dashboard", "Dashboard"],
   ["/reports", "Reports"],
+  ["/quality", "Quality"],
   ["/calendar", "Calendar"],
   ["/jobs", "Jobs"],
   ["/customers", "Customers"],
@@ -45,6 +47,7 @@ const links = [
 const iconByHref: Record<string, LucideIcon> = {
   "/dashboard": LayoutDashboard,
   "/reports": LineChart,
+  "/quality": Star,
   "/calendar": CalendarDays,
   "/jobs": ClipboardList,
   "/customers": Users,
