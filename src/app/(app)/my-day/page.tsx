@@ -1,15 +1,17 @@
 import { and, desc, eq, gt, gte, isNull, isNotNull, lt } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { companies, customerLocations, customers, jobs, jobAssignments, roomTypes, timeEntries } from "@/db/schema";
+import { companies, customerLocations, customers, jobs, jobAssignments, recurringSeries, roomTypes, timeEntries } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { payrollWeekRangeForDate } from "@/lib/payroll/periods";
 import MyDayClient from "./my-day-client";
+import { rotationalTaskForDate } from "@/lib/scheduling/rotational-tasks";
 
 type JobCard = {
   jobId: string;
   customerId: string;
-  role: "lead" | "helper";
+  role: "lead" | "helper" | "trainer";
+  mileageMiles: string;
   status: string;
   scheduledDate: string;
   scheduledStartTime: string | null;
@@ -125,10 +127,12 @@ export default async function MyDayPage() {
   const todayJobs = await db
     .select({
       role: jobAssignments.role,
+      mileageMiles: jobAssignments.mileageMiles,
       jobId: jobs.id,
       customerId: customers.id,
       status: jobs.status,
       scheduledDate: jobs.scheduledDate,
+      recurrenceStartDate: recurringSeries.startDate,
       scheduledStartTime: jobs.scheduledStartTime,
       type: jobs.type,
       estimatedDurationMinutes: jobs.estimatedDurationMinutes,
@@ -159,21 +163,24 @@ export default async function MyDayPage() {
     .from(jobAssignments)
     .innerJoin(jobs, eq(jobAssignments.jobId, jobs.id))
     .innerJoin(customers, eq(jobs.customerId, customers.id))
+    .leftJoin(recurringSeries, eq(jobs.recurringSeriesId, recurringSeries.id))
     .leftJoin(customerLocations, and(eq(customerLocations.customerId, customers.id), eq(customerLocations.isPrimary, true), eq(customerLocations.isActive, true)))
     .where(and(eq(jobAssignments.userId, user.id), eq(jobs.companyId, user.companyId), eq(jobs.scheduledDate, todayIso), isNull(jobs.completedAt)))
     .orderBy(jobs.scheduledStartTime);
 
   const companyRoomTypes = await db.select({ id: roomTypes.id, name: roomTypes.name }).from(roomTypes).where(eq(roomTypes.companyId, user.companyId));
   const roomTypeNameById = new Map(companyRoomTypes.map((roomType) => [roomType.id, roomType.name]));
-  const todayJobsWithEquipment = todayJobs.map((job) => ({ ...job, ...equipmentForStop(job, roomTypeNameById) }));
+  const todayJobsWithEquipment = todayJobs.map((job) => ({ ...job, ...equipmentForStop(job, roomTypeNameById), rotationalTaskReminder: rotationalTaskForDate(job.recurrenceStartDate, job.scheduledDate) }));
 
   const upcomingJobs = await db
     .select({
       role: jobAssignments.role,
+      mileageMiles: jobAssignments.mileageMiles,
       jobId: jobs.id,
       customerId: customers.id,
       status: jobs.status,
       scheduledDate: jobs.scheduledDate,
+      recurrenceStartDate: recurringSeries.startDate,
       scheduledStartTime: jobs.scheduledStartTime,
       type: jobs.type,
       estimatedDurationMinutes: jobs.estimatedDurationMinutes,
@@ -200,6 +207,7 @@ export default async function MyDayPage() {
     .from(jobAssignments)
     .innerJoin(jobs, eq(jobAssignments.jobId, jobs.id))
     .innerJoin(customers, eq(jobs.customerId, customers.id))
+    .leftJoin(recurringSeries, eq(jobs.recurringSeriesId, recurringSeries.id))
     .leftJoin(customerLocations, and(eq(customerLocations.customerId, customers.id), eq(customerLocations.isPrimary, true), eq(customerLocations.isActive, true)))
     .where(and(eq(jobAssignments.userId, user.id), eq(jobs.companyId, user.companyId), gt(jobs.scheduledDate, todayIso)))
     .orderBy(jobs.scheduledDate, jobs.scheduledStartTime)
@@ -208,10 +216,12 @@ export default async function MyDayPage() {
   const completedJobs = await db
     .select({
       role: jobAssignments.role,
+      mileageMiles: jobAssignments.mileageMiles,
       jobId: jobs.id,
       customerId: customers.id,
       status: jobs.status,
       scheduledDate: jobs.scheduledDate,
+      recurrenceStartDate: recurringSeries.startDate,
       scheduledStartTime: jobs.scheduledStartTime,
       type: jobs.type,
       estimatedDurationMinutes: jobs.estimatedDurationMinutes,
@@ -238,16 +248,20 @@ export default async function MyDayPage() {
     .from(jobAssignments)
     .innerJoin(jobs, eq(jobAssignments.jobId, jobs.id))
     .innerJoin(customers, eq(jobs.customerId, customers.id))
+    .leftJoin(recurringSeries, eq(jobs.recurringSeriesId, recurringSeries.id))
     .leftJoin(customerLocations, and(eq(customerLocations.customerId, customers.id), eq(customerLocations.isPrimary, true), eq(customerLocations.isActive, true)))
     .where(and(eq(jobAssignments.userId, user.id), eq(jobs.companyId, user.companyId), eq(jobs.scheduledDate, todayIso), isNotNull(jobs.completedAt)))
     .orderBy(desc(jobs.completedAt))
     .limit(10);
 
-  const currentJob = todayJobsWithEquipment[0] ?? upcomingJobs[0] ?? null;
+  const upcomingJobsWithRotation = upcomingJobs.map((job) => ({ ...job, rotationalTaskReminder: rotationalTaskForDate(job.recurrenceStartDate, job.scheduledDate) }));
+  const completedJobsWithRotation = completedJobs.map((job) => ({ ...job, rotationalTaskReminder: rotationalTaskForDate(job.recurrenceStartDate, job.scheduledDate) }));
+  const currentJob = todayJobsWithEquipment[0] ?? upcomingJobsWithRotation[0] ?? null;
 
   const openEntry = await db
     .select({
       role: jobAssignments.role,
+      mileageMiles: jobAssignments.mileageMiles,
       id: timeEntries.id,
       jobId: timeEntries.jobId,
       clockIn: timeEntries.clockIn,
@@ -356,6 +370,7 @@ export default async function MyDayPage() {
         jobId: openEntry.jobId,
         customerId: openEntry.customerId,
         role: openEntry.role,
+        mileageMiles: openEntry.mileageMiles,
         status: openEntry.status,
         scheduledDate: openEntry.scheduledDate,
         scheduledStartTime: openEntry.scheduledStartTime,
@@ -386,6 +401,7 @@ export default async function MyDayPage() {
           jobId: currentJob.jobId,
           customerId: currentJob.customerId,
           role: currentJob.role,
+          mileageMiles: currentJob.mileageMiles,
           status: currentJob.status,
           scheduledDate: currentJob.scheduledDate,
           scheduledStartTime: currentJob.scheduledStartTime,
@@ -425,8 +441,8 @@ export default async function MyDayPage() {
       currentJob={currentJobData}
       openEntry={openEntry ? { ...openEntry, clockIn: openEntry.clockIn.toISOString(), clockOut: openEntry.clockOut ? openEntry.clockOut.toISOString() : null } : null}
       todayJobs={todayJobsWithEquipment}
-      upcomingJobs={upcomingJobs.map((job) => ({ ...job }))}
-      completedJobs={completedJobs.map((job) => ({ ...job }))}
+      upcomingJobs={upcomingJobsWithRotation.map((job) => ({ ...job }))}
+      completedJobs={completedJobsWithRotation.map((job) => ({ ...job }))}
       currentYear={new Date().getFullYear()}
       dayLabel={formatDayLabel(todayIso, company.timezone)}
     />

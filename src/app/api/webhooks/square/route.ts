@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { webhookEvents, invoices } from "@/db/schema";
+import { webhookEvents, invoices, feedbackRequests } from "@/db/schema";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { verifySquareSignature } from "@/lib/square/client";
 import { getSquareWebhookKeys } from "@/lib/settings/integrations";
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
 
 type SquareInvoiceEvent = {
   type?: string;
-  data?: { object?: { invoice?: { id?: string; status?: string } } };
+  data?: { object?: { invoice?: { id?: string; status?: string; payment_requests?: Array<{ tip_money?: { amount?: number | string } }> }; payment?: { tip_money?: { amount?: number | string } } } };
 };
 
 async function processPaymentEvent(payload: unknown): Promise<void> {
@@ -80,12 +80,18 @@ async function processPaymentEvent(payload: unknown): Promise<void> {
   if (status !== "PAID") return; // only act on the actually-paid transition
 
   const [invoice] = await db
-    .select({ id: invoices.id })
+    .select({ id: invoices.id, jobId: invoices.jobId })
     .from(invoices)
     .where(eq(invoices.squareInvoiceId, squareInvoiceId))
     .limit(1);
 
   if (!invoice) throw new Error(`No invoice found for Square invoice ${squareInvoiceId}`);
 
-  await db.update(invoices).set({ status: "paid", paidAt: new Date() }).where(eq(invoices.id, invoice.id));
+  const invoiceObject = p.data?.object?.invoice;
+  const paymentObject = p.data?.object?.payment;
+  const tipCents = Number(paymentObject?.tip_money?.amount ?? invoiceObject?.payment_requests?.reduce((sum, request) => sum + Number(request.tip_money?.amount ?? 0), 0) ?? 0);
+  await db.update(invoices).set({ status: "paid", paidAt: new Date(), ...(tipCents > 0 ? { tipCents } : {}) }).where(eq(invoices.id, invoice.id));
+  if (invoice.jobId && tipCents > 0) {
+    await db.update(feedbackRequests).set({ tipCents }).where(eq(feedbackRequests.jobId, invoice.jobId));
+  }
 }

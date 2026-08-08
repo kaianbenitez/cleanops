@@ -11,7 +11,7 @@ import { cleanNoteText } from "@/lib/format";
 const START = 9 * 60;
 const TOTAL = 9 * 60;
 
-export default function StaffVerticalBoard({ employees, jobs: initialJobs }: { employees: CalendarEmployee[]; jobs: CalendarJob[] }) {
+export default function StaffVerticalBoard({ employees, jobs: initialJobs, queueOpen, unassignedJobs }: { employees: CalendarEmployee[]; jobs: CalendarJob[]; queueOpen: boolean; unassignedJobs: CalendarJob[] }) {
   const [detailJobId, setDetailJobId] = useState<string | null>(null);
   const active = employees.filter((employee) => employee.isActive);
   const jobs = initialJobs.map((job) => ({
@@ -20,10 +20,8 @@ export default function StaffVerticalBoard({ employees, jobs: initialJobs }: { e
     gateCodeOrKeyNotes: cleanNoteText(job.gateCodeOrKeyNotes),
     petNotes: cleanNoteText(job.petNotes),
   }));
-  const unassignedJobs = jobs.filter((job) => !job.assignedUserIds.length);
-
   return <>
-    {unassignedJobs.length ? (
+    {queueOpen && unassignedJobs.length ? (
       <section className="mb-3 border border-amber-200 bg-amber-50 px-4 py-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-amber-950">Unassigned jobs</h2>

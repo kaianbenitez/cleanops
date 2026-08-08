@@ -8,26 +8,45 @@ import {
   timeEntries,
   customers,
   companies,
+  feedbackRequests,
+  invoices,
+  payrollJobReviews,
 } from "@/db/schema";
-import { and, eq, gte, lte, isNotNull, or, sql } from "drizzle-orm";
+import { and, eq, gte, lte, isNotNull, or, sql, inArray, asc } from "drizzle-orm";
 import { refreshJobTicketHours } from "./job-ticket-hours";
 import { DEFAULT_PAY_TIER_BRACKETS, type PayTierBracket } from "./brackets";
-import { isFieldEligible } from "@/lib/auth/field-staff";
+import { isPayrollEligible } from "@/lib/auth/field-staff";
 
 type CalculationLine = {
   jobId: string;
   date: string;
   customerName: string;
   cleaningType: string;
-  crewRole?: "lead" | "helper";
+  crewRole?: "lead" | "helper" | "trainer";
   budgetHours: number;
   hoursSpent: number;
+  paidHours: number;
+  varianceStatus?: "pending" | "approved" | "rejected";
+  clientTipCents: number;
+  bonusCents: number;
   rateCents: number;
   amountCents: number;
   averageCentsPerHour: number;
 };
 
 export type PayTier = { minHours: number; maxHours: number | null; rateCents: number };
+
+export function splitTipCents(totalCents: number, index: number, participantCount: number) {
+  if (participantCount <= 0 || index < 0 || index >= participantCount) return 0;
+  return Math.floor(totalCents / participantCount) + (index < totalCents % participantCount ? 1 : 0);
+}
+
+export function paidMinutesForJob(jthMinutes: number, loggedMinutes: number, crewCount: number, review?: { status: "pending" | "approved" | "rejected"; approvedMinutes: number | null }) {
+  if (crewCount >= 2 && loggedMinutes > jthMinutes && review?.status === "approved") return { paidMinutes: review.approvedMinutes ?? loggedMinutes, varianceStatus: "approved" as const };
+  if (crewCount >= 2 && loggedMinutes > jthMinutes && review?.status === "rejected") return { paidMinutes: jthMinutes, varianceStatus: "rejected" as const };
+  if (crewCount >= 2 && loggedMinutes > jthMinutes) return { paidMinutes: jthMinutes, varianceStatus: "pending" as const };
+  return { paidMinutes: jthMinutes, varianceStatus: undefined };
+}
 
 // The bracket shape and defaults live in ./brackets so the Settings client
 // component can import them without pulling in the database.
@@ -81,10 +100,11 @@ export function resolveTierRateCents(
 /**
  * (Re)computes the automatic portion of every employee's payroll line for a
  * period: commission (Job Ticket Hours x rate, for commission_jth employees)
- * and office hours/pay (actual clocked time x rate, for office_hourly
- * employees). Manual fields (mileage, tips, bonus, training, advance,
- * adjustment) are left untouched on existing lines — this is safe to re-run
- * any time before the period is marked reviewed/exported.
+ * and office hours/pay ((clocked + manual office hours) x rate, for
+ * office_hourly employees). Manual fields (including manual office hours,
+ * mileage, tips, bonus, training, advance, adjustment) are left untouched on
+ * existing lines — this is safe to re-run any time before the period is
+ * marked reviewed/exported.
  */
 export async function generatePayrollForPeriod(periodId: string): Promise<{
   linesUpdated: number;
@@ -111,9 +131,9 @@ export async function generatePayrollForPeriod(periodId: string): Promise<{
     );
   }
 
-  // Commission employees are paid Job Ticket Hours, not clocked time. Refresh
-  // the completed jobs first so payroll and the jobs screen share the same
-  // amount-due-based estimate. Cancelled/no-show work is excluded at source.
+  // Commission employees are paid saved Job Ticket Hours, not ZIP/quote
+  // derived estimates. Missing duration is a data-quality error, not a reason
+  // to guess at payroll.
   await refreshJobTicketHours({
     companyId: period.companyId,
     startDate: period.startDate,
@@ -134,7 +154,7 @@ export async function generatePayrollForPeriod(periodId: string): Promise<{
   const activeEmployees = await db
     .select()
     .from(users)
-    .where(and(eq(users.companyId, period.companyId), isFieldEligible, eq(users.isActive, true)));
+    .where(and(eq(users.companyId, period.companyId), isPayrollEligible, eq(users.isActive, true)));
 
   let linesUpdated = 0;
 
@@ -159,6 +179,10 @@ async function upsertAutomaticFields(
     officeHours: string;
     officePayCents: number;
     calculation: unknown;
+    clientTipsCents?: number;
+    trainerBonusCents?: number;
+    teamLeadBonusCents?: number;
+    mileageMiles?: string;
   },
   mileageRateCents: number
 ): Promise<void> {
@@ -236,20 +260,72 @@ async function generateCommissionLine(
     minutesByJob.set(row.jobId, (minutesByJob.get(row.jobId) ?? 0) + (row.minutesWorked ?? 0));
   }
 
-  // Tier rate depends on TOTAL weekly hours, so compute that total first,
-  // then apply the single resulting rate to every job that week — confirmed
-  // against a real example: one flat rate was used across all of that
-  // employee's jobs, not a graduated/marginal rate per bracket.
   const uniqueRows = [...new Map(rows.map((row) => [row.jobId, row])).values()];
-  const totalMinutes = uniqueRows.reduce((sum, r) => sum + (r.estimatedDurationMinutes ?? 0), 0);
+  const jobIds = uniqueRows.map((row) => row.jobId);
+  const assignments = jobIds.length
+    ? await db.select({ jobId: jobAssignments.jobId, userId: jobAssignments.userId, role: jobAssignments.role, mileageMiles: jobAssignments.mileageMiles })
+        .from(jobAssignments).where(inArray(jobAssignments.jobId, jobIds)).orderBy(asc(jobAssignments.userId))
+    : [];
+  const assignmentsByJob = new Map<string, typeof assignments>();
+  for (const assignment of assignments) {
+    const current = assignmentsByJob.get(assignment.jobId) ?? [];
+    current.push(assignment);
+    assignmentsByJob.set(assignment.jobId, current);
+  }
+
+  const [feedbackTips, invoiceTips] = await Promise.all([
+    jobIds.length ? db.select({ jobId: feedbackRequests.jobId, tipCents: feedbackRequests.tipCents }).from(feedbackRequests).where(inArray(feedbackRequests.jobId, jobIds)) : Promise.resolve([]),
+    jobIds.length ? db.select({ jobId: invoices.jobId, tipCents: invoices.tipCents }).from(invoices).where(inArray(invoices.jobId, jobIds)) : Promise.resolve([]),
+  ]);
+  const feedbackTipByJob = new Map(feedbackTips.map((tip) => [tip.jobId, tip.tipCents]));
+  const invoiceTipByJob = new Map<string, number>();
+  for (const tip of invoiceTips) if (tip.jobId) invoiceTipByJob.set(tip.jobId, (invoiceTipByJob.get(tip.jobId) ?? 0) + tip.tipCents);
+
+  const reviews = jobIds.length
+    ? await db.select().from(payrollJobReviews).where(and(eq(payrollJobReviews.payrollPeriodId, period.id), eq(payrollJobReviews.userId, employee.id), inArray(payrollJobReviews.jobId, jobIds)))
+    : [];
+  const reviewByJob = new Map(reviews.map((review) => [review.jobId, review]));
+  const paidMinutesByJob = new Map<string, number>();
+  const varianceByJob = new Map<string, "pending" | "approved" | "rejected">();
+  for (const row of uniqueRows) {
+    const jthMinutes = row.estimatedDurationMinutes ?? 0;
+    const loggedMinutes = minutesByJob.get(row.jobId) ?? 0;
+    const crew = assignmentsByJob.get(row.jobId) ?? [];
+    const existingReview = reviewByJob.get(row.jobId);
+    if (crew.length >= 2 && loggedMinutes > jthMinutes) {
+      if (!existingReview) {
+        await db.insert(payrollJobReviews).values({ payrollPeriodId: period.id, jobId: row.jobId, userId: employee.id, jthMinutes, loggedMinutes, status: "pending" }).onConflictDoNothing();
+        const result = paidMinutesForJob(jthMinutes, loggedMinutes, crew.length);
+        paidMinutesByJob.set(row.jobId, result.paidMinutes);
+        if (result.varianceStatus) varianceByJob.set(row.jobId, result.varianceStatus);
+      } else {
+        const result = paidMinutesForJob(jthMinutes, loggedMinutes, crew.length, existingReview);
+        paidMinutesByJob.set(row.jobId, result.paidMinutes);
+        if (result.varianceStatus) varianceByJob.set(row.jobId, result.varianceStatus);
+      }
+    } else {
+      // Short logged time never reduces JTH pay for a multi-cleaner job.
+      paidMinutesByJob.set(row.jobId, jthMinutes);
+    }
+  }
+
+  // Tier rate depends on TOTAL PAID JTH HOURS, then one resulting rate is
+  // applied to every job for this employee in the period.
+  const totalMinutes = uniqueRows.reduce((sum, r) => sum + (paidMinutesByJob.get(r.jobId) ?? 0), 0);
   const totalHours = totalMinutes / 60;
   const tiers = (employee.payTiers as PayTier[] | null) ?? null;
   const rateCents = resolveTierRateCents(totalHours, tiers, employee.hourlyRateCents ?? 0);
 
   const calculation: CalculationLine[] = uniqueRows.map((r) => {
     const minutes = r.estimatedDurationMinutes ?? 0;
+    const paidMinutes = paidMinutesByJob.get(r.jobId) ?? minutes;
     const hoursSpent = (minutesByJob.get(r.jobId) ?? 0) / 60;
-    const budgetHours = minutes / 60;
+    const budgetHours = paidMinutes / 60;
+    const clientTipCents = feedbackTipByJob.get(r.jobId) ?? invoiceTipByJob.get(r.jobId) ?? 0;
+    const crew = assignmentsByJob.get(r.jobId) ?? [];
+    const employeeIndex = crew.findIndex((assignment) => assignment.userId === employee.id);
+    const tipShare = splitTipCents(clientTipCents, employeeIndex, crew.length);
+    const trainerBonusCents = r.crewRole === "trainer" && crew.length >= 2 ? 1000 : 0;
     const amountCents = Math.round(budgetHours * rateCents);
     return {
       jobId: r.jobId,
@@ -261,11 +337,18 @@ async function generateCommissionLine(
       hoursSpent,
       rateCents,
       amountCents,
+      paidHours: budgetHours,
+      varianceStatus: varianceByJob.get(r.jobId),
+      clientTipCents: tipShare,
+      bonusCents: trainerBonusCents,
       averageCentsPerHour: budgetHours > 0 ? Math.round(amountCents / budgetHours) : 0,
     };
   });
 
   const commissionCents = calculation.reduce((sum, c) => sum + c.amountCents, 0);
+  const clientTipsCents = calculation.reduce((sum, c) => sum + c.clientTipCents, 0);
+  const trainerBonusCents = calculation.reduce((sum, c) => sum + c.bonusCents, 0);
+  const mileageMiles = assignments.filter((assignment) => assignment.userId === employee.id && assignment.role === "lead").reduce((sum, assignment) => sum + Number(assignment.mileageMiles), 0);
 
   await upsertAutomaticFields(period.id, employee.id, {
     jobsCount: calculation.length,
@@ -274,6 +357,10 @@ async function generateCommissionLine(
     officeHours: "0",
     officePayCents: 0,
     calculation,
+    clientTipsCents,
+    trainerBonusCents,
+    mileageMiles: mileageMiles.toFixed(2),
+    teamLeadBonusCents: 0,
   }, mileageRateCents);
 
   return 1;
@@ -322,8 +409,11 @@ async function generateOfficeHourlyLine(
   });
   const totalMinutes = uniqueRows.reduce((sum, r) => sum + (r.minutesWorked ?? 0), 0);
   const officeHours = totalMinutes / 60;
+  // Manual office hours are deliberately not read here: refreshes recompute
+  // only the clocked portion and upsertAutomaticFields preserves the manual
+  // payroll-review value already stored on the line.
   const rateCents = employee.hourlyRateCents ?? 0;
-  const officePayCents = Math.round(officeHours * rateCents);
+  const officePayCents = await getOfficePayCents(period.id, employee.id, officeHours, rateCents);
 
   const calculation: CalculationLine[] = uniqueRows.map((r) => {
     const hoursSpent = (r.minutesWorked ?? 0) / 60;
@@ -338,6 +428,9 @@ async function generateOfficeHourlyLine(
       hoursSpent,
       rateCents,
       amountCents,
+      paidHours: hoursSpent,
+      clientTipCents: 0,
+      bonusCents: 0,
       averageCentsPerHour: hoursSpent > 0 ? Math.round(amountCents / hoursSpent) : 0,
     };
   });
@@ -366,30 +459,60 @@ export async function recomputeFinalCents(periodId: string, userId: string): Pro
   if (!line) return;
 
   const mileageCents = Math.round(parseFloat(line.mileageMiles) * line.mileageRateCents);
-  const finalCents =
-    line.commissionCents +
-    line.officePayCents +
-    mileageCents +
-    line.tipsPaycheckCents +
-    line.tipsCashCents +
-    line.bonusCents +
-    line.teamLeadBonusCents +
-    line.trainerBonusCents +
-    line.trainingCents +
-    line.adjustmentCents -
-    line.payrollAdvanceCents;
+  let officePayCents = line.officePayCents;
+  if (line.officeHours !== "0" || line.manualOfficeHours !== "0") {
+    const [employee] = await db
+      .select({ hourlyRateCents: users.hourlyRateCents, payType: users.payType })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (employee?.payType === "office_hourly") {
+      officePayCents = Math.round((Number(line.officeHours) + Number(line.manualOfficeHours)) * (employee.hourlyRateCents ?? 0));
+    }
+  }
+  const finalCents = calculateFinalCents({ ...line, officePayCents, mileageCents });
 
-  await db.update(payrollLines).set({ mileageCents, finalCents }).where(eq(payrollLines.id, line.id));
+  await db.update(payrollLines).set({ mileageCents, officePayCents, finalCents }).where(eq(payrollLines.id, line.id));
+}
+
+export function calculateFinalCents(line: {
+  commissionCents: number;
+  officePayCents: number;
+  mileageCents: number;
+  tipsPaycheckCents: number;
+  tipsCashCents: number;
+  clientTipsCents: number;
+  bonusCents: number;
+  teamLeadBonusCents: number;
+  trainerBonusCents: number;
+  trainingCents: number;
+  adjustmentCents: number;
+  payrollAdvanceCents: number;
+}) {
+  return line.commissionCents + line.officePayCents + line.mileageCents +
+    line.tipsPaycheckCents + line.tipsCashCents + line.clientTipsCents + line.bonusCents +
+    line.teamLeadBonusCents + line.trainerBonusCents + line.trainingCents +
+    line.adjustmentCents - line.payrollAdvanceCents;
+}
+
+async function getOfficePayCents(periodId: string, userId: string, clockedHours: number, rateCents: number) {
+  const [existing] = await db
+    .select({ manualOfficeHours: payrollLines.manualOfficeHours })
+    .from(payrollLines)
+    .where(and(eq(payrollLines.payrollPeriodId, periodId), eq(payrollLines.userId, userId)))
+    .limit(1);
+  return Math.round((clockedHours + Number(existing?.manualOfficeHours ?? 0)) * rateCents);
 }
 
 /** Fetches all lines for a period, joined with employee info, for the UI/CSV. */
-export async function getPayrollLinesForPeriod(periodId: string) {
+export async function getPayrollLinesForPeriod(periodId: string, companyId?: string) {
   const lines = await db
     .select({
       id: payrollLines.id,
       userId: payrollLines.userId,
       firstName: users.firstName,
       lastName: users.lastName,
+      role: users.role,
       title: users.title,
       gustoEmployeeId: users.gustoEmployeeId,
       payType: users.payType,
@@ -398,12 +521,14 @@ export async function getPayrollLinesForPeriod(periodId: string) {
       regularHours: payrollLines.regularHours,
       commissionCents: payrollLines.commissionCents,
       officeHours: payrollLines.officeHours,
+      manualOfficeHours: payrollLines.manualOfficeHours,
       officePayCents: payrollLines.officePayCents,
       mileageMiles: payrollLines.mileageMiles,
       mileageRateCents: payrollLines.mileageRateCents,
       mileageCents: payrollLines.mileageCents,
       tipsPaycheckCents: payrollLines.tipsPaycheckCents,
-    tipsCashCents: payrollLines.tipsCashCents,
+      tipsCashCents: payrollLines.tipsCashCents,
+      clientTipsCents: payrollLines.clientTipsCents,
     bonusCents: payrollLines.bonusCents,
       teamLeadBonusCents: payrollLines.teamLeadBonusCents,
       trainerBonusCents: payrollLines.trainerBonusCents,
@@ -417,7 +542,9 @@ export async function getPayrollLinesForPeriod(periodId: string) {
     })
     .from(payrollLines)
     .innerJoin(users, eq(payrollLines.userId, users.id))
-    .where(eq(payrollLines.payrollPeriodId, periodId))
+    .where(companyId
+      ? and(eq(payrollLines.payrollPeriodId, periodId), eq(users.companyId, companyId))
+      : eq(payrollLines.payrollPeriodId, periodId))
     .orderBy(users.lastName, users.firstName);
 
   return lines;

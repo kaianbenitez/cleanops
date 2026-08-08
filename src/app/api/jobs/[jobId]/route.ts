@@ -7,7 +7,6 @@ import { and, eq, inArray, ne } from "drizzle-orm";
 import { syncToGhl } from "@/lib/ghl/sync";
 import { loadJobDetail } from "@/lib/jobs/job-detail";
 import { findPtoConflicts, ptoConflictMessage } from "@/lib/scheduling/pto";
-import { resolveJobTicketMinutes } from "@/lib/payroll/job-ticket-hours";
 
 const updateJobSchema = z.object({
   scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -17,6 +16,7 @@ const updateJobSchema = z.object({
   status: z.enum(["scheduled", "in_progress", "completed", "cancelled", "no_show"]).optional(),
   cancellationReason: z.string().trim().min(1).max(1000).optional(),
   employeeIds: z.array(z.string().uuid()).optional(),
+  trainerId: z.string().uuid().nullable().optional(),
   completionNotes: z.string().optional(),
   paymentMethodCollected: z.enum(jobPaymentMethodEnum).nullable().optional(),
   checkNumberCollected: z.string().optional(),
@@ -64,7 +64,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  const { employeeIds, ...parsedJobFields } = parsed.data;
+  const { employeeIds, trainerId, ...parsedJobFields } = parsed.data;
+  if (trainerId && employeeIds && !employeeIds.includes(trainerId)) {
+    return NextResponse.json({ error: "Trainer must be one of the assigned employees." }, { status: 400 });
+  }
   const jobFields: Partial<typeof jobs.$inferInsert> = { ...parsedJobFields };
   if (jobFields.status === "cancelled" && existing.status !== "cancelled" && !jobFields.cancellationReason) {
     return NextResponse.json({ error: "Enter a cancellation reason before cancelling this job." }, { status: 400 });
@@ -104,17 +107,8 @@ export async function PATCH(
     jobFields.jthManualOverride = true;
   }
 
-  // A price edit re-derives JTH only while the job is auto-managed. Once an
-  // admin explicitly sets JTH, changing the charge must leave it untouched.
-  if (jobFields.priceCents !== undefined && jobFields.estimatedDurationMinutes === undefined && !existing.jthManualOverride) {
-    const resolvedMinutes = await resolveJobTicketMinutes({
-      companyId: admin.companyId,
-      priceCents: jobFields.priceCents,
-      quoteId: existing.quoteId,
-      customerId: existing.customerId,
-    });
-    if (resolvedMinutes != null) jobFields.estimatedDurationMinutes = resolvedMinutes;
-  }
+  // Price edits never silently change saved JTH. Admins can explicitly edit
+  // the duration when the job's expected work changes.
 
   if (Object.keys(jobFields).length > 0) {
     try {
@@ -150,7 +144,7 @@ export async function PATCH(
           employeeIds.map((userId, i) => ({
             jobId,
             userId,
-            role: i === 0 ? ("lead" as const) : ("helper" as const),
+            role: i === 0 ? ("lead" as const) : userId === trainerId ? ("trainer" as const) : ("helper" as const),
           }))
         );
       }

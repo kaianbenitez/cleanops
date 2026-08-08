@@ -6,12 +6,12 @@ import { useRouter } from "next/navigation";
 import { dateLabel, formatElapsed, formatEstimatedTime, groupNotes, jobAddress, jobTypeLabel, PAYMENT_METHOD_OPTIONS, timeLabel } from "@/lib/my-day/job-format";
 import { cleanNoteText } from "@/lib/format";
 import { MaskedCode } from "@/components/ui/masked-code";
-import { Cat, CircleAlert, Sparkles } from "lucide-react";
+import { Cat, CircleAlert, Sparkles, Send } from "lucide-react";
 
 type Job = {
   jobId: string;
   customerId: string;
-  role: "lead" | "helper";
+  role: "lead" | "helper" | "trainer";
   status: string;
   scheduledDate: string;
   scheduledStartTime: string | null;
@@ -67,6 +67,8 @@ export default function JobExecutionClient({
   const [paymentMethod, setPaymentMethod] = useState("");
   const [checkNumber, setCheckNumber] = useState("");
   const [cleanerNotes, setCleanerNotes] = useState("");
+  const [feedbackUrl, setFeedbackUrl] = useState<string | null>(null);
+  const [sendingFeedback, setSendingFeedback] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -152,6 +154,16 @@ export default function JobExecutionClient({
       return;
     }
     setCompleted(true);
+    if (body.jobCompleted) await requestCustomerFeedback();
+  }
+
+  async function requestCustomerFeedback() {
+    setSendingFeedback(true);
+    const response = await fetch(`/api/jobs/${job.jobId}/feedback-link`, { method: "POST" });
+    const body = await response.json().catch(() => ({}));
+    setSendingFeedback(false);
+    if (!response.ok) return setError(typeof body.error === "string" ? body.error : "Could not create feedback link.");
+    setFeedbackUrl(body.feedbackUrl ?? null);
   }
 
   return (
@@ -338,6 +350,16 @@ export default function JobExecutionClient({
               <section className="co-card p-5">
                 <h2 className="mb-4 text-base font-semibold text-[var(--co-ink)]">Close out</h2>
                 <div className="space-y-4">
+                  <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
+                    <div className="flex items-start gap-3">
+                      <Send className="mt-0.5 h-5 w-5 shrink-0 text-[var(--co-evergreen)]" />
+                      <div>
+                        <p className="font-semibold text-[var(--co-ink)]">Customer feedback link</p>
+                        <p className="mt-1 text-xs leading-5 text-[var(--co-muted)]">Send the customer a private link. They submit their own rating, feedback, tip, and payment.</p>
+                      </div>
+                    </div>
+                    {feedbackUrl ? <div className="mt-4 rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] p-3"><p className="text-xs font-semibold text-[var(--co-evergreen)]">Link ready — share it with the customer:</p><input readOnly value={feedbackUrl} className="co-input mt-2 w-full text-xs" onFocus={(event) => event.currentTarget.select()} /></div> : <button type="button" onClick={requestCustomerFeedback} disabled={sendingFeedback} className="co-button-secondary mt-4 w-full justify-center">{sendingFeedback ? "Creating link…" : "Create customer link"}</button>}
+                  </div>
                   <label className="block">
                     <span className="mb-1 block text-sm text-[var(--co-muted)]">Payment collected on-site</span>
                     <select

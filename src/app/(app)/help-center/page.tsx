@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.25",
+    date: "August 9, 2026",
+    title: "Rotational task reminders for recurring clients",
+    changes: [
+      "Calendar and My Day now show the current Week 1–4 rotation plus the complete reference checklist for recurring-client visits, including the every-time couch-cushion task.",
+    ],
+  },
+  {
     version: "v0.2.24",
     date: "August 8, 2026",
     title: "Supplies temporarily tucked away",

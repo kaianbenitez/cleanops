@@ -12,9 +12,9 @@ import type { getPayrollLinesForPeriod } from "./calculate";
  *   - reimbursement = mileage dollars (Row 24: P24=29.05 matched Table 1's
  *     mileage column for the same employee exactly).
  *   - regular_hours = Job Ticket Hours for commission_jth employees, actual
- *     clocked hours for office_hourly employees (both buckets are stored
- *     separately in our payroll_lines and merged here into Gusto's single
- *     regular_hours column).
+ *     clocked + manual office hours for office_hourly employees (both
+ *     buckets are stored separately in our payroll_lines and merged here
+ *     into Gusto's single regular_hours column).
  *
  * UNCONFIRMED mapping (no populated example existed in the source sheet —
  * verify with the owner or Gusto's docs before relying on this for a real
@@ -53,11 +53,61 @@ function csvEscape(value: string): string {
 
 type PayrollLine = Awaited<ReturnType<typeof getPayrollLinesForPeriod>>[number];
 
+export type GustoExportBlocker = {
+  lineId: string;
+  employee: string;
+  reason: string;
+};
+
+/**
+ * Validate the deliberately small, manual-import mapping before producing a
+ * file. Components without a confirmed Gusto representation must never be
+ * silently dropped from an approved payroll line.
+ */
+export function validateGustoExport(lines: PayrollLine[]) {
+  const blockers: GustoExportBlocker[] = [];
+  const reconciliations = lines.map((line) => {
+    const employee = `${line.firstName} ${line.lastName}`;
+    if (!line.gustoEmployeeId?.trim()) {
+      blockers.push({ lineId: line.id, employee, reason: "Missing Gusto employee ID." });
+    }
+
+    const unsupported: Array<[string, number]> = [
+      ["team-lead bonus", line.teamLeadBonusCents],
+      ["training pay", line.trainingCents],
+      ["payroll advance", line.payrollAdvanceCents],
+      ["adjustment", line.adjustmentCents],
+    ];
+    for (const [label, cents] of unsupported) {
+      if (cents !== 0) blockers.push({ lineId: line.id, employee, reason: `${label} has no confirmed Gusto mapping.` });
+    }
+
+    const representedCents =
+      line.commissionCents +
+      line.officePayCents +
+      line.mileageCents +
+      line.tipsPaycheckCents +
+      line.tipsCashCents +
+      line.clientTipsCents +
+      line.bonusCents +
+      line.trainerBonusCents;
+    if (representedCents !== line.finalCents) {
+      blockers.push({ lineId: line.id, employee, reason: `CSV components reconcile to ${representedCents} cents, but the approved line is ${line.finalCents} cents.` });
+    }
+
+    return { lineId: line.id, representedCents, approvedCents: line.finalCents };
+  });
+
+  return { ok: blockers.length === 0, blockers, reconciliations };
+}
+
 export function buildGustoCsv(lines: PayrollLine[]): string {
   const rows = [HEADERS.join(",")];
 
   for (const line of lines) {
-    const regularHours = line.payType === "commission_jth" ? line.regularHours : line.officeHours;
+    const regularHours = line.payType === "commission_jth"
+      ? line.regularHours
+      : (Number(line.officeHours) + Number(line.manualOfficeHours)).toFixed(2);
     const correctionPaymentCents = line.trainingCents - line.payrollAdvanceCents;
 
     const row = [
@@ -70,9 +120,9 @@ export function buildGustoCsv(lines: PayrollLine[]): string {
       "0", // double_overtime_hours
       "0", // missed_break_hours
       "0", // holiday_hours
-      centsToDollarsStr(line.bonusCents),
+      centsToDollarsStr(line.bonusCents + line.trainerBonusCents),
       centsToDollarsStr(line.commissionCents),
-      centsToDollarsStr(line.tipsPaycheckCents),
+      centsToDollarsStr(line.tipsPaycheckCents + line.clientTipsCents),
       centsToDollarsStr(line.tipsCashCents),
       centsToDollarsStr(correctionPaymentCents),
       centsToDollarsStr(line.mileageCents),

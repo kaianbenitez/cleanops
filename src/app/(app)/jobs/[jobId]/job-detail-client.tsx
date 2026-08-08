@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState, useTransition } from "react";
-import { ArrowLeft, CalendarClock, Check, CircleUserRound, Mail, MapPin, Pencil, Phone, UserPlus, XCircle } from "lucide-react";
+import { ArrowLeft, CalendarClock, Check, CircleUserRound, Mail, MapPin, Pencil, Phone, Send, UserPlus, XCircle } from "lucide-react";
 import { StatusPill, statusOptions } from "@/components/ui/status-pill";
 import { formatDisplayDate } from "@/lib/scheduling/dates";
 import HandoffPanel from "./handoff-panel";
@@ -58,6 +58,8 @@ export default function JobDetailClient({
   const [editingJth, setEditingJth] = useState(false);
   const [jthInput, setJthInput] = useState("");
   const [jthEditError, setJthEditError] = useState<string | null>(null);
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
+  const [feedbackLink, setFeedbackLink] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
     startTransition(() => router.refresh());
@@ -73,6 +75,20 @@ export default function JobDetailClient({
     [timeEntries]
   );
   const openEntries = useMemo(() => timeEntries.filter((entry) => !entry.clockOut).length, [timeEntries]);
+
+  async function sendFeedbackLink() {
+    setFeedbackBusy(true);
+    setError(null);
+    const response = await fetch(`/api/jobs/${job.id}/feedback-link`, { method: "POST" });
+    const body = await response.json().catch(() => ({}));
+    setFeedbackBusy(false);
+    if (!response.ok) {
+      setError(typeof body.error === "string" ? body.error : "Could not send the feedback link.");
+      return;
+    }
+    setFeedbackLink(body.feedbackUrl ?? null);
+    refresh();
+  }
 
   // Time entries that carry an audit trail, so the table can mark them as touched.
   const editedEntryIds = useMemo(
@@ -358,12 +374,12 @@ export default function JobDetailClient({
           <TeamPanel
             // Remounting on a membership change resets the picker's draft selection
             // to whatever the server just saved. Sorted so row order can't churn it.
-            key={assignments.map((assignment) => assignment.userId).sort().join("|")}
+            key={assignments.map((assignment) => `${assignment.userId}:${assignment.role}`).sort().join("|")}
             employees={employees}
             assignments={assignments}
             assignedEmployees={assignedEmployees}
             saving={saving}
-            onSave={(employeeIds) => save({ employeeIds })}
+            onSave={(employeeIds, trainerId) => save({ employeeIds, trainerId })}
           />
 
           <section className={CARD_CLASS}>
@@ -409,6 +425,18 @@ export default function JobDetailClient({
             </details>
             <div className="mt-5 rounded-xl border border-[#d5ded5] p-3">
               <p className="text-sm font-semibold text-[var(--co-evergreen)]">Reported from the field</p>
+              {job.feedbackStatus ? (
+                <div className="mt-3 rounded-xl bg-[#f4f8f3] p-3">
+                  <p className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--co-muted)]">Customer check-out</p>
+                  {job.feedbackExpiresAt && new Date(job.feedbackExpiresAt).getTime() < Date.now() ? <p className="mt-1 text-xs font-semibold text-amber-700">Link expired — activate a new link to resend.</p> : null}
+                  <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
+                    {job.feedbackQualityRating ? <span className="font-semibold text-amber-700">{job.feedbackQualityRating}/5 quality</span> : <span className="text-[var(--co-muted)]">Awaiting response</span>}
+                    {job.feedbackTipCents && job.feedbackTipCents > 0 ? <span className="font-semibold text-[var(--co-evergreen)]">{money(job.feedbackTipCents)} tip</span> : null}
+                  </div>
+                  {job.feedbackQualityComment ? <p className="mt-2 text-sm text-[var(--co-ink)]">“{job.feedbackQualityComment}”</p> : null}
+                  {job.feedbackStatus !== "submitted" ? <div className="mt-3 flex flex-wrap items-center gap-2"><button type="button" onClick={sendFeedbackLink} disabled={feedbackBusy} className="co-button-secondary"><Send className="h-3.5 w-3.5" />{feedbackBusy ? "Sending…" : job.feedbackExpiresAt && new Date(job.feedbackExpiresAt).getTime() < Date.now() ? "Activate & send new link" : "Send link again"}</button>{feedbackLink ? <input readOnly value={feedbackLink} className="co-input min-w-[220px] flex-1 text-xs" onFocus={(event) => event.currentTarget.select()} /> : null}</div> : null}
+                </div>
+              ) : <div className="mt-3 rounded-xl border border-dashed border-[#d5ded5] p-3"><p className="text-sm text-[var(--co-muted)]">No customer feedback link has been sent yet.</p><button type="button" onClick={sendFeedbackLink} disabled={feedbackBusy || job.status !== "completed"} className="co-button-secondary mt-3"><Send className="h-3.5 w-3.5" />{feedbackBusy ? "Sending…" : "Activate & send feedback link"}</button>{job.status !== "completed" ? <p className="mt-2 text-xs text-[var(--co-faint)]">Available after the job is completed.</p> : null}{feedbackLink ? <input readOnly value={feedbackLink} className="co-input mt-3 w-full text-xs" onFocus={(event) => event.currentTarget.select()} /> : null}</div>}
               <label className="mt-3 block">
                 <span className="mb-1 block text-xs text-[var(--co-muted)]">Payment collected on-site</span>
                 <select

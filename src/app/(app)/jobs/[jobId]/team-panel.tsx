@@ -24,9 +24,10 @@ export default function TeamPanel({
   assignments: Assignment[];
   assignedEmployees: Employee[];
   saving: boolean;
-  onSave: (employeeIds: string[]) => void;
+  onSave: (employeeIds: string[], trainerId: string | null) => void;
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>(() => assignments.map((assignment) => assignment.userId));
+  const [trainerId, setTrainerId] = useState<string | null>(() => assignments.find((assignment) => assignment.role === "trainer")?.userId ?? null);
 
   return (
     <section id="assignment" className={CARD_CLASS}>
@@ -56,8 +57,10 @@ export default function TeamPanel({
                 </p>
                 <p className="text-xs text-[var(--co-muted)]">
                   {assignments.find((assignment) => assignment.userId === employee.id)?.role === "lead"
-                    ? "Team lead"
-                    : "Cleaning professional"}
+                    ? "Driver / lead"
+                    : assignments.find((assignment) => assignment.userId === employee.id)?.role === "trainer"
+                      ? "Trainer"
+                      : "Cleaning professional"}
                 </p>
               </div>
               <span aria-hidden className="rounded-full bg-[#f0f5ef] p-2 text-[var(--co-evergreen)]">
@@ -77,7 +80,13 @@ export default function TeamPanel({
         <div className="mt-3">
           <TeamSearchPicker employees={employees} selectedIds={selectedIds} onChange={setSelectedIds} />
         </div>
-        <button type="button" disabled={saving} onClick={() => onSave(selectedIds)} className="co-button-primary mt-3">
+        <label className="mt-3 block text-xs font-semibold text-[var(--co-muted)]">Trainer (optional)
+          <select value={trainerId ?? ""} onChange={(event) => setTrainerId(event.target.value || null)} className="co-input mt-1 w-full">
+            <option value="">No trainer assigned</option>
+            {assignedEmployees.filter((employee) => employee.id !== selectedIds[0]).map((employee) => <option key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}</option>)}
+          </select>
+        </label>
+        <button type="button" disabled={saving} onClick={() => onSave(selectedIds, trainerId)} className="co-button-primary mt-3">
           {saving ? "Saving..." : "Save team"}
         </button>
       </details>

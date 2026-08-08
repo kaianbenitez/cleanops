@@ -10,7 +10,8 @@ import { MaskedCode } from "@/components/ui/masked-code";
 type JobCard = {
   jobId: string;
   customerId: string;
-  role: "lead" | "helper";
+  role: "lead" | "helper" | "trainer";
+  mileageMiles: string;
   status: string;
   scheduledDate: string;
   scheduledStartTime: string | null;
@@ -39,7 +40,28 @@ type JobCard = {
   ragCount?: number | null;
   vacuumCount?: number | null;
   mopHeadEstimate?: number | null;
+  rotationalTaskReminder?: {
+    currentWeek: number;
+    everyTime: string;
+    weeks: readonly { week: number; label: string; weekly: string; biweekly: string; monthly: string }[];
+  } | null;
 };
+
+function RotationReminder({ reminder }: { reminder: NonNullable<JobCard["rotationalTaskReminder"]> }) {
+  return (
+    <details open className="mt-3 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-950">
+      <summary className="cursor-pointer font-semibold">All-day rotation · Week {reminder.currentWeek}</summary>
+      <p className="mt-2 font-medium">Every time: {reminder.everyTime}</p>
+      <div className="mt-1.5 space-y-1">
+        {reminder.weeks.map((week) => (
+          <p key={week.week} className={week.week === reminder.currentWeek ? "font-bold" : "text-violet-800"}>
+            {week.label}: Weekly — {week.weekly}; Biweekly — {week.biweekly}; Monthly — {week.monthly}
+          </p>
+        ))}
+      </div>
+    </details>
+  );
+}
 
 function EquipmentRow({ job }: { job: JobCard }) {
   const hasConfirmedMopCount = job.mopHeadCount !== null && job.mopHeadCount !== undefined;
@@ -108,6 +130,7 @@ export default function MyDayClient({
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [arrivedJobId, setArrivedJobId] = useState<string | null>(null);
+  const [mileageDraft, setMileageDraft] = useState<Record<string, string>>({});
 
   useEffect(() => {
     // Initialize the client-only clock after hydration, then keep it current.
@@ -165,6 +188,7 @@ export default function MyDayClient({
 
   const activeTimerLabel = formatElapsed(openEntry?.clockIn ?? null, now);
   const routeJobs = [...localTodayJobs].sort((a, b) => (a.scheduledStartTime ?? "").localeCompare(b.scheduledStartTime ?? ""));
+  const todayRotationJobs = localTodayJobs.filter((job) => job.rotationalTaskReminder);
 
   async function clockIn(jobId: string, options?: { undoLabel?: string; undoAction?: () => void | Promise<void>; onSuccess?: () => void }) {
     setError(null);
@@ -209,6 +233,14 @@ export default function MyDayClient({
 
   function beginJob(jobId: string) {
     router.push(`/my-day/${jobId}`);
+  }
+
+  async function saveMileage(job: JobCard) {
+    const value = Number(mileageDraft[job.jobId] ?? job.mileageMiles ?? 0);
+    const res = await fetch(`/api/jobs/${job.jobId}/mileage`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mileageMiles: value }) });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) setError(typeof body.error === "string" ? body.error : "Could not save mileage.");
+    else startTransition(() => router.refresh());
   }
 
   function discardJob(jobId: string) {
@@ -294,6 +326,20 @@ export default function MyDayClient({
       ) : null}
 
       <section className="co-card overflow-hidden">
+        {todayRotationJobs.length ? (
+          <div className="border-b border-violet-200 bg-violet-50 px-4 py-4 text-violet-950 sm:px-5">
+            <p className="eyebrow text-violet-800">All-day client reminder</p>
+            <h2 className="mt-1 text-lg font-semibold">Rotational tasks</h2>
+            <div className="mt-3 space-y-4">
+              {todayRotationJobs.map((job) => (
+                <div key={job.jobId}>
+                  <p className="font-semibold">{job.customerFirstName} {job.customerLastName}</p>
+                  <RotationReminder reminder={job.rotationalTaskReminder!} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <div className="border-b border-[var(--co-line-soft)] px-4 py-4 sm:px-5">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -362,7 +408,7 @@ export default function MyDayClient({
                                 : "border-slate-200 bg-slate-50 text-slate-600"
                             }`}
                           >
-                            {job.role === "lead" ? "Lead / driver" : "Helper"}
+                            {job.role === "lead" ? "Lead / driver" : job.role === "trainer" ? "Trainer" : "Helper"}
                           </span>
                           {!isNextUp ? <span className="co-badge-neutral rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]">Scheduled</span> : null}
                         </div>
@@ -370,6 +416,17 @@ export default function MyDayClient({
 
                       {isNextUp ? (
                         <>
+                          {job.rotationalTaskReminder ? <RotationReminder reminder={job.rotationalTaskReminder} /> : null}
+                          {job.role === "lead" ? (
+                            <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                              <p className="text-xs font-semibold text-emerald-900">You are the driver</p>
+                              <div className="mt-2 flex items-center gap-2">
+                                <input aria-label="Mileage miles" type="number" min="0" step="0.1" value={mileageDraft[job.jobId] ?? job.mileageMiles} onChange={(event) => setMileageDraft((current) => ({ ...current, [job.jobId]: event.target.value }))} className="co-input w-28 bg-white text-sm" />
+                                <span className="text-xs text-emerald-800">miles</span>
+                                <button type="button" onClick={() => saveMileage(job)} className="co-button-secondary px-2.5 py-1.5 text-xs">Save mileage</button>
+                              </div>
+                            </div>
+                          ) : null}
                           {job.accessInstructions || job.keyNumber || job.garageCode || job.gateCode || job.alarmCode ? (
                             <details open className="mt-3 rounded-lg border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-3 py-2">
                               <summary className="cursor-pointer text-xs font-semibold text-[var(--co-ink)]">Entry instructions</summary>

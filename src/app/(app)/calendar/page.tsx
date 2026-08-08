@@ -47,6 +47,7 @@ import DatePicker, { CalendarViewSelector } from "./date-picker";
 import CalendarStateSync from "./state-sync";
 import WeekendOrphanBanner from "./weekend-orphan-banner";
 import { employeeColorAt } from "./shared";
+import { rotationalTaskForDate } from "@/lib/scheduling/rotational-tasks";
 
 const CALENDAR_STATE_COOKIE = "co_calendar_state";
 
@@ -118,6 +119,7 @@ export type CalendarJob = {
   priceCents: number;
   recurringSeriesId: string | null;
   recurrenceFrequency: string | null;
+  recurrenceStartDate: string | null;
   serviceId: string | null;
   addOnIds: string[];
   customerFirstName: string;
@@ -134,6 +136,7 @@ export type CalendarJob = {
   doNotClean: string | null;
   petNotes: string | null;
   assignedUserIds: string[];
+  rotationalTaskReminder: ReturnType<typeof rotationalTaskForDate>;
 };
 
 export type CalendarDaySummary = {
@@ -314,6 +317,7 @@ export default async function CalendarPage({
         priceCents: jobs.priceCents,
         recurringSeriesId: jobs.recurringSeriesId,
         recurrenceFrequency: recurringSeries.frequency,
+        recurrenceStartDate: recurringSeries.startDate,
         serviceId: jobs.serviceId,
         addOnIds: jobs.addOnIds,
         customerFirstName: customers.firstName,
@@ -526,7 +530,12 @@ export default async function CalendarPage({
         (room): room is { name: string; count: number } =>
           Boolean(room.name) && Number.isFinite(room.count) && room.count > 0,
       );
-    return { ...row, roomCounts, assignedUserIds: byJob.get(row.id) ?? [] };
+    return {
+      ...row,
+      roomCounts,
+      assignedUserIds: byJob.get(row.id) ?? [],
+      rotationalTaskReminder: rotationalTaskForDate(row.recurrenceStartDate, row.scheduledDate),
+    };
   });
   const displayedJobs =
     sp.assignment === "unassigned"
@@ -700,7 +709,7 @@ export default async function CalendarPage({
       <FilterBar
         employees={employees}
         totalJobs={totalJobs}
-        unassignedJobs={view === "staff" ? unassignedRows.length : 0}
+        unassignedJobs={view === "staff" || view === "staff_vertical" ? unassignedRows.length : 0}
         projectedRevenueCents={projectedRevenueCents}
       />
       </section>
@@ -749,7 +758,7 @@ export default async function CalendarPage({
             ptoRecords={ptoRows}
           />
         ) : null}
-        {view === "staff_vertical" ? <StaffVerticalBoard employees={employees} jobs={displayedJobs} /> : null}
+        {view === "staff_vertical" ? <StaffVerticalBoard employees={employees} jobs={displayedJobs} queueOpen={sp.queue === "unassigned" || sp.assignment === "unassigned"} unassignedJobs={unassignedRows.map((row) => ({ ...row, assignedUserIds: [] }))} /> : null}
         {view === "month" ? (
           <MonthBoard
             month={monthAnchor}

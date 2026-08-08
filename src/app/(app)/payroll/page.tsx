@@ -12,6 +12,10 @@ type Calculation = {
   budgetHours?: number;
   estimatedMinutes?: number;
   hoursSpent?: number;
+  paidHours?: number;
+  varianceStatus?: "pending" | "approved" | "rejected";
+  clientTipCents?: number;
+  bonusCents?: number;
   rateCents: number;
   amountCents: number;
   averageCentsPerHour?: number;
@@ -19,8 +23,10 @@ type Calculation = {
 
 type Line = {
   id: string;
+  userId: string;
   firstName: string;
   lastName: string;
+  role: "admin" | "employee";
   title: string | null;
   payType: string | null;
   hourlyRateCents: number | null;
@@ -28,11 +34,13 @@ type Line = {
   regularHours: string;
   commissionCents: number;
   officeHours: string;
+  manualOfficeHours: string;
   officePayCents: number;
   mileageMiles: string;
   mileageRateCents: number;
   tipsPaycheckCents: number;
   tipsCashCents: number;
+  clientTipsCents: number;
   bonusCents: number;
   teamLeadBonusCents: number;
   trainerBonusCents: number;
@@ -42,6 +50,8 @@ type Line = {
 };
 
 type Period = { id: string; startDate: string; endDate: string; status: "open" | "reviewed" | "exported" };
+type ExportReadiness = { ok: boolean; blockers: Array<{ lineId: string; employee: string; reason: string }> };
+type JobReview = { id: string; jobId: string; userId: string; jthMinutes: number; loggedMinutes: number; approvedMinutes: number | null; status: "pending" | "approved" | "rejected"; note: string | null };
 
 function dollars(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
@@ -127,6 +137,25 @@ function Step({ number }: { number: string }) {
   return <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--co-evergreen)] text-xs text-white">{number}</span>;
 }
 
+function ReviewQueue({ reviews, lines, onDecide }: { reviews: JobReview[]; lines: Line[]; onDecide: (reviewId: string, status: "approved" | "rejected", approvedMinutes?: number) => Promise<void> }) {
+  const pending = reviews.filter((review) => review.status === "pending");
+  if (!pending.length) return null;
+  return <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
+    <p className="font-semibold">Logged-time approvals required</p>
+    <p className="mt-1 text-xs">These multi-cleaner jobs ran longer than JTH. Approve the logged time before approving payroll.</p>
+    <div className="mt-3 space-y-2">
+      {pending.map((review) => {
+        const line = lines.find((item) => item.userId === review.userId);
+        const calculation = line?.calculation.find((item) => item.jobId === review.jobId);
+        return <div key={review.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-white px-3 py-3">
+          <div><p className="font-medium">{line ? `${line.firstName} ${line.lastName}` : "Employee"} · {calculation?.customerName ?? "Job"}</p><p className="text-xs text-amber-800">JTH {(review.jthMinutes / 60).toFixed(2)}h · logged {(review.loggedMinutes / 60).toFixed(2)}h · proposed pay {(review.loggedMinutes / 60).toFixed(2)}h</p></div>
+          <div className="flex gap-2"><button type="button" onClick={() => onDecide(review.id, "rejected")} className="co-button-secondary px-3 py-1.5 text-xs">Keep JTH</button><button type="button" onClick={() => onDecide(review.id, "approved", review.loggedMinutes)} className="co-button-primary px-3 py-1.5 text-xs">Approve overage</button></div>
+        </div>;
+      })}
+    </div>
+  </section>;
+}
+
 function PayrollDetail({
   line,
 }: {
@@ -152,8 +181,9 @@ function PayrollDetail({
               <th className="py-2">Customer / job</th>
               <th className="py-2">Crew role</th>
               <th className="py-2">Cleaning type</th>
-              <th className="py-2 text-right">Budget hrs</th>
-              <th className="py-2 text-right">Hrs spent</th>
+              <th className="py-2 text-right">JTH hrs</th>
+              <th className="py-2 text-right">Logged hrs</th>
+              <th className="py-2 text-right">Paid hrs</th>
               <th className="py-2 text-right">Hourly rate</th>
               <th className="py-2 text-right">Average</th>
               <th className="py-2 text-right">Commission</th>
@@ -188,6 +218,7 @@ function PayrollDetail({
                 <td className="py-3 text-[var(--co-muted)]">{calculation.cleaningType.replaceAll("_", " ")}</td>
                 <td className="py-3 text-right">{(calculation.budgetHours ?? ((calculation.estimatedMinutes ?? 0) / 60)).toFixed(2)}</td>
                 <td className="py-3 text-right font-medium">{(calculation.hoursSpent ?? 0).toFixed(2)}</td>
+                <td className="py-3 text-right font-medium">{(calculation.paidHours ?? calculation.budgetHours ?? 0).toFixed(2)} {calculation.varianceStatus ? <span className="ml-1 rounded border border-amber-200 px-1 text-[10px] text-amber-700">{calculation.varianceStatus}</span> : null}</td>
                 <td className="py-3 text-right">{dollars(calculation.rateCents)}</td>
                 <td className="py-3 text-right">{dollars(calculation.averageCentsPerHour ?? 0)}</td>
                 <td className="py-3 text-right font-medium">{dollars(calculation.amountCents)}</td>
@@ -200,6 +231,7 @@ function PayrollDetail({
 
       <div className="mt-4 grid gap-3 text-xs sm:grid-cols-4">
         <SmallStat label="Mileage rate" value={dollars(line.mileageRateCents)} sub="Mileage reimbursement" />
+        <SmallStat label="Client tips" value={dollars(line.clientTipsCents)} sub="Evenly allocated from client tip" />
         <SmallStat label="Paycheck tips" value={dollars(line.tipsPaycheckCents)} sub="Direct-to-paycheck tips" />
         <SmallStat label="Cash tips" value={dollars(line.tipsCashCents)} sub="Cash collected separately" />
         <SmallStat label="Lead / trainer bonus" value={`${dollars(line.teamLeadBonusCents)} / ${dollars(line.trainerBonusCents)}`} sub="Separate bonus buckets" />
@@ -231,16 +263,18 @@ function PayrollTable({
           <p className="eyebrow">Payroll review</p>
           <h2 className="mt-1 text-lg font-semibold">Employee summary</h2>
         </div>
-        <p className="text-sm text-[var(--co-muted)]">Manual mileage, tips, bonuses, and adjustments are logged. Mileage edits are allowed only on rows that include a lead / driver job.</p>
+        <p className="text-sm text-[var(--co-muted)]">Manual office hours, mileage, tips, bonuses, and adjustments are logged while the period is open.</p>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1120px] text-left text-sm">
+        <table className="w-full min-w-[1320px] text-left text-sm">
           <thead className="bg-[var(--co-evergreen)] text-xs uppercase tracking-[0.08em] text-white">
             <tr>
               <th className="px-5 py-3">Employee</th>
               <th className="px-5 py-3">Work type</th>
-              <th className="px-5 py-3 text-right">Tier hrs worked</th>
+              <th className="px-5 py-3 text-right">Clocked hours</th>
+              <th className="px-5 py-3 text-right">Manual office hrs</th>
+              <th className="px-5 py-3 text-right">Total paid hours</th>
               <th className="px-5 py-3 text-right">Hourly rate</th>
               <th className="px-5 py-3 text-right">Total commission</th>
               <th className="px-5 py-3 text-right">Mileage</th>
@@ -252,7 +286,9 @@ function PayrollTable({
           </thead>
           <tbody className="divide-y divide-[var(--co-line-soft)]">
             {lines.map((line) => {
-              const hours = line.payType === "commission_jth" ? Number(line.regularHours) : Number(line.officeHours);
+              const clockedHours = line.payType === "commission_jth" ? Number(line.regularHours) : Number(line.officeHours);
+              const manualOfficeHours = line.payType === "office_hourly" ? Number(line.manualOfficeHours) : 0;
+              const totalPaidHours = clockedHours + manualOfficeHours;
               const commission = line.payType === "commission_jth" ? line.commissionCents : line.officePayCents;
               const bonuses = line.bonusCents + line.teamLeadBonusCents + line.trainerBonusCents + line.trainingCents;
               const mileageEligible = line.calculation.some((entry) => entry.crewRole === "lead");
@@ -270,7 +306,15 @@ function PayrollTable({
                       </span>
                     </td>
                     <td className="px-5 py-4 text-[var(--co-muted)]">{line.payType === "commission_jth" ? "Job ticket hours" : "Office hourly"}</td>
-                    <td className="px-5 py-4 text-right font-medium">{hours.toFixed(2)}</td>
+                    <td className="px-5 py-4 text-right font-medium">{clockedHours.toFixed(2)}</td>
+                    <td className="px-5 py-4 text-right">
+                      {line.role === "admin" && line.payType === "office_hourly" ? (
+                        <EditableCell value={line.manualOfficeHours} onSave={(value) => updateLine(line.id, { manualOfficeHours: value })} suffix=" hrs" />
+                      ) : (
+                        <span className="text-[var(--co-muted)]">—</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4 text-right font-medium">{totalPaidHours.toFixed(2)}</td>
                     <td className="px-5 py-4 text-right text-[var(--co-muted)]">{line.hourlyRateCents ? dollars(line.hourlyRateCents) : "—"}</td>
                     <td className="px-5 py-4 text-right font-medium">{dollars(commission)}</td>
                     <td className="px-5 py-4 text-right">
@@ -284,7 +328,10 @@ function PayrollTable({
                       )}
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <EditableCell value={dollars(line.tipsPaycheckCents + line.tipsCashCents)} onSave={(value) => updateLine(line.id, { tipsPaycheckCents: Math.round(value * 100) })} prefix="$" />
+                      <div className="text-right">
+                        <div className="font-medium">{dollars(line.clientTipsCents + line.tipsPaycheckCents + line.tipsCashCents)}</div>
+                        <div className="text-[10px] text-[var(--co-muted)]">Client + manual</div>
+                      </div>
                     </td>
                     <td className="px-5 py-4 text-right">
                       <EditableCell value={dollars(bonuses)} onSave={(value) => updateLine(line.id, { bonusCents: Math.round(value * 100) })} prefix="$" />
@@ -309,7 +356,7 @@ function PayrollTable({
           </tbody>
           <tfoot className="border-t-2 border-[var(--co-evergreen)] bg-[var(--co-surface-muted)]">
             <tr>
-              <td className="px-5 py-4 font-semibold" colSpan={8}>
+              <td className="px-5 py-4 font-semibold" colSpan={11}>
                 Total payroll
               </td>
               <td className="px-5 py-4 text-right text-lg font-semibold">{dollars(totalPay)}</td>
@@ -326,6 +373,8 @@ export default function PayrollPage() {
   const [weekStart, setWeekStart] = useState(lastCompletedPayrollMonday());
   const [period, setPeriod] = useState<Period | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
+  const [jobReviews, setJobReviews] = useState<JobReview[]>([]);
+  const [exportReadiness, setExportReadiness] = useState<ExportReadiness | null>(null);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
@@ -338,6 +387,8 @@ export default function PayrollPage() {
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(body.error ?? "Payroll lines could not be loaded.");
     setLines(body.lines ?? []);
+    setJobReviews(body.jobReviews ?? []);
+    setExportReadiness(body.exportReadiness ?? null);
   }, []);
 
   const loadPeriod = useCallback(async () => {
@@ -398,6 +449,14 @@ export default function PayrollPage() {
     await loadDetail(period.id);
   }
 
+  async function decideReview(reviewId: string, status: "approved" | "rejected", approvedMinutes?: number) {
+    if (!period) return;
+    const response = await fetch(`/api/payroll-periods/${period.id}/job-reviews/${reviewId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status, approvedMinutes }) });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) setError(body.error ?? "Could not update this time review.");
+    else await loadDetail(period.id);
+  }
+
   async function changeStatus(status: Period["status"]) {
     if (!period) return;
     const response = await fetch(`/api/payroll-periods/${period.id}`, {
@@ -415,7 +474,9 @@ export default function PayrollPage() {
   const totalPay = lines.reduce((sum, line) => sum + line.finalCents, 0);
   const totalCommission = lines.reduce((sum, line) => sum + line.commissionCents, 0);
   const totalTips = lines.reduce((sum, line) => sum + line.tipsPaycheckCents + line.tipsCashCents, 0);
-  const totalHours = lines.reduce((sum, line) => sum + Number(line.payType === "commission_jth" ? line.regularHours : line.officeHours), 0);
+  const totalClockedHours = lines.reduce((sum, line) => sum + Number(line.payType === "commission_jth" ? line.regularHours : line.officeHours), 0);
+  const totalManualOfficeHours = lines.reduce((sum, line) => sum + (line.payType === "office_hourly" ? Number(line.manualOfficeHours) : 0), 0);
+  const totalPaidHours = totalClockedHours + totalManualOfficeHours;
   const totalMiles = lines.reduce((sum, line) => sum + Number(line.mileageMiles), 0);
   const reviewedCount = lines.filter((line) => line.calculation.length > 0).length;
 
@@ -444,10 +505,14 @@ export default function PayrollPage() {
           <button onClick={() => setWeekStart(addDaysISO(weekStart, 7))} className="co-button-secondary">
             Next week →
           </button>
-          {period ? (
+          {period ? exportReadiness?.ok && period.status !== "open" ? (
             <a href={`/api/payroll-periods/${period.id}/export`} className="co-button-primary">
               Export Gusto CSV
             </a>
+          ) : (
+            <span className="co-button-secondary cursor-not-allowed opacity-60" title={period.status === "open" ? "Approve the period before exporting." : "Resolve export blockers before exporting."}>
+              Export blocked
+            </span>
           ) : null}
         </div>
       </header>
@@ -456,6 +521,15 @@ export default function PayrollPage() {
         <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
         </div>
+      ) : null}
+
+      {period && period.status !== "open" && exportReadiness && !exportReadiness.ok ? (
+        <section role="status" className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+          <p className="font-semibold">Gusto export is blocked until these items are resolved:</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {exportReadiness.blockers.map((blocker, index) => <li key={`${blocker.lineId}-${index}`}><span className="font-medium">{blocker.employee}:</span> {blocker.reason}</li>)}
+          </ul>
+        </section>
       ) : null}
 
       <section className="grid gap-3 md:grid-cols-4">
@@ -494,9 +568,11 @@ export default function PayrollPage() {
         </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         <Metric label="Employees" value={String(lines.length)} hint="included in this period" />
-        <Metric label="Tier hours worked" value={totalHours.toFixed(2)} hint="commission + hourly hours" />
+        <Metric label="Clocked hours" value={totalClockedHours.toFixed(2)} hint="automatically tracked time" />
+        <Metric label="Manual office hours" value={totalManualOfficeHours.toFixed(2)} hint="additional admin time" />
+        <Metric label="Total paid hours" value={totalPaidHours.toFixed(2)} hint="clocked + manual office time" />
         <Metric label="Commission" value={dollars(totalCommission)} hint="service-based pay" />
         <Metric label="Mileage" value={`${totalMiles.toFixed(1)} mi`} hint="editable reimbursement" />
         <Metric label="Total pay" value={dollars(totalPay)} hint="ready for Gusto entry" />
@@ -510,7 +586,10 @@ export default function PayrollPage() {
           <p className="mt-1 text-sm text-[var(--co-muted)]">Complete jobs or add time entries, then refresh the open period.</p>
         </div>
       ) : (
-        <PayrollTable lines={lines} expandedLineId={expandedLineId} setExpandedLineId={setExpandedLineId} updateLine={updateLine} totalPay={totalPay} />
+        <>
+          <ReviewQueue reviews={jobReviews} lines={lines} onDecide={decideReview} />
+          <PayrollTable lines={lines} expandedLineId={expandedLineId} setExpandedLineId={setExpandedLineId} updateLine={updateLine} totalPay={totalPay} />
+        </>
       )}
 
       {lines.length > 0 ? (
@@ -551,4 +630,3 @@ export default function PayrollPage() {
     </div>
   );
 }
-

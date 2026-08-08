@@ -510,13 +510,16 @@ export const jobs = pgTable("jobs", {
 }));
 
 // ---------- job assignments ----------
-export const assignmentRoleEnum = ["lead", "helper"] as const;
+export const assignmentRoleEnum = ["lead", "helper", "trainer"] as const;
 
 export const jobAssignments = pgTable("job_assignments", {
   id: uuid("id").primaryKey().defaultRandom(),
   jobId: uuid("job_id").notNull().references(() => jobs.id),
   userId: uuid("user_id").notNull().references(() => users.id),
   role: text("role", { enum: assignmentRoleEnum }).notNull().default("lead"),
+  // Mileage is recorded against the assigned job so the lead/driver can
+  // submit one unambiguous trip amount from My Day.
+  mileageMiles: numeric("mileage_miles", { precision: 8, scale: 2 }).notNull().default("0"),
   ...timestamps,
 }, (t) => ({
   jobUserIdx: uniqueIndex("job_assignments_job_user_idx").on(t.jobId, t.userId),
@@ -552,6 +555,7 @@ export const invoices = pgTable("invoices", {
   status: text("status", { enum: invoiceStatusEnum }).notNull().default("draft"),
   method: text("method", { enum: invoiceMethodEnum }),
   squareInvoiceId: text("square_invoice_id"),
+  squarePublicUrl: text("square_public_url"),
   subtotalCents: integer("subtotal_cents"),
   discountCents: integer("discount_cents").notNull().default(0),
   tipCents: integer("tip_cents").notNull().default(0),
@@ -578,6 +582,50 @@ export const payrollPeriods = pgTable("payroll_periods", {
   exportedAt: timestamp("exported_at", { withTimezone: true }),
   ...timestamps,
 });
+
+export const payrollJobReviewStatusEnum = ["pending", "approved", "rejected"] as const;
+
+/** Per-employee review of logged time that exceeds the job's JTH. */
+export const payrollJobReviews = pgTable("payroll_job_reviews", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  payrollPeriodId: uuid("payroll_period_id").notNull().references(() => payrollPeriods.id),
+  jobId: uuid("job_id").notNull().references(() => jobs.id),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  jthMinutes: integer("jth_minutes").notNull(),
+  loggedMinutes: integer("logged_minutes").notNull(),
+  approvedMinutes: integer("approved_minutes"),
+  status: text("status", { enum: payrollJobReviewStatusEnum }).notNull().default("pending"),
+  reviewedBy: uuid("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  note: text("note"),
+  ...timestamps,
+}, (t) => ({
+  periodJobUserIdx: uniqueIndex("payroll_job_reviews_period_job_user_idx").on(t.payrollPeriodId, t.jobId, t.userId),
+}));
+
+// Customer-owned post-service feedback. The public token is the only way to
+// access a request; cleaners and office users never submit these fields.
+export const feedbackRequestStatusEnum = ["sent", "submitted", "expired"] as const;
+export const feedbackRequests = pgTable("feedback_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull().references(() => companies.id),
+  jobId: uuid("job_id").notNull().references(() => jobs.id),
+  customerId: uuid("customer_id").notNull().references(() => customers.id),
+  publicToken: text("public_token").notNull(),
+  status: text("status", { enum: feedbackRequestStatusEnum }).notNull().default("sent"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  qualityRating: integer("quality_rating"),
+  qualityTags: text("quality_tags").array().notNull().default([]),
+  qualityComment: text("quality_comment"),
+  tipCents: integer("tip_cents").notNull().default(0),
+  invoiceUrl: text("invoice_url"),
+  ...timestamps,
+}, (t) => ({
+  tokenIdx: uniqueIndex("feedback_requests_public_token_idx").on(t.publicToken),
+  jobIdx: uniqueIndex("feedback_requests_job_idx").on(t.jobId),
+  companyStatusIdx: index("feedback_requests_company_status_idx").on(t.companyId, t.status),
+}));
 
 // ---------- job photos ----------
 export const jobPhotoSlotEnum = ["before", "after", "extra"] as const;
@@ -608,8 +656,12 @@ export const jobPhotos = pgTable("job_photos", {
  * Hours x rate, paid on the quote regardless of actual clocked time.
  * officeHours / officePayCents (office/admin staff) = actual clocked hours
  * from time_entries x user.hourlyRateCents.
+ * manualOfficeHours (paid office admins) = additional hours entered during
+ * payroll review, kept separate from clocked time for auditability.
  * mileageCents, tipsPaycheckCents, tipsCashCents, bonusCents, trainingCents,
- * payrollAdvanceCents are manual entries — no automated source exists yet.
+ * manualOfficeHours, mileageCents, tipsPaycheckCents, tipsCashCents,
+ * bonusCents, trainingCents, and payrollAdvanceCents are manual entries — no
+ * automated source exists yet.
  */
 export const payrollLines = pgTable("payroll_lines", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -619,12 +671,14 @@ export const payrollLines = pgTable("payroll_lines", {
   regularHours: numeric("regular_hours", { precision: 6, scale: 2 }).notNull().default("0"),
   commissionCents: integer("commission_cents").notNull().default(0),
   officeHours: numeric("office_hours", { precision: 6, scale: 2 }).notNull().default("0"),
+  manualOfficeHours: numeric("manual_office_hours", { precision: 6, scale: 2 }).notNull().default("0"),
   officePayCents: integer("office_pay_cents").notNull().default(0),
   mileageMiles: numeric("mileage_miles", { precision: 8, scale: 2 }).notNull().default("0"),
   mileageRateCents: integer("mileage_rate_cents").notNull().default(35), // $0.35/mi default, matches sheet
   mileageCents: integer("mileage_cents").notNull().default(0),
   tipsPaycheckCents: integer("tips_paycheck_cents").notNull().default(0),
   tipsCashCents: integer("tips_cash_cents").notNull().default(0),
+  clientTipsCents: integer("client_tips_cents").notNull().default(0),
   bonusCents: integer("bonus_cents").notNull().default(0),
   teamLeadBonusCents: integer("team_lead_bonus_cents").notNull().default(0),
   trainerBonusCents: integer("trainer_bonus_cents").notNull().default(0),
@@ -759,6 +813,14 @@ export const quotesRelations = relations(quotes, ({ one }) => ({
 
 export const payrollPeriodsRelations = relations(payrollPeriods, ({ many }) => ({
   lines: many(payrollLines),
+  jobReviews: many(payrollJobReviews),
+}));
+
+export const payrollJobReviewsRelations = relations(payrollJobReviews, ({ one }) => ({
+  period: one(payrollPeriods, { fields: [payrollJobReviews.payrollPeriodId], references: [payrollPeriods.id] }),
+  job: one(jobs, { fields: [payrollJobReviews.jobId], references: [jobs.id] }),
+  user: one(users, { fields: [payrollJobReviews.userId], references: [users.id] }),
+  reviewer: one(users, { fields: [payrollJobReviews.reviewedBy], references: [users.id] }),
 }));
 
 export const payrollLinesRelations = relations(payrollLines, ({ one }) => ({

@@ -20,6 +20,13 @@ export type JobDetail = {
   paymentMethodCollected: string | null;
   checkNumberCollected: string | null;
   cleanerNotes: string | null;
+  feedbackStatus: string | null;
+  feedbackSubmittedAt: string | Date | null;
+  feedbackExpiresAt: string | Date | null;
+  feedbackUrl: string | null;
+  feedbackQualityRating: number | null;
+  feedbackQualityComment: string | null;
+  feedbackTipCents: number | null;
   cancellationReason: string | null;
   serviceId: string | null;
   serviceName: string | null;

@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { auditLog, customers, jobAssignments, jobs, roomTypes, services, timeEntries, users } from "@/db/schema";
+import { auditLog, customers, feedbackRequests, jobAssignments, jobs, roomTypes, services, timeEntries, users } from "@/db/schema";
 import { isFieldEligible } from "@/lib/auth/field-staff";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -45,6 +45,13 @@ export async function loadJobDetail(jobId: string, companyId: string) {
       paymentMethodCollected: jobs.paymentMethodCollected,
       checkNumberCollected: jobs.checkNumberCollected,
       cleanerNotes: jobs.cleanerNotes,
+      feedbackStatus: feedbackRequests.status,
+      feedbackSubmittedAt: feedbackRequests.submittedAt,
+      feedbackExpiresAt: feedbackRequests.expiresAt,
+      feedbackUrl: feedbackRequests.publicToken,
+      feedbackQualityRating: feedbackRequests.qualityRating,
+      feedbackQualityComment: feedbackRequests.qualityComment,
+      feedbackTipCents: feedbackRequests.tipCents,
       cancellationReason: jobs.cancellationReason,
       serviceId: jobs.serviceId,
       addOnIds: jobs.addOnIds,
@@ -65,6 +72,7 @@ export async function loadJobDetail(jobId: string, companyId: string) {
     })
     .from(jobs)
     .innerJoin(customers, eq(jobs.customerId, customers.id))
+    .leftJoin(feedbackRequests, eq(feedbackRequests.jobId, jobs.id))
     .where(and(eq(jobs.id, jobId), eq(jobs.companyId, companyId)))
     .limit(1);
 

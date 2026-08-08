@@ -5,7 +5,7 @@ import { formatDayLabel } from "@/lib/scheduling/dates";
 
 type Job = {
   id: string;
-  role: "lead" | "helper";
+  role: "lead" | "helper" | "trainer";
   status: string;
   type: string;
   scheduledDate: string;
@@ -74,8 +74,8 @@ function dateLabel(value: string) {
   return formatDayLabel(new Date(`${value}T00:00:00.000Z`));
 }
 
-function roleLabel(role: "lead" | "helper") {
-  return role === "lead" ? "Lead" : "Helper";
+function roleLabel(role: "lead" | "helper" | "trainer") {
+  return role === "lead" ? "Lead / driver" : role === "trainer" ? "Trainer" : "Helper";
 }
 
 export default function EmployeeBrowserClient({
@@ -582,4 +582,3 @@ function Stat({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-

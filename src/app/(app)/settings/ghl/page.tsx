@@ -25,6 +25,7 @@ type WorkflowMap = {
   lost: string;
   moved: string;
   invoiceSent: string;
+  postServiceFeedback: string;
 };
 
 const DEFAULT_TAG_MAP: TagMap = {
@@ -49,6 +50,7 @@ const DEFAULT_WORKFLOW_MAP: WorkflowMap = {
   lost: "",
   moved: "",
   invoiceSent: "",
+  postServiceFeedback: "",
 };
 
 const FIELD_LABELS: Array<{ key: keyof TagMap; label: string; hint: string }> = [
@@ -73,6 +75,7 @@ const WORKFLOW_LABELS: Array<{ key: keyof WorkflowMap; label: string; hint: stri
   { key: "lost", label: "Lost", hint: "Workflow for lost prospects." },
   { key: "moved", label: "Moved", hint: "Workflow for moved customers." },
   { key: "invoiceSent", label: "Invoice sent", hint: "Workflow that emails the invoice to the customer." },
+  { key: "postServiceFeedback", label: "Post-service feedback", hint: "Sends the customer their private feedback, tip, and payment link." },
 ];
 
 type GhlTestStatus = {

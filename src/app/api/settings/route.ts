@@ -56,6 +56,7 @@ const ghlWorkflowMapSchema = z.object({
   lost: z.string().trim().max(200).optional().or(z.literal("")),
   moved: z.string().trim().max(200).optional().or(z.literal("")),
   invoiceSent: z.string().trim().max(200).optional().or(z.literal("")),
+  postServiceFeedback: z.string().trim().max(200).optional().or(z.literal("")),
 });
 
 const payTierBracketSchema = z.object({

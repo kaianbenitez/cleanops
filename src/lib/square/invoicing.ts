@@ -52,7 +52,7 @@ export async function sendInvoiceViaSquare(invoiceId: string, companyId: string)
 
   await db
     .update(invoices)
-    .set({ status: "sent", method: "square", squareInvoiceId: invoiceRes.invoiceId })
+    .set({ status: "sent", method: "square", squareInvoiceId: invoiceRes.invoiceId, squarePublicUrl: invoiceRes.publicUrl ?? null })
     .where(eq(invoices.id, invoiceId));
 
   return { ok: true };

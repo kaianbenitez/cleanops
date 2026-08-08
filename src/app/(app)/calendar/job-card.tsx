@@ -28,6 +28,11 @@ export type CardJob = {
   petNotes: string | null;
   doNotClean: string | null;
   assignedUserIds: string[];
+  rotationalTaskReminder: {
+    currentWeek: number;
+    everyTime: string;
+    weeks: readonly { week: number; label: string; weekly: string; biweekly: string; monthly: string }[];
+  } | null;
 };
 
 const STATUS_TONES: Record<string, string> = {
@@ -80,6 +85,11 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
         </div>
         {job.customerNotes ? <p className="mt-1 truncate text-[10px] leading-4 text-[var(--co-muted)]" title={cleanNoteText(job.customerNotes)}>Note: {cleanNoteText(job.customerNotes)}</p> : null}
         {job.recurringSeriesId ? <p className="mt-1 text-[10px] font-medium text-[var(--co-faint)]">↻ {recurrenceLabel(job.recurrenceFrequency)}</p> : null}
+        {job.rotationalTaskReminder ? (
+          <p className="mt-2 rounded-md border border-violet-200 bg-violet-50/80 px-2 py-1.5 text-[10px] font-semibold text-violet-950">
+            All-day rotation · Week {job.rotationalTaskReminder.currentWeek}
+          </p>
+        ) : null}
       </Link>
     </>
   );

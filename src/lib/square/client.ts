@@ -105,6 +105,9 @@ export async function createAndPublishInvoice(config: SquareConfig, params: {
           {
             request_type: "BALANCE",
             due_date: new Date().toISOString().slice(0, 10),
+            // Square owns the tip collection and receipt; the customer can
+            // add a tip on the Square-hosted invoice page.
+            tipping_enabled: true,
           },
         ],
       },

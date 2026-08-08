@@ -15,6 +15,7 @@ const createJobSchema = z.object({
   estimatedDurationMinutes: z.number().int().positive().optional(),
   priceCents: z.number().int().nonnegative(),
   employeeIds: z.array(z.string().uuid()).optional(),
+  trainerId: z.string().uuid().nullable().optional(),
   // A custom "main" service-catalog preset the job was created from, and any
   // "add_on" presets selected alongside it. Both optional — a job can still
   // just use one of the four built-in types with no catalog preset at all.
@@ -92,6 +93,10 @@ export async function POST(req: NextRequest) {
 
   const data = parsed.data;
 
+  if (data.trainerId && !data.employeeIds?.includes(data.trainerId)) {
+    return NextResponse.json({ error: "Trainer must be one of the assigned employees." }, { status: 400 });
+  }
+
   const [customer] = await db
     .select({ id: customers.id })
     .from(customers)
@@ -138,9 +143,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // A job-ticket-hours estimate (amount due ÷ the customer's branch rate)
-  // beats the generic 2-hour placeholder whenever it can be resolved; an
-  // explicit estimatedDurationMinutes from the caller always wins.
+  // JTH is explicit job data. Keep a safe legacy fallback for callers that do
+  // not provide a duration; payroll never derives it from ZIP or quote data.
   const estimatedDurationMinutes =
     data.estimatedDurationMinutes ??
     (await resolveJobTicketMinutes({
@@ -171,7 +175,7 @@ export async function POST(req: NextRequest) {
       data.employeeIds.map((userId, i) => ({
         jobId: job.id,
         userId,
-        role: i === 0 ? ("lead" as const) : ("helper" as const),
+        role: i === 0 ? ("lead" as const) : userId === data.trainerId ? ("trainer" as const) : ("helper" as const),
       }))
     );
   }

@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { auditLog, payrollLines, payrollPeriods } from "@/db/schema";
+import { auditLog, payrollLines, payrollPeriods, users } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { recomputeFinalCents } from "@/lib/payroll/calculate";
 
+const manualOfficeHoursSchema = z.number().finite().nonnegative().refine((value) => Number.isInteger(value * 100), "Must use at most two decimal places");
 const updateLineSchema = z.object({
+  manualOfficeHours: manualOfficeHoursSchema.optional(),
   mileageMiles: z.number().nonnegative().optional(),
   mileageRateCents: z.number().int().nonnegative().optional(),
   tipsPaycheckCents: z.number().int().nonnegative().optional(),
@@ -56,33 +58,48 @@ export async function PATCH(
   }
 
   const [line] = await db
-    .select()
+    .select({ line: payrollLines, employeeCompanyId: users.companyId })
     .from(payrollLines)
-    .where(and(eq(payrollLines.id, lineId), eq(payrollLines.payrollPeriodId, periodId)))
+    .innerJoin(users, eq(payrollLines.userId, users.id))
+    .where(and(eq(payrollLines.id, lineId), eq(payrollLines.payrollPeriodId, periodId), eq(users.companyId, admin.companyId)))
     .limit(1);
 
   if (!line) {
     return NextResponse.json({ error: "Line not found" }, { status: 404 });
   }
 
+  const payrollLine = line.line;
+
+  if (parsed.data.manualOfficeHours !== undefined) {
+    const [employee] = await db
+      .select({ role: users.role, payType: users.payType })
+      .from(users)
+      .where(eq(users.id, payrollLine.userId))
+      .limit(1);
+    if (employee?.role !== "admin" || employee.payType !== "office_hourly") {
+      return NextResponse.json({ error: "Manual office hours can only be edited for office-hourly admin lines." }, { status: 400 });
+    }
+  }
+
   const before = {
-    mileageMiles: line.mileageMiles,
-    mileageRateCents: line.mileageRateCents,
-    tipsPaycheckCents: line.tipsPaycheckCents,
-    tipsCashCents: line.tipsCashCents,
-    bonusCents: line.bonusCents,
-    teamLeadBonusCents: line.teamLeadBonusCents,
-    trainerBonusCents: line.trainerBonusCents,
-    trainingCents: line.trainingCents,
-    payrollAdvanceCents: line.payrollAdvanceCents,
-    adjustmentCents: line.adjustmentCents,
-    adjustmentNote: line.adjustmentNote,
+    manualOfficeHours: payrollLine.manualOfficeHours,
+    mileageMiles: payrollLine.mileageMiles,
+    mileageRateCents: payrollLine.mileageRateCents,
+    tipsPaycheckCents: payrollLine.tipsPaycheckCents,
+    tipsCashCents: payrollLine.tipsCashCents,
+    bonusCents: payrollLine.bonusCents,
+    teamLeadBonusCents: payrollLine.teamLeadBonusCents,
+    trainerBonusCents: payrollLine.trainerBonusCents,
+    trainingCents: payrollLine.trainingCents,
+    payrollAdvanceCents: payrollLine.payrollAdvanceCents,
+    adjustmentCents: payrollLine.adjustmentCents,
+    adjustmentNote: payrollLine.adjustmentNote,
   };
 
   const { mileageMiles, ...rest } = parsed.data;
   const isMileageEdit = mileageMiles !== undefined;
-  const leadJobCount = Array.isArray(line.calculation)
-    ? line.calculation.filter((entry) => entry && typeof entry === "object" && (entry as { crewRole?: string }).crewRole === "lead").length
+  const leadJobCount = Array.isArray(payrollLine.calculation)
+    ? payrollLine.calculation.filter((entry) => entry && typeof entry === "object" && (entry as { crewRole?: string }).crewRole === "lead").length
     : 0;
   if (isMileageEdit && leadJobCount === 0) {
     return NextResponse.json(
@@ -95,12 +112,15 @@ export async function PATCH(
   if (mileageMiles !== undefined) {
     fields.mileageMiles = mileageMiles.toFixed(2);
   }
+  if (parsed.data.manualOfficeHours !== undefined) {
+    fields.manualOfficeHours = parsed.data.manualOfficeHours.toFixed(2);
+  }
 
   if (Object.keys(fields).length > 0) {
     await db.update(payrollLines).set(fields).where(eq(payrollLines.id, lineId));
   }
 
-  await recomputeFinalCents(periodId, line.userId);
+  await recomputeFinalCents(periodId, payrollLine.userId);
 
   await db.insert(auditLog).values({
     companyId: admin.companyId,

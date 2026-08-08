@@ -20,6 +20,15 @@ export function payrollWeekRangeForDate(value: string | Date) {
   };
 }
 
+export function payrollPayDate(startDate: string) {
+  return addDaysISO(startDate, 11);
+}
+
+export function isMondayToSundayPeriod(startDate: string, endDate: string) {
+  const range = payrollWeekRangeForDate(startDate);
+  return range.startDate === startDate && range.endDate === endDate;
+}
+
 export async function getOrCreatePayrollPeriodForDate(companyId: string, value: string | Date) {
   const { startDate, endDate } = payrollWeekRangeForDate(value);
 

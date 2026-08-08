@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
 import { payrollPeriods } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
+import { isMondayToSundayPeriod } from "@/lib/payroll/periods";
 
 const createPeriodSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -34,6 +35,10 @@ export async function POST(req: NextRequest) {
   }
 
   const { startDate, endDate } = parsed.data;
+
+  if (!isMondayToSundayPeriod(startDate, endDate)) {
+    return NextResponse.json({ error: "Payroll periods must run Monday through Sunday." }, { status: 400 });
+  }
 
   const [existing] = await db
     .select()
