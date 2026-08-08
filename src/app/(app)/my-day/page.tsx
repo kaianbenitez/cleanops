@@ -107,6 +107,7 @@ function formatDayLabel(value: string, timezone: string) {
 export default async function MyDayPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.role === "admin") redirect("/dashboard");
 
   const company = await db.select({ name: companies.name, timezone: companies.timezone, settings: companies.settings }).from(companies).where(eq(companies.id, user.companyId)).limit(1).then((rows) => rows[0] ?? null);
   if (!company) redirect("/login");

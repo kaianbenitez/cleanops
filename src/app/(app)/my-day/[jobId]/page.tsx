@@ -9,6 +9,7 @@ export default async function JobExecutionPage({ params }: { params: Promise<{ j
   const { jobId } = await params;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.role === "admin") redirect("/dashboard");
 
   const company = await db
     .select({ timezone: companies.timezone, settings: companies.settings })

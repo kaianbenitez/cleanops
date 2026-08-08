@@ -70,23 +70,17 @@ function NavIcon({ href }: { href: string }) {
 
 export default function AppNav({
   isAdmin,
-  isFieldStaff,
   userName,
   userEmail,
   initialNotifications,
 }: {
   isAdmin: boolean;
-  isFieldStaff: boolean;
   userName: string;
   userEmail: string;
   initialNotifications: Notification[];
 }) {
   const pathname = usePathname();
-  const visibleLinks = isAdmin
-    ? isFieldStaff
-      ? [...links, ["/my-day", "My day"] as const]
-      : links
-    : [["/my-day", "My day"], ["/schedule", "Schedule"] as const];
+  const visibleLinks = isAdmin ? links : [["/my-day", "My day"], ["/schedule", "Schedule"] as const];
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
