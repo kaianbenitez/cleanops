@@ -40,7 +40,6 @@ const links = [
   ["/invoices", "Invoices"],
   ["/payroll", "Payroll"],
   ["/employees", "Employees"],
-  ["/supplies", "Supplies"],
 ] as const;
 
 const iconByHref: Record<string, LucideIcon> = {

@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.24",
+    date: "August 8, 2026",
+    title: "Supplies temporarily tucked away",
+    changes: [
+      "Supplies is temporarily hidden from the main navigation while the rest of the workspace remains available.",
+    ],
+  },
+  {
     version: "v0.2.23",
     date: "August 8, 2026",
     title: "A collapsible desktop navigation",
