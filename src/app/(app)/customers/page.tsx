@@ -215,7 +215,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   // Sort is scoped to the normal filtered view — the archive-eligible view has its own
   // review flow (bulk-archive-bar) and doesn't render this filter form, so it keeps the
   // long-standing name A-Z order rather than exposing an unreachable control.
-  const sortKey: SortKey = !isEligibleView && isSortKey(sp.sort) ? sp.sort : "name_asc";
+  const sortKey: SortKey = !isEligibleView && isSortKey(sp.sort) ? sp.sort : "newest";
   const lifetimeRevenue = sql`(select coalesce(sum(${invoices.totalCents}), 0) from ${invoices} where ${invoices.customerId} = ${customers.id} and ${invoices.status} <> 'void')`;
   const orderBy =
     sortKey === "name_desc"
