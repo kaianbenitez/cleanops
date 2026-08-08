@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Inbox, SlidersHorizontal } from "lucide-react";
@@ -71,6 +72,17 @@ export default function FilterBar({
   const status = searchParams.get("status") ?? "";
   const assignment = searchParams.get("assignment") ?? "";
   const queueOpen = searchParams.get("queue") === "unassigned";
+  const unassignedOnlyParams = new URLSearchParams(searchParams.toString());
+  if (assignment === "unassigned") {
+    unassignedOnlyParams.delete("assignment");
+    unassignedOnlyParams.delete("queue");
+  } else {
+    unassignedOnlyParams.set("assignment", "unassigned");
+    // In Staff view, the unassigned cards live in their own queue above the
+    // technician lanes. Opening it here makes the filter's result visible.
+    unassignedOnlyParams.set("queue", "unassigned");
+  }
+  const unassignedOnlyHref = `${pathname}?${unassignedOnlyParams.toString()}`;
   const hasFilters = employeeId || type || recurrence || status || assignment || searchParams.get("zip");
   const projectedRevenue = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -103,9 +115,9 @@ export default function FilterBar({
           {STATUSES.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}
         </select>
 
-        <button type="button" aria-pressed={assignment === "unassigned"} onClick={() => setParam("assignment", assignment === "unassigned" ? "" : "unassigned")} className={`co-button-secondary py-2 text-xs ${assignment === "unassigned" ? "border-[var(--co-evergreen)] text-[var(--co-evergreen)]" : ""}`}>
+        <Link href={unassignedOnlyHref} aria-pressed={assignment === "unassigned"} className={`co-button-secondary py-2 text-xs ${assignment === "unassigned" ? "border-[var(--co-evergreen)] text-[var(--co-evergreen)]" : ""}`}>
           Unassigned only
-        </button>
+        </Link>
 
         <button type="button" onClick={() => setAdvancedOpen((open) => !open)} aria-expanded={advancedOpen} className={`co-button-secondary gap-2 py-2 text-xs ${advancedOpen ? "border-[var(--co-evergreen)] text-[var(--co-evergreen)]" : ""}`}>
           <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
