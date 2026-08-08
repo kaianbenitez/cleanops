@@ -740,7 +740,7 @@ export default async function CalendarPage({
                   ))
               : []}
             laneEmployeeId={sp.employeeId}
-            queueOpen={sp.queue === "unassigned"}
+            queueOpen={sp.queue === "unassigned" || sp.assignment === "unassigned"}
             jobs={displayedJobs}
             unassignedJobs={unassignedRows.map((row) => ({
               ...row,
