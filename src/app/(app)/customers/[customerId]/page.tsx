@@ -31,6 +31,15 @@ type CustomerInvoice = {
   paidAt: string | null;
 };
 
+type CustomerQuote = {
+  id: string;
+  status: string;
+  totalCents: number;
+  requestedServiceType: string | null;
+  acceptedServiceType: string | null;
+  createdAt: string;
+};
+
 type RecurringSeries = { id: string; frequency: string; isActive: boolean; startDate: string; endDate: string | null };
 
 type ServiceAreaSummary = {
@@ -149,6 +158,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [jobs, setJobs] = useState<CustomerJob[]>([]);
+  const [quotes, setQuotes] = useState<CustomerQuote[]>([]);
   const [invoices, setInvoices] = useState<CustomerInvoice[]>([]);
   const [recurringSeries, setRecurringSeries] = useState<RecurringSeries[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
@@ -197,6 +207,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
     });
     setLocations(body.locations ?? []);
     setJobs(body.jobs ?? []);
+    setQuotes(body.quotes ?? []);
     setInvoices(body.invoices ?? []);
     setRecurringSeries(body.recurringSeries ?? []);
     setAuditLogs(body.auditLogs ?? []);
@@ -754,6 +765,27 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                     <div className="text-right">
                       <p className="font-semibold">{money(invoice.totalCents)}</p>
                       <span className={`text-xs ${invoice.status === "paid" ? "text-emerald-700" : "text-amber-700"}`}>{invoice.status}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </Section>
+
+          <Section eyebrow="Sales" title="Quote history" description="Every proposal created for this customer, newest first.">
+            {quotes.length === 0 ? (
+              <p className="py-4 text-sm text-[var(--co-muted)]">No quotes created yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {quotes.slice(0, 5).map((quote) => (
+                  <Link key={quote.id} href={`/quotes/${quote.id}`} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--co-line-soft)] px-3 py-3 text-sm hover:bg-[var(--co-surface-muted)]">
+                    <div>
+                      <p className="font-medium">Q-{quote.id.slice(0, 6).toUpperCase()} · {formatCustomerDate(quote.createdAt.slice(0, 10))}</p>
+                      <p className="text-xs text-[var(--co-muted)]">{(quote.acceptedServiceType ?? quote.requestedServiceType)?.replaceAll("_", " ") ?? "Service not selected"}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <p className="font-semibold">{quote.acceptedServiceType || quote.requestedServiceType ? money(quote.totalCents) : "—"}</p>
+                      <StatusPill domain="quote" status={quote.status} />
                     </div>
                   </Link>
                 ))}
