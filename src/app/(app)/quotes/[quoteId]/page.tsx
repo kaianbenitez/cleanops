@@ -383,7 +383,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
           <PageCard eyebrow="Payment status" title="Quote state" description="This helps the office know what happened without opening the public page.">
             {bookingOverride ? (
               <div className="mb-3 border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-                <p className="font-semibold">Staff override — customer did not sign</p>
+                <p className="font-semibold">Accepted by staff — no customer signature</p>
                 <p className="mt-1">{bookingOverride.reason}</p>
                 <p className="mt-1 text-xs text-amber-900">Scheduled <LocalDateTime value={bookingOverride.bookedAt} />{bookingOverride.staffName ? ` by ${bookingOverride.staffName}` : ""}.</p>
               </div>

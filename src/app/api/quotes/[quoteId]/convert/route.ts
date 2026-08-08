@@ -79,11 +79,33 @@ export async function POST(
   if (!selectedBreakdown) {
     return NextResponse.json({ error: "The selected service was not priced on this quote." }, { status: 400 });
   }
+  const pricedBreakdown = selectedBreakdown;
 
   // Use this tier's final matrix price, rather than room weights or the
   // original requested tier. This is especially important for recurring
   // options, whose discounted price defines their job-ticket hours.
-  const estimatedDurationMinutes = estimateDurationMinutesFromPrice(selectedBreakdown.finalCents, hourlyRateCents);
+  const estimatedDurationMinutes = estimateDurationMinutesFromPrice(pricedBreakdown.finalCents, hourlyRateCents);
+
+  // Scheduling with an office-recorded approval is still an accepted sale. Keep
+  // the absence of a customer signature in the audit trail, but move the quote
+  // into Accepted so quote lists, reports, and customer history match the work
+  // that was booked.
+  async function recordInternalAcceptance() {
+    if (!isBookingOverride) return;
+
+    await db
+      .update(quotes)
+      .set({
+        status: "accepted",
+        acceptedAt: new Date(),
+        acceptedServiceType: serviceType,
+        acceptedRecurringServiceType: recurrenceFrequency ? serviceType : null,
+        totalCents: pricedBreakdown.finalCents,
+      })
+      .where(and(eq(quotes.id, quote.id), eq(quotes.companyId, admin.companyId)));
+
+    await syncToGhl(admin.companyId, { type: "quote.accepted", customerId: quote.customerId });
+  }
 
   if (recurrenceFrequency) {
     const dayOfWeek = new Date(`${startDate}T00:00:00.000Z`).getUTCDay();
@@ -95,7 +117,7 @@ export async function POST(
         frequency: recurrenceFrequency,
         dayOfWeek,
         startDate,
-        priceCents: selectedBreakdown.finalCents,
+        priceCents: pricedBreakdown.finalCents,
         estimatedDurationMinutes,
         defaultEmployeeIds: employeeIds ?? [],
         isActive: true,
@@ -114,6 +136,7 @@ export async function POST(
         after: { reason: parsed.data.overrideReason, serviceType, seriesId: series.id, startDate },
       });
     }
+    await recordInternalAcceptance();
 
     // PLAN.md §6: "Customer -> client + recurrence set" -> tags client +
     // recurrence-<freq>, removes sales-stage tags.
@@ -143,7 +166,7 @@ export async function POST(
       scheduledDate: startDate,
       scheduledStartTime: "09:00:00",
       estimatedDurationMinutes,
-      priceCents: selectedBreakdown.finalCents,
+      priceCents: pricedBreakdown.finalCents,
     })
     .returning();
 
@@ -157,6 +180,7 @@ export async function POST(
       after: { reason: parsed.data.overrideReason, serviceType, jobId: job.id, startDate },
     });
   }
+  await recordInternalAcceptance();
 
   // PLAN.md §6: "First clean scheduled" -> set first_cleaning_date, tag
   // first-clean-booked (kills the manual GHL date entry). Only for the

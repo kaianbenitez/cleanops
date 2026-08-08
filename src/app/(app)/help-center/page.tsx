@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.22",
+    date: "August 8, 2026",
+    title: "Internally approved quotes now close the loop",
+    changes: [
+      "Scheduling a quote after approval received outside the customer proposal now marks it Accepted, while preserving the staff note that no customer signature was collected.",
+    ],
+  },
+  {
     version: "v0.2.21",
     date: "August 7, 2026",
     title: "A compact Calendar control panel",
