@@ -59,7 +59,9 @@ export function resolveRange(
   const todayIso = todayInTimeZone(now, timeZone);
   const preset = sp.preset ?? (sp.from || sp.to ? "custom" : "this_month");
   const presetRange =
-    preset === "yesterday"
+    preset === "all_time"
+      ? { fromIso: "2000-01-01", toIso: todayIso }
+      : preset === "yesterday"
       ? { fromIso: addDaysIso(todayIso, -1), toIso: addDaysIso(todayIso, -1) }
       : preset === "this_week"
         ? { fromIso: startOfWeekIso(todayIso), toIso: todayIso }
@@ -129,8 +131,10 @@ export function resolveRange(
                         ? "Last 90 days"
                         : preset === "this_month"
                           ? "This month"
-                          : preset === "last_month"
-                            ? "Last month"
+        : preset === "last_month"
+          ? "Last month"
+          : preset === "all_time"
+            ? "All time"
                             : preset === "custom"
                               ? "Custom range"
                               : "Last 30 days",

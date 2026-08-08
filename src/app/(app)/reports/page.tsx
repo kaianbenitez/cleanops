@@ -2,10 +2,10 @@ import { and, asc, eq, isNotNull } from "drizzle-orm";
 import {
   BriefcaseBusiness,
   CircleDollarSign,
-  ClipboardCheck,
   FileText,
   HandCoins,
   ReceiptText,
+  Star,
   TrendingUp,
 } from "lucide-react";
 import { Suspense } from "react";
@@ -20,6 +20,7 @@ import {
   getJobsReport,
   getJobsReportSummary,
   getLastExports,
+  getQualityReport,
   getPayrollReport,
   getSalesReport,
   getSalesReportSummary,
@@ -110,31 +111,20 @@ function ReportCard({
   );
 }
 
-function ComingSoonCard() {
-  return (
-    <article className="co-card flex min-h-56 flex-col p-5 opacity-55">
-      <div className="flex items-start gap-3">
-        <ClipboardCheck
-          className="h-5 w-5 text-[var(--co-muted)]"
-          aria-hidden
-        />
-        <div>
-          <h3 className="font-semibold text-[var(--co-ink)]">
-            Quality &amp; Inspections
-          </h3>
-          <p className="mt-1 text-sm leading-5 text-[var(--co-muted)]">
-            Inspection results and quality follow-up.
-          </p>
-        </div>
-      </div>
-      <div className="mt-auto pt-5">
-        <p className="text-sm font-medium text-[var(--co-muted)]">
-          Coming soon
-        </p>
-        <p className="mt-1 text-xs text-[var(--co-muted)]">Not tracked yet.</p>
-      </div>
-    </article>
-  );
+async function QualityReports({ companyId, range }: { companyId: string; range: ReportsRange }) {
+  const [quality, exports] = await Promise.all([getQualityReport(companyId, range), getLastExports(companyId)]);
+  const preview: PreviewTable = {
+    columns: ["Employee", "Ratings", "5 stars", "Average", "Latest comment"],
+    rows: quality.summaries.map((row) => [
+      row.employeeName,
+      String(row.ratings),
+      String(row.fiveStars),
+      `${row.averageRating}/5`,
+      quality.entries.find((entry) => entry.employeeName === row.employeeName && entry.comment)?.comment ?? "—",
+    ]),
+    summary: `${quality.totalResponses} customer ratings · ${quality.fiveStarTotal} five-star ratings`,
+  };
+  return <section><div className="mb-3 flex items-center gap-2"><Star className="h-5 w-5 text-[var(--co-accent)]" aria-hidden /><h2 className="text-base font-semibold text-[var(--co-ink)]">Quality</h2></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"><ReportCard name="Customer quality" icon={<Star className="h-5 w-5" />} description="Ratings, five-star counts, averages, and customer comments by lead cleaner." lastExported={exports.quality} exportHref={href("quality", range)} preview={preview} /></div></section>;
 }
 
 function SectionSkeleton() {
@@ -392,7 +382,6 @@ async function OperationsReports({
           exportHref={href("jobs", range, area)}
           preview={preview}
         />
-        <ComingSoonCard />
       </div>
     </section>
   );
@@ -464,6 +453,9 @@ export default async function ReportsPage({
           range={range}
           area={area}
         />
+      </Suspense>
+      <Suspense fallback={<SectionSkeleton />}>
+        <QualityReports companyId={user.companyId} range={range} />
       </Suspense>
       <Suspense fallback={<SectionSkeleton />}>
         <SalesReports companyId={user.companyId} range={range} area={area} />

@@ -10,6 +10,7 @@ import {
   getPayrollReport,
   getSalesReport,
   getTipsReport,
+  getQualityReport,
   type ReportKey,
 } from "@/lib/reports/queries";
 
@@ -19,6 +20,7 @@ const reportKeys = new Set<ReportKey>([
   "accounts-receivable",
   "jobs",
   "sales",
+  "quality",
 ]);
 
 function escapeCsv(value: string | number | null | undefined) {
@@ -147,6 +149,19 @@ export async function GET(
         row.status,
         row.completedAt?.toISOString(),
         row.estimatedDurationMinutes,
+      ]),
+    ]);
+  } else if (key === "quality") {
+    const report = await getQualityReport(admin.companyId, range);
+    output = csv([
+      ["Employee", "Customer", "Feedback date", "Rating", "Five star", "Comment"],
+      ...report.entries.map((row) => [
+        row.employeeName,
+        row.customerName,
+        row.submittedAt?.toISOString(),
+        row.rating,
+        row.rating === 5 ? "Yes" : "No",
+        row.comment,
       ]),
     ]);
   } else {

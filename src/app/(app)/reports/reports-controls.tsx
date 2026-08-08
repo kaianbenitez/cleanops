@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 
 const PRESETS = [
+  ["all_time", "All time"],
   ["yesterday", "Yesterday"],
   ["this_week", "This week"],
   ["last_week", "Last week"],

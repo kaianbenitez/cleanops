@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { auditLog, customers, feedbackRequests, jobAssignments, jobs, roomTypes, services, timeEntries, users } from "@/db/schema";
 import { isFieldEligible } from "@/lib/auth/field-staff";
@@ -48,6 +48,7 @@ export async function loadJobDetail(jobId: string, companyId: string) {
       feedbackStatus: feedbackRequests.status,
       feedbackSubmittedAt: feedbackRequests.submittedAt,
       feedbackExpiresAt: feedbackRequests.expiresAt,
+      feedbackExpired: sql<boolean>`coalesce(${feedbackRequests.expiresAt} < now(), false)`,
       feedbackUrl: feedbackRequests.publicToken,
       feedbackQualityRating: feedbackRequests.qualityRating,
       feedbackQualityComment: feedbackRequests.qualityComment,

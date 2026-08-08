@@ -12,6 +12,7 @@ import {
 import { db } from "@/db";
 import {
   customers,
+  feedbackRequests,
   invoices,
   jobs,
   payrollLines,
@@ -20,6 +21,7 @@ import {
   recurringSeries,
   reportExports,
   users,
+  jobAssignments,
 } from "@/db/schema";
 import { addDaysIso } from "@/lib/dashboard/range";
 import { overdueSqlCondition } from "@/lib/invoices/overdue";
@@ -31,7 +33,7 @@ export type ReportsRange = {
 };
 
 export type ReportKey =
-  "payroll" | "tips" | "accounts-receivable" | "jobs" | "sales";
+  "payroll" | "tips" | "accounts-receivable" | "jobs" | "sales" | "quality";
 
 const numberValue = (value: unknown) => Number(value ?? 0);
 
@@ -126,6 +128,45 @@ export async function getTipsReport(companyId: string, range: ReportsRange) {
     paycheckTipsCents: numberValue(row.paycheckTipsCents),
     cashTipsCents: numberValue(row.cashTipsCents),
   }));
+}
+
+export async function getQualityReport(companyId: string, range: ReportsRange) {
+  const allTime = range.fromIso === "2000-01-01";
+  const rows = await db
+    .select({
+      employeeName: sql<string>`concat(${users.firstName}, ' ', ${users.lastName})`,
+      submittedAt: feedbackRequests.submittedAt,
+      customerName: sql<string>`concat(${customers.firstName}, ' ', ${customers.lastName})`,
+      rating: feedbackRequests.qualityRating,
+      comment: feedbackRequests.qualityComment,
+    })
+    .from(feedbackRequests)
+    .innerJoin(jobs, eq(feedbackRequests.jobId, jobs.id))
+    .innerJoin(customers, eq(feedbackRequests.customerId, customers.id))
+    .innerJoin(jobAssignments, and(eq(jobAssignments.jobId, jobs.id), eq(jobAssignments.role, "lead")))
+    .innerJoin(users, eq(jobAssignments.userId, users.id))
+    .where(and(
+      eq(feedbackRequests.companyId, companyId),
+      eq(feedbackRequests.status, "submitted"),
+      allTime ? undefined : timestampRange(feedbackRequests.submittedAt, range),
+    ))
+    .orderBy(desc(feedbackRequests.submittedAt), asc(users.lastName), asc(users.firstName));
+
+  const summaryMap = new Map<string, { employeeName: string; ratings: number; fiveStars: number; totalRating: number }>();
+  for (const row of rows) {
+    if (row.rating == null) continue;
+    const current = summaryMap.get(row.employeeName) ?? { employeeName: row.employeeName, ratings: 0, fiveStars: 0, totalRating: 0 };
+    current.ratings += 1;
+    current.fiveStars += row.rating === 5 ? 1 : 0;
+    current.totalRating += row.rating;
+    summaryMap.set(row.employeeName, current);
+  }
+  return {
+    entries: rows,
+    summaries: [...summaryMap.values()].map((row) => ({ ...row, averageRating: row.ratings ? Math.round((row.totalRating / row.ratings) * 100) / 100 : 0 })),
+    totalResponses: rows.length,
+    fiveStarTotal: rows.filter((row) => row.rating === 5).length,
+  };
 }
 
 export async function getAccountsReceivableReport(

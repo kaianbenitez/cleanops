@@ -23,6 +23,7 @@ export type JobDetail = {
   feedbackStatus: string | null;
   feedbackSubmittedAt: string | Date | null;
   feedbackExpiresAt: string | Date | null;
+  feedbackExpired: boolean;
   feedbackUrl: string | null;
   feedbackQualityRating: number | null;
   feedbackQualityComment: string | null;
