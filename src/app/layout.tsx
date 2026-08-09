@@ -16,8 +16,11 @@ const monoFont = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ServiceSpark | Operations desk",
-  description: "Internal scheduling, customer, payroll, and invoice operations for ServiceSpark.",
+  title: {
+    default: "ServiceSpark | Cleaning business operations software",
+    template: "%s | ServiceSpark",
+  },
+  description: "Operations software for cleaning businesses: scheduling, crew work, customers, quotes, invoicing, and payroll.",
 };
 
 export default function RootLayout({

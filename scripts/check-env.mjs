@@ -20,6 +20,9 @@ const optionalForIntegrations = [
   "CRON_SECRET",
   "SENTRY_DSN",
   "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
+  "NEXT_PUBLIC_LEADS_TURNSTILE_SITE_KEY",
+  "LEADS_TURNSTILE_SECRET_KEY",
+  "NEXT_PUBLIC_SITE_URL",
 ];
 
 const source = fs.existsSync(".env.local") ? ".env.local" : null;

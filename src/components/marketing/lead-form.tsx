@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 
 type FieldName = "businessName" | "contactName" | "email" | "phone" | "crewSize" | "message" | "companyWebsite";
 type LeadFormData = Record<FieldName, string>;
+const LEADS_TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_LEADS_TURNSTILE_SITE_KEY;
 
 const initialForm: LeadFormData = {
   businessName: "",
@@ -21,6 +23,13 @@ export default function LeadForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
+  const successRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (submitted) successRef.current?.focus();
+  }, [submitted]);
 
   function update(name: FieldName, value: string) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -41,6 +50,7 @@ export default function LeadForm() {
         phone: form.phone || null,
         crewSize: form.crewSize || null,
         message: form.message || null,
+        turnstileToken: captchaToken,
       }),
     }).catch(() => null);
 
@@ -57,11 +67,13 @@ export default function LeadForm() {
       setServerError("We couldn't send your request right now. Please try again.");
     }
     setSubmitting(false);
+    turnstileRef.current?.reset();
+    setCaptchaToken(null);
   }
 
   if (submitted) {
     return (
-      <div className="rounded-xl border border-[color-mix(in_srgb,var(--co-success)_35%,var(--co-line))] bg-[color-mix(in_srgb,var(--co-success)_8%,var(--co-surface))] p-6">
+      <div ref={successRef} role="status" tabIndex={-1} className="rounded-xl border border-[color-mix(in_srgb,var(--co-success)_35%,var(--co-line))] bg-[color-mix(in_srgb,var(--co-success)_8%,var(--co-surface))] p-6">
         <h3 className="text-lg font-semibold text-[var(--co-ink)]">Thanks — we&apos;ll be in touch.</h3>
         <p className="mt-2 text-sm leading-6 text-[var(--co-muted)]">We&apos;ve received your early-access request.</p>
       </div>
@@ -73,19 +85,19 @@ export default function LeadForm() {
   return (
     <form noValidate onSubmit={handleSubmit} className="co-card grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
       <Field label="Business name" name="businessName" required error={errors.businessName}>
-        <input id="businessName" className={inputClass("businessName")} value={form.businessName} onChange={(event) => update("businessName", event.target.value)} autoComplete="organization" aria-invalid={Boolean(errors.businessName)} />
+        <input id="businessName" className={inputClass("businessName")} value={form.businessName} onChange={(event) => update("businessName", event.target.value)} autoComplete="organization" aria-invalid={Boolean(errors.businessName)} aria-describedby={errors.businessName ? "businessName-error" : undefined} />
       </Field>
       <Field label="Your name" name="contactName" error={errors.contactName}>
-        <input id="contactName" className={inputClass("contactName")} value={form.contactName} onChange={(event) => update("contactName", event.target.value)} autoComplete="name" aria-invalid={Boolean(errors.contactName)} />
+        <input id="contactName" className={inputClass("contactName")} value={form.contactName} onChange={(event) => update("contactName", event.target.value)} autoComplete="name" aria-invalid={Boolean(errors.contactName)} aria-describedby={errors.contactName ? "contactName-error" : undefined} />
       </Field>
       <Field label="Email" name="email" required error={errors.email}>
-        <input id="email" type="email" className={inputClass("email")} value={form.email} onChange={(event) => update("email", event.target.value)} autoComplete="email" aria-invalid={Boolean(errors.email)} />
+        <input id="email" type="email" className={inputClass("email")} value={form.email} onChange={(event) => update("email", event.target.value)} autoComplete="email" aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? "email-error" : undefined} />
       </Field>
       <Field label="Phone" name="phone" error={errors.phone}>
-        <input id="phone" type="tel" className={inputClass("phone")} value={form.phone} onChange={(event) => update("phone", event.target.value)} autoComplete="tel" aria-invalid={Boolean(errors.phone)} />
+        <input id="phone" type="tel" className={inputClass("phone")} value={form.phone} onChange={(event) => update("phone", event.target.value)} autoComplete="tel" aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? "phone-error" : undefined} />
       </Field>
       <Field label="Crew size" name="crewSize" error={errors.crewSize}>
-        <select id="crewSize" className={inputClass("crewSize")} value={form.crewSize} onChange={(event) => update("crewSize", event.target.value)} aria-invalid={Boolean(errors.crewSize)}>
+        <select id="crewSize" className={inputClass("crewSize")} value={form.crewSize} onChange={(event) => update("crewSize", event.target.value)} aria-invalid={Boolean(errors.crewSize)} aria-describedby={errors.crewSize ? "crewSize-error" : undefined}>
           <option value="">Select crew size</option>
           <option value="1-5">1-5</option>
           <option value="6-15">6-15</option>
@@ -93,13 +105,15 @@ export default function LeadForm() {
         </select>
       </Field>
       <Field label="Message" name="message" error={errors.message}>
-        <textarea id="message" rows={3} className={`${inputClass("message")} resize-y`} value={form.message} onChange={(event) => update("message", event.target.value)} aria-invalid={Boolean(errors.message)} />
+        <textarea id="message" rows={3} className={`${inputClass("message")} resize-y`} value={form.message} onChange={(event) => update("message", event.target.value)} aria-invalid={Boolean(errors.message)} aria-describedby={errors.message ? "message-error" : undefined} />
       </Field>
       <div className="absolute -left-[10000px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
         <label htmlFor="company_website">Company website</label>
         <input id="company_website" name="company_website" type="text" tabIndex={-1} autoComplete="off" value={form.companyWebsite} onChange={(event) => update("companyWebsite", event.target.value)} />
       </div>
       <div className="sm:col-span-2">
+        {LEADS_TURNSTILE_SITE_KEY ? <Turnstile ref={turnstileRef} siteKey={LEADS_TURNSTILE_SITE_KEY} onSuccess={setCaptchaToken} onExpire={() => setCaptchaToken(null)} onError={() => setCaptchaToken(null)} options={{ size: "flexible" }} /> : null}
+        <p className="mb-3 mt-3 text-xs leading-5 text-[var(--co-muted)]">No obligation. We&apos;ll use your details only to follow up about ServiceSpark beta access.</p>
         {serverError ? <p role="alert" className="mb-3 text-sm text-rose-700">{serverError}</p> : null}
         <button type="submit" disabled={submitting} className="co-button-primary w-full sm:w-auto">
           {submitting ? "Sending…" : "Join the beta"}
@@ -114,7 +128,7 @@ function Field({ children, error, label, name, required = false }: { children: R
     <label className="block text-sm font-medium text-[var(--co-ink)]" htmlFor={name}>
       {label}{required ? " *" : ""}
       {children}
-      {error ? <span role="alert" className="mt-1 block text-xs font-normal text-rose-700">{error}</span> : null}
+      {error ? <span id={`${name}-error`} role="alert" className="mt-1 block text-xs font-normal text-rose-700">{error}</span> : null}
     </label>
   );
 }
