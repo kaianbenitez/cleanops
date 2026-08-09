@@ -7,6 +7,7 @@ import { and, eq, inArray, ne } from "drizzle-orm";
 import { syncToGhl } from "@/lib/ghl/sync";
 import { loadJobDetail } from "@/lib/jobs/job-detail";
 import { findPtoConflicts, ptoConflictMessage } from "@/lib/scheduling/pto";
+import { ensureFeedbackRequest } from "@/lib/feedback/ensure-feedback-request";
 
 const updateJobSchema = z.object({
   scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -128,6 +129,10 @@ export async function PATCH(
       before: { status: existing.status, scheduledDate: existing.scheduledDate, scheduledStartTime: existing.scheduledStartTime, priceCents: existing.priceCents, estimatedDurationMinutes: existing.estimatedDurationMinutes, jthManualOverride: existing.jthManualOverride, completionNotes: existing.completionNotes, paymentMethodCollected: existing.paymentMethodCollected, checkNumberCollected: existing.checkNumberCollected, cleanerNotes: existing.cleanerNotes, cancellationReason: existing.cancellationReason },
       after: jobFields,
     });
+  }
+
+  if (jobFields.status === "completed" && existing.status !== "completed") {
+    await ensureFeedbackRequest({ companyId: admin.companyId, jobId, origin: req.url });
   }
 
   // PLAN.md §6: "Job completed (first_clean)" -> tag first-clean-done, which

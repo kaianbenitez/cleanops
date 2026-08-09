@@ -131,41 +131,73 @@ export async function getTipsReport(companyId: string, range: ReportsRange) {
 }
 
 export async function getQualityReport(companyId: string, range: ReportsRange) {
-  const allTime = range.fromIso === "2000-01-01";
+  const toExclusiveIso = addDaysIso(range.toIso, 1);
   const rows = await db
     .select({
-      employeeName: sql<string>`concat(${users.firstName}, ' ', ${users.lastName})`,
+      jobId: jobs.id,
+      serviceDate: jobs.scheduledDate,
+      employeeId: users.id,
+      employeeName: sql<string>`nullif(concat(${users.firstName}, ' ', ${users.lastName}), ' ')`,
       submittedAt: feedbackRequests.submittedAt,
       customerName: sql<string>`concat(${customers.firstName}, ' ', ${customers.lastName})`,
       rating: feedbackRequests.qualityRating,
       comment: feedbackRequests.qualityComment,
+      tipCents: feedbackRequests.tipCents,
+      feedbackStatus: feedbackRequests.status,
+      feedbackExpiresAt: feedbackRequests.expiresAt,
     })
-    .from(feedbackRequests)
-    .innerJoin(jobs, eq(feedbackRequests.jobId, jobs.id))
-    .innerJoin(customers, eq(feedbackRequests.customerId, customers.id))
-    .innerJoin(jobAssignments, and(eq(jobAssignments.jobId, jobs.id), eq(jobAssignments.role, "lead")))
-    .innerJoin(users, eq(jobAssignments.userId, users.id))
+    .from(jobs)
+    .innerJoin(customers, eq(jobs.customerId, customers.id))
+    .leftJoin(feedbackRequests, eq(feedbackRequests.jobId, jobs.id))
+    .leftJoin(jobAssignments, eq(jobAssignments.jobId, jobs.id))
+    .leftJoin(users, eq(jobAssignments.userId, users.id))
     .where(and(
-      eq(feedbackRequests.companyId, companyId),
-      eq(feedbackRequests.status, "submitted"),
-      allTime ? undefined : timestampRange(feedbackRequests.submittedAt, range),
+      eq(jobs.companyId, companyId),
+      eq(jobs.status, "completed"),
+      gte(jobs.scheduledDate, range.fromIso),
+      lt(jobs.scheduledDate, toExclusiveIso),
     ))
-    .orderBy(desc(feedbackRequests.submittedAt), asc(users.lastName), asc(users.firstName));
+    .orderBy(desc(jobs.scheduledDate), asc(users.lastName), asc(users.firstName), asc(customers.lastName), asc(customers.firstName));
 
-  const summaryMap = new Map<string, { employeeName: string; ratings: number; fiveStars: number; totalRating: number }>();
-  for (const row of rows) {
-    if (row.rating == null) continue;
-    const current = summaryMap.get(row.employeeName) ?? { employeeName: row.employeeName, ratings: 0, fiveStars: 0, totalRating: 0 };
-    current.ratings += 1;
-    current.fiveStars += row.rating === 5 ? 1 : 0;
-    current.totalRating += row.rating;
-    summaryMap.set(row.employeeName, current);
+  const statusFor = (row: typeof rows[number]) => {
+    if (row.feedbackStatus === "submitted") return "responded" as const;
+    if (row.feedbackStatus === "sent" && row.feedbackExpiresAt && row.feedbackExpiresAt < new Date()) return "expired" as const;
+    if (row.feedbackStatus === "sent") return "awaiting_response" as const;
+    return "not_sent" as const;
+  };
+  const entries = rows.map((row) => ({ ...row, feedbackStatus: statusFor(row) }));
+  const jobsById = new Map<string, (typeof entries)[number]>();
+  for (const row of entries) jobsById.set(row.jobId, row);
+  const summaryMap = new Map<string, { employeeName: string; completedJobs: number; responses: number; fiveStars: number; totalRating: number; jobIds: Set<string> }>();
+  for (const row of entries) {
+    if (!row.employeeId || !row.employeeName) continue;
+    const current = summaryMap.get(row.employeeId) ?? { employeeName: row.employeeName, completedJobs: 0, responses: 0, fiveStars: 0, totalRating: 0, jobIds: new Set<string>() };
+    if (!current.jobIds.has(row.jobId)) {
+      current.jobIds.add(row.jobId);
+      current.completedJobs += 1;
+    }
+    if (row.rating != null) {
+      current.responses += 1;
+      current.fiveStars += row.rating === 5 ? 1 : 0;
+      current.totalRating += row.rating;
+    }
+    summaryMap.set(row.employeeId, current);
   }
+  const summaries = [...summaryMap.values()].map((row) => ({
+    employeeName: row.employeeName,
+    completedJobs: row.completedJobs,
+    responses: row.responses,
+    fiveStars: row.fiveStars,
+    totalRating: row.totalRating,
+    averageRating: row.responses ? Math.round((row.totalRating / row.responses) * 100) / 100 : 0,
+    responseRate: row.completedJobs ? Math.round((row.responses / row.completedJobs) * 100) : 0,
+  }));
   return {
-    entries: rows,
-    summaries: [...summaryMap.values()].map((row) => ({ ...row, averageRating: row.ratings ? Math.round((row.totalRating / row.ratings) * 100) / 100 : 0 })),
-    totalResponses: rows.length,
-    fiveStarTotal: rows.filter((row) => row.rating === 5).length,
+    entries,
+    summaries,
+    totalCompletedJobs: jobsById.size,
+    totalResponses: [...jobsById.values()].filter((row) => row.rating != null).length,
+    fiveStarTotal: [...jobsById.values()].filter((row) => row.rating === 5).length,
   };
 }
 

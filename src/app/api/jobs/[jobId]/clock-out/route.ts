@@ -9,6 +9,7 @@ import { generatePayrollForPeriod } from "@/lib/payroll/calculate";
 import { refreshPayrollPeriodsForDates } from "@/lib/payroll/periods";
 import { notifyAdmins } from "@/lib/notifications/create";
 import { paymentMethodLabel } from "@/lib/my-day/job-format";
+import { ensureFeedbackRequest } from "@/lib/feedback/ensure-feedback-request";
 
 const closeOutSchema = z.object({
   paymentMethodCollected: z.enum(jobPaymentMethodEnum).optional(),
@@ -108,6 +109,7 @@ export async function POST(
   if (job) {
     const customerName = `${job.customerFirstName} ${job.customerLastName}`;
     if (completion) {
+      await ensureFeedbackRequest({ companyId: user.companyId, jobId, origin: req.url });
       await notifyAdmins({ companyId: user.companyId, type: "job.completed", title: "Job completed", body: customerName, href: `/jobs/${jobId}`, customerId: job.customerId });
     }
     if (cleanerNotes) {

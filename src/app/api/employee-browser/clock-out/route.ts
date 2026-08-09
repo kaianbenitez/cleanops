@@ -7,6 +7,7 @@ import { isFieldEligible } from "@/lib/auth/field-staff";
 import { generatePayrollForPeriod } from "@/lib/payroll/calculate";
 import { refreshPayrollPeriodsForDates } from "@/lib/payroll/periods";
 import { z } from "zod";
+import { ensureFeedbackRequest } from "@/lib/feedback/ensure-feedback-request";
 
 const schema = z.object({
   employeeId: z.string().uuid(),
@@ -104,8 +105,10 @@ export async function POST(req: NextRequest) {
       .where(and(eq(timeEntries.jobId, job.id), isNull(timeEntries.clockOut)))
       .limit(1);
 
-    if (!stillOpen && job.status !== "cancelled" && job.status !== "no_show") {
+    const completedNow = !stillOpen && job.status !== "cancelled" && job.status !== "no_show" && job.status !== "completed";
+    if (completedNow) {
       await db.update(jobs).set({ status: "completed", completedAt: now, updatedAt: now }).where(eq(jobs.id, job.id));
+      await ensureFeedbackRequest({ companyId: admin.companyId, jobId: job.id, origin: req.url });
     }
 
     const refreshedPeriods = await refreshPayrollPeriodsForDates(admin.companyId, [job.scheduledDate, entry.clockIn, now]);

@@ -154,13 +154,16 @@ export async function GET(
   } else if (key === "quality") {
     const report = await getQualityReport(admin.companyId, range);
     output = csv([
-      ["Employee", "Customer", "Feedback date", "Rating", "Five star", "Comment"],
+      ["Service date", "Employee", "Customer", "Feedback status", "Feedback date", "Rating", "Five star", "Tip", "Comment"],
       ...report.entries.map((row) => [
+        row.serviceDate,
         row.employeeName,
         row.customerName,
+        row.feedbackStatus,
         row.submittedAt?.toISOString(),
         row.rating,
         row.rating === 5 ? "Yes" : "No",
+        (row.tipCents ?? 0) / 100,
         row.comment,
       ]),
     ]);

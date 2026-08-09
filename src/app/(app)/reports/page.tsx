@@ -117,7 +117,7 @@ async function QualityReports({ companyId, range }: { companyId: string; range: 
     columns: ["Employee", "Ratings", "5 stars", "Average", "Latest comment"],
     rows: quality.summaries.map((row) => [
       row.employeeName,
-      String(row.ratings),
+      String(row.responses),
       String(row.fiveStars),
       `${row.averageRating}/5`,
       quality.entries.find((entry) => entry.employeeName === row.employeeName && entry.comment)?.comment ?? "—",
