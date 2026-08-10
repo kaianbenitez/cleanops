@@ -29,9 +29,8 @@ export function TimePicker({ value, onChange, onClose }: TimePickerProps) {
   }, [onClose]);
 
   useEffect(() => {
-    selectedHourRef.current?.scrollIntoView({ block: "center" });
     // Only run on open — later hour changes shouldn't yank the scroll position.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    selectedHourRef.current?.scrollIntoView({ block: "center" });
   }, []);
 
   const [hours, minutes] = value ? value.split(":").map(Number) : [9, 0];

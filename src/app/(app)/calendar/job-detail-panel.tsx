@@ -165,15 +165,15 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
                 key={`date-${job.scheduledDate}`}
                 label="Date"
                 defaultValue={job.scheduledDate}
-                onBlur={(event) => event.target.value && event.target.value !== job.scheduledDate && patch({ scheduledDate: event.target.value })}
+                onChange={(newValue) => newValue && newValue !== job.scheduledDate && patch({ scheduledDate: newValue })}
               />
               <TimeInput
                 key={`time-${job.scheduledStartTime}`}
                 label="Time"
                 defaultValue={job.scheduledStartTime?.slice(0, 5) ?? ""}
-                onBlur={(event) => {
-                  if (!event.target.value) return;
-                  const withSeconds = `${event.target.value}:00`;
+                onChange={(newValue) => {
+                  if (!newValue) return;
+                  const withSeconds = `${newValue}:00`;
                   if (withSeconds !== job.scheduledStartTime) patch({ scheduledStartTime: withSeconds });
                 }}
               />

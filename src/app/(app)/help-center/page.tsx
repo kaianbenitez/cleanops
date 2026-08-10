@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.41",
+    date: "August 11, 2026",
+    title: "Fixed rescheduling a job from the Calendar not saving",
+    changes: [
+      "When you opened a scheduled job from the Calendar and picked a new date or time in the pop-up picker, the change could silently fail to save — there was no save button and no confirmation either way. Picking a date or time now saves immediately, the same way changing the crew or status already did.",
+    ],
+  },
+  {
     version: "v0.2.40",
     date: "August 11, 2026",
     title: "Fixed an inaccurate date picker and gave date/time pickers a cleaner look",
