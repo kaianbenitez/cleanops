@@ -1,11 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface CalendarPickerProps {
   value: string;
   onChange: (value: string) => void;
   onClose: () => void;
+}
+
+// Local calendar date -> "YYYY-MM-DD" without going through UTC (toISOString
+// shifts the date across midnight for any timezone not exactly at UTC+0).
+function localISO(d: Date) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function CalendarPicker({ value, onChange, onClose }: CalendarPickerProps) {
@@ -43,61 +53,47 @@ export function CalendarPicker({ value, onChange, onClose }: CalendarPickerProps
   }
 
   const handleDateClick = (d: Date) => {
-    const iso = d.toISOString().split("T")[0];
-    onChange(iso);
+    onChange(localISO(d));
     onClose();
   };
 
   const formatDate = (d: Date) => d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const todayISO = localISO(new Date());
 
   return (
     <div
       ref={containerRef}
-      className="absolute top-full left-0 z-50 mt-2 w-72 rounded-lg border border-[var(--co-line)] bg-white p-4 shadow-lg"
+      className="co-date-popover absolute top-full left-0 z-50 mt-2 w-72 p-3"
     >
-      <div className="mb-4 flex items-center justify-between">
-        <button
-          onClick={() => setDate(new Date(year, month - 1, 1))}
-          className="rounded p-1 text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
-        >
-          ←
+      <div className="flex items-center justify-between border-b border-[var(--co-line-soft)] pb-2">
+        <button type="button" aria-label="Previous month" onClick={() => setDate(new Date(year, month - 1, 1))} className="co-date-nav">
+          <ChevronLeft className="h-4 w-4" aria-hidden />
         </button>
-        <h3 className="text-sm font-semibold text-[var(--co-ink)]">{formatDate(date)}</h3>
-        <button
-          onClick={() => setDate(new Date(year, month + 1, 1))}
-          className="rounded p-1 text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
-        >
-          →
+        <p className="text-sm font-semibold text-[var(--co-ink)]">{formatDate(date)}</p>
+        <button type="button" aria-label="Next month" onClick={() => setDate(new Date(year, month + 1, 1))} className="co-date-nav">
+          <ChevronRight className="h-4 w-4" aria-hidden />
         </button>
       </div>
 
-      <div className="mb-2 grid grid-cols-7 gap-1">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div key={day} className="text-center text-xs font-semibold text-[var(--co-muted)]">
-            {day[0]}
-          </div>
+      <div className="mt-2 grid grid-cols-7 text-center text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--co-faint)]">
+        {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
+          <span key={`${day}-${index}`} className="py-1.5">{day}</span>
         ))}
-      </div>
-
-      <div className="grid grid-cols-7 gap-1">
-        {days.map((d, i) => {
+        {days.map((d) => {
           const isCurrentMonth = d.getMonth() === month;
-          const isSelected = d.toISOString().split("T")[0] === value;
-          const isToday = d.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
+          const dISO = localISO(d);
+          const isSelected = dISO === value;
+          const isToday = dISO === todayISO;
 
           return (
             <button
-              key={i}
+              key={dISO}
+              type="button"
               onClick={() => handleDateClick(d)}
-              className={`aspect-square rounded text-xs font-medium transition-colors ${
-                isSelected
-                  ? "bg-[var(--co-evergreen)] text-white font-semibold"
-                  : isToday
-                    ? "border border-[var(--co-evergreen)] text-[var(--co-evergreen)]"
-                    : isCurrentMonth
-                      ? "text-[var(--co-ink)] hover:bg-[var(--co-surface-muted)]"
-                      : "text-[var(--co-faint)] hover:bg-[var(--co-surface-muted)]"
-              }`}
+              aria-pressed={isSelected}
+              className={`co-date-day ${isSelected ? "co-date-day-selected" : ""} ${
+                !isSelected && isToday ? "border border-[var(--co-evergreen)] font-semibold text-[var(--co-evergreen)]" : ""
+              } ${!isSelected && !isToday && !isCurrentMonth ? "text-[var(--co-faint)]" : ""}`}
             >
               {d.getDate()}
             </button>

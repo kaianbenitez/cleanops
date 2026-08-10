@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.40",
+    date: "August 11, 2026",
+    title: "Fixed an inaccurate date picker and gave date/time pickers a cleaner look",
+    changes: [
+      "Fixed a bug where the appointment date picker could save the wrong day, one off from what you clicked, depending on your computer's time zone.",
+      "The date and time picker pop-ups now match the rest of the app's styling, and the time picker shows a clearer 12-hour AM/PM format.",
+    ],
+  },
+  {
     version: "v0.2.39",
     date: "August 10, 2026",
     title: "Add internal appointments to the Calendar",
