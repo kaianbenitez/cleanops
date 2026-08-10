@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { PhoneFrame } from "./phone-frame";
+import { useRowReveal } from "./marketing-motion";
 
 type Feature = readonly [string, string, string, string];
 
@@ -20,29 +21,25 @@ function FeatureIcon({ index }: { index: number }) {
 }
 
 export function FeatureStack({ features }: { features: readonly Feature[] }) {
-  const section = useRef<HTMLDivElement>(null);
+  const scope = useRowReveal("[data-reveal-row]", "[data-reveal-item]");
 
-  useEffect(() => {
-    const rows = section.current?.querySelectorAll<HTMLElement>("[data-reveal]");
-    if (!rows || !window.matchMedia("(prefers-reduced-motion: no-preference)").matches) return;
-    const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
-      if (entry.isIntersecting) { entry.target.classList.add("is-visible"); observer.unobserve(entry.target); }
-    }), { threshold: 0.16 });
-    rows.forEach((row) => { row.classList.add("is-pending"); observer.observe(row); });
-    return () => observer.disconnect();
-  }, []);
-
-  return <div ref={section} className="space-y-14 lg:space-y-20">
+  return <div ref={scope} className="space-y-14 lg:space-y-20">
     {features.map(([title, description, screenshot, objectPosition], index) => {
       const isCrewApp = screenshot === "/marketing/crew-app-mockup.png";
-      return <article key={title} data-reveal className="marketing-reveal border-t border-[var(--co-line-soft)] pt-9 first:border-t-0 first:pt-0 lg:pt-11">
+      return <article key={title} data-reveal-row className="border-t border-[var(--co-line-soft)] pt-9 first:border-t-0 first:pt-0 lg:pt-11">
         <div className="flex max-w-3xl items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center bg-[linear-gradient(135deg,color-mix(in_srgb,var(--co-accent)_22%,white),color-mix(in_srgb,var(--co-spark-accent)_30%,white))]">
+          <div data-reveal-item className="flex h-12 w-12 shrink-0 items-center justify-center bg-[linear-gradient(135deg,color-mix(in_srgb,var(--co-accent)_22%,white),color-mix(in_srgb,var(--co-spark-accent)_30%,white))]">
             <FeatureIcon index={index} />
           </div>
-          <div><div className="flex items-center gap-3"><p className="font-mono text-xs font-semibold text-[var(--co-accent)]">0{index + 1}</p><div className="h-px w-8 bg-[linear-gradient(90deg,var(--co-accent),var(--co-spark-accent))]" /></div><h3 className="mt-2 text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">{title}</h3><p className="mt-2 max-w-2xl leading-7 text-[var(--co-muted)]">{description}</p></div>
+          <div>
+            <div data-reveal-item className="flex items-center gap-3"><p className="font-mono text-xs font-semibold text-[var(--co-accent)]">0{index + 1}</p><div className="h-px w-8 bg-[linear-gradient(90deg,var(--co-accent),var(--co-spark-accent))]" /></div>
+            <h3 data-reveal-item className="mt-2 text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">{title}</h3>
+            <p data-reveal-item className="mt-2 max-w-2xl leading-7 text-[var(--co-muted)]">{description}</p>
+          </div>
         </div>
-        {isCrewApp ? <div className="mt-7 flex justify-center border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-6 py-8 sm:px-10 sm:py-10"><Image src={screenshot} alt={`${title} in the ServiceSpark app`} width={926} height={1698} sizes="(min-width: 640px) 352px, 80vw" className="h-auto w-full max-w-[22rem] object-contain" /></div> : <div className="relative mt-7 aspect-[3/2] overflow-hidden border border-[var(--co-line-soft)] bg-[var(--co-surface)]"><Image src={screenshot} alt={`${title} in the ServiceSpark app`} fill sizes="(min-width: 1024px) 1152px, 100vw" quality={90} className="object-cover" style={{ objectPosition }} /></div>}
+        {isCrewApp
+          ? <div data-reveal-item className="mt-7"><PhoneFrame src={screenshot} alt={`${title} in the ServiceSpark app`} width={926} height={1698} /></div>
+          : <div data-reveal-item className="relative mt-7 aspect-[3/2] overflow-hidden border border-[var(--co-line-soft)] bg-[var(--co-surface)]"><Image src={screenshot} alt={`${title} in the ServiceSpark app`} fill sizes="(min-width: 1024px) 1152px, 100vw" quality={90} className="object-cover" style={{ objectPosition }} /></div>}
       </article>;
     })}
   </div>;

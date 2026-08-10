@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.26",
+    date: "August 10, 2026",
+    title: "A livelier ServiceSpark landing page",
+    changes: [
+      "The public ServiceSpark page now has a dedicated 'Built for the field' showcase for the My Day crew app, with a phone-in-hand view of a real workday.",
+      "A new 'More than the basics' section highlights quality and feedback reports, reporting and CSV export, GoHighLevel automation, recurring service plans, supplies, and the team directory.",
+      "Scrolling through the page now feels smoother and more polished, with motion that eases in as you scroll and turns off automatically if you've asked your device to reduce motion.",
+    ],
+  },
+  {
     version: "v0.2.25",
     date: "August 9, 2026",
     title: "Rotational task reminders for recurring clients",
