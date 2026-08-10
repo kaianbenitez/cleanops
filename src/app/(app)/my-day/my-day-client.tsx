@@ -189,7 +189,8 @@ export default function MyDayClient({
 
   const activeTimerLabel = formatElapsed(openEntry?.clockIn ?? null, now);
   const routeJobs = [...localTodayJobs].sort((a, b) => (a.scheduledStartTime ?? "").localeCompare(b.scheduledStartTime ?? ""));
-  const todayRotationJobs = localTodayJobs.filter((job) => job.rotationalTaskReminder);
+  // Exclude the active job here — its rotation reminder already renders inline on its own card below.
+  const todayRotationJobs = localTodayJobs.filter((job) => job.rotationalTaskReminder && job.jobId !== activeJob?.jobId);
 
   async function clockIn(jobId: string, options?: { undoLabel?: string; undoAction?: () => void | Promise<void>; onSuccess?: () => void }) {
     setError(null);
@@ -514,6 +515,37 @@ export default function MyDayClient({
                 </div>
               );
             })
+          )}
+        </div>
+      </section>
+
+      <section className="co-card overflow-hidden">
+        <div className="border-b border-[var(--co-line-soft)] px-4 py-4 sm:px-5">
+          <p className="eyebrow">What&apos;s next</p>
+          <h2 className="mt-1 text-lg font-semibold">Upcoming jobs</h2>
+        </div>
+        <div className="space-y-3 p-4 sm:p-5">
+          {upcomingJobs.length === 0 ? (
+            <p className="text-sm text-[var(--co-muted)]">Nothing scheduled after today yet.</p>
+          ) : (
+            upcomingJobs.map((job) => (
+              <Link
+                key={job.jobId}
+                href={`/my-day/${job.jobId}`}
+                className="flex items-start justify-between gap-3 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-4 transition-colors hover:border-[var(--co-line)]"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium text-[var(--co-ink)]">
+                    {job.customerFirstName} {job.customerLastName}
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--co-muted)]">
+                    {dateLabel(job.scheduledDate, companyTimezone)} · {timeLabel(job.scheduledStartTime)} · {formatEstimatedTime(job.estimatedDurationMinutes)}
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--co-faint)]">{jobAddress(job) || "Address not set"}</p>
+                </div>
+                <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-faint)]" aria-hidden />
+              </Link>
+            ))
           )}
         </div>
       </section>

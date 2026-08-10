@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.36",
+    date: "August 10, 2026",
+    title: "My Day now shows what's scheduled after today",
+    changes: [
+      "A new 'Upcoming jobs' section on My Day shows your next few scheduled stops beyond today, so you can glance ahead without leaving the app.",
+      "The all-day rotation reminder no longer shows twice for your current job — it now appears once, on that job's own card.",
+    ],
+  },
+  {
     version: "v0.2.35",
     date: "August 10, 2026",
     title: "My Day: easier to read, easier to tap, easier to trust",
