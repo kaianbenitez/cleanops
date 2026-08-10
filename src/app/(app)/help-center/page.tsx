@@ -7,6 +7,18 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.28",
+    date: "August 10, 2026",
+    title: "Landing page copy, colors, and content refresh",
+    changes: [
+      "The 'Join the beta' section is easier on the eyes now — no more full-screen bright blue.",
+      "'More than the basics' now points to notifications and fully customizable settings (pricing, quote presentation, add-ons, service catalog, payroll tiers) instead of two cards that weren't ready yet.",
+      "The crew app description and the 'Built for the field' section now mention the feedback-and-tip link, payment tagging, and schedule visibility cleaners already have.",
+      "The crew app screenshot in the feature list is properly sized now instead of floating oddly.",
+      "The homepage headline, subhead, and page title were rewritten for search and clarity.",
+    ],
+  },
+  {
     version: "v0.2.27",
     date: "August 10, 2026",
     title: "A shorter, tighter ServiceSpark landing page",

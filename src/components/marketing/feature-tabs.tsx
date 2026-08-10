@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useRef, useState } from "react";
-import { PhoneFrame } from "./phone-frame";
 import { gsap, prefersReducedMotion, useGroupReveal } from "./marketing-motion";
 
 type Feature = readonly [string, string, string, string];
@@ -61,10 +60,16 @@ export function FeatureTabs({ features }: { features: readonly Feature[] }) {
       </div>
 
       <div data-reveal-item>
-        <div ref={panel}>
-          {isCrewApp
-            ? <PhoneFrame src={screenshot} alt={`${title} in the ServiceSpark app`} width={926} height={1698} maxWidthClass="mx-auto max-w-[19rem]" />
-            : <div className="relative aspect-[3/2] overflow-hidden rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)]"><Image src={screenshot} alt={`${title} in the ServiceSpark app`} fill sizes="(min-width: 1024px) 800px, 100vw" quality={90} className="object-cover" style={{ objectPosition }} /></div>}
+        <div ref={panel} className="overflow-hidden rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)]">
+          {isCrewApp ? (
+            <div className="flex h-[380px] items-center justify-center px-6 py-6 sm:h-[440px]">
+              <Image src={screenshot} alt={`${title} in the ServiceSpark app`} width={926} height={1698} sizes="300px" className="h-full w-auto object-contain" />
+            </div>
+          ) : (
+            <div className="relative h-[380px] sm:h-[440px]">
+              <Image src={screenshot} alt={`${title} in the ServiceSpark app`} fill sizes="(min-width: 1024px) 800px, 100vw" quality={90} className="object-cover" style={{ objectPosition }} />
+            </div>
+          )}
         </div>
         <p className="mt-4 max-w-xl text-base leading-7 text-[var(--co-muted)]">{description}</p>
       </div>

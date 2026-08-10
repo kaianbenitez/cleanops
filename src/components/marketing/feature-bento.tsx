@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, FileSpreadsheet, Search, Star, Users, Workflow } from "lucide-react";
+import { Bell, FileSpreadsheet, SlidersHorizontal, Star, Users, Workflow } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useGroupReveal } from "./marketing-motion";
 
@@ -8,8 +8,8 @@ const items = [
   { icon: Star, title: "Quality & feedback reports", body: "Star ratings from every completed job roll up into a quality report you can export any time.", isNew: true },
   { icon: FileSpreadsheet, title: "Reports & CSV export", body: "Sales, jobs, receivables, payroll, and quality — pull any of it as a CSV whenever you need it.", isNew: false },
   { icon: Workflow, title: "GoHighLevel automation", body: "Lead, quote, job, and invoice status changes push straight into your GHL workflows, with a sync-issues monitor watching for anything that fails.", isNew: false },
-  { icon: Search, title: "Instant global search", body: "Jump straight to any job, customer, or cleaner from one search bar, no matter where you are in the app.", isNew: false },
-  { icon: CalendarClock, title: "Time off & PTO tracking", body: "Planned time off shows up right alongside each employee's weekly schedule, so gaps get caught early.", isNew: false },
+  { icon: Bell, title: "Web notifications for the office", body: "Get notified the moment a quote is viewed, a job needs attention, or something needs a decision — right in the app.", isNew: false },
+  { icon: SlidersHorizontal, title: "Fully customizable settings", body: "Configure your own pricing, quote presentation, add-ons, service catalog, and payroll tiers per employee — ServiceSpark adapts to how your business already runs.", isNew: false },
   { icon: Users, title: "Team directory", body: "A searchable roster of every employee, with the details dispatch actually needs on a busy day.", isNew: false },
 ] as const;
 

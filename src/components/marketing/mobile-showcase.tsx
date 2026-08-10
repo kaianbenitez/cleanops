@@ -8,8 +8,9 @@ import { gsap, prefersReducedMotion } from "./marketing-motion";
 const steps = [
   ["On my way", "Crews see today's route, travel to the next stop, and log arrival with one tap."],
   ["On site", "Entry codes stay masked until needed, and special-instruction chips flag pets, do-not-clean areas, and anything else that matters."],
-  ["Before, during, after", "Before/after photos, damage notes, and payment collected are captured on the job — no separate paperwork."],
-  ["Job complete", "Completing a job can generate a customer feedback link automatically, so ratings and tips start coming in the same day."],
+  ["Proof of work", "Before/after photos and damage notes are captured on the job, and cleaners tag exactly how payment was collected — cash, check, or card."],
+  ["Feedback, with a tip link", "Completing a job can send the customer a private link automatically, so ratings, feedback, and tips start coming in the same day."],
+  ["Their schedule, always on hand", "Every cleaner can check today's and next week's jobs right from their phone, no calling the office to ask."],
 ] as const;
 
 export function MobileShowcase() {
