@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.29",
+    date: "August 10, 2026",
+    title: "A stronger opening image for the ServiceSpark page",
+    changes: [
+      "The homepage now leads with the dashboard screenshot instead of the calendar, and the calendar moved down to the 'one operating rhythm' section with its own caption.",
+      "Removed a leftover caption line under the homepage's main screenshot.",
+    ],
+  },
+  {
     version: "v0.2.28",
     date: "August 10, 2026",
     title: "Landing page copy, colors, and content refresh",
