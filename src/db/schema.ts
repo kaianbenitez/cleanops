@@ -129,6 +129,26 @@ export const employeePto = pgTable("employee_pto", {
   companyDateIdx: index("employee_pto_company_date_idx").on(t.companyId, t.startDate, t.endDate),
 }));
 
+export const ptoRequestStatusEnum = ["pending", "approved", "denied", "cancelled"] as const;
+
+export const ptoRequests = pgTable("pto_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull().references(() => companies.id),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  startPeriod: text("start_period", { enum: ptoPeriodEnum }).notNull().default("full"),
+  endPeriod: text("end_period", { enum: ptoPeriodEnum }).notNull().default("full"),
+  note: text("note"),
+  status: text("status", { enum: ptoRequestStatusEnum }).notNull().default("pending"),
+  decidedAt: timestamp("decided_at", { withTimezone: true }),
+  decidedBy: uuid("decided_by").references(() => users.id),
+  ...timestamps,
+}, (t) => ({
+  userCreatedIdx: index("pto_requests_user_created_idx").on(t.userId, t.createdAt),
+  companyStatusIdx: index("pto_requests_company_status_idx").on(t.companyId, t.status),
+}));
+
 // ---------- customers ----------
 export const customerStatusEnum = [
   "lead",
@@ -774,11 +794,18 @@ export const companiesRelations = relations(companies, ({ many }) => ({
   services: many(services),
   jobs: many(jobs),
   employeePto: many(employeePto),
+  ptoRequests: many(ptoRequests),
 }));
 
 export const employeePtoRelations = relations(employeePto, ({ one }) => ({
   company: one(companies, { fields: [employeePto.companyId], references: [companies.id] }),
   user: one(users, { fields: [employeePto.userId], references: [users.id] }),
+}));
+
+export const ptoRequestsRelations = relations(ptoRequests, ({ one }) => ({
+  company: one(companies, { fields: [ptoRequests.companyId], references: [companies.id] }),
+  user: one(users, { fields: [ptoRequests.userId], references: [users.id] }),
+  decidedByUser: one(users, { fields: [ptoRequests.decidedBy], references: [users.id] }),
 }));
 
 export const customersRelations = relations(customers, ({ one, many }) => ({

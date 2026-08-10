@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.38",
+    date: "August 10, 2026",
+    title: "Employees can request time off from My Day",
+    changes: [
+      "Employees can send a time-off request with dates, half-day periods, and an optional note from My Day.",
+      "Admins can approve or deny requests on the employee profile; approved requests automatically appear in the employee schedule and payroll PTO logic.",
+    ],
+  },
+  {
     version: "v0.2.37",
     date: "August 10, 2026",
     title: "Multi-cleaner jobs now show who you're waiting on",
