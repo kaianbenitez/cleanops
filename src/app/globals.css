@@ -13,7 +13,7 @@
   --co-surface-muted-strong: #dbe5ff;
   --co-ink: #18213d;
   --co-muted: #4b587a;
-  --co-faint: #71809e;
+  --co-faint: #667493;
   --co-line: #c7d1ed;
   --co-line-soft: #e0e6f5;
   --co-evergreen: #2457ff;
@@ -192,11 +192,18 @@ body {
   font-weight: 700;
   gap: 0.45rem;
   justify-content: center;
-  min-height: 2.55rem;
+  min-height: 2.75rem;
   padding: 0.65rem 1rem;
 }
 
 .co-button-primary:hover { background: var(--co-evergreen-soft); }
+.co-button-primary:disabled,
+.co-button-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.co-button-primary:disabled:hover { background: var(--co-evergreen); }
 .co-button-secondary {
   align-items: center;
   background: var(--co-surface);
@@ -207,10 +214,11 @@ body {
   font-size: 0.8rem;
   font-weight: 700;
   justify-content: center;
-  min-height: 2.55rem;
+  min-height: 2.75rem;
   padding: 0.65rem 1rem;
 }
 .co-button-secondary:hover { border-color: var(--co-faint); background: var(--co-surface-muted); }
+.co-button-secondary:disabled:hover { border-color: var(--co-line); background: var(--co-surface); }
 
 /* Shared date controls: compact on desktop, comfortably tappable on phones. */
 .co-date-popover {

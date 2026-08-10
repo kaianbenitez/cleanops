@@ -420,43 +420,6 @@ export default function MyDayClient({
 
                       {isNextUp ? (
                         <>
-                          {job.rotationalTaskReminder ? <RotationReminder reminder={job.rotationalTaskReminder} /> : null}
-                          {job.role === "lead" ? (
-                            <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="text-xs font-semibold text-emerald-900">You are the driver</p>
-                                {!editingMileage[job.jobId] ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => setEditingMileage((current) => ({ ...current, [job.jobId]: true }))}
-                                    className="-my-1.5 py-1.5 text-xs font-semibold text-emerald-800 underline underline-offset-2"
-                                  >
-                                    {Number(job.mileageMiles) > 0 ? `${job.mileageMiles} mi logged · Edit` : "Log mileage"}
-                                  </button>
-                                ) : null}
-                              </div>
-                              {editingMileage[job.jobId] ? (
-                                <div className="mt-2 flex items-center gap-2">
-                                  <input aria-label="Mileage miles" type="number" min="0" step="0.1" autoFocus value={mileageDraft[job.jobId] ?? job.mileageMiles} onChange={(event) => setMileageDraft((current) => ({ ...current, [job.jobId]: event.target.value }))} className="co-input w-28 bg-white text-sm" />
-                                  <span className="text-xs text-emerald-800">miles</span>
-                                  <button type="button" onClick={() => saveMileage(job)} className="co-button-secondary px-2.5 py-1.5 text-xs">Save mileage</button>
-                                </div>
-                              ) : null}
-                            </div>
-                          ) : null}
-                          {job.accessInstructions || job.keyNumber || job.garageCode || job.gateCode || job.alarmCode ? (
-                            <details open className="mt-3 rounded-lg border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-3 py-2">
-                              <summary className="cursor-pointer text-xs font-semibold text-[var(--co-ink)]">Entry instructions</summary>
-                              <div className="mt-2 space-y-2 text-xs text-[var(--co-muted)]">
-                                {job.accessInstructions ? <p className="whitespace-pre-line">{job.accessInstructions}</p> : null}
-                                {job.keyNumber || job.garageCode || job.gateCode || job.alarmCode ? (
-                                  <MaskedCode className="max-w-full text-left text-xs">
-                                    {[job.keyNumber && `Key #${job.keyNumber}`, job.garageCode && `Garage ${job.garageCode}`, job.gateCode && `Gate ${job.gateCode}`, job.alarmCode && `Alarm ${job.alarmCode}`].filter(Boolean).join(" · ")}
-                                  </MaskedCode>
-                                ) : null}
-                              </div>
-                            </details>
-                          ) : null}
                         <div className="mt-3 grid grid-cols-2 gap-2">
                           <a
                             href={`https://maps.google.com/?q=${encodeURIComponent(jobAddress(job) || "")}`}
@@ -500,6 +463,43 @@ export default function MyDayClient({
                             )
                           ) : null}
                         </div>
+                          {job.rotationalTaskReminder ? <RotationReminder reminder={job.rotationalTaskReminder} /> : null}
+                          {job.role === "lead" ? (
+                            <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-xs font-semibold text-emerald-900">You are the driver</p>
+                                {!editingMileage[job.jobId] ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingMileage((current) => ({ ...current, [job.jobId]: true }))}
+                                    className="-mx-2 -my-2 flex min-h-11 items-center px-2 text-xs font-semibold text-emerald-800 underline underline-offset-2"
+                                  >
+                                    {Number(job.mileageMiles) > 0 ? `${job.mileageMiles} mi logged · Edit` : "Log mileage"}
+                                  </button>
+                                ) : null}
+                              </div>
+                              {editingMileage[job.jobId] ? (
+                                <div className="mt-2 flex items-center gap-2">
+                                  <input aria-label="Mileage miles" type="number" min="0" step="0.1" autoFocus value={mileageDraft[job.jobId] ?? job.mileageMiles} onChange={(event) => setMileageDraft((current) => ({ ...current, [job.jobId]: event.target.value }))} className="co-input w-28 bg-white text-sm" />
+                                  <span className="text-xs text-emerald-800">miles</span>
+                                  <button type="button" onClick={() => saveMileage(job)} className="co-button-secondary px-2.5 py-1.5 text-xs">Save mileage</button>
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
+                          {job.accessInstructions || job.keyNumber || job.garageCode || job.gateCode || job.alarmCode ? (
+                            <details open className="mt-3 rounded-lg border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-3 py-2">
+                              <summary className="cursor-pointer text-xs font-semibold text-[var(--co-ink)]">Entry instructions</summary>
+                              <div className="mt-2 space-y-2 text-xs text-[var(--co-muted)]">
+                                {job.accessInstructions ? <p className="whitespace-pre-line">{job.accessInstructions}</p> : null}
+                                {job.keyNumber || job.garageCode || job.gateCode || job.alarmCode ? (
+                                  <MaskedCode className="max-w-full text-left text-xs">
+                                    {[job.keyNumber && `Key #${job.keyNumber}`, job.garageCode && `Garage ${job.garageCode}`, job.gateCode && `Gate ${job.gateCode}`, job.alarmCode && `Alarm ${job.alarmCode}`].filter(Boolean).join(" · ")}
+                                  </MaskedCode>
+                                ) : null}
+                              </div>
+                            </details>
+                          ) : null}
                         </>
                       ) : (
                         <div className="mt-3 flex flex-wrap gap-2">
@@ -572,7 +572,7 @@ export default function MyDayClient({
       </footer>
 
       {undoAction ? (
-        <div className="fixed bottom-4 left-1/2 z-50 w-[min(92vw,28rem)] -translate-x-1/2 rounded-2xl border border-[var(--co-line-soft)] bg-white px-4 py-3 shadow-[0_10px_32px_rgba(18,24,19,0.12)]">
+        <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] left-1/2 z-50 w-[min(92vw,28rem)] -translate-x-1/2 rounded-2xl border border-[var(--co-line-soft)] bg-white px-4 py-3 shadow-[0_10px_32px_rgba(18,24,19,0.12)]">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm font-medium text-[var(--co-ink)]">{undoAction.label}</p>

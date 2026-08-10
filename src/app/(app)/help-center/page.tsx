@@ -7,6 +7,26 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.35",
+    date: "August 10, 2026",
+    title: "My Day: easier to read, easier to tap, easier to trust",
+    changes: [
+      "Buttons now visibly gray out while an action is saving, so it's clear your tap registered instead of looking frozen.",
+      "Light gray text (timestamps, addresses) is now easier to read.",
+      "The mileage edit link and other small taps are bigger, so they're easier to hit one-handed or on the move.",
+      "The 'On my way' / 'Arrived' / 'Start' button now sits at the top of your next job's card, instead of below all the job details.",
+      "The undo notification no longer sits under the home-swipe bar on iPhones.",
+    ],
+  },
+  {
+    version: "v0.2.34",
+    date: "August 10, 2026",
+    title: "Rotational task reminder now starts collapsed on My Day",
+    changes: [
+      "The all-day rotation reminder used to show fully expanded every time you opened My Day. It now starts collapsed — tap it to see the week's details.",
+    ],
+  },
+  {
     version: "v0.2.33",
     date: "August 10, 2026",
     title: "Fixed the crew-app phone mockup alignment",
