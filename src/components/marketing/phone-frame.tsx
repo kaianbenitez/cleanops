@@ -3,23 +3,30 @@ import Image from "next/image";
 export function PhoneFrame({
   alt,
   className = "",
-  height,
-  maxWidthClass = "max-w-[22rem]",
   priority = false,
   src,
-  width,
+  maxWidthClass = "max-w-[19rem]",
 }: {
   alt: string;
   className?: string;
-  height: number;
-  maxWidthClass?: string;
   priority?: boolean;
   src: string;
-  width: number;
+  maxWidthClass?: string;
 }) {
   return (
-    <div className={`flex justify-center border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-6 py-8 sm:px-10 sm:py-10 ${className}`}>
-      <Image src={src} alt={alt} width={width} height={height} sizes="(min-width: 640px) 352px, 80vw" priority={priority} className={`h-auto w-full ${maxWidthClass} object-contain`} />
+    <div className={`relative mx-auto w-full ${maxWidthClass} ${className}`}>
+      <div className="relative rounded-[3rem] bg-gradient-to-b from-[#3a3a3f] to-[#0e0e10] p-[3px] shadow-[0_45px_90px_-35px_rgba(15,23,42,0.5)]">
+        <div className="rounded-[2.85rem] bg-black p-[9px]">
+          <div className="relative aspect-[9/19.5] overflow-hidden rounded-[2.35rem] bg-black">
+            <Image src={src} alt={alt} fill sizes="(min-width: 640px) 320px, 80vw" priority={priority} className="object-cover object-top" />
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-transparent" />
+            <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[2.6%] h-[3.4%] w-[30%] -translate-x-1/2 rounded-full bg-black ring-1 ring-white/10" />
+          </div>
+        </div>
+        <div aria-hidden="true" className="pointer-events-none absolute -left-[2px] top-[20%] h-[6%] w-[3px] rounded-l-sm bg-[#4a4a4f]" />
+        <div aria-hidden="true" className="pointer-events-none absolute -left-[2px] top-[28%] h-[9%] w-[3px] rounded-l-sm bg-[#4a4a4f]" />
+        <div aria-hidden="true" className="pointer-events-none absolute -right-[2px] top-[24%] h-[11%] w-[3px] rounded-r-sm bg-[#4a4a4f]" />
+      </div>
     </div>
   );
 }

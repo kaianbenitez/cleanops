@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.32",
+    date: "August 10, 2026",
+    title: "The crew app now shown on a phone mockup",
+    changes: [
+      "The 'Built for the field' screenshot now sits inside a realistic phone mockup instead of a plain bordered box.",
+    ],
+  },
+  {
     version: "v0.2.31",
     date: "August 10, 2026",
     title: "Fresh crew-app screenshots on the ServiceSpark page",
