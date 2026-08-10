@@ -9,6 +9,7 @@ import PhotoUpload from "./photo-upload";
 import { ComingSoonStat } from "@/components/ui/coming-soon-stat";
 import { statusLabel } from "@/components/ui/status-pill";
 import ReportNotes from "./report-notes";
+import PendingPtoRequests from "./pending-pto-requests";
 
 type PayTier = { minHours: number; maxHours: number | null; rateCents: number };
 type Employee = {
@@ -426,6 +427,7 @@ function CompactProfile({
           <section className="co-card overflow-hidden"><div className="flex items-center justify-between border-b border-[var(--co-line-soft)] px-5 py-4"><div className="flex items-center gap-2"><History className="h-4 w-4 text-[var(--co-evergreen)]" /><h2 className="text-sm font-semibold">Recent jobs</h2></div><Link href="/jobs" className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">View full history ↗</Link></div><div className="divide-y divide-[var(--co-line-soft)]">{recentJobs.length === 0 ? <div className="px-5 py-6"><EmptyState label="No recent jobs yet." detail="Completed work will appear here." /></div> : recentJobs.map((job) => <JobRow key={job.id} job={job} compact />)}</div></section>
 
           <section className="co-card p-5"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[var(--co-evergreen)]" /><h2 className="text-sm font-semibold">Weekly schedule preview</h2></div><Link href={`/calendar?view=staff_vertical&employeeId=${employee.id}`} className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">View schedule</Link></div><p className="mt-1 text-xs text-[var(--co-muted)]">Assignments and planned time off for this week.</p><div className="mt-4"><WeekStrip days={weeklySchedule} pto={pto} /></div><PtoEditor employeeId={employee.id} onChange={setPto} /></section>
+          <PendingPtoRequests employeeId={employee.id} />
           <ReportNotes employeeId={employee.id} />
 
         </div>
