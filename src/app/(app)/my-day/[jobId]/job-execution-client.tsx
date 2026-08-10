@@ -45,16 +45,27 @@ type TimeEntry = { clockIn: string; clockOut: string | null } | null;
 
 type Photo = { id: string; slot: "before" | "after" | "extra"; url: string | null; caption: string | null };
 
+type Coworker = { firstName: string; lastName: string; done: boolean };
+
+function formatNameList(names: string[]): string {
+  if (names.length === 0) return "";
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+}
+
 export default function JobExecutionClient({
   job,
   timeEntry,
   officePhone,
   companyTimezone,
+  coworkers,
 }: {
   job: Job;
   timeEntry: TimeEntry;
   officePhone: string | null;
   companyTimezone: string;
+  coworkers: Coworker[];
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -62,7 +73,13 @@ export default function JobExecutionClient({
   const [now, setNow] = useState(0);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [completing, setCompleting] = useState(false);
-  const [completed, setCompleted] = useState(job.status === "completed" || Boolean(timeEntry?.clockOut));
+  // "My part done" (this employee clocked out) is not the same as the job
+  // itself finishing — a multi-cleaner job only completes once every
+  // assignee has clocked out. Conflating these previously showed a plain
+  // "Job completed" screen to whoever finished first, even while a
+  // coworker was still on-site.
+  const [myPortionDone, setMyPortionDone] = useState(Boolean(timeEntry?.clockOut));
+  const [jobFullyCompleted, setJobFullyCompleted] = useState(job.status === "completed");
   const [error, setError] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [checkNumber, setCheckNumber] = useState("");
@@ -98,11 +115,15 @@ export default function JobExecutionClient({
   const afterPhotos = photos.filter((photo) => photo.slot === "after");
   const extraPhotos = photos.filter((photo) => photo.slot === "extra");
 
+  const waitingOnCoworkers = coworkers.filter((coworker) => !coworker.done);
+  const waitingOnLabel = waitingOnCoworkers.length ? formatNameList(waitingOnCoworkers.map((coworker) => coworker.firstName)) : "the rest of the crew";
+
   const statusLabel = useMemo(() => {
-    if (completed) return "Completed";
+    if (jobFullyCompleted) return "Completed";
+    if (myPortionDone) return "Awaiting teammate";
     if (started) return "Active job";
     return "Scheduled";
-  }, [completed, started]);
+  }, [jobFullyCompleted, myPortionDone, started]);
 
   function openUpload(slot: "before" | "after" | "extra") {
     pendingSlotRef.current = slot;
@@ -153,7 +174,8 @@ export default function JobExecutionClient({
       setError(typeof body.error === "string" ? body.error : "Could not complete this job.");
       return;
     }
-    setCompleted(true);
+    setMyPortionDone(true);
+    setJobFullyCompleted(Boolean(body.jobCompleted));
     if (body.jobCompleted) await requestCustomerFeedback();
   }
 
@@ -182,7 +204,13 @@ export default function JobExecutionClient({
             <div className="mb-1 flex flex-wrap items-center gap-2">
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                  completed ? "co-badge-success" : started ? "bg-[var(--co-evergreen)] text-white" : "bg-[var(--co-surface-muted)] text-[var(--co-muted)]"
+                  jobFullyCompleted
+                    ? "co-badge-success"
+                    : myPortionDone
+                      ? "co-badge-warning"
+                      : started
+                        ? "bg-[var(--co-evergreen)] text-white"
+                        : "bg-[var(--co-surface-muted)] text-[var(--co-muted)]"
                 }`}
               >
                 {statusLabel}
@@ -294,7 +322,7 @@ export default function JobExecutionClient({
             ) : null}
           </section>
 
-          {started && !completed ? (
+          {started && !myPortionDone ? (
             <>
               <section className="co-card p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
@@ -400,7 +428,7 @@ export default function JobExecutionClient({
                 </div>
               </section>
             </>
-          ) : completed ? (
+          ) : jobFullyCompleted ? (
             <section className="co-card p-5 text-center">
               <p className="text-lg font-semibold text-[var(--co-evergreen)]">Job completed</p>
               <p className="mt-1 text-sm text-[var(--co-muted)]">
@@ -410,10 +438,24 @@ export default function JobExecutionClient({
                 Back to My day
               </Link>
             </section>
+          ) : myPortionDone ? (
+            <section className="co-card p-5 text-center">
+              <p className="text-lg font-semibold text-[var(--co-ink)]">Your part is done</p>
+              <p className="mt-1 text-sm text-[var(--co-muted)]">
+                Worked {elapsed} · finished {timeEntry?.clockOut ? timeLabel(new Date(timeEntry.clockOut).toISOString()) : timeLabel(new Date().toISOString())}
+              </p>
+              <div className="mx-auto mt-4 max-w-sm rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left">
+                <p className="text-sm font-semibold text-amber-900">Waiting on {waitingOnLabel}</p>
+                <p className="mt-1 text-xs text-amber-800">This job finishes once everyone assigned has clocked out.</p>
+              </div>
+              <Link href="/my-day" className="co-button-primary mt-4 inline-flex">
+                Back to My day
+              </Link>
+            </section>
           ) : null}
       </div>
 
-      {started && !completed ? (
+      {started && !myPortionDone ? (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--co-line-soft)] bg-[var(--co-surface)] p-4">
           <div className="mx-auto max-w-[720px]">
             <button

@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.37",
+    date: "August 10, 2026",
+    title: "Multi-cleaner jobs now show who you're waiting on",
+    changes: [
+      "On a job with more than one cleaner assigned, finishing your part used to show a plain 'Job completed' screen even if a teammate was still on-site — which made it look like the job was done when it wasn't.",
+      "That screen now says 'Your part is done — waiting on [name]' until every assigned cleaner has clocked out, then the job itself shows as completed.",
+    ],
+  },
+  {
     version: "v0.2.36",
     date: "August 10, 2026",
     title: "My Day now shows what's scheduled after today",

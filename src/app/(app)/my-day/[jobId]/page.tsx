@@ -1,7 +1,7 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, ne } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { companies, customerLocations, customers, jobs, jobAssignments, timeEntries } from "@/db/schema";
+import { companies, customerLocations, customers, jobs, jobAssignments, timeEntries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import JobExecutionClient from "./job-execution-client";
 
@@ -72,12 +72,45 @@ export default async function JobExecutionPage({ params }: { params: Promise<{ j
     .limit(1)
     .then((rows) => rows[0] ?? null);
 
+  // Other employees assigned to this job — a job only flips to "completed"
+  // once every assignee has clocked out, so we surface who's still out
+  // instead of letting one finisher's screen silently imply the whole job is done.
+  const coworkerAssignments = await db
+    .select({ userId: jobAssignments.userId, firstName: users.firstName, lastName: users.lastName })
+    .from(jobAssignments)
+    .innerJoin(users, eq(jobAssignments.userId, users.id))
+    .where(and(eq(jobAssignments.jobId, jobId), ne(jobAssignments.userId, user.id)));
+
+  const coworkerDoneIds = coworkerAssignments.length
+    ? await db
+        .select({ userId: timeEntries.userId })
+        .from(timeEntries)
+        .where(
+          and(
+            eq(timeEntries.jobId, jobId),
+            isNotNull(timeEntries.clockOut),
+            inArray(
+              timeEntries.userId,
+              coworkerAssignments.map((coworker) => coworker.userId)
+            )
+          )
+        )
+        .then((rows) => rows.map((row) => row.userId))
+    : [];
+  const coworkerDoneIdSet = new Set(coworkerDoneIds);
+  const coworkers = coworkerAssignments.map((coworker) => ({
+    firstName: coworker.firstName,
+    lastName: coworker.lastName,
+    done: coworkerDoneIdSet.has(coworker.userId),
+  }));
+
   return (
     <JobExecutionClient
       job={job}
       timeEntry={timeEntry ? { clockIn: timeEntry.clockIn.toISOString(), clockOut: timeEntry.clockOut ? timeEntry.clockOut.toISOString() : null } : null}
       officePhone={branding?.phone ?? null}
       companyTimezone={company.timezone}
+      coworkers={coworkers}
     />
   );
 }
