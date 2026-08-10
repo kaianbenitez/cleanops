@@ -10,6 +10,7 @@ import { ComingSoonStat } from "@/components/ui/coming-soon-stat";
 import { statusLabel } from "@/components/ui/status-pill";
 import ReportNotes from "./report-notes";
 import PendingPtoRequests from "./pending-pto-requests";
+import EmployeeTags from "./employee-tags";
 
 type PayTier = { minHours: number; maxHours: number | null; rateCents: number };
 type Employee = {
@@ -30,6 +31,7 @@ type Employee = {
   serviceLocationId: string | null;
   serviceLocationName: string | null;
   profilePhotoUrl: string | null;
+  tags: string[];
 };
 type Stats = {
   jobsCompleted: number;
@@ -361,6 +363,9 @@ function CompactProfile({
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--co-ink)]">{fullName}</h1>
               <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-[var(--co-evergreen)]">{employee.title ?? "Team member"}</span>
+              {employee.tags.map((tag) => (
+                <span key={tag} className="rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--co-muted)]">{tag}</span>
+              ))}
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--co-muted)]">
               <span className="flex items-center gap-1"><MapPin aria-hidden="true" className="h-3.5 w-3.5" />{employee.serviceLocationName ?? "No primary area"}</span>
@@ -421,6 +426,8 @@ function CompactProfile({
           </section>
 
           <section className="co-card p-5"><div className="flex items-center justify-between"><h2 className="text-sm font-semibold">Service area</h2><span className="text-[var(--co-evergreen)]">Primary</span></div><p className="mt-4 rounded-xl bg-[var(--co-surface-muted)] px-3 py-3 text-xs font-medium text-[var(--co-ink)]">{employee.serviceLocationName ?? "No primary area assigned"}</p>{editMode ? <select defaultValue={employee.serviceLocationId ?? ""} onChange={(event) => void save({ serviceLocationId: event.target.value || null })} className="co-input mt-3 w-full text-xs"><option value="">No primary area</option>{serviceLocations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select> : null}</section>
+
+          <EmployeeTags tags={employee.tags} onSave={(tags) => void save({ tags })} />
         </aside>
 
         <div className="space-y-5">

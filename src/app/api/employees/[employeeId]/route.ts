@@ -25,6 +25,7 @@ const updateEmployeeSchema = z.object({
   gustoEmployeeId: z.string().trim().optional(),
   isActive: z.boolean().optional(),
   serviceLocationId: z.string().uuid().optional().nullable(),
+  tags: z.array(z.string().trim().min(1).max(40)).max(12).optional(),
 });
 
 const passwordSchema = z.object({

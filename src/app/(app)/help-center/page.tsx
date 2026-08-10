@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.42",
+    date: "August 11, 2026",
+    title: "Add skill tags to employee profiles",
+    changes: [
+      "Every employee profile now has a \"Skills & specialties\" section where you can tag what someone's especially good at — Organizer, Deep clean expert, Move-out specialist, and more, or type your own. Tags save instantly and show up right next to the person's name at the top of their profile too.",
+    ],
+  },
+  {
     version: "v0.2.41",
     date: "August 11, 2026",
     title: "Fixed rescheduling a job from the Calendar not saving",

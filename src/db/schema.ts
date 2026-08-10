@@ -98,6 +98,9 @@ export const users = pgTable("users", {
   serviceLocationId: uuid("service_location_id").references(() => serviceLocations.id),
   // Storage object path in the private employee-photos bucket.
   profilePhotoUrl: text("profile_photo_url"),
+  // Free-form skill/specialty labels shown on the profile, e.g. "Organizer",
+  // "Deep clean expert" — admin-managed, no fixed vocabulary.
+  tags: text("tags").array().notNull().default([]),
   isActive: boolean("is_active").notNull().default(true),
   // Set whenever an admin hands this account a one-time password (creation
   // or a manual reset) and cleared once the holder sets their own password.
