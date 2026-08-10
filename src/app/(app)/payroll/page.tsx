@@ -19,6 +19,8 @@ type Calculation = {
   rateCents: number;
   amountCents: number;
   averageCentsPerHour?: number;
+  isAppointment?: boolean;
+  appointmentTitle?: string;
 };
 
 type Line = {
@@ -194,28 +196,38 @@ function PayrollDetail({
               <tr key={calculation.jobId}>
                 <td className="py-3">{calculation.date}</td>
                 <td className="py-3">
-                  <Link href={`/jobs/${calculation.jobId}`} className="font-medium text-[var(--co-evergreen)] hover:underline">
-                    {calculation.customerName}
-                  </Link>
-                  <div className="mt-1 flex items-center gap-2 text-[var(--co-muted)]">
-                    <span>Job detail</span>
-                    <Link href={`/jobs/${calculation.jobId}`} className="font-medium text-[var(--co-evergreen)] hover:underline">
-                      Open
-                    </Link>
-                  </div>
+                  {calculation.isAppointment ? (
+                    <span className="font-medium text-violet-800">📅 {calculation.appointmentTitle ?? calculation.customerName}</span>
+                  ) : (
+                    <>
+                      <Link href={`/jobs/${calculation.jobId}`} className="font-medium text-[var(--co-evergreen)] hover:underline">
+                        {calculation.customerName}
+                      </Link>
+                      <div className="mt-1 flex items-center gap-2 text-[var(--co-muted)]">
+                        <span>Job detail</span>
+                        <Link href={`/jobs/${calculation.jobId}`} className="font-medium text-[var(--co-evergreen)] hover:underline">
+                          Open
+                        </Link>
+                      </div>
+                    </>
+                  )}
                 </td>
                 <td className="py-3">
-                  <span
-                    className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${
-                      calculation.crewRole === "lead"
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : "border-slate-200 bg-slate-50 text-slate-600"
-                    }`}
-                  >
-                    {calculation.crewRole ?? "unassigned"}
-                  </span>
+                  {calculation.isAppointment ? (
+                    <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-violet-800">meeting</span>
+                  ) : (
+                    <span
+                      className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${
+                        calculation.crewRole === "lead"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border-slate-200 bg-slate-50 text-slate-600"
+                      }`}
+                    >
+                      {calculation.crewRole ?? "unassigned"}
+                    </span>
+                  )}
                 </td>
-                <td className="py-3 text-[var(--co-muted)]">{calculation.cleaningType.replaceAll("_", " ")}</td>
+                <td className="py-3 text-[var(--co-muted)]">{calculation.isAppointment ? "Internal meeting" : calculation.cleaningType.replaceAll("_", " ")}</td>
                 <td className="py-3 text-right">{(calculation.budgetHours ?? ((calculation.estimatedMinutes ?? 0) / 60)).toFixed(2)}</td>
                 <td className="py-3 text-right font-medium">{(calculation.hoursSpent ?? 0).toFixed(2)}</td>
                 <td className="py-3 text-right font-medium">{(calculation.paidHours ?? calculation.budgetHours ?? 0).toFixed(2)} {calculation.varianceStatus ? <span className="ml-1 rounded border border-amber-200 px-1 text-[10px] text-amber-700">{calculation.varianceStatus}</span> : null}</td>

@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.39",
+    date: "August 10, 2026",
+    title: "Add internal appointments to the Calendar",
+    changes: [
+      "A new \"+ New appointment\" button on the Calendar opens a slide-in panel for scheduling internal staff meetings — separate from client cleaning jobs, with a title, date, time, duration, and a list of attendees drawn from your whole team (not just field cleaners).",
+      "Every attendee is automatically paid for the meeting's length (defaults to one hour) — it's folded into their normal payroll hours the next time payroll is generated, no manual adjustment needed.",
+      "Appointments show up alongside jobs across the Staff, Staff Vertical, Week, Month, and List calendar views, and can be edited or cancelled from the same panel.",
+    ],
+  },
+  {
     version: "v0.2.38",
     date: "August 10, 2026",
     title: "Employees can request time off from My Day",

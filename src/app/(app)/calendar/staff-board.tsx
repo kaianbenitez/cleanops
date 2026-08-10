@@ -2,13 +2,14 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { CalendarEmployee, CalendarJob } from "./page";
+import type { CalendarAppointment, CalendarEmployee, CalendarJob, StaffRosterMember } from "./page";
 import { commitJobPatch } from "./drag-commit";
 import { UndoToast, useUndoToast } from "./undo-toast";
 import JobCard from "./job-card";
-import { assignDayLanes, employeeColor, formatEstimatedTime } from "./shared";
+import { APPOINTMENT_COLOR, APPOINTMENT_COLOR_CANCELLED, assignDayLanes, employeeColor, formatAppointmentTime, formatEstimatedTime, minutesFromTime } from "./shared";
 import UnassignedPanel from "./unassigned-panel";
 import JobDetailPanel from "./job-detail-panel";
+import AppointmentPanel from "./appointment-panel";
 import type { EmployeePtoRecord, PtoPeriod } from "@/lib/scheduling/pto";
 
 const START = 9 * 60;
@@ -70,6 +71,8 @@ export default function StaffBoard({
   jobs: initialJobs,
   unassignedJobs,
   ptoRecords,
+  appointments = [],
+  staffRoster = [],
 }: {
   dayIso: string;
   dayLabel: string;
@@ -80,10 +83,13 @@ export default function StaffBoard({
   jobs: CalendarJob[];
   unassignedJobs: CalendarJob[];
   ptoRecords: EmployeePtoRecord[];
+  appointments?: CalendarAppointment[];
+  staffRoster?: StaffRosterMember[];
 }) {
   const router = useRouter();
   const [jobs, setJobs] = useState(initialJobs);
   const [syncedJobs, setSyncedJobs] = useState(initialJobs);
+  const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<{
     employeeId: string;
     minutes: number;
@@ -274,6 +280,18 @@ export default function StaffBoard({
         },
       },
     );
+  }
+
+  const dayAppointments = useMemo(
+    () => appointments.filter((appointment) => appointment.scheduledDate === dayIso && !appointment.isAllDay),
+    [appointments, dayIso],
+  );
+
+  function appointmentStyle(appointment: CalendarAppointment) {
+    const startMinutes = minutesFromTime(appointment.startTime);
+    const top = Math.max(0, Math.min(((startMinutes - START) / TOTAL) * 100, 94));
+    const height = Math.max(((appointment.durationMinutes ?? 60) / TOTAL) * 100, 6);
+    return { top: `${top}%`, height: `${height}%` };
   }
 
   function startMinutesOf(job: CalendarJob) {
@@ -694,6 +712,20 @@ export default function StaffBoard({
                         PTO{ptoPeriod === "full" ? "" : ` - ${ptoPeriod}`}
                       </div>
                     ) : null}
+                    {dayAppointments
+                      .filter((appointment) => appointment.attendeeUserIds.includes(employee.id))
+                      .map((appointment) => (
+                        <button
+                          key={appointment.id}
+                          type="button"
+                          onClick={() => setEditingAppointmentId(appointment.id)}
+                          className={`absolute inset-x-1 z-20 flex flex-col items-start gap-0.5 overflow-hidden rounded-md border px-2 py-1 text-left text-[10px] font-semibold shadow-sm ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}
+                          style={appointmentStyle(appointment)}
+                        >
+                          <span className="truncate">📅 {appointment.title}</span>
+                          <span className="truncate font-normal">{formatAppointmentTime(appointment.startTime, appointment.durationMinutes)}</span>
+                        </button>
+                      ))}
                     {employeeJobs.map((job) => {
                       const placement = lanes.get(job.id);
                       if (!placement || placement.hidden) return null;
@@ -782,6 +814,15 @@ export default function StaffBoard({
         employees={employees}
         onClose={() => setDetailJobId(null)}
       />
+      {editingAppointmentId ? (
+        <AppointmentPanel
+          mode="edit"
+          eventId={editingAppointmentId}
+          staffRoster={staffRoster}
+          defaultDate={dayIso}
+          onClose={() => setEditingAppointmentId(null)}
+        />
+      ) : null}
     </div>
   );
 }

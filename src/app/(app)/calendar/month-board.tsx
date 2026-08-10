@@ -9,11 +9,13 @@ export default function MonthBoard({
   summaries,
   holidays,
   workingDays,
+  appointmentCountByDate = {},
 }: {
   month: Date;
   summaries: CalendarDaySummary[];
   holidays: string[];
   workingDays: number[];
+  appointmentCountByDate?: Record<string, number>;
 }) {
   const first = new Date(
     Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), 1),
@@ -98,6 +100,11 @@ export default function MonthBoard({
                   {summary.jobs} jobs
                 </span>
               </div>
+              {appointmentCountByDate[iso] ? (
+                <span className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-violet-300 bg-violet-50 px-1.5 py-0.5 text-[10px] font-semibold text-violet-800">
+                  📅 {appointmentCountByDate[iso]} {appointmentCountByDate[iso] === 1 ? "meeting" : "meetings"}
+                </span>
+              ) : null}
               <div className="mt-5 space-y-2 text-xs">
                 <div className="flex justify-between text-[var(--co-muted)]">
                   <span>Assigned</span>

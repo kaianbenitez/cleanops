@@ -11,6 +11,8 @@ import {
   feedbackRequests,
   invoices,
   payrollJobReviews,
+  calendarEvents,
+  calendarEventAssignments,
 } from "@/db/schema";
 import { and, eq, gte, lte, isNotNull, or, sql, inArray, asc } from "drizzle-orm";
 import { refreshJobTicketHours } from "./job-ticket-hours";
@@ -32,7 +34,43 @@ type CalculationLine = {
   rateCents: number;
   amountCents: number;
   averageCentsPerHour: number;
+  isAppointment?: boolean;
+  appointmentTitle?: string;
 };
+
+/** Internal-meeting attendance for one employee in a payroll period — the
+ * "everyone gets paid an hour" flow from the calendar's appointment panel.
+ * Only category="meeting" rows participate in payroll; "reminder"/"training"
+ * calendar events never do (see src/db/schema.ts's calendarEvents comment). */
+async function getAppointmentMinutesForEmployee(
+  companyId: string,
+  employeeId: string,
+  startDate: string,
+  endDate: string
+): Promise<{ id: string; title: string; date: string; minutes: number }[]> {
+  const rows = await db
+    .select({
+      id: calendarEvents.id,
+      title: calendarEvents.title,
+      date: calendarEvents.scheduledDate,
+      durationMinutes: calendarEvents.durationMinutes,
+    })
+    .from(calendarEvents)
+    .innerJoin(calendarEventAssignments, and(
+      eq(calendarEventAssignments.eventId, calendarEvents.id),
+      eq(calendarEventAssignments.userId, employeeId)
+    ))
+    .where(
+      and(
+        eq(calendarEvents.companyId, companyId),
+        eq(calendarEvents.category, "meeting"),
+        eq(calendarEvents.status, "scheduled"),
+        gte(calendarEvents.scheduledDate, startDate),
+        lte(calendarEvents.scheduledDate, endDate)
+      )
+    );
+  return rows.map((row) => ({ id: row.id, title: row.title, date: row.date, minutes: row.durationMinutes ?? 60 }));
+}
 
 export type PayTier = { minHours: number; maxHours: number | null; rateCents: number };
 
@@ -309,14 +347,42 @@ async function generateCommissionLine(
     }
   }
 
+  // Internal meetings (staff appointments) count toward the same weekly
+  // tier threshold as job hours — they're time this employee was paid for
+  // in the period, same as any other worked hour.
+  const appointments = await getAppointmentMinutesForEmployee(period.companyId, employee.id, period.startDate, period.endDate);
+  const appointmentMinutes = appointments.reduce((sum, a) => sum + a.minutes, 0);
+
   // Tier rate depends on TOTAL PAID JTH HOURS, then one resulting rate is
   // applied to every job for this employee in the period.
-  const totalMinutes = uniqueRows.reduce((sum, r) => sum + (paidMinutesByJob.get(r.jobId) ?? 0), 0);
+  const jobMinutes = uniqueRows.reduce((sum, r) => sum + (paidMinutesByJob.get(r.jobId) ?? 0), 0);
+  const totalMinutes = jobMinutes + appointmentMinutes;
   const totalHours = totalMinutes / 60;
   const tiers = (employee.payTiers as PayTier[] | null) ?? null;
   const rateCents = resolveTierRateCents(totalHours, tiers, employee.hourlyRateCents ?? 0);
 
-  const calculation: CalculationLine[] = uniqueRows.map((r) => {
+  const appointmentCalculation: CalculationLine[] = appointments.map((appointment) => {
+    const budgetHours = appointment.minutes / 60;
+    const amountCents = Math.round(budgetHours * rateCents);
+    return {
+      jobId: appointment.id,
+      date: appointment.date,
+      customerName: appointment.title,
+      cleaningType: "internal_meeting",
+      budgetHours,
+      hoursSpent: budgetHours,
+      rateCents,
+      amountCents,
+      paidHours: budgetHours,
+      clientTipCents: 0,
+      bonusCents: 0,
+      averageCentsPerHour: rateCents,
+      isAppointment: true,
+      appointmentTitle: appointment.title,
+    };
+  });
+
+  const calculation: CalculationLine[] = [...uniqueRows.map((r) => {
     const minutes = r.estimatedDurationMinutes ?? 0;
     const paidMinutes = paidMinutesByJob.get(r.jobId) ?? minutes;
     const hoursSpent = (minutesByJob.get(r.jobId) ?? 0) / 60;
@@ -343,7 +409,7 @@ async function generateCommissionLine(
       bonusCents: trainerBonusCents,
       averageCentsPerHour: budgetHours > 0 ? Math.round(amountCents / budgetHours) : 0,
     };
-  });
+  }), ...appointmentCalculation];
 
   const commissionCents = calculation.reduce((sum, c) => sum + c.amountCents, 0);
   const clientTipsCents = calculation.reduce((sum, c) => sum + c.clientTipCents, 0);
@@ -351,7 +417,7 @@ async function generateCommissionLine(
   const mileageMiles = assignments.filter((assignment) => assignment.userId === employee.id && assignment.role === "lead").reduce((sum, assignment) => sum + Number(assignment.mileageMiles), 0);
 
   await upsertAutomaticFields(period.id, employee.id, {
-    jobsCount: calculation.length,
+    jobsCount: uniqueRows.length,
     regularHours: totalHours.toFixed(2),
     commissionCents,
     officeHours: "0",
@@ -407,7 +473,10 @@ async function generateOfficeHourlyLine(
     seenTimeEntries.add(entryKey);
     return true;
   });
-  const totalMinutes = uniqueRows.reduce((sum, r) => sum + (r.minutesWorked ?? 0), 0);
+  const jobMinutes = uniqueRows.reduce((sum, r) => sum + (r.minutesWorked ?? 0), 0);
+  const appointments = await getAppointmentMinutesForEmployee(period.companyId, employee.id, period.startDate, period.endDate);
+  const appointmentMinutes = appointments.reduce((sum, a) => sum + a.minutes, 0);
+  const totalMinutes = jobMinutes + appointmentMinutes;
   const officeHours = totalMinutes / 60;
   // Manual office hours are deliberately not read here: refreshes recompute
   // only the clocked portion and upsertAutomaticFields preserves the manual
@@ -415,7 +484,28 @@ async function generateOfficeHourlyLine(
   const rateCents = employee.hourlyRateCents ?? 0;
   const officePayCents = await getOfficePayCents(period.id, employee.id, officeHours, rateCents);
 
-  const calculation: CalculationLine[] = uniqueRows.map((r) => {
+  const appointmentCalculation: CalculationLine[] = appointments.map((appointment) => {
+    const hoursSpent = appointment.minutes / 60;
+    const amountCents = Math.round(hoursSpent * rateCents);
+    return {
+      jobId: appointment.id,
+      date: appointment.date,
+      customerName: appointment.title,
+      cleaningType: "internal_meeting",
+      budgetHours: hoursSpent,
+      hoursSpent,
+      rateCents,
+      amountCents,
+      paidHours: hoursSpent,
+      clientTipCents: 0,
+      bonusCents: 0,
+      averageCentsPerHour: hoursSpent > 0 ? Math.round(amountCents / hoursSpent) : 0,
+      isAppointment: true,
+      appointmentTitle: appointment.title,
+    };
+  });
+
+  const calculation: CalculationLine[] = [...uniqueRows.map((r) => {
     const hoursSpent = (r.minutesWorked ?? 0) / 60;
     const amountCents = Math.round(hoursSpent * rateCents);
     return {
@@ -433,7 +523,7 @@ async function generateOfficeHourlyLine(
       bonusCents: 0,
       averageCentsPerHour: hoursSpent > 0 ? Math.round(amountCents / hoursSpent) : 0,
     };
-  });
+  }), ...appointmentCalculation];
 
   await upsertAutomaticFields(period.id, employee.id, {
     jobsCount: rows.length,

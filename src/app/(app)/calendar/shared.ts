@@ -14,6 +14,27 @@ export const TYPE_COLORS: Record<string, string> = {
   move_out: "border-orange-300 bg-orange-50 text-orange-700",
 };
 
+// Internal meeting/appointment styling — deliberately not part of
+// TYPE_COLORS (which is job-type specific) since appointments aren't jobs.
+export const APPOINTMENT_COLOR = "border-violet-300 bg-violet-50 text-violet-800";
+export const APPOINTMENT_COLOR_CANCELLED = "border-slate-200 bg-slate-50 text-slate-400 line-through";
+
+function clockLabelFromMinutes(totalMinutes: number) {
+  const hour24 = Math.floor(totalMinutes / 60) % 24;
+  const minute = totalMinutes % 60;
+  const hour12 = ((hour24 + 11) % 12) + 1;
+  const suffix = hour24 < 12 ? "AM" : "PM";
+  return `${hour12}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
+
+export function formatAppointmentTime(startTime: string | null, durationMinutes: number | null) {
+  if (!startTime) return "All day";
+  const startMinutes = minutesFromTime(startTime);
+  const start = clockLabelFromMinutes(startMinutes);
+  if (!durationMinutes) return start;
+  return `${start} – ${clockLabelFromMinutes(startMinutes + durationMinutes)}`;
+}
+
 export const EMPLOYEE_PALETTE = ["#f6ed00", "#f4c542", "#9bd8ad", "#008c99", "#e600d0", "#4ed66c", "#a7c8ef", "#e31b16", "#a899d1", "#d4a500", "#8f9698", "#ff7a00", "#fff3ca", "#f4d5cf", "#b9d8e8", "#5687d8"];
 
 export const STAFF_RANGE_START = 9 * 60;
