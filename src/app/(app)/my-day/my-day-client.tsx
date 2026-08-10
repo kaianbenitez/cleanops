@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { RefreshCw, Phone, ArrowRight, MapPin, Car, CheckCircle2, Play, X, ChevronRight, CalendarCheck, Shirt, WashingMachine, Wind } from "lucide-react";
 import { timeLabel, dateLabel, jobAddress, formatElapsed, formatEstimatedTime, jobTypeLabel } from "@/lib/my-day/job-format";
 import { MaskedCode } from "@/components/ui/masked-code";
-import PtoRequests from "./pto-requests";
 
 type JobCard = {
   jobId: string;
@@ -325,6 +324,17 @@ export default function MyDayClient({
         </div>
       </section>
 
+      <Link
+        href="/my-day/pto"
+        className="co-card flex items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-[var(--co-ink)] sm:px-5"
+      >
+        <span className="inline-flex items-center gap-2">
+          <CalendarCheck className="h-4 w-4 text-[var(--co-evergreen)]" aria-hidden />
+          Time off
+        </span>
+        <ChevronRight className="h-4 w-4 text-[var(--co-muted)]" aria-hidden />
+      </Link>
+
       {error ? (
         <p role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
@@ -519,8 +529,6 @@ export default function MyDayClient({
           )}
         </div>
       </section>
-
-      <PtoRequests />
 
       <section className="co-card overflow-hidden">
         <div className="border-b border-[var(--co-line-soft)] px-4 py-4 sm:px-5">
