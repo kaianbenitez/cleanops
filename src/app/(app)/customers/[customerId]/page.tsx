@@ -543,6 +543,45 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
 
       {mode === "edit" && (
       <>
+      <section id="edit-location" ref={addressSectionRef} className="co-card p-5 scroll-mt-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <p className="eyebrow">Contact, address &amp; access</p>
+            <h2 className="mt-1 text-lg font-semibold">{location ? `Editing: ${location.label || "Service address"}` : "Contact details"}</h2>
+          </div>
+          <span className="text-xs text-[var(--co-muted)]">Sensitive details stay internal</span>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Company name (commercial clients)" value={customer.companyName ?? ""} onChange={(value) => updateCustomer("companyName", value)} />
+          <div />
+          <Field label="First name" value={customer.firstName} onChange={(value) => updateCustomer("firstName", value)} />
+          <Field label="Last name" value={customer.lastName} onChange={(value) => updateCustomer("lastName", value)} />
+          <Field label="Phone" value={customer.phone ?? ""} onChange={(value) => updateCustomer("phone", value)} />
+          <Field label="Email" value={customer.email ?? ""} onChange={(value) => updateCustomer("email", value)} type="email" />
+          {location ? (
+            <>
+              <Field label="Address label" value={location.label} onChange={(value) => updateLocation("label", value)} />
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Street address</span>
+                <AddressAutocomplete value={location.addressLine1} onChange={(value) => updateLocation("addressLine1", value)} onAddressSelected={updateAddress} />
+              </label>
+              <Field label="City" value={location.city ?? ""} onChange={(value) => updateLocation("city", value)} />
+              <Field label="State" value={location.state ?? ""} onChange={(value) => updateLocation("state", value)} />
+              <Field label="ZIP" value={location.zip ?? ""} onChange={(value) => updateLocation("zip", value)} />
+              <Field label="Entrance notes" value={location.accessInstructions ?? ""} onChange={(value) => updateLocation("accessInstructions", value)} textarea />
+              <Field label="Entry code" value={location.entryCode ?? ""} onChange={(value) => updateLocation("entryCode", value)} type="password" />
+              <Field label="Garage code" value={location.garageCode ?? ""} onChange={(value) => updateLocation("garageCode", value)} />
+              <Field label="Gate code" value={location.gateCode ?? ""} onChange={(value) => updateLocation("gateCode", value)} />
+            </>
+          ) : (
+            <p className="text-sm text-[var(--co-muted)] md:col-span-2">No service address yet — click &quot;Add service address&quot; above to add one.</p>
+          )}
+        </div>
+        <button className="co-button-primary mt-5" onClick={save} disabled={saving}>
+          {saving ? "Saving..." : "Save all profile changes"}
+        </button>
+      </section>
+
       <section className="grid gap-5 xl:grid-cols-[1.1fr_1.15fr_0.85fr]">
         <div className="co-card p-5">
           <div className="flex items-start gap-4">
@@ -680,7 +719,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                 + Address
               </button>
               <button onClick={jumpToAddressFields} className="ml-auto text-xs font-medium text-[var(--co-evergreen)] hover:underline">
-                Edit address details ↓
+                Edit address details ↑
               </button>
             </div>
           ) : (
@@ -935,44 +974,6 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         </Section>
       </section>
 
-      <section id="edit-location" ref={addressSectionRef} className="co-card p-5 scroll-mt-6">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <p className="eyebrow">Contact, address &amp; access</p>
-            <h2 className="mt-1 text-lg font-semibold">{location ? `Editing: ${location.label || "Service address"}` : "Contact details"}</h2>
-          </div>
-          <span className="text-xs text-[var(--co-muted)]">Sensitive details stay internal</span>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Company name (commercial clients)" value={customer.companyName ?? ""} onChange={(value) => updateCustomer("companyName", value)} />
-          <div />
-          <Field label="First name" value={customer.firstName} onChange={(value) => updateCustomer("firstName", value)} />
-          <Field label="Last name" value={customer.lastName} onChange={(value) => updateCustomer("lastName", value)} />
-          <Field label="Phone" value={customer.phone ?? ""} onChange={(value) => updateCustomer("phone", value)} />
-          <Field label="Email" value={customer.email ?? ""} onChange={(value) => updateCustomer("email", value)} type="email" />
-          {location ? (
-            <>
-              <Field label="Address label" value={location.label} onChange={(value) => updateLocation("label", value)} />
-              <label className="block text-sm">
-                <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Street address</span>
-                <AddressAutocomplete value={location.addressLine1} onChange={(value) => updateLocation("addressLine1", value)} onAddressSelected={updateAddress} />
-              </label>
-              <Field label="City" value={location.city ?? ""} onChange={(value) => updateLocation("city", value)} />
-              <Field label="State" value={location.state ?? ""} onChange={(value) => updateLocation("state", value)} />
-              <Field label="ZIP" value={location.zip ?? ""} onChange={(value) => updateLocation("zip", value)} />
-              <Field label="Entrance notes" value={location.accessInstructions ?? ""} onChange={(value) => updateLocation("accessInstructions", value)} textarea />
-              <Field label="Entry code" value={location.entryCode ?? ""} onChange={(value) => updateLocation("entryCode", value)} type="password" />
-              <Field label="Garage code" value={location.garageCode ?? ""} onChange={(value) => updateLocation("garageCode", value)} />
-              <Field label="Gate code" value={location.gateCode ?? ""} onChange={(value) => updateLocation("gateCode", value)} />
-            </>
-          ) : (
-            <p className="text-sm text-[var(--co-muted)] md:col-span-2">No service address yet — click &quot;Add service address&quot; above to add one.</p>
-          )}
-        </div>
-        <button className="co-button-primary mt-5" onClick={save} disabled={saving}>
-          {saving ? "Saving..." : "Save all profile changes"}
-        </button>
-      </section>
       </>
       )}
 
