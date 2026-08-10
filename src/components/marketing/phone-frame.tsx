@@ -18,9 +18,13 @@ export function PhoneFrame({
       <div className="relative rounded-[3rem] bg-gradient-to-b from-[#3a3a3f] to-[#0e0e10] p-[3px] shadow-[0_45px_90px_-35px_rgba(15,23,42,0.5)]">
         <div className="rounded-[2.85rem] bg-black p-[9px]">
           <div className="relative aspect-[9/19.5] overflow-hidden rounded-[2.35rem] bg-black">
-            <Image src={src} alt={alt} fill sizes="(min-width: 640px) 320px, 80vw" priority={priority} className="object-cover object-top" />
-            <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-transparent" />
-            <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[2.6%] h-[3.4%] w-[30%] -translate-x-1/2 rounded-full bg-black ring-1 ring-white/10" />
+            {/* Reserved status-bar strip so the Dynamic Island never sits on top of app content. */}
+            <div aria-hidden="true" className="absolute inset-x-0 top-0 z-10 h-[7%] bg-black" />
+            <div className="absolute inset-x-0 bottom-0 top-[7%] overflow-hidden">
+              <Image src={src} alt={alt} fill sizes="(min-width: 640px) 320px, 80vw" priority={priority} className="object-cover object-top" />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-transparent" />
+            </div>
+            <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[2%] z-20 h-[3%] w-[30%] -translate-x-1/2 rounded-full bg-black ring-1 ring-white/10" />
           </div>
         </div>
         <div aria-hidden="true" className="pointer-events-none absolute -left-[2px] top-[20%] h-[6%] w-[3px] rounded-l-sm bg-[#4a4a4f]" />

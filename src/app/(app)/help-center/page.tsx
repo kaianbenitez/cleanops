@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.33",
+    date: "August 10, 2026",
+    title: "Fixed the crew-app phone mockup alignment",
+    changes: [
+      "The phone mockup's notch no longer covers the ServiceSpark logo, and the small supporting screenshot beside it no longer overlaps or hides buttons on the main screen.",
+    ],
+  },
+  {
     version: "v0.2.32",
     date: "August 10, 2026",
     title: "The crew app now shown on a phone mockup",
