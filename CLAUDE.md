@@ -2,16 +2,10 @@
 
 Before making any change, read `AI-CONTEXT.md` and `AI-NOW.md` — both are short. Read `AGENT-COLLABORATION.md` before worktree, integration, or commit/push work; it holds the current worktree map and machine-specific paths, which change more often than this file. Open `HANDOFF.md`, `DECISIONS.md`, `PLAN.md`, or a feature-specific `HANDOFF.*.md` only for the specific question at hand — see the load-order table in `AI-CONTEXT.md`.
 
-## Implementing directly vs. delegating to Codex
+## Implementation
 
-Default: Claude plans, scopes, and reviews; Codex implements features, fixes, refactors, and anything that mutates data, via a structured contract (goal, files/areas in scope, acceptance criteria, constraints, verification commands) run through the `codex` MCP server. Claude reviews the diff and verification output before integrating.
+Claude plans, scopes, implements, and reviews its own work directly — the `codex` MCP server is not the default path here. For a feature, fix, or refactor: branch into a fresh feature worktree (see `AGENT-COLLABORATION.md` for the worktree/branch convention), implement there, run the project's own verification (`npm run verify`, `check:drift` when schema-dependent, smoke checks per `TESTING.md`), then merge into `cleanops-v1/main` and push per the commit/push rules in this file.
 
-Claude may implement directly instead when any of these hold:
+Small, throwaway, read-only investigation scripts are always fine to write directly, in any checkout, to inform a plan.
 
-- The session is explicitly configured to edit in place, rather than isolated into a worktree.
-- The user explicitly asks Claude to make the change itself.
-- The change is small, low-risk, and self-contained (docs, config, a scoped one-file fix) — not worth a full Codex contract.
-
-In the shared integration checkout (`cleanops-v1/main`) specifically, never implement directly — only review, verify, cherry-pick, and push finished Codex work, regardless of which of the above would otherwise apply. See `AGENT-COLLABORATION.md` for that procedure.
-
-Small, throwaway, read-only investigation scripts are always fine for Claude to write itself, in any checkout, to inform a plan.
+Only involve Codex if the user explicitly asks for it (e.g. a second opinion or an independent implementation).

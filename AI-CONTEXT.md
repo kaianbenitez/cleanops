@@ -33,7 +33,7 @@ invariants live in `AGENTS.md` instead.
 
 ## Collaboration
 
-See `CLAUDE.md` for when Claude implements directly versus delegates to Codex. See
-`AGENT-COLLABORATION.md` for the current worktree map (this is a multi-machine setup —
-that file, not this one, is the source of truth for machine-specific paths) and the commit
-and integration procedure.
+See `CLAUDE.md` for the implementation workflow (Claude implements directly via feature
+worktrees). See `AGENT-COLLABORATION.md` for the current worktree map (this is a
+multi-machine setup — that file, not this one, is the source of truth for machine-specific
+paths) and the commit and integration procedure.
