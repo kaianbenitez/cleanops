@@ -1,12 +1,12 @@
 # ServiceSpark — current working memory
 
-Last refreshed: 2026-08-08
+Last refreshed: 2026-08-10
 
 ## Current state
 
-- `cleanops-v1` is the integration checkout on `main`; its latest local commit is `b875313` (calendar control-panel refinement, 2026-08-07).
-- The public ServiceSpark landing-page rebuild and simpler early-access form shipped on 2026-08-07. Hosted migration `0029_product_leads_optional_contact.sql` was applied and drift checked clean.
-- The landing-page implementation checkout is `C:\Users\kbeni\Downloads\cleanops-landing` on `codex/servicespark-landing-page`. Treat it as a feature worktree of this same repository; sync it before assigning new work.
+- This checkout's `main` is at `b77c031` ("Fix misleading 'Job completed' screen on multi-cleaner jobs"). The commits leading up to it are a My Day mobile-employee UX pass: multi-cleaner job-completion messaging, an upcoming-jobs list, rotation-reminder dedupe, button feedback/contrast/touch-target polish, and a phone-mockup screenshot fix.
+- The ServiceSpark landing-page rebuild (motion-rich feature showcase, CTA/copy rework, hero swap) is merged into `main` as of commits `a743975`–`999015d`. A separate `cleanops-landing` worktree was noted in an earlier version of this file — confirm it's still active before assigning it new work; it may just be a stale reference now that the work is on `main`.
+- Standing blockers and open decisions (unconfirmed `0019` migration, `auth_leaked_password_protection` off, Square invoicing still mock in prod pending client approval, GHL tag/workflow validation gap, etc.) live in `HANDOFF.md` under "Blocked / needs a human" and "Still open" — not restated here since that list moves independently of this refresh.
 
 ## Verification baseline
 
@@ -28,4 +28,6 @@ Replace this section at the end of unfinished work (do not append a session diar
 
 ## On-demand history
 
-Search `HANDOFF.md` for shipped-feature detail and `DECISIONS.md` for durable architectural decisions. Do not load either whole file unless the task genuinely spans it.
+See the load-order table in `AI-CONTEXT.md` for the full list of searchable history files
+(`HANDOFF.md`, `DECISIONS.md`, `PLAN.md`, and the feature-specific `HANDOFF.*.md`/`UI-AUDIT.md`
+files). Do not load any of them whole unless the task genuinely spans it.

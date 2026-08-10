@@ -6,10 +6,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## CleanOps working rules
 
-## Context loading
-
-- Start with `AI-CONTEXT.md` and `AI-NOW.md`. They are the compact source for durable context and current state.
-- Read `HANDOFF.md`, `DECISIONS.md`, `PLAN.md`, or `TESTING.md` only when the task calls for the detail they contain. `TESTING.md` remains mandatory before any browser/smoke check.
+These are process rules for daily work. Blanket invariants that apply to every task
+regardless of what you're doing (auth scoping, secrets, migration safety, product naming)
+live once in the Invariants section of `AI-CONTEXT.md` — don't restate them here.
 
 - Run `npm run verify` before presenting a change as ready.
 - Run `npm run smoke:routes` when a local production server is available.
@@ -23,9 +22,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
   present, stage only the completed feature's explicit paths; do not include them in the commit.
   Stop only for a merge state or an unapproved production migration. Never use `git add -A` or
   `git add .` in this shared worktree.
-- Never print, commit, or paste secret values. Check only whether required variables are configured.
 - GHL checks must use the approved test location and read-only requests unless the user explicitly asks for a write test.
-- Preserve company-scoped authorization on every database query and API mutation.
 - For quote changes, verify both the internal quote builder and the unauthenticated public proposal.
 - For My Day changes, verify mobile one-handed use, travel/clock-in/break/finish state, undo behavior, and server refresh ordering.
 - Do not stage `.claude/settings.local.json`, `.codex/`, or other local tool state unless explicitly requested.

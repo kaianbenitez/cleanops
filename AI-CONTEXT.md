@@ -6,7 +6,10 @@ ServiceSpark is a multi-tenant operations platform for cleaning businesses. It u
 
 ## Load order
 
-Read `AGENTS.md`, this file, and `AI-NOW.md` before work. Then read only task-relevant source and the referenced document below. `HANDOFF.md` and `DECISIONS.md` are searchable history, not default context.
+`CLAUDE.md` already directs the agent to this file and `AI-NOW.md` before any change. From
+here, read only task-relevant source plus the referenced document below. `HANDOFF.md`,
+`DECISIONS.md`, `PLAN.md`, and the feature-specific handoffs are searchable history, not
+default context — grep them for the specific question at hand rather than reading them whole.
 
 | Need | Read |
 | --- | --- |
@@ -14,9 +17,14 @@ Read `AGENTS.md`, this file, and `AI-NOW.md` before work. Then read only task-re
 | Design decisions/tokens | `DESIGN.md` |
 | Database, migration, or production safety | `AGENTS.md`, `SUPABASE.md`, relevant schema/migration |
 | Browser/smoke checks | `TESTING.md` |
-| An earlier rationale or shipped feature | search `HANDOFF.md` / `DECISIONS.md` |
+| Worktree map, commit/integration procedure | `AGENT-COLLABORATION.md` |
+| An earlier rationale or shipped feature | search `HANDOFF.md` / `DECISIONS.md` / `PLAN.md` |
+| History for one specific feature area | search `HANDOFF.calendar-audit.md`, `HANDOFF.dashboard-reports-redesign.md`, `HANDOFF.ui-audit-followup.md`, or `UI-AUDIT.md` |
 
 ## Invariants
+
+These apply to every task, regardless of what it is. Process rules that aren't blanket
+invariants live in `AGENTS.md` instead.
 
 - Every data query and mutation must preserve company-scoped authorization.
 - Never expose, print, commit, or paste secrets. Never apply a production migration or mutate production data without explicit approval.
@@ -25,4 +33,7 @@ Read `AGENTS.md`, this file, and `AI-NOW.md` before work. Then read only task-re
 
 ## Collaboration
 
-Claude plans and audits; Codex implements a bounded contract. Use a dedicated feature worktree for implementation and keep `cleanops-v1`/`main` for integration. See `AGENT-COLLABORATION.md` for the exact worktree, commit, and verification procedure.
+See `CLAUDE.md` for when Claude implements directly versus delegates to Codex. See
+`AGENT-COLLABORATION.md` for the current worktree map (this is a multi-machine setup —
+that file, not this one, is the source of truth for machine-specific paths) and the commit
+and integration procedure.
