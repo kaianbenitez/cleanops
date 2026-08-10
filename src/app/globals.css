@@ -249,16 +249,71 @@ body {
 .co-date-day-selected { background: var(--co-evergreen); color: white; font-weight: 700; }
 .co-date-day-selected:hover { background: var(--co-evergreen-soft); }
 
-input[type="date"], input[type="datetime-local"] {
+/* Custom date and time inputs — distinctive, on-brand, mobile-friendly. */
+.co-date-input, .co-time-input {
+  appearance: none;
+  background: var(--co-surface);
+  border: 1.5px solid var(--co-line-soft);
+  border-radius: var(--co-radius-control);
+  color: var(--co-ink);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  min-height: 2.55rem;
+  padding: 0.7rem 0.9rem 0.7rem 2.8rem;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
   color-scheme: light;
+  width: 100%;
 }
+
+.co-date-input::placeholder, .co-time-input::placeholder {
+  color: var(--co-input-placeholder);
+}
+
+.co-date-input:hover, .co-time-input:hover {
+  border-color: var(--co-line);
+  background-color: var(--co-surface-muted);
+}
+
+.co-date-input:focus, .co-time-input:focus {
+  background-color: var(--co-surface);
+  border-color: var(--co-evergreen);
+  box-shadow: 0 0 0 3px var(--co-focus-ring);
+  outline: none;
+}
+
+.co-date-input:disabled, .co-time-input:disabled {
+  background-color: var(--co-surface-muted);
+  color: var(--co-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Icon positioning for date/time inputs — always visible, never obscured. */
+.co-date-input-icon, .co-time-input-icon {
+  color: var(--co-faint);
+  left: 0.75rem;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: color 180ms ease;
+}
+
+.co-date-input:hover ~ .co-date-input-icon,
+.co-time-input:hover ~ .co-time-input-icon {
+  color: var(--co-muted);
+}
+
+.co-date-input:focus ~ .co-date-input-icon,
+.co-time-input:focus ~ .co-time-input-icon {
+  color: var(--co-evergreen);
+}
+
+/* Hide browser's native calendar picker indicator for cleaner UX. */
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  opacity: 0.72;
+  display: none;
 }
-input[type="date"]:focus::-webkit-calendar-picker-indicator,
-input[type="datetime-local"]:focus::-webkit-calendar-picker-indicator { opacity: 1; }
 
 @media (max-width: 40rem) {
   .co-date-popover-responsive { left: 0; right: auto; }

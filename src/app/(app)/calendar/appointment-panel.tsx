@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { DateInput } from "@/components/date-input";
+import { TimeInput } from "@/components/time-input";
 import AttendeePicker from "./attendee-picker";
 
 type StaffMember = { id: string; firstName: string; lastName: string };
@@ -188,24 +190,16 @@ export default function AppointmentPanel({
             </label>
 
             <div className="grid grid-cols-2 gap-3">
-              <label className="block text-xs font-semibold text-[var(--co-muted)]">
-                Date
-                <input
-                  type="date"
-                  value={form.scheduledDate}
-                  onChange={(event) => setForm((current) => ({ ...current, scheduledDate: event.target.value }))}
-                  className="co-input mt-1 w-full"
-                />
-              </label>
-              <label className="block text-xs font-semibold text-[var(--co-muted)]">
-                Start time
-                <input
-                  type="time"
-                  value={form.startTime}
-                  onChange={(event) => setForm((current) => ({ ...current, startTime: event.target.value }))}
-                  className="co-input mt-1 w-full"
-                />
-              </label>
+              <DateInput
+                label="Date"
+                value={form.scheduledDate}
+                onChange={(value) => setForm((current) => ({ ...current, scheduledDate: value }))}
+              />
+              <TimeInput
+                label="Start time"
+                value={form.startTime}
+                onChange={(value) => setForm((current) => ({ ...current, startTime: value }))}
+              />
             </div>
 
             <label className="block text-xs font-semibold text-[var(--co-muted)]">

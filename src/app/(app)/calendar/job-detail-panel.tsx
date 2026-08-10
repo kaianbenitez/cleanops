@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatEstimatedTime, TYPE_LABELS } from "./shared";
 import { StatusPill } from "@/components/ui/status-pill";
+import { DateInput } from "@/components/date-input";
+import { TimeInput } from "@/components/time-input";
 import { commitJobPatch } from "./drag-commit";
 import AssigneePicker from "./assignee-picker";
 import ClientHomeSymbols from "./client-home-symbols";
@@ -159,30 +161,22 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
             {(job.roomCounts.length || job.customerNotes || job.gateCodeOrKeyNotes || job.petNotes || job.doNotClean) ? <div className="border-t border-[var(--co-line-soft)] pt-4"><p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">House details</p><ClientHomeSymbols className="mt-2" roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} />{job.customerNotes ? <p className="mt-3 whitespace-pre-wrap text-sm leading-5 text-[var(--co-ink)]">{cleanNoteText(job.customerNotes)}</p> : null}</div> : null}
 
             <div className="grid grid-cols-2 gap-3">
-              <label className="block text-xs font-semibold text-[var(--co-muted)]">
-                Date
-                <input
-                  key={`date-${job.scheduledDate}`}
-                  type="date"
-                  defaultValue={job.scheduledDate}
-                  onBlur={(event) => event.target.value && event.target.value !== job.scheduledDate && patch({ scheduledDate: event.target.value })}
-                  className="co-input mt-1 w-full"
-                />
-              </label>
-              <label className="block text-xs font-semibold text-[var(--co-muted)]">
-                Time
-                <input
-                  key={`time-${job.scheduledStartTime}`}
-                  type="time"
-                  defaultValue={job.scheduledStartTime?.slice(0, 5) ?? ""}
-                  onBlur={(event) => {
-                    if (!event.target.value) return;
-                    const withSeconds = `${event.target.value}:00`;
-                    if (withSeconds !== job.scheduledStartTime) patch({ scheduledStartTime: withSeconds });
-                  }}
-                  className="co-input mt-1 w-full"
-                />
-              </label>
+              <DateInput
+                key={`date-${job.scheduledDate}`}
+                label="Date"
+                defaultValue={job.scheduledDate}
+                onBlur={(event) => event.target.value && event.target.value !== job.scheduledDate && patch({ scheduledDate: event.target.value })}
+              />
+              <TimeInput
+                key={`time-${job.scheduledStartTime}`}
+                label="Time"
+                defaultValue={job.scheduledStartTime?.slice(0, 5) ?? ""}
+                onBlur={(event) => {
+                  if (!event.target.value) return;
+                  const withSeconds = `${event.target.value}:00`;
+                  if (withSeconds !== job.scheduledStartTime) patch({ scheduledStartTime: withSeconds });
+                }}
+              />
             </div>
 
             <div className="block text-xs font-semibold text-[var(--co-muted)]">
