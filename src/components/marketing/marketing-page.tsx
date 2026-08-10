@@ -1,7 +1,7 @@
 import Link from "next/link";
 import LeadForm from "./lead-form";
 import { MarketingFaq } from "./marketing-faq";
-import { FeatureStack } from "./feature-stack";
+import { FeatureTabs } from "./feature-tabs";
 import { FeatureBento } from "./feature-bento";
 import { MobileShowcase } from "./mobile-showcase";
 import { MagneticCta } from "./magnetic-cta";
@@ -37,7 +37,7 @@ export default function MarketingPage() {
 
     <section id="product" className="scroll-mt-6 bg-[#f1f5ff]"><div className="mx-auto grid max-w-6xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-center lg:px-8"><div><p className="eyebrow text-[var(--co-accent)]">One operating rhythm</p><h2 className="mt-2 text-3xl font-semibold tracking-[-0.025em]">Give the office and crew the same source of truth.</h2><ul className="mt-7 space-y-4 text-lg font-medium leading-7"><li>Spend less time chasing schedule changes.</li><li>Keep the small details from falling through the cracks.</li><li>Give your crew one clear place to see the day&apos;s work.</li><li>Handle billing without another piece of software.</li></ul></div><figure><ProductScreenshot src="/marketing/dashboard.jpg" alt="ServiceSpark dashboard showing a cleaning business performance overview" width={1568} height={744} /><figcaption className="mt-4 text-sm font-medium text-[var(--co-muted)]">A simple view of what needs attention across the business.</figcaption></figure></div></section>
 
-    <section className="border-y border-[var(--co-line-soft)] bg-[var(--co-surface)]"><div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8"><div className="max-w-2xl"><h2 className="text-3xl font-semibold tracking-[-0.025em]">The operations work, connected.</h2><p className="mt-3 leading-7 text-[var(--co-muted)]">The everyday tools your office and crew need, without stitching together a separate system for each job.</p></div><div aria-hidden="true" className="mt-8 h-px w-full bg-[linear-gradient(90deg,var(--co-accent),var(--co-spark-accent),transparent_72%)]" /><div className="mt-10"><FeatureStack features={features} /></div></div></section>
+    <section className="border-y border-[var(--co-line-soft)] bg-[var(--co-surface)]"><div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8"><div className="max-w-2xl"><h2 className="text-3xl font-semibold tracking-[-0.025em]">The operations work, connected.</h2><p className="mt-3 leading-7 text-[var(--co-muted)]">The everyday tools your office and crew need, without stitching together a separate system for each job.</p></div><div aria-hidden="true" className="mt-8 h-px w-full bg-[linear-gradient(90deg,var(--co-accent),var(--co-spark-accent),transparent_72%)]" /><div className="mt-10"><FeatureTabs features={features} /></div></div></section>
 
     <MobileShowcase />
 

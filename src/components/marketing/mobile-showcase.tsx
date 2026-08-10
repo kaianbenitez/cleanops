@@ -28,7 +28,7 @@ export function MobileShowcase() {
       const ctx = gsap.context(() => {
         gsap.set(secondary.current, { autoAlpha: 0, y: 36, x: -16 });
         const tl = gsap.timeline({
-          scrollTrigger: { trigger: sectionEl, start: "top top", end: "+=90%", scrub: 0.6, pin: true },
+          scrollTrigger: { trigger: sectionEl, start: "top top", end: "+=50%", scrub: 0.6, pin: true },
         });
         tl.to(primary.current, { y: -36, duration: 1 }, 0).to(secondary.current, { autoAlpha: 1, y: 0, x: 0, duration: 1 }, 0.2);
       }, sectionEl);
@@ -51,7 +51,7 @@ export function MobileShowcase() {
 
   return (
     <section ref={section} className="relative overflow-hidden border-y border-[var(--co-line)] bg-[linear-gradient(160deg,var(--co-surface-muted)_0%,var(--co-surface)_60%)]">
-      <div className="mx-auto grid max-w-6xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:items-center lg:gap-16 lg:px-8 lg:py-28">
+      <div className="mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:items-center lg:gap-16 lg:px-8 lg:py-20">
         <div>
           <p className="eyebrow text-[var(--co-spark-accent)]">Built for the field</p>
           <h2 className="mt-2 text-3xl font-semibold tracking-[-0.025em] sm:text-4xl">The same app your crew already uses every day.</h2>

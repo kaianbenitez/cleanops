@@ -1,6 +1,6 @@
 "use client";
 
-import { FileSpreadsheet, Package, Repeat, Star, Users, Workflow } from "lucide-react";
+import { CalendarClock, FileSpreadsheet, Search, Star, Users, Workflow } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useGroupReveal } from "./marketing-motion";
 
@@ -8,8 +8,8 @@ const items = [
   { icon: Star, title: "Quality & feedback reports", body: "Star ratings from every completed job roll up into a quality report you can export any time.", isNew: true },
   { icon: FileSpreadsheet, title: "Reports & CSV export", body: "Sales, jobs, receivables, payroll, and quality — pull any of it as a CSV whenever you need it.", isNew: false },
   { icon: Workflow, title: "GoHighLevel automation", body: "Lead, quote, job, and invoice status changes push straight into your GHL workflows, with a sync-issues monitor watching for anything that fails.", isNew: false },
-  { icon: Repeat, title: "Recurring service plans", body: "Set up a repeating cleaning plan once, with rotational Week 1–4 task checklists built in.", isNew: false },
-  { icon: Package, title: "Supplies & inventory", body: "Track supply levels by category with reorder thresholds, so a crew never shows up short.", isNew: false },
+  { icon: Search, title: "Instant global search", body: "Jump straight to any job, customer, or cleaner from one search bar, no matter where you are in the app.", isNew: false },
+  { icon: CalendarClock, title: "Time off & PTO tracking", body: "Planned time off shows up right alongside each employee's weekly schedule, so gaps get caught early.", isNew: false },
   { icon: Users, title: "Team directory", body: "A searchable roster of every employee, with the details dispatch actually needs on a busy day.", isNew: false },
 ] as const;
 

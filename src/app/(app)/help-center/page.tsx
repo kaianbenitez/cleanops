@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.27",
+    date: "August 10, 2026",
+    title: "A shorter, tighter ServiceSpark landing page",
+    changes: [
+      "The feature list is now a click-through set of tabs instead of one long scrolling list, so the page reads in far less scrolling.",
+      "The 'More than the basics' section now highlights instant global search and time-off/PTO tracking in place of supplies and recurring service plans, which aren't ready to show yet.",
+    ],
+  },
+  {
     version: "v0.2.26",
     date: "August 10, 2026",
     title: "A livelier ServiceSpark landing page",
