@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.30",
+    date: "August 10, 2026",
+    title: "A tidier mileage entry on My Day",
+    changes: [
+      "Drivers no longer see an open mileage box on every job by default. Tap 'Log mileage' (or the logged total) to enter or update it, then it tucks back away after saving.",
+    ],
+  },
+  {
     version: "v0.2.29",
     date: "August 10, 2026",
     title: "A stronger opening image for the ServiceSpark page",

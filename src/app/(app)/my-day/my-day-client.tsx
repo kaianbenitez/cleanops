@@ -131,6 +131,7 @@ export default function MyDayClient({
   const [error, setError] = useState<string | null>(null);
   const [arrivedJobId, setArrivedJobId] = useState<string | null>(null);
   const [mileageDraft, setMileageDraft] = useState<Record<string, string>>({});
+  const [editingMileage, setEditingMileage] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     // Initialize the client-only clock after hydration, then keep it current.
@@ -240,7 +241,10 @@ export default function MyDayClient({
     const res = await fetch(`/api/jobs/${job.jobId}/mileage`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mileageMiles: value }) });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) setError(typeof body.error === "string" ? body.error : "Could not save mileage.");
-    else startTransition(() => router.refresh());
+    else {
+      setEditingMileage((current) => ({ ...current, [job.jobId]: false }));
+      startTransition(() => router.refresh());
+    }
   }
 
   function discardJob(jobId: string) {
@@ -419,12 +423,25 @@ export default function MyDayClient({
                           {job.rotationalTaskReminder ? <RotationReminder reminder={job.rotationalTaskReminder} /> : null}
                           {job.role === "lead" ? (
                             <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
-                              <p className="text-xs font-semibold text-emerald-900">You are the driver</p>
-                              <div className="mt-2 flex items-center gap-2">
-                                <input aria-label="Mileage miles" type="number" min="0" step="0.1" value={mileageDraft[job.jobId] ?? job.mileageMiles} onChange={(event) => setMileageDraft((current) => ({ ...current, [job.jobId]: event.target.value }))} className="co-input w-28 bg-white text-sm" />
-                                <span className="text-xs text-emerald-800">miles</span>
-                                <button type="button" onClick={() => saveMileage(job)} className="co-button-secondary px-2.5 py-1.5 text-xs">Save mileage</button>
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-xs font-semibold text-emerald-900">You are the driver</p>
+                                {!editingMileage[job.jobId] ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingMileage((current) => ({ ...current, [job.jobId]: true }))}
+                                    className="-my-1.5 py-1.5 text-xs font-semibold text-emerald-800 underline underline-offset-2"
+                                  >
+                                    {Number(job.mileageMiles) > 0 ? `${job.mileageMiles} mi logged · Edit` : "Log mileage"}
+                                  </button>
+                                ) : null}
                               </div>
+                              {editingMileage[job.jobId] ? (
+                                <div className="mt-2 flex items-center gap-2">
+                                  <input aria-label="Mileage miles" type="number" min="0" step="0.1" autoFocus value={mileageDraft[job.jobId] ?? job.mileageMiles} onChange={(event) => setMileageDraft((current) => ({ ...current, [job.jobId]: event.target.value }))} className="co-input w-28 bg-white text-sm" />
+                                  <span className="text-xs text-emerald-800">miles</span>
+                                  <button type="button" onClick={() => saveMileage(job)} className="co-button-secondary px-2.5 py-1.5 text-xs">Save mileage</button>
+                                </div>
+                              ) : null}
                             </div>
                           ) : null}
                           {job.accessInstructions || job.keyNumber || job.garageCode || job.gateCode || job.alarmCode ? (
