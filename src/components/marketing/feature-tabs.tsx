@@ -34,7 +34,7 @@ export function FeatureTabs({ features }: { features: readonly Feature[] }) {
   }
 
   const [title, description, screenshot, objectPosition] = features[active];
-  const isCrewApp = screenshot === "/marketing/crew-app-mockup.png";
+  const isCrewApp = screenshot === "/marketing/my-day-home.png";
 
   return (
     <div ref={scope} className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center lg:gap-12">
@@ -63,7 +63,7 @@ export function FeatureTabs({ features }: { features: readonly Feature[] }) {
         <div ref={panel} className="overflow-hidden rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)]">
           {isCrewApp ? (
             <div className="flex h-[380px] items-center justify-center px-6 py-6 sm:h-[440px]">
-              <Image src={screenshot} alt={`${title} in the ServiceSpark app`} width={926} height={1698} sizes="300px" className="h-full w-auto object-contain" />
+              <Image src={screenshot} alt={`${title} in the ServiceSpark app`} width={800} height={1498} sizes="300px" className="h-full w-auto object-contain" />
             </div>
           ) : (
             <div className="relative h-[380px] sm:h-[440px]">

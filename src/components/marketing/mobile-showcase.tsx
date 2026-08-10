@@ -67,10 +67,10 @@ export function MobileShowcase() {
           </ol>
         </div>
         <div className="relative mx-auto w-full max-w-sm">
-          <div ref={primary}><PhoneFrame src="/marketing/crew-app-mockup.png" alt="ServiceSpark My Day app on a crew member's phone" width={926} height={1698} maxWidthClass="mx-auto max-w-[19rem]" /></div>
+          <div ref={primary}><PhoneFrame src="/marketing/my-day-home.png" alt="ServiceSpark My Day app showing today's route" width={800} height={1498} maxWidthClass="mx-auto max-w-[19rem]" /></div>
           <div ref={secondary} className="absolute -right-4 bottom-8 hidden w-36 overflow-hidden rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] shadow-lg sm:block lg:-right-12 lg:w-40">
             <div className="relative aspect-[3/4]">
-              <Image src="/marketing/my-day-mobile.png" alt="A closer look at a My Day job screen" fill sizes="160px" className="object-cover object-top" />
+              <Image src="/marketing/my-day-job-detail.png" alt="A My Day job details screen with entry instructions" fill sizes="160px" className="object-cover object-top" />
             </div>
           </div>
         </div>

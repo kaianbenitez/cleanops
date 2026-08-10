@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.31",
+    date: "August 10, 2026",
+    title: "Fresh crew-app screenshots on the ServiceSpark page",
+    changes: [
+      "The crew-app screenshots on the homepage now show the current My Day screen, including the tidier mileage entry.",
+      "The 'Built for the field' section now shows a job details screen instead of repeating the same jobs list twice.",
+    ],
+  },
+  {
     version: "v0.2.30",
     date: "August 10, 2026",
     title: "A tidier mileage entry on My Day",
