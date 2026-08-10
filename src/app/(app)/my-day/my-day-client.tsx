@@ -49,7 +49,7 @@ type JobCard = {
 
 function RotationReminder({ reminder }: { reminder: NonNullable<JobCard["rotationalTaskReminder"]> }) {
   return (
-    <details open className="mt-3 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-950">
+    <details className="mt-3 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-950">
       <summary className="cursor-pointer font-semibold">All-day rotation · Week {reminder.currentWeek}</summary>
       <p className="mt-2 font-medium">Every time: {reminder.everyTime}</p>
       <div className="mt-1.5 space-y-1">
