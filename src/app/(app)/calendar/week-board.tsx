@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { CalendarEmployee, CalendarJob } from "./page";
+import type { CalendarAppointment, CalendarEmployee, CalendarJob, StaffRosterMember } from "./page";
 import JobCard from "./job-card";
-import { employeeColor } from "./shared";
+import { APPOINTMENT_COLOR, APPOINTMENT_COLOR_CANCELLED, employeeColor, formatAppointmentTime } from "./shared";
 import JobDetailPanel from "./job-detail-panel";
+import AppointmentPanel from "./appointment-panel";
 
 type DayMeta = {
   iso: string;
@@ -29,13 +30,30 @@ export default function WeekBoard({
   days,
   employees,
   jobs,
+  appointments = [],
+  staffRoster = [],
 }: {
   days: DayMeta[];
   employees: CalendarEmployee[];
   jobs: CalendarJob[];
+  appointments?: CalendarAppointment[];
+  staffRoster?: StaffRosterMember[];
 }) {
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
   const [detailJobId, setDetailJobId] = useState<string | null>(null);
+  const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
+  const byDateAppointments = useMemo(
+    () =>
+      new Map(
+        days.map((day) => [
+          day.iso,
+          appointments
+            .filter((appointment) => appointment.scheduledDate === day.iso)
+            .sort((a, b) => (a.startTime ?? "99").localeCompare(b.startTime ?? "99")),
+        ]),
+      ),
+    [days, appointments],
+  );
   const byDate = useMemo(
     () =>
       new Map(
@@ -135,6 +153,21 @@ export default function WeekBoard({
                   )}
                 </div>
                 <div className="space-y-3 p-2.5">
+                  {(byDateAppointments.get(day.iso) ?? []).length ? (
+                    <div className="space-y-1.5">
+                      {(byDateAppointments.get(day.iso) ?? []).map((appointment) => (
+                        <button
+                          key={appointment.id}
+                          type="button"
+                          onClick={() => setEditingAppointmentId(appointment.id)}
+                          className={`flex w-full items-center gap-1.5 rounded-md border px-2 py-1.5 text-left text-[11px] font-semibold ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}
+                        >
+                          <span aria-hidden>📅</span>
+                          <span className="truncate">{formatAppointmentTime(appointment.startTime, appointment.durationMinutes)} · {appointment.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                   {Array.from(grouped.entries()).map(([key, group]) => {
                     const visibleGroup = group.filter((job) =>
                       visible.includes(job),
@@ -219,6 +252,15 @@ export default function WeekBoard({
         employees={employees}
         onClose={() => setDetailJobId(null)}
       />
+      {editingAppointmentId ? (
+        <AppointmentPanel
+          mode="edit"
+          eventId={editingAppointmentId}
+          staffRoster={staffRoster}
+          defaultDate={days[0]?.iso ?? ""}
+          onClose={() => setEditingAppointmentId(null)}
+        />
+      ) : null}
     </section>
   );
 }

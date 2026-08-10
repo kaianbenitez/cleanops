@@ -14,6 +14,8 @@ import {
 } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  calendarEventAssignments,
+  calendarEvents,
   companies,
   customers,
   jobAssignments,
@@ -46,6 +48,7 @@ import TodayListBoard from "./today-list-board";
 import DatePicker, { CalendarViewSelector } from "./date-picker";
 import CalendarStateSync from "./state-sync";
 import WeekendOrphanBanner from "./weekend-orphan-banner";
+import NewAppointmentButton from "./new-appointment-button";
 import { employeeColorAt } from "./shared";
 import { rotationalTaskForDate } from "@/lib/scheduling/rotational-tasks";
 
@@ -144,6 +147,25 @@ export type CalendarDaySummary = {
   jobs: number;
   unassigned: number;
   needsReview: number;
+};
+
+export type CalendarAppointment = {
+  id: string;
+  title: string;
+  note: string | null;
+  scheduledDate: string;
+  startTime: string | null;
+  durationMinutes: number | null;
+  isAllDay: boolean;
+  category: string;
+  status: string;
+  attendeeUserIds: string[];
+};
+
+export type StaffRosterMember = {
+  id: string;
+  firstName: string;
+  lastName: string;
 };
 
 function query(params: SearchParams) {
@@ -443,6 +465,29 @@ export default async function CalendarPage({
         })
       : Promise.resolve([]);
 
+  // Internal appointments (staff meetings) — additive to the jobs data
+  // above, same date bounds, no join against customers/jobs at all.
+  const appointmentEventsQuery = db
+    .select()
+    .from(calendarEvents)
+    .where(
+      and(
+        eq(calendarEvents.companyId, admin.companyId),
+        gte(calendarEvents.scheduledDate, start),
+        lte(calendarEvents.scheduledDate, end),
+      ),
+    )
+    .orderBy(calendarEvents.scheduledDate, calendarEvents.startTime);
+
+  // Full active staff (field + office) — the attendee picker for a meeting
+  // must include office/admin staff, unlike the field-eligible-only
+  // `employeesQuery` above.
+  const staffRosterQuery = db
+    .select({ id: users.id, firstName: users.firstName, lastName: users.lastName })
+    .from(users)
+    .where(and(eq(users.companyId, admin.companyId), eq(users.isActive, true)))
+    .orderBy(users.firstName, users.lastName);
+
   const [
     employees,
     rows,
@@ -450,6 +495,8 @@ export default async function CalendarPage({
     [weekendOrphans],
     ptoRows,
     monthRows,
+    appointmentEvents,
+    staffRoster,
   ] = (await Promise.all([
     employeesQuery,
     rowsQuery,
@@ -457,6 +504,8 @@ export default async function CalendarPage({
     weekendRowsQuery,
     ptoRowsQuery,
     monthRowsQuery,
+    appointmentEventsQuery,
+    staffRosterQuery,
   ])) as [
     CalendarEmployee[],
     Omit<CalendarJob, "assignedUserIds">[],
@@ -464,7 +513,45 @@ export default async function CalendarPage({
     { count: number; firstDate: string | null }[],
     Awaited<ReturnType<typeof listEmployeePto>>,
     CalendarDaySummary[],
+    (typeof calendarEvents.$inferSelect)[],
+    StaffRosterMember[],
   ];
+
+  const appointmentEventIds = appointmentEvents.map((event) => event.id);
+  const appointmentAssignments = appointmentEventIds.length
+    ? await db
+        .select({ eventId: calendarEventAssignments.eventId, userId: calendarEventAssignments.userId })
+        .from(calendarEventAssignments)
+        .where(inArray(calendarEventAssignments.eventId, appointmentEventIds))
+    : [];
+  const attendeesByEvent = new Map<string, string[]>();
+  appointmentAssignments.forEach((assignment) =>
+    attendeesByEvent.set(assignment.eventId, [
+      ...(attendeesByEvent.get(assignment.eventId) ?? []),
+      assignment.userId,
+    ]),
+  );
+  const appointments: CalendarAppointment[] = appointmentEvents.map((event) => ({
+    id: event.id,
+    title: event.title,
+    note: event.note,
+    scheduledDate: event.scheduledDate,
+    startTime: event.startTime,
+    durationMinutes: event.durationMinutes,
+    isAllDay: event.isAllDay,
+    category: event.category,
+    status: event.status,
+    attendeeUserIds: attendeesByEvent.get(event.id) ?? [],
+  }));
+  const appointmentCountByDate = new Map<string, number>();
+  appointments
+    .filter((appointment) => appointment.status !== "cancelled")
+    .forEach((appointment) =>
+      appointmentCountByDate.set(
+        appointment.scheduledDate,
+        (appointmentCountByDate.get(appointment.scheduledDate) ?? 0) + 1,
+      ),
+    );
 
   const assignments = rows.length
     ? await db
@@ -701,6 +788,7 @@ export default async function CalendarPage({
           >
             Next
           </Link>
+          <NewAppointmentButton staffRoster={staffRoster} defaultDate={stateAnchor.length === 10 ? stateAnchor : toISODate(dayAnchor)} />
           </div>
           <CalendarViewSelector view={view} value={currentDate} />
         </div>
@@ -732,6 +820,8 @@ export default async function CalendarPage({
             }))}
             employees={employees}
             jobs={displayedJobs}
+            appointments={appointments}
+            staffRoster={staffRoster}
           />
         ) : null}
         {view === "staff" ? (
@@ -756,15 +846,18 @@ export default async function CalendarPage({
               assignedUserIds: [],
             }))}
             ptoRecords={ptoRows}
+            appointments={appointments}
+            staffRoster={staffRoster}
           />
         ) : null}
-        {view === "staff_vertical" ? <StaffVerticalBoard employees={employees} jobs={displayedJobs} queueOpen={sp.queue === "unassigned" || sp.assignment === "unassigned"} unassignedJobs={unassignedRows.map((row) => ({ ...row, assignedUserIds: [] }))} /> : null}
+        {view === "staff_vertical" ? <StaffVerticalBoard employees={employees} jobs={displayedJobs} queueOpen={sp.queue === "unassigned" || sp.assignment === "unassigned"} unassignedJobs={unassignedRows.map((row) => ({ ...row, assignedUserIds: [] }))} appointments={appointments} staffRoster={staffRoster} /> : null}
         {view === "month" ? (
           <MonthBoard
             month={monthAnchor}
             summaries={monthRows}
             holidays={holidays}
             workingDays={workingDays}
+            appointmentCountByDate={Object.fromEntries(appointmentCountByDate)}
           />
         ) : null}
         {view === "list" ? (
@@ -778,6 +871,8 @@ export default async function CalendarPage({
               clockIn: entry.clockIn.toISOString(),
               clockOut: entry.clockOut ? entry.clockOut.toISOString() : null,
             }))}
+            appointments={appointments.filter((appointment) => appointment.scheduledDate === toISODate(dayAnchor))}
+            staffRoster={staffRoster}
           />
         ) : null}
       </main>

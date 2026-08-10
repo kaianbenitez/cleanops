@@ -12,6 +12,7 @@ const eventSchema = z.object({
   isAllDay: z.boolean(),
   startTime: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
   durationMinutes: z.number().int().min(15).max(24 * 60).nullable().optional(),
+  category: z.enum(["meeting", "reminder", "training"]).default("reminder"),
   employeeIds: z.array(z.string().uuid()).max(50),
 }).superRefine((event, ctx) => {
   if (!event.isAllDay && (!event.startTime || !event.durationMinutes)) ctx.addIssue({ code: "custom", message: "Timed events need a start time and duration." });
@@ -33,12 +34,18 @@ export async function POST(req: NextRequest) {
   const parsed = eventSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   const data = parsed.data;
+  // Meetings are the paid-attendance flow: always timed, default to a
+  // one-hour block if the caller (e.g. a bare API request) doesn't specify.
+  const isMeeting = data.category === "meeting";
+  const isAllDay = isMeeting ? false : data.isAllDay;
+  const durationMinutes = isAllDay ? null : (data.durationMinutes ?? (isMeeting ? 60 : null));
+  if (!isAllDay && (!data.startTime || !durationMinutes)) return NextResponse.json({ error: "Timed events need a start time and duration." }, { status: 400 });
   if (data.employeeIds.length) {
     const staff = await db.select({ id: users.id }).from(users).where(and(eq(users.companyId, admin.companyId), inArray(users.id, data.employeeIds), eq(users.isActive, true)));
     if (staff.length !== data.employeeIds.length) return NextResponse.json({ error: "Every selected employee must be active and in this company." }, { status: 400 });
   }
   const event = await db.transaction(async (tx) => {
-    const [created] = await tx.insert(calendarEvents).values({ companyId: admin.companyId, title: data.title, note: data.note ?? null, scheduledDate: data.scheduledDate, isAllDay: data.isAllDay, startTime: data.isAllDay ? null : data.startTime!, durationMinutes: data.isAllDay ? null : data.durationMinutes!, createdByUserId: admin.id }).returning();
+    const [created] = await tx.insert(calendarEvents).values({ companyId: admin.companyId, title: data.title, note: data.note ?? null, scheduledDate: data.scheduledDate, isAllDay, startTime: isAllDay ? null : data.startTime!, durationMinutes, category: data.category, createdByUserId: admin.id }).returning();
     if (data.employeeIds.length) await tx.insert(calendarEventAssignments).values(data.employeeIds.map((userId) => ({ eventId: created.id, userId })));
     return created;
   });

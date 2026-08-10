@@ -426,9 +426,15 @@ export const recurringSeries = pgTable("recurring_series", {
 });
 
 // ---------- internal calendar events ----------
-// Events are staff-only schedule blocks (training, meetings, PTO-style
-// reminders). They intentionally do not participate in jobs, payroll, or
-// customer billing.
+// Staff-only schedule blocks. "reminder"/"training" events are pure
+// scheduling and intentionally do not participate in jobs, payroll, or
+// customer billing. "meeting" events (e.g. an office meeting everyone
+// attends) DO participate in payroll — each attendee is auto-paid for
+// durationMinutes, folded into their existing payroll totals by
+// src/lib/payroll/calculate.ts. See jobTypeEnum-style category enum below.
+export const calendarEventCategoryEnum = ["meeting", "reminder", "training"] as const;
+export const calendarEventStatusEnum = ["scheduled", "cancelled"] as const;
+
 export const calendarEvents = pgTable("calendar_events", {
   id: uuid("id").primaryKey().defaultRandom(),
   companyId: uuid("company_id").notNull().references(() => companies.id),
@@ -438,6 +444,8 @@ export const calendarEvents = pgTable("calendar_events", {
   startTime: time("start_time"),
   durationMinutes: integer("duration_minutes"),
   isAllDay: boolean("is_all_day").notNull().default(false),
+  category: text("category", { enum: calendarEventCategoryEnum }).notNull().default("reminder"),
+  status: text("status", { enum: calendarEventStatusEnum }).notNull().default("scheduled"),
   createdByUserId: uuid("created_by_user_id").notNull().references(() => users.id),
   ...timestamps,
 }, (t) => ({

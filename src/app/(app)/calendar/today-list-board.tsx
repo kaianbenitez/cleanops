@@ -2,15 +2,17 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { displayCustomer, formatClockLabel, formatEstimatedTime, TYPE_LABELS } from "./shared";
+import { APPOINTMENT_COLOR, APPOINTMENT_COLOR_CANCELLED, displayCustomer, formatAppointmentTime, formatClockLabel, formatEstimatedTime, TYPE_LABELS } from "./shared";
 import { commitJobPatch } from "./drag-commit";
 import { useUndoToast, UndoToast } from "./undo-toast";
 import AssigneePicker from "./assignee-picker";
 import JobDetailPanel from "./job-detail-panel";
+import AppointmentPanel from "./appointment-panel";
 import { StatusPill } from "@/components/ui/status-pill";
 import { formatElapsed } from "@/lib/my-day/job-format";
 import { cleanNoteText } from "@/lib/format";
 import ClientHomeSymbols from "./client-home-symbols";
+import type { CalendarAppointment, StaffRosterMember } from "./page";
 
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
@@ -75,12 +77,16 @@ export default function TodayListBoard({
   employees,
   jobs: initialJobs,
   timeEntries,
+  appointments = [],
+  staffRoster = [],
 }: {
   dayLabel: string;
   isToday: boolean;
   employees: Employee[];
   jobs: ListJob[];
   timeEntries: TimeEntryRow[];
+  appointments?: CalendarAppointment[];
+  staffRoster?: StaffRosterMember[];
 }) {
   const router = useRouter();
   const [jobs, setJobs] = useState(initialJobs);
@@ -90,7 +96,9 @@ export default function TodayListBoard({
   const [confirmingCancelId, setConfirmingCancelId] = useState<string | null>(null);
   const [cancellationReasons, setCancellationReasons] = useState<Record<string, string>>({});
   const [detailJobId, setDetailJobId] = useState<string | null>(null);
+  const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
   const [now, setNow] = useState(0);
+  const sortedAppointments = [...appointments].sort((a, b) => (a.startTime ?? "99").localeCompare(b.startTime ?? "99"));
   const { toast, showUndo, dismiss } = useUndoToast();
 
   if (initialJobs !== syncedJobs) {
@@ -257,6 +265,25 @@ export default function TodayListBoard({
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--co-line-soft)]">
+            {sortedAppointments.map((appointment) => (
+              <tr key={appointment.id} className={appointment.status === "cancelled" ? "bg-slate-50" : "bg-violet-50/40"}>
+                <td className="px-5 py-3 font-medium">{formatAppointmentTime(appointment.startTime, appointment.durationMinutes)}</td>
+                <td className="px-5 py-3 font-medium" colSpan={4}>
+                  <button type="button" onClick={() => setEditingAppointmentId(appointment.id)} className="text-base text-[var(--co-evergreen)] hover:underline">
+                    📅 {appointment.title}
+                  </button>
+                  <span className={`ml-2 inline-block rounded-full border px-2.5 py-1 text-xs font-semibold ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}>
+                    {appointment.status === "cancelled" ? "Cancelled meeting" : "Meeting"}
+                  </span>
+                  <span className="ml-2 text-sm text-[var(--co-muted)]">{appointment.attendeeUserIds.length} attendee{appointment.attendeeUserIds.length === 1 ? "" : "s"}</span>
+                </td>
+                <td className="px-5 py-3">
+                  <button type="button" onClick={() => setEditingAppointmentId(appointment.id)} className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">
+                    Edit
+                  </button>
+                </td>
+              </tr>
+            ))}
             {jobs.map((job) => {
               const assignedEmployees = job.assignedUserIds
                 .map((id) => employees.find((employee) => employee.id === id))
@@ -434,6 +461,15 @@ export default function TodayListBoard({
         employees={employees}
         onClose={() => setDetailJobId(null)}
       />
+      {editingAppointmentId ? (
+        <AppointmentPanel
+          mode="edit"
+          eventId={editingAppointmentId}
+          staffRoster={staffRoster}
+          defaultDate={appointments.find((appointment) => appointment.id === editingAppointmentId)?.scheduledDate ?? ""}
+          onClose={() => setEditingAppointmentId(null)}
+        />
+      ) : null}
     </div>
   );
 }
