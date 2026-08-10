@@ -256,17 +256,18 @@ body {
   border: 1.5px solid var(--co-line-soft);
   border-radius: var(--co-radius-control);
   color: var(--co-ink);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
   font-size: 0.9375rem;
   font-weight: 500;
   min-height: 2.55rem;
   padding: 0.7rem 0.9rem 0.7rem 2.8rem;
+  text-align: left;
   transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
-  color-scheme: light;
   width: 100%;
-}
-
-.co-date-input::placeholder, .co-time-input::placeholder {
-  color: var(--co-input-placeholder);
+  font-family: inherit;
+  line-height: inherit;
 }
 
 .co-date-input:hover, .co-time-input:hover {
@@ -274,11 +275,10 @@ body {
   background-color: var(--co-surface-muted);
 }
 
-.co-date-input:focus, .co-time-input:focus {
+.co-date-input:active, .co-time-input:active {
   background-color: var(--co-surface);
   border-color: var(--co-evergreen);
   box-shadow: 0 0 0 3px var(--co-focus-ring);
-  outline: none;
 }
 
 .co-date-input:disabled, .co-time-input:disabled {
@@ -304,8 +304,8 @@ body {
   color: var(--co-muted);
 }
 
-.co-date-input:focus ~ .co-date-input-icon,
-.co-time-input:focus ~ .co-time-input-icon {
+.co-date-input:active ~ .co-date-input-icon,
+.co-time-input:active ~ .co-time-input-icon {
   color: var(--co-evergreen);
 }
 
