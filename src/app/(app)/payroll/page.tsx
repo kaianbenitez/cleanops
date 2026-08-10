@@ -485,7 +485,8 @@ export default function PayrollPage() {
 
   const totalPay = lines.reduce((sum, line) => sum + line.finalCents, 0);
   const totalCommission = lines.reduce((sum, line) => sum + line.commissionCents, 0);
-  const totalTips = lines.reduce((sum, line) => sum + line.tipsPaycheckCents + line.tipsCashCents, 0);
+  const totalTips = lines.reduce((sum, line) => sum + line.tipsPaycheckCents + line.tipsCashCents + line.clientTipsCents, 0);
+  const totalBonuses = lines.reduce((sum, line) => sum + line.bonusCents + line.teamLeadBonusCents + line.trainerBonusCents + line.trainingCents, 0);
   const totalClockedHours = lines.reduce((sum, line) => sum + Number(line.payType === "commission_jth" ? line.regularHours : line.officeHours), 0);
   const totalManualOfficeHours = lines.reduce((sum, line) => sum + (line.payType === "office_hourly" ? Number(line.manualOfficeHours) : 0), 0);
   const totalPaidHours = totalClockedHours + totalManualOfficeHours;
@@ -580,12 +581,12 @@ export default function PayrollPage() {
         </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         <Metric label="Employees" value={String(lines.length)} hint="included in this period" />
-        <Metric label="Clocked hours" value={totalClockedHours.toFixed(2)} hint="automatically tracked time" />
-        <Metric label="Manual office hours" value={totalManualOfficeHours.toFixed(2)} hint="additional admin time" />
         <Metric label="Total paid hours" value={totalPaidHours.toFixed(2)} hint="clocked + manual office time" />
         <Metric label="Commission" value={dollars(totalCommission)} hint="service-based pay" />
+        <Metric label="Tips" value={dollars(totalTips)} hint="client + manual tips" />
+        <Metric label="Bonuses" value={dollars(totalBonuses)} hint="lead + trainer + training" />
         <Metric label="Mileage" value={`${totalMiles.toFixed(1)} mi`} hint="editable reimbursement" />
         <Metric label="Total pay" value={dollars(totalPay)} hint="ready for Gusto entry" />
       </section>
