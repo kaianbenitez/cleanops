@@ -201,6 +201,58 @@ export async function getQualityReport(companyId: string, range: ReportsRange) {
   };
 }
 
+export async function getEmployeeQualityReport(
+  companyId: string,
+  employeeId: string,
+  range: ReportsRange,
+) {
+  const toExclusiveIso = addDaysIso(range.toIso, 1);
+  const rows = await db
+    .select({
+      jobId: jobs.id,
+      serviceDate: jobs.scheduledDate,
+      customerName: sql<string>`concat(${customers.firstName}, ' ', ${customers.lastName})`,
+      rating: feedbackRequests.qualityRating,
+      comment: feedbackRequests.qualityComment,
+      tags: feedbackRequests.qualityTags,
+      feedbackStatus: feedbackRequests.status,
+      feedbackExpiresAt: feedbackRequests.expiresAt,
+    })
+    .from(jobs)
+    .innerJoin(customers, eq(jobs.customerId, customers.id))
+    .innerJoin(
+      jobAssignments,
+      and(eq(jobAssignments.jobId, jobs.id), eq(jobAssignments.userId, employeeId)),
+    )
+    .leftJoin(feedbackRequests, eq(feedbackRequests.jobId, jobs.id))
+    .where(and(
+      eq(jobs.companyId, companyId),
+      eq(jobs.status, "completed"),
+      gte(jobs.scheduledDate, range.fromIso),
+      lt(jobs.scheduledDate, toExclusiveIso),
+    ))
+    .orderBy(desc(jobs.scheduledDate), asc(customers.lastName), asc(customers.firstName));
+
+  const statusFor = (row: (typeof rows)[number]) => {
+    if (row.feedbackStatus === "submitted") return "responded" as const;
+    if (row.feedbackStatus === "sent" && row.feedbackExpiresAt && row.feedbackExpiresAt < new Date()) return "expired" as const;
+    if (row.feedbackStatus === "sent") return "awaiting_response" as const;
+    return "not_sent" as const;
+  };
+  const entries = rows.map((row) => ({ ...row, feedbackStatus: statusFor(row) }));
+  const responses = entries.filter((row) => row.rating != null);
+  const totalRating = responses.reduce((sum, row) => sum + (row.rating ?? 0), 0);
+
+  return {
+    entries,
+    completedJobs: entries.length,
+    responses: responses.length,
+    fiveStars: responses.filter((row) => row.rating === 5).length,
+    averageRating: responses.length ? Math.round((totalRating / responses.length) * 100) / 100 : 0,
+    responseRate: entries.length ? Math.round((responses.length / entries.length) * 100) : 0,
+  };
+}
+
 export async function getAccountsReceivableReport(
   companyId: string,
   range: ReportsRange,

@@ -58,6 +58,7 @@ const iconByHref: Record<string, LucideIcon> = {
   "/supplies": Boxes,
   "/my-day": Clock,
   "/schedule": CalendarDays,
+  "/scores": Star,
   "/sync-issues": RefreshCw,
   "/settings": Settings,
   "/help-center": HelpCircle,
@@ -84,7 +85,9 @@ export default function AppNav({
   initialNotifications: Notification[];
 }) {
   const pathname = usePathname();
-  const visibleLinks = isAdmin ? links : [["/my-day", "My day"], ["/schedule", "Schedule"] as const];
+  const visibleLinks = isAdmin
+    ? links
+    : [["/my-day", "My day"], ["/schedule", "Schedule"], ["/scores", "My scores"] as const];
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
