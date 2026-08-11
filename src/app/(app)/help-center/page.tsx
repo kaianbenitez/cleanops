@@ -7,6 +7,17 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.45",
+    date: "August 12, 2026",
+    title: "Settings reorganized into a sidebar with clear sections",
+    changes: [
+      "Settings is no longer one long page — it's now grouped into Company, Pricing & Quoting, Payroll, Calendar, Integrations, and Team & Access, with a menu down the side so you can jump straight to what you need.",
+      "Company profile, monthly revenue goal, mileage rate, and holidays/working days each now have their own clear spot instead of being mixed in with everything else.",
+      "The GoHighLevel connection status (API key, location, webhook) is now shown right on the GoHighLevel settings page.",
+      "Administrator management — password resets and marking someone as also a field cleaner — moved from Settings to the Employees page, next to the rest of your team.",
+    ],
+  },
+  {
     version: "v0.2.44",
     date: "August 11, 2026",
     title: "Quotes now show on the customer profile, and recurring setup pulls the price from the last quote",
