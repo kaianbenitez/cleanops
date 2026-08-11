@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { DateInput } from "@/components/date-input";
 import { TimeInput } from "@/components/time-input";
@@ -155,7 +156,7 @@ export default function AppointmentPanel({
     }
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-40 flex justify-end">
       <button type="button" aria-label="Close appointment panel" onClick={onClose} className="absolute inset-0 bg-black/30" />
       <aside className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-[var(--co-line)] bg-white shadow-[0_0_60px_rgba(15,23,20,0.25)]">
@@ -260,6 +261,7 @@ export default function AppointmentPanel({
           </div>
         )}
       </aside>
-    </div>
+    </div>,
+    document.body,
   );
 }
