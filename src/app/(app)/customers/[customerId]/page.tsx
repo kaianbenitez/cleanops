@@ -990,6 +990,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
           lastJob={lastJob}
           openBalance={openBalance}
           lifetimeSpendCents={lifetimeSpendCents}
+          quotes={quotes}
           auditLogs={auditLogs}
           onEditFocus={() => setMode("edit")}
         />

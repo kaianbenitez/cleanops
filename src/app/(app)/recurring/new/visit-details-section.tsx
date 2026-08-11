@@ -10,15 +10,20 @@ export default function VisitDetailsSection({
   services,
   priceCents,
   onPriceCentsChange,
+  prefilledFromQuote = false,
 }: {
   services: SeriesServiceOption[];
   priceCents: number;
   onPriceCentsChange: (priceCents: number) => void;
+  prefilledFromQuote?: boolean;
 }) {
   return (
     <section className="co-card p-5">
       <p className="eyebrow">Visit details</p>
       <h2 className="mt-1 text-lg font-semibold">What does each visit cost?</h2>
+      {prefilledFromQuote ? (
+        <p className="mt-2 text-xs font-medium text-[var(--co-evergreen)]">Prefilled from this customer&apos;s most recent quote — adjust it below if needed.</p>
+      ) : null}
 
       <label className="mt-5 block text-sm">
         <span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Prefill from service</span>

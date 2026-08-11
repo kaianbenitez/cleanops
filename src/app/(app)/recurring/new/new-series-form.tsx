@@ -28,11 +28,19 @@ export default function NewSeriesForm({ customers, employees, services }: NewSer
   const [frequency, setFrequency] = useState<SeriesFrequency>("weekly");
   const [dayOfWeek, setDayOfWeek] = useState(1);
   const [startDate, setStartDate] = useState("");
-  const [priceCents, setPriceCents] = useState(0);
+  const [manualPriceCents, setManualPriceCents] = useState<number | null>(null);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [submission, setSubmission] = useState<Submission>({ state: "idle" });
 
   const customer = customers.find((entry) => entry.id === customerId) ?? null;
+
+  // Until the admin picks a service preset or edits the price themselves,
+  // prefill it from the customer's most recent quote so the office doesn't
+  // have to look it up and retype it. Deriving this on every render (rather
+  // than syncing it into state via an effect) means switching customers
+  // always reflects the newly selected customer's quote immediately.
+  const priceTouched = manualPriceCents !== null;
+  const priceCents = priceTouched ? manualPriceCents : (customer?.lastQuotePriceCents ?? 0);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -89,7 +97,12 @@ export default function NewSeriesForm({ customers, employees, services }: NewSer
           onStartDateChange={setStartDate}
         />
 
-        <VisitDetailsSection services={services} priceCents={priceCents} onPriceCentsChange={setPriceCents} />
+        <VisitDetailsSection
+          services={services}
+          priceCents={priceCents}
+          onPriceCentsChange={setManualPriceCents}
+          prefilledFromQuote={!priceTouched && Boolean(customer?.lastQuotePriceCents)}
+        />
 
         <TeamSection employees={employees} selectedEmployeeIds={selectedEmployeeIds} onChange={setSelectedEmployeeIds} />
       </div>

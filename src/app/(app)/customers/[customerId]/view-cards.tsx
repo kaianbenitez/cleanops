@@ -12,6 +12,15 @@ const HARD_FLOOR_ROOM_NAMES = new Set(["Master Bathroom", "Full Bathroom", "Half
 
 type EquipmentCustomer = Customer & { mopHeadCount?: number | null; ragCount?: number | null; vacuumCount?: number | null };
 
+type CustomerQuote = {
+  id: string;
+  status: string;
+  totalCents: number;
+  requestedServiceType: string | null;
+  acceptedServiceType: string | null;
+  createdAt: string;
+};
+
 function UpcomingVisits({ upcomingJobs }: { upcomingJobs: CustomerJob[] }) {
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? upcomingJobs : upcomingJobs.slice(0, UPCOMING_VISITS_PREVIEW_COUNT);
@@ -115,6 +124,7 @@ export function CustomerViewCards({
   recentJobs,
   nextJob,
   openBalance,
+  quotes,
   onEditFocus,
 }: {
   customer: EquipmentCustomer;
@@ -128,6 +138,7 @@ export function CustomerViewCards({
   lastJob: CustomerJob | null;
   openBalance: number;
   lifetimeSpendCents: number;
+  quotes: CustomerQuote[];
   auditLogs: unknown[];
   onEditFocus: () => void;
 }) {
@@ -213,6 +224,26 @@ export function CustomerViewCards({
           </section>
           </div>
           <UpcomingVisits upcomingJobs={upcomingJobs} />
+          <Card title="Quote history" action={<Link href={`/quotes/new?customerId=${customer.id}`} className="text-sm font-semibold text-[var(--co-evergreen)] hover:underline">+ New quote</Link>}>
+            {quotes.length ? (
+              <div className="divide-y divide-[var(--co-line-soft)]">
+                {quotes.slice(0, 5).map((quote) => (
+                  <Link key={quote.id} href={`/quotes/${quote.id}`} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-[var(--co-surface-muted)] sm:px-6">
+                    <div>
+                      <p className="text-sm font-medium">Q-{quote.id.slice(0, 6).toUpperCase()} · {formatDisplayDate(quote.createdAt.slice(0, 10))}</p>
+                      <p className="text-xs text-[var(--co-muted)]">{(quote.acceptedServiceType ?? quote.requestedServiceType)?.replaceAll("_", " ") ?? "Service not selected"}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <p className="text-sm font-semibold">{quote.acceptedServiceType || quote.requestedServiceType ? money(quote.totalCents) : "—"}</p>
+                      <StatusPill domain="quote" status={quote.status} />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="p-6 text-sm text-[var(--co-muted)]">No quotes created yet.</p>
+            )}
+          </Card>
           <Card title="Service history" action={<Link href="/jobs" className="text-sm font-semibold text-[var(--co-evergreen)] hover:underline">View all activity →</Link>}>
             {recentJobs.length ? <div className="overflow-x-auto"><table className="w-full min-w-[700px] text-left text-sm"><thead className="bg-[var(--co-surface-muted)] text-[10px] font-bold uppercase tracking-wide text-[var(--co-muted)]"><tr><th className="px-6 py-3">Date</th><th className="px-4 py-3">Service type</th><th className="px-4 py-3">Duration</th><th className="px-4 py-3">Price</th><th className="px-6 py-3 text-right">Status</th></tr></thead><tbody>{recentJobs.slice(0, 5).map((job) => <tr key={job.id} className="border-t border-[var(--co-line-soft)]"><td className="px-6 py-4"><Link href={`/jobs/${job.id}`} className="font-medium hover:text-[var(--co-evergreen)] hover:underline">{formatDisplayDate(job.scheduledDate)}</Link></td><td className="px-4 py-4 font-medium">{TYPE_LABELS[job.type] ?? job.type}</td><td className="px-4 py-4">{formatEstimatedTime(job.estimatedDurationMinutes)}</td><td className="px-4 py-4">{money(job.priceCents)}</td><td className="px-6 py-4 text-right"><span className={`rounded px-2 py-1 text-[10px] font-bold uppercase ${job.status === "completed" ? "bg-emerald-50 text-emerald-800" : job.status === "cancelled" ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"}`}>{job.status.replaceAll("_", " ")}</span></td></tr>)}</tbody></table></div> : <p className="p-6 text-sm text-[var(--co-muted)]">No service history yet.</p>}
           </Card>

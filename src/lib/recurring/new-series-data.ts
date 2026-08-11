@@ -1,9 +1,9 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { customers, services } from "@/db/schema";
+import { customers, quotes, services } from "@/db/schema";
 import { loadAssignableEmployees } from "@/lib/jobs/job-detail";
 
-export type SeriesCustomerOption = { id: string; firstName: string; lastName: string; status: string };
+export type SeriesCustomerOption = { id: string; firstName: string; lastName: string; status: string; lastQuotePriceCents: number | null };
 export type SeriesEmployeeOption = { id: string; firstName: string; lastName: string };
 export type SeriesServiceOption = { id: string; name: string; defaultPriceCents: number };
 
@@ -25,7 +25,7 @@ export type NewSeriesOptions = {
  * expectations.
  */
 export async function loadNewSeriesOptions(companyId: string): Promise<NewSeriesOptions> {
-  const [customerRows, employeeRows, serviceRows] = await Promise.all([
+  const [customerRows, employeeRows, serviceRows, quoteRows] = await Promise.all([
     db
       .select({
         id: customers.id,
@@ -50,10 +50,22 @@ export async function loadNewSeriesOptions(companyId: string): Promise<NewSeries
       .from(services)
       .where(and(eq(services.companyId, companyId), eq(services.isActive, true), eq(services.category, "main")))
       .orderBy(services.name),
+    // Newest first per company; reduced below to each customer's single most
+    // recent quote so the form can prefill a series price from it.
+    db
+      .select({ customerId: quotes.customerId, totalCents: quotes.totalCents, createdAt: quotes.createdAt })
+      .from(quotes)
+      .where(eq(quotes.companyId, companyId))
+      .orderBy(desc(quotes.createdAt)),
   ]);
 
+  const lastQuotePriceByCustomerId = new Map<string, number>();
+  for (const quote of quoteRows) {
+    if (!lastQuotePriceByCustomerId.has(quote.customerId)) lastQuotePriceByCustomerId.set(quote.customerId, quote.totalCents);
+  }
+
   return {
-    customers: customerRows,
+    customers: customerRows.map((row) => ({ ...row, lastQuotePriceCents: lastQuotePriceByCustomerId.get(row.id) ?? null })),
     employees: employeeRows,
     services: serviceRows.map((row) => ({ ...row, defaultPriceCents: row.defaultPriceCents ?? 0 })),
   };
