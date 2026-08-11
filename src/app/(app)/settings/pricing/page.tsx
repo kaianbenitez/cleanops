@@ -256,6 +256,7 @@ function LocationCard({
           min="0"
           defaultValue={dollars(location.hourlyRateCents)}
           onBlur={(e) => onSave({ hourlyRateCents: Math.round(parseFloat(e.target.value || "0") * 100) })}
+          onFocus={(e) => e.target.select()}
           className="co-input w-full"
         />
       </label>
@@ -329,6 +330,7 @@ function LocationCard({
                 min="0"
                 defaultValue={dollars(zone.feeCents)}
                 onBlur={(e) => onSaveZone(zone.id, { feeCents: Math.round(parseFloat(e.target.value || "0") * 100) })}
+                onFocus={(e) => e.target.select()}
                 aria-label={`${zone.name} travel fee`}
                 className="co-input w-24 py-2 text-sm"
               />

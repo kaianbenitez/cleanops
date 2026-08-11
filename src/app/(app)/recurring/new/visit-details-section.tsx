@@ -45,16 +45,19 @@ export default function VisitDetailsSection({
 
       <label className="mt-4 block text-sm">
         <span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Price per visit</span>
-        <div className="relative">
-          <span className="absolute left-3 top-2.5 text-sm text-[var(--co-muted)]">$</span>
+        <div className="flex items-stretch">
+          <span className="flex items-center rounded-l-[var(--co-radius-control)] border border-r-0 border-[var(--co-input-border)] bg-[var(--co-input-bg)] px-3 text-sm text-[var(--co-muted)]">
+            $
+          </span>
           <input
             required
             type="number"
             min="0"
             step="0.01"
-            className="co-input w-full pl-7"
+            className="co-input w-full rounded-l-none"
             value={(priceCents / 100).toFixed(2)}
             onChange={(event) => onPriceCentsChange(Math.round(Number(event.target.value || 0) * 100))}
+            onFocus={(event) => event.target.select()}
           />
         </div>
       </label>

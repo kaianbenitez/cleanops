@@ -239,8 +239,10 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
 
             <label className="block text-xs font-semibold text-[var(--co-muted)]">
               Amount
-              <div className="relative mt-1">
-                <span className="pointer-events-none absolute left-3 top-2.5 text-sm text-[var(--co-muted)]">$</span>
+              <div className="mt-1 flex items-stretch">
+                <span className="flex items-center rounded-l-[var(--co-radius-control)] border border-r-0 border-[var(--co-input-border)] bg-[var(--co-input-bg)] px-3 text-sm text-[var(--co-muted)]">
+                  $
+                </span>
                 <input
                   key={`price-${job.priceCents}`}
                   type="number"
@@ -252,7 +254,8 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
                     const nextCents = Math.round(Number(event.target.value || 0) * 100);
                     if (Number.isFinite(nextCents) && nextCents >= 0 && nextCents !== job.priceCents) patch({ priceCents: nextCents });
                   }}
-                  className="co-input w-full pl-7 disabled:opacity-60"
+                  onFocus={(event) => event.target.select()}
+                  className="co-input w-full rounded-l-none disabled:opacity-60"
                 />
               </div>
             </label>
