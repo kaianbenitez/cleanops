@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.43",
+    date: "August 11, 2026",
+    title: "Cleaners can now see their own customer feedback",
+    changes: [
+      "Added a \"My scores\" page to the employee menu where cleaners can see how their own completed jobs were rated — average star rating, response rate, 5-star count, and each customer's rating and comment, filterable by date range.",
+    ],
+  },
+  {
     version: "v0.2.42",
     date: "August 11, 2026",
     title: "Add skill tags to employee profiles",
