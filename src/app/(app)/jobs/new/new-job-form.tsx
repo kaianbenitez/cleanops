@@ -181,7 +181,7 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
           <label className="mt-4 block text-sm">
             <span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Base price to invoice</span>
             <div className="relative">
-              <span className="absolute left-3 top-2.5 text-sm text-[var(--co-muted)]">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--co-muted)]">$</span>
               <input
                 required
                 type="number"
@@ -189,7 +189,7 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
                 min="0"
                 value={(priceCents / 100).toFixed(2)}
                 onChange={(event) => setPriceCents(Math.round(Number(event.target.value || 0) * 100))}
-                className="co-input w-full pl-7"
+                className="co-input w-full pl-8"
               />
             </div>
           </label>
