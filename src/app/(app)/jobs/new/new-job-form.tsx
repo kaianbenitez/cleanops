@@ -181,7 +181,7 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
           <label className="mt-4 block text-sm">
             <span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Base price to invoice</span>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--co-muted)]">$</span>
+              <span className="absolute left-3 top-1/2 z-10 pointer-events-none -translate-y-1/2 text-sm text-[var(--co-muted)]">$</span>
               <input
                 required
                 type="number"
