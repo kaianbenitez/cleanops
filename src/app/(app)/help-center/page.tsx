@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.44",
+    date: "August 11, 2026",
+    title: "Quotes now show on the customer profile, and recurring setup pulls the price from the last quote",
+    changes: [
+      "A customer's quote history is now visible right on their profile page, not just when you're editing it.",
+      "When you set up a new recurring service for a customer, the price per visit is now automatically filled in from their most recent quote — you can still change it or pick a different service price before saving.",
+    ],
+  },
+  {
     version: "v0.2.43",
     date: "August 11, 2026",
     title: "Cleaners can now see their own customer feedback",
