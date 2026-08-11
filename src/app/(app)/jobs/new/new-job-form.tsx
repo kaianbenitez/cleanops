@@ -189,7 +189,8 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
                 min="0"
                 value={(priceCents / 100).toFixed(2)}
                 onChange={(event) => setPriceCents(Math.round(Number(event.target.value || 0) * 100))}
-                className="co-input w-full rounded-l-0"
+                onFocus={(event) => event.target.select()}
+                className="co-input w-full rounded-l-none"
               />
             </div>
           </label>

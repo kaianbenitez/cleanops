@@ -254,6 +254,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
                     const nextCents = Math.round(Number(event.target.value || 0) * 100);
                     if (Number.isFinite(nextCents) && nextCents >= 0 && nextCents !== job.priceCents) patch({ priceCents: nextCents });
                   }}
+                  onFocus={(event) => event.target.select()}
                   className="co-input w-full rounded-l-none disabled:opacity-60"
                 />
               </div>

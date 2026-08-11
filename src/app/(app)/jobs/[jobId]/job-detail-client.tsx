@@ -302,7 +302,7 @@ export default function JobDetailClient({
                     <label className="text-xs text-[var(--co-muted)]" htmlFor="job-price">Price charged</label>
                     <div className="flex items-center gap-1">
                       <span className="text-sm font-semibold text-[var(--co-evergreen)]">$</span>
-                      <input id="job-price" aria-invalid={Boolean(priceEditError)} type="number" min="0" step="0.01" value={priceInput} onChange={(event) => setPriceInput(event.target.value)} className="co-input w-24 py-1 text-sm" autoFocus disabled={saving} />
+                      <input id="job-price" aria-invalid={Boolean(priceEditError)} type="number" min="0" step="0.01" value={priceInput} onChange={(event) => setPriceInput(event.target.value)} onFocus={(event) => event.target.select()} className="co-input w-24 py-1 text-sm" autoFocus disabled={saving} />
                       <button type="submit" disabled={saving} className="co-button-secondary px-2 py-1 text-xs disabled:opacity-50">Save</button>
                       <button type="button" disabled={saving} onClick={() => { setEditingPrice(false); setPriceEditError(null); }} className="co-button-secondary px-2 py-1 text-xs disabled:opacity-50">Cancel</button>
                     </div>

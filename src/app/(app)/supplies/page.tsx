@@ -264,6 +264,7 @@ export default function SuppliesPage() {
                                 step="0.01"
                                 value={(item.unitCostCents / 100).toFixed(2)}
                                 onChange={(event) => update(item.id, "unitCostCents", Math.round(Number(event.target.value) * 100))}
+                                onFocus={(event) => event.target.select()}
                               />
                             </div>
                           </td>

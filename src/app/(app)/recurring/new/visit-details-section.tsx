@@ -52,6 +52,7 @@ export default function VisitDetailsSection({
             className="co-input w-full rounded-l-none"
             value={(priceCents / 100).toFixed(2)}
             onChange={(event) => onPriceCentsChange(Math.round(Number(event.target.value || 0) * 100))}
+            onFocus={(event) => event.target.select()}
           />
         </div>
       </label>
