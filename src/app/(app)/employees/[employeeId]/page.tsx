@@ -414,6 +414,7 @@ function CompactProfile({
                 <Field label="Title" defaultValue={employee.title ?? ""} onSave={(v) => save({ title: v })} />
                 <Field label="Hire date" type="date" defaultValue={employee.hiredDate ?? ""} onSave={(v) => save({ hiredDate: v || null })} />
                 <Field label="Birthday" type="date" defaultValue={employee.birthday ?? ""} onSave={(v) => save({ birthday: v || null })} />
+                <Field label="Gusto employee ID" defaultValue={employee.gustoEmployeeId ?? ""} onSave={(v) => save({ gustoEmployeeId: v })} />
               </div>
             ) : (
               <div className="mt-5 space-y-4 text-xs">
@@ -421,6 +422,7 @@ function CompactProfile({
                 <div><p className="eyebrow">Hire date</p><p className="mt-1 text-[var(--co-ink)]">{employee.hiredDate ?? "Not set"}</p></div>
                 <div><p className="eyebrow">Birthday</p><p className="mt-1 text-[var(--co-ink)]">{employee.birthday ?? "Not set"}</p></div>
                 <div><p className="eyebrow">Employment</p><div className="mt-1 flex flex-wrap gap-1.5"><span className="rounded bg-[var(--co-surface-muted)] px-2 py-1 text-[11px]">{employee.payType === "office_hourly" ? "Hourly" : "Commission"}</span><span className="rounded bg-[var(--co-surface-muted)] px-2 py-1 text-[11px]">{employee.isActive ? "Active" : "Archived"}</span></div></div>
+                <div><p className="eyebrow">Gusto employee ID</p><p className="mt-1 text-[var(--co-ink)]">{employee.gustoEmployeeId ?? "Not set"}</p></div>
               </div>
             )}
           </section>
