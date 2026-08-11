@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   DEFAULT_PAY_TIER_BRACKETS,
@@ -115,24 +114,16 @@ export default function PayrollTiersSettingsPage() {
 
   return (
     <div className="space-y-6">
-      {/* items-start, not the items-end other Settings pages use — this
-          subtitle wraps to several lines and would strand the link at the
-          bottom of the block. */}
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="eyebrow">Settings / Payroll</p>
-          <h1 className="page-title mt-2">Payroll tiers</h1>
-          <p className="page-subtitle">
-            Weekly-hour brackets used to pick each commission employee&apos;s pay rate. Every business
-            can use a different number of brackets and cutoffs — these aren&apos;t fixed. Changing this
-            only affects new tier-rate entries; existing employees keep whatever rates were saved
-            under the old brackets until you re-save their tier rates on their profile page.
-          </p>
-        </div>
-        <Link href="/settings" className="co-button-secondary">
-          ← Settings
-        </Link>
-      </header>
+      <div>
+        <p className="eyebrow">Payroll</p>
+        <h1 className="page-title mt-2">Commission tiers</h1>
+        <p className="page-subtitle">
+          Weekly-hour brackets used to pick each commission employee&apos;s pay rate. Every business
+          can use a different number of brackets and cutoffs — these aren&apos;t fixed. Changing this
+          only affects new tier-rate entries; existing employees keep whatever rates were saved
+          under the old brackets until you re-save their tier rates on their profile page.
+        </p>
+      </div>
 
       <section className="co-card overflow-hidden">
         <div className="border-b border-[var(--co-line-soft)] px-5 py-4">

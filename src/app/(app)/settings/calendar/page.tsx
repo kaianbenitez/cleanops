@@ -1,0 +1,142 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+const DAYS: Array<[number, string]> = [
+  [0, "Sun"],
+  [1, "Mon"],
+  [2, "Tue"],
+  [3, "Wed"],
+  [4, "Thu"],
+  [5, "Fri"],
+  [6, "Sat"],
+];
+
+export default function CalendarSettingsPage() {
+  const [holidays, setHolidays] = useState("");
+  const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [loading, setLoading] = useState(true);
+  const [holidaysMessage, setHolidaysMessage] = useState("");
+  const [workingDaysMessage, setWorkingDaysMessage] = useState("");
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) return;
+        setHolidays(Array.isArray(data.company.settings?.holidays) ? data.company.settings.holidays.join("\n") : "");
+        setWorkingDays(
+          Array.isArray(data.company.settings?.workingDays) ? data.company.settings.workingDays : [1, 2, 3, 4, 5],
+        );
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function saveHolidays() {
+    const values = [
+      ...new Set(
+        holidays
+          .split(/\r?\n|,/)
+          .map((value) => value.trim())
+          .filter(Boolean),
+      ),
+    ].sort();
+    if (values.some((value) => !/^\d{4}-\d{2}-\d{2}$/.test(value))) {
+      setHolidaysMessage("Enter holidays as YYYY-MM-DD, one date per line.");
+      return;
+    }
+    const response = await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ holidays: values }),
+    });
+    setHolidaysMessage(response.ok ? "Calendar holidays saved." : "Could not save calendar holidays.");
+  }
+
+  async function saveWorkingDays() {
+    if (!workingDays.length) {
+      setWorkingDaysMessage("Select at least one working day.");
+      return;
+    }
+    const response = await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workingDays }),
+    });
+    setWorkingDaysMessage(response.ok ? "Calendar working days saved." : "Could not save calendar working days.");
+  }
+
+  if (loading) {
+    return <div className="co-card p-8 text-sm text-[var(--co-muted)]">Loading calendar settings…</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="eyebrow">Calendar</p>
+        <h1 className="page-title mt-2">Holidays & working days</h1>
+        <p className="page-subtitle">
+          Jobs remain visible for review, but dispatch capacity is marked closed on holidays. Week and Month views
+          use working days for dispatch capacity.
+        </p>
+      </div>
+
+      <section className="co-card overflow-hidden">
+        <div className="border-b border-[var(--co-line-soft)] px-5 py-4">
+          <p className="eyebrow">Closures</p>
+          <h2 className="mt-1 text-lg font-semibold">Company holidays</h2>
+        </div>
+        <div className="p-5">
+          <label className="block text-sm">
+            <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Holiday dates</span>
+            <textarea
+              className="co-input min-h-32 w-full font-mono text-xs"
+              value={holidays}
+              onChange={(event) => setHolidays(event.target.value)}
+              placeholder={"2026-01-01\n2026-12-25"}
+            />
+            <span className="mt-2 block text-xs leading-5 text-[var(--co-muted)]">
+              One YYYY-MM-DD date per line. Leave empty if no closures are scheduled.
+            </span>
+          </label>
+          <button onClick={saveHolidays} className="co-button-primary mt-5">
+            Save holidays
+          </button>
+          {holidaysMessage ? <p className="mt-3 text-sm font-medium text-[var(--co-evergreen)]">{holidaysMessage}</p> : null}
+        </div>
+      </section>
+
+      <section className="co-card overflow-hidden">
+        <div className="border-b border-[var(--co-line-soft)] px-5 py-4">
+          <p className="eyebrow">Dispatch capacity</p>
+          <h2 className="mt-1 text-lg font-semibold">Working days</h2>
+        </div>
+        <div className="p-5">
+          <div className="flex flex-wrap gap-2">
+            {DAYS.map(([value, label]) => (
+              <label key={value} className="flex items-center gap-1.5 text-sm">
+                <input
+                  type="checkbox"
+                  checked={workingDays.includes(value)}
+                  onChange={() =>
+                    setWorkingDays((current) =>
+                      current.includes(value) ? current.filter((day) => day !== value) : [...current, value].sort(),
+                    )
+                  }
+                  className="h-4 w-4 accent-[var(--co-evergreen)]"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          <button onClick={saveWorkingDays} className="co-button-primary mt-5">
+            Save working days
+          </button>
+          {workingDaysMessage ? (
+            <p className="mt-3 text-sm font-medium text-[var(--co-evergreen)]">{workingDaysMessage}</p>
+          ) : null}
+        </div>
+      </section>
+    </div>
+  );
+}

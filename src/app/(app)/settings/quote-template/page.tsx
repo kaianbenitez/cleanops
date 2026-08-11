@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 type QuoteTemplate = {
@@ -330,16 +329,11 @@ export default function QuoteTemplateSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="eyebrow">Settings / Sales</p>
-          <h1 className="page-title mt-2">Quote page content</h1>
-          <p className="page-subtitle">Shape the introduction, trust blocks, and links customers see on every proposal.</p>
-        </div>
-        <Link href="/settings" className="co-button-secondary">
-          ← Settings
-        </Link>
-      </header>
+      <div>
+        <p className="eyebrow">Pricing & quoting</p>
+        <h1 className="page-title mt-2">Quote page content</h1>
+        <p className="page-subtitle">Shape the introduction, trust blocks, and links customers see on every proposal.</p>
+      </div>
 
       <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
         <section className="co-card p-5">

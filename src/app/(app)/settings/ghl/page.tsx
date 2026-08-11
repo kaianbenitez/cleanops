@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 type TagMap = {
@@ -84,6 +83,14 @@ type GhlTestStatus = {
   status?: number;
 };
 
+type ApiConfig = {
+  ghl?: {
+    apiKeyConfigured?: boolean;
+    locationConfigured?: boolean;
+    webhookSecretConfigured?: boolean;
+  };
+};
+
 /** Values that appear on more than one status are ambiguous once GHL applies
  * the tag — an automation filtering on it can no longer tell which CleanOps
  * status triggered it. */
@@ -124,6 +131,7 @@ export default function GhlSettingsPage() {
   const [messageIsError, setMessageIsError] = useState(false);
   const [ghlTest, setGhlTest] = useState<GhlTestStatus | null>(null);
   const [testingGhl, setTestingGhl] = useState(false);
+  const [apiConfig, setApiConfig] = useState<ApiConfig>({});
 
   const tagConflicts = useMemo(() => findDuplicateValues(tagMap, FIELD_LABELS), [tagMap]);
 
@@ -135,6 +143,7 @@ export default function GhlSettingsPage() {
         const existingWorkflows = data.company?.settings?.ghlWorkflowMap as Partial<WorkflowMap> | undefined;
         setTagMap({ ...DEFAULT_TAG_MAP, ...existingTags });
         setWorkflowMap({ ...DEFAULT_WORKFLOW_MAP, ...existingWorkflows });
+        setApiConfig(data.apiConfig ?? {});
         setLoading(false);
       })
       .catch(() => {
@@ -194,14 +203,28 @@ export default function GhlSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="eyebrow">Settings / Integrations</p>
-          <h1 className="page-title mt-2">GHL integration</h1>
-          <p className="page-subtitle">Keep ServiceSpark status changes aligned with the tags and workflows your GoHighLevel account uses.</p>
-        </div>
-        <Link href="/settings" className="co-button-secondary">← Settings</Link>
-      </header>
+      <div>
+        <p className="eyebrow">Integrations</p>
+        <h1 className="page-title mt-2">GoHighLevel</h1>
+        <p className="page-subtitle">Keep ServiceSpark status changes aligned with the tags and workflows your GoHighLevel account uses.</p>
+      </div>
+
+      <section className="co-card grid gap-3 p-5 sm:grid-cols-3">
+        {[
+          { label: "API key", ok: Boolean(apiConfig.ghl?.apiKeyConfigured) },
+          { label: "Location ID", ok: Boolean(apiConfig.ghl?.locationConfigured) },
+          { label: "Webhook secret", ok: Boolean(apiConfig.ghl?.webhookSecretConfigured) },
+        ].map((item) => (
+          <div key={item.label} className="flex items-center justify-between rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 px-4 py-3">
+            <p className="text-sm font-semibold">{item.label}</p>
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.ok ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}
+            >
+              {item.ok ? "Configured" : "Needs setup"}
+            </span>
+          </div>
+        ))}
+      </section>
 
       <section className="co-card flex items-start gap-4 border-[#d9e5cf] bg-[var(--co-surface-muted)] p-5">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--co-evergreen)] text-sm font-black text-[var(--co-accent)]">GHL</span>

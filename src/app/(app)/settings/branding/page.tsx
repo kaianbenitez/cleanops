@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Branding = {
@@ -69,16 +68,11 @@ export default function BrandingSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="eyebrow">Settings / Identity</p>
-          <h1 className="page-title mt-2">Company branding</h1>
-          <p className="page-subtitle">Control the identity customers see on proposals, invoices, and payment messages.</p>
-        </div>
-        <Link href="/settings" className="co-button-secondary">
-          ← Settings
-        </Link>
-      </header>
+      <div>
+        <p className="eyebrow">Company</p>
+        <h1 className="page-title mt-2">Branding</h1>
+        <p className="page-subtitle">Control the identity customers see on proposals, invoices, and payment messages.</p>
+      </div>
 
       <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
         <section className="co-card p-5">

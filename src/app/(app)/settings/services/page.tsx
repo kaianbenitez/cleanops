@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Service = {
@@ -53,18 +52,13 @@ export default function ServiceCatalogPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="eyebrow">Settings / Operations</p>
-          <h1 className="page-title mt-2">Service catalog</h1>
-          <p className="page-subtitle">
-            Manage the job presets and add-ons available when creating one-off jobs. Quote pricing is configured separately.
-          </p>
-        </div>
-        <Link href="/settings" className="co-button-secondary">
-          ← Settings
-        </Link>
-      </header>
+      <div>
+        <p className="eyebrow">Pricing & quoting</p>
+        <h1 className="page-title mt-2">Service catalog</h1>
+        <p className="page-subtitle">
+          Manage the job presets and add-ons available when creating one-off jobs. Quote pricing is configured separately.
+        </p>
+      </div>
 
       {message && <p className="text-sm font-medium text-[var(--co-evergreen)]">{message}</p>}
 

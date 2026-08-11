@@ -6,6 +6,7 @@ import { customers, jobAssignments, jobs, payrollLines, payrollPeriods, timeEntr
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { isFieldEligible } from "@/lib/auth/field-staff";
 import EmployeeDirectory, { type EmployeeDirectoryRow } from "./directory-client";
+import AdminAccessPanel from "./admin-access-panel";
 
 const TYPE_LABELS: Record<string, string> = {
   first_clean: "First clean",
@@ -139,6 +140,8 @@ export default async function EmployeesPage() {
           </Link>
         </div>
       </header>
+
+      <AdminAccessPanel />
 
       <EmployeeDirectory rows={rows} />
     </div>

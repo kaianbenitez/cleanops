@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 
 type TravelZone = { id: string; name: string; feeCents: number; sortOrder: number };
 type DirtyTier = { level: number; discountPercent: number };
@@ -126,16 +125,11 @@ export default function PricingSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow">Settings / Quote engine</p>
-          <h1 className="page-title mt-2">Pricing &amp; service areas</h1>
-          <p className="page-subtitle">Control the rates and travel rules used by every quote calculation.</p>
-        </div>
-        <Link href="/settings" className="co-button-secondary">
-        ← Settings
-        </Link>
-      </header>
+      <div>
+        <p className="eyebrow">Pricing & quoting</p>
+        <h1 className="page-title mt-2">Pricing &amp; travel zones</h1>
+        <p className="page-subtitle">Control the rates and travel rules used by every quote calculation.</p>
+      </div>
       <section className="rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface-muted)]/70 p-4 text-sm text-[var(--co-muted)]">
         <span className="font-semibold text-[var(--co-ink)]">Keep this page operational.</span> Changes save when you leave a field, and affect new quotes immediately.
       </section>

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 type Weight = { serviceType: string; weightHours: string };
@@ -127,18 +126,13 @@ export default function RoomTypesSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="eyebrow">Settings / Quote engine</p>
-          <h1 className="page-title mt-2">Room types & pricing weights</h1>
-          <p className="page-subtitle">
-            Set the hours-per-room values that drive every calculated quote tier.
-          </p>
-        </div>
-        <Link href="/settings" className="co-button-secondary">
-          ← Settings
-        </Link>
-      </header>
+      <div>
+        <p className="eyebrow">Pricing & quoting</p>
+        <h1 className="page-title mt-2">Room types</h1>
+        <p className="page-subtitle">
+          Set the hours-per-room values that drive every calculated quote tier.
+        </p>
+      </div>
 
       <section className="co-card overflow-hidden">
         <div className="border-b border-[var(--co-line-soft)] px-5 py-4">

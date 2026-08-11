@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type ApiConfig = { square?: { configured?: boolean; webhookConfigured?: boolean }; googleMaps?: { configured?: boolean } };
@@ -45,7 +44,7 @@ export default function IntegrationsSettingsPage() {
   }
 
   return <div className="max-w-3xl space-y-6">
-    <header className="flex flex-wrap items-end justify-between gap-3"><div><p className="eyebrow">Settings / Integrations</p><h1 className="page-title mt-2">Square & Google Maps</h1><p className="page-subtitle">Keys are encrypted before storage. Paste a replacement only when you need to change one.</p></div><Link href="/settings" className="co-button-secondary">← Settings</Link></header>
+    <div><p className="eyebrow">Integrations</p><h1 className="page-title mt-2">Square & Google Maps</h1><p className="page-subtitle">Keys are encrypted before storage. Paste a replacement only when you need to change one.</p></div>
     <section className="co-card space-y-5 p-5"><div><p className="eyebrow">Square invoicing</p><h2 className="mt-1 text-lg font-semibold">Payments connection</h2><p className="mt-1 text-sm text-[var(--co-muted)]">Access token: {apiConfig.square?.configured ? "Configured" : "Not configured"} · Webhook key: {apiConfig.square?.webhookConfigured ? "Configured" : "Not configured"}</p></div>
       <label className="block text-sm font-medium">Environment<select className="co-input mt-2 w-full" value={squareEnvironment} onChange={(event) => setSquareEnvironment(event.target.value as "sandbox" | "production")}><option value="sandbox">Sandbox</option><option value="production">Production</option></select></label>
       <label className="block text-sm font-medium">Square access token<input type="password" autoComplete="off" className="co-input mt-2 w-full" value={squareAccessToken} onChange={(event) => setSquareAccessToken(event.target.value)} placeholder="Paste a new token to replace the saved one" /></label>
