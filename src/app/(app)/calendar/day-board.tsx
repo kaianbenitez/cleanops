@@ -54,6 +54,7 @@ export default function DayBoard({ dayLabel, employees, jobs: initialJobs }: { d
   const [syncedJobs, setSyncedJobs] = useState(initialJobs);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [dragOverRail, setDragOverRail] = useState(false);
   const { toast, showUndo, dismiss } = useUndoToast();
 
@@ -74,6 +75,7 @@ export default function DayBoard({ dayLabel, employees, jobs: initialJobs }: { d
           setJobs((prev) => prev.map((candidate) => (candidate.id === jobId ? { ...candidate, scheduledStartTime: newTime } : candidate)));
           setSavingId(jobId);
           setError(null);
+          setWarning(null);
         },
         onSuccess: () => {
           router.refresh();
@@ -88,6 +90,7 @@ export default function DayBoard({ dayLabel, employees, jobs: initialJobs }: { d
             });
           });
         },
+        onWarning: setWarning,
         onError: (message) => {
           setError(message);
           router.refresh();
@@ -119,6 +122,7 @@ export default function DayBoard({ dayLabel, employees, jobs: initialJobs }: { d
           setJobs((prev) => prev.map((candidate) => (candidate.id === jobId ? { ...candidate, assignedUserIds: newAssignees } : candidate)));
           setSavingId(jobId);
           setError(null);
+          setWarning(null);
         },
         onSuccess: () => {
           router.refresh();
@@ -133,6 +137,7 @@ export default function DayBoard({ dayLabel, employees, jobs: initialJobs }: { d
             });
           });
         },
+        onWarning: setWarning,
         onError: (message) => {
           setError(message);
           router.refresh();
@@ -169,6 +174,7 @@ export default function DayBoard({ dayLabel, employees, jobs: initialJobs }: { d
         <h2 className="mt-1 text-lg font-semibold">{dayLabel}</h2>
         <p className="mt-1 text-xs text-[var(--co-muted)]">Drag a job onto the time rail to reschedule it, or reassign it with the dropdown.</p>
         {error ? <p className="mt-2 text-xs font-medium text-rose-600">{error}</p> : null}
+        {warning ? <p role="status" className="mt-2 border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">Scheduling warning: {warning}</p> : null}
       </div>
 
       <div className="flex gap-4 p-4">

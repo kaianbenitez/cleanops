@@ -50,6 +50,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
   const [assignedUserIds, setAssignedUserIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
@@ -106,8 +107,10 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
         if (fields.employeeIds) setAssignedUserIds(fields.employeeIds);
         setSaving(true);
         setError(null);
+        setWarning(null);
       },
       onSuccess: () => router.refresh(),
+      onWarning: setWarning,
       onError: (message) => {
         setError(message);
         router.refresh();
@@ -146,6 +149,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
         {job ? (
           <div className="flex-1 space-y-5 px-5 py-5">
             {error ? <p className="text-xs font-medium text-rose-600">{error}</p> : null}
+            {warning ? <p role="status" className="border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">Scheduling warning: {warning}</p> : null}
 
             <div className="flex flex-wrap items-center gap-2">
               <StatusPill domain="job" status={job.status} />

@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.46",
+    date: "August 13, 2026",
+    title: "Double-booking warnings now show up when you edit a job",
+    changes: [
+      "Changing a job's date, time, duration, or crew from the Calendar or the Job Detail page now warns you right there if it puts an employee on two jobs at once — the check was already running, it just wasn't shown before.",
+    ],
+  },
+  {
     version: "v0.2.45",
     date: "August 12, 2026",
     title: "Settings reorganized into a sidebar with clear sections",

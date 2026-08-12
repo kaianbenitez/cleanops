@@ -5,9 +5,14 @@ session before starting work. Stable working rules live in `AGENTS.md`; historic
 schema/architecture deviations live in `DECISIONS.md`. This file is just "where things
 stand right now."
 
-Last updated: 2026-08-07 (ServiceSpark public landing-page polish shipped — see the entry right below).
+Last updated: 2026-08-13 (job PATCH scheduling warnings surfaced in the UI — see the entry right below).
 
 ## Done
+
+- **`PATCH /api/jobs/[jobId]`'s double-booking `warnings` array is now surfaced in the UI instead of being silently discarded (2026-08-13, Help Center v0.2.46).** From the "Still open" backlog: the route has computed a `warnings` array since the overlap check was added (an employee getting double-booked when a job's date/time/duration/crew changes), but only `staff-board.tsx` and `unassigned-panel.tsx` ever read `body.warnings` from the response — every other caller either used the shared `commitJobPatch` helper without passing `onWarning`, or (the full Job Detail page at `/jobs/[jobId]`) called the API directly and never looked at `body.warnings` at all.
+  Added the same `warning` state + amber "Scheduling warning: …" banner (`role="status"`, matching the existing `staff-board.tsx` styling) to the five remaining callers: `calendar/day-board.tsx`, `calendar/list-board.tsx`, `calendar/today-list-board.tsx`, `calendar/job-detail-panel.tsx` (all via `onWarning: setWarning` on `commitJobPatch`), and `jobs/[jobId]/job-detail-client.tsx` (reads `body.warnings` directly since it doesn't go through `commitJobPatch`, shown as a dismissible toast like its existing error toast). No API or schema changes — the warnings were already being computed and returned, just dropped on the floor client-side.
+  Verified: `npm run lint` and `npm run typecheck` both clean (0 errors; the lint warnings present are pre-existing and unrelated to these files). Did not run `npm run build`/smoke tests or click-through test in a browser — this Mac clone still has no `.env.local` (same longstanding `BROWSER_ADMIN_PASSWORD` gap as most other entries in this doc).
+  PTO conflicts are a separate, harder block (409 on save, not part of `warnings`) and were already surfaced via each caller's existing `onError` handling — untouched here.
 
 - **Rebuilt the public ServiceSpark landing page around real product screens and made early-access requests lower-friction (2026-08-07).** The original public page described the shipped operations features only as six text cards, making it harder for a prospective cleaning-business owner to assess whether the product is real and relevant. Replaced that grid with an alternating, responsive text-and-screenshot sequence for Scheduling, My Day, Customers, Quotes, Invoicing, and payroll-related team tracking, plus the real dashboard screen immediately below the hero. Added the approved trust line: “Not a concept — this is the same system a real cleaning business runs its day-to-day operations on.” All seven images are from the safe fictional Demo Cleaning Co. account; the payroll image deliberately uses the team directory rather than the known-broken demo Payroll screen. Each Next Image now uses the source file's real dimensions, including the taller 1568×778 invoicing screen, so screenshots retain their native aspect ratios.
   The early-access form now requires only business name and email; name, phone, crew size, and message remain available but optional. Updated client normalization, API validation, and the Drizzle schema together, and added `drizzle/0029_product_leads_optional_contact.sql` to drop the live table's `contact_name` and `phone` NOT NULL constraints. Help Center v0.2.9 records the public-facing change.
@@ -1693,10 +1698,10 @@ Last updated: 2026-08-07 (ServiceSpark public landing-page polish shipped — se
 - Create real pilot cleaner accounts (only admin/test accounts exist today).
 - Test the My Day workflow on an actual phone.
 - Run `npm run smoke:routes` against a local production build this cycle.
-- `PATCH /api/jobs/[jobId]` returns a `warnings` array when an assignment double-books a
-  technician or collides with PTO, and **every caller discards it silently** — Job Detail did
-  before the 2026-07-27 refactor and still does after, since that refactor was deliberately
-  behavior-preserving. Surfacing it is a small change with real dispatch value.
+- ~~`PATCH /api/jobs/[jobId]` returns a `warnings` array when an assignment double-books a
+  technician, and every caller discards it silently~~ **Resolved 2026-08-13** — surfaced in
+  all six UI callers, see the top "Done" entry. (PTO collisions were never part of this array —
+  they're a hard 409 block, already surfaced via each caller's existing error handling.)
 - ~~Full pagination + SQL-aggregate rewrite for the `customers`, `invoices`, and
   `sync-issues` list pages~~ **Correction 2026-07-29**: this was stale. Checked all three
   directly — each already does SQL-aggregate `count(*) filter (...)` stat queries plus

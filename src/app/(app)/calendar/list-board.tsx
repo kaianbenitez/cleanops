@@ -42,6 +42,7 @@ export default function ListBoard({ employees, jobs: initialJobs }: { employees:
   const [syncedJobs, setSyncedJobs] = useState(initialJobs);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const { toast, showUndo, dismiss } = useUndoToast();
 
   if (initialJobs !== syncedJobs) {
@@ -60,6 +61,7 @@ export default function ListBoard({ employees, jobs: initialJobs }: { employees:
         setJobs((prev) => prev.map((candidate) => (candidate.id === jobId ? apply(candidate) : candidate)));
         setSavingId(jobId);
         setError(null);
+        setWarning(null);
       },
       onSuccess: () => {
         router.refresh();
@@ -76,6 +78,7 @@ export default function ListBoard({ employees, jobs: initialJobs }: { employees:
           });
         }
       },
+      onWarning: setWarning,
       onError: (message) => {
         setError(message);
         router.refresh();
@@ -169,6 +172,7 @@ export default function ListBoard({ employees, jobs: initialJobs }: { employees:
         <h2 className="mt-1 text-lg font-semibold">All scheduled jobs</h2>
         <p className="mt-1 text-xs text-[var(--co-muted)]">Edit any cell directly — changes save as soon as you leave the field.</p>
         {error ? <p className="mt-2 text-xs font-medium text-rose-600">{error}</p> : null}
+        {warning ? <p role="status" className="mt-2 border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">Scheduling warning: {warning}</p> : null}
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[960px] text-left text-sm">

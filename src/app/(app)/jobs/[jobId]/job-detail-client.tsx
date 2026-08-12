@@ -46,6 +46,7 @@ export default function JobDetailClient({
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [isRefreshing, startTransition] = useTransition();
   const saving = busy || isRefreshing;
@@ -102,6 +103,7 @@ export default function JobDetailClient({
     async (fields: Record<string, unknown>) => {
       setBusy(true);
       setError(null);
+      setWarning(null);
       const response = await fetch(`/api/jobs/${job.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -113,6 +115,7 @@ export default function JobDetailClient({
         setError(readableError(body));
         return false;
       }
+      if (Array.isArray(body?.warnings) && body.warnings.length) setWarning(body.warnings.join(" "));
       refresh();
       return true;
     },
@@ -573,6 +576,20 @@ export default function JobDetailClient({
           />
         </aside>
       </main>
+
+      {warning ? (
+        <div
+          role="status"
+          className="fixed bottom-5 left-1/2 z-30 w-[min(92vw,600px)] -translate-x-1/2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-lg"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <span>Scheduling warning: {warning}</span>
+            <button type="button" onClick={() => setWarning(null)} className="shrink-0 font-semibold hover:underline">
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {error ? (
         <div
