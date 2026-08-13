@@ -28,6 +28,7 @@ export type Customer = {
   isArchived?: boolean;
   archivedAt?: string | null;
   archivedReason?: string | null;
+  createdByName?: string | null;
 };
 
 export type Location = {

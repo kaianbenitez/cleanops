@@ -77,8 +77,18 @@ export async function GET(
       .innerJoin(jobs, eq(jobAssignments.jobId, jobs.id))
       .innerJoin(users, eq(jobAssignments.userId, users.id))
       .where(and(eq(jobs.customerId, customerId), eq(jobs.companyId, admin.companyId))),
-    db.select({ id: quotes.id, status: quotes.status, totalCents: quotes.totalCents, requestedServiceType: quotes.requestedServiceType, acceptedServiceType: quotes.acceptedServiceType, createdAt: quotes.createdAt })
+    db.select({
+      id: quotes.id,
+      status: quotes.status,
+      totalCents: quotes.totalCents,
+      requestedServiceType: quotes.requestedServiceType,
+      acceptedServiceType: quotes.acceptedServiceType,
+      createdAt: quotes.createdAt,
+      createdByFirstName: users.firstName,
+      createdByLastName: users.lastName,
+    })
       .from(quotes)
+      .leftJoin(users, eq(quotes.createdByUserId, users.id))
       .where(and(eq(quotes.customerId, customerId), eq(quotes.companyId, admin.companyId)))
       .orderBy(desc(quotes.createdAt)),
     db.select({ id: recurringSeries.id, frequency: recurringSeries.frequency, isActive: recurringSeries.isActive, startDate: recurringSeries.startDate, endDate: recurringSeries.endDate })
@@ -106,6 +116,11 @@ export async function GET(
 
   if (!customer) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
 
+  const [creator] = customer.createdByUserId
+    ? await db.select({ firstName: users.firstName, lastName: users.lastName }).from(users).where(eq(users.id, customer.createdByUserId)).limit(1)
+    : [];
+  const customerWithCreator = { ...customer, createdByName: creator ? `${creator.firstName} ${creator.lastName}` : null };
+
   let locations = locationRows;
   if (locations.length === 0 && customer.addressLine1) {
     locations = [{
@@ -123,7 +138,11 @@ export async function GET(
   for (const assignment of customerJobAssignments.sort((a, b) => a.role === b.role ? 0 : a.role === "lead" ? -1 : 1)) {
     assignedCleanerNamesByJob.set(assignment.jobId, [...(assignedCleanerNamesByJob.get(assignment.jobId) ?? []), `${assignment.firstName} ${assignment.lastName}`]);
   }
-  return NextResponse.json({ customer, locations, jobs: customerJobs.map((job) => ({ ...job, assignedCleanerNames: assignedCleanerNamesByJob.get(job.id) ?? [] })), quotes: customerQuotes, recurringSeries: customerRecurringSeries, invoices: customerInvoices, auditLogs, serviceArea, lifetimeSpendCents: Number(lifetimeSpendCents) });
+  const quotesWithCreator = customerQuotes.map(({ createdByFirstName, createdByLastName, ...quote }) => ({
+    ...quote,
+    createdByName: createdByFirstName ? `${createdByFirstName} ${createdByLastName}` : null,
+  }));
+  return NextResponse.json({ customer: customerWithCreator, locations, jobs: customerJobs.map((job) => ({ ...job, assignedCleanerNames: assignedCleanerNamesByJob.get(job.id) ?? [] })), quotes: quotesWithCreator, recurringSeries: customerRecurringSeries, invoices: customerInvoices, auditLogs, serviceArea, lifetimeSpendCents: Number(lifetimeSpendCents) });
 }
 
 /** PATCH /api/customers/[customerId] — status changes only for now (no full Customers

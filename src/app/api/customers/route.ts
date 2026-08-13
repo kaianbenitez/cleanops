@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
     ghlContactId: data.ghlContactId || null,
     clientType: data.clientType || "residential",
     status: "lead",
+    createdByUserId: admin.id,
   }).returning();
 
   // Mirror the address onto a real customer_locations row so quoting/scheduling

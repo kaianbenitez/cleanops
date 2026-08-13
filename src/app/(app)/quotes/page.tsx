@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { customers, quotes } from "@/db/schema";
+import { customers, quotes, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { StatusPill, statusOptions } from "@/components/ui/status-pill";
 import { LocalDateTime } from "@/components/local-date-time";
@@ -63,9 +63,12 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
         viewedAt: quotes.viewedAt,
         acceptedAt: quotes.acceptedAt,
         publicToken: quotes.publicToken,
+        createdByFirstName: users.firstName,
+        createdByLastName: users.lastName,
       })
       .from(quotes)
       .innerJoin(customers, eq(quotes.customerId, customers.id))
+      .leftJoin(users, eq(quotes.createdByUserId, users.id))
       .where(and(...conditions))
       .orderBy(desc(quotes.createdAt)),
     db
@@ -146,7 +149,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-left text-sm">
+            <table className="w-full min-w-[1080px] text-left text-sm">
               <thead className="bg-[var(--co-surface-muted)] text-xs uppercase tracking-[0.1em] text-[var(--co-muted)]">
                 <tr>
                   <th className="px-5 py-3">Customer</th>
@@ -155,6 +158,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
                   <th className="px-5 py-3">Total</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3">Created</th>
+                  <th className="px-5 py-3">Quoted by</th>
                   <th className="px-5 py-3">Actions</th>
                 </tr>
               </thead>
@@ -175,6 +179,9 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
                     </td>
                     <td className="whitespace-nowrap px-5 py-4 text-xs text-[var(--co-muted)]">
                       <LocalDateTime value={quote.createdAt} options={{ month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }} />
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-4 text-[var(--co-muted)]">
+                      {quote.createdByFirstName ? `${quote.createdByFirstName} ${quote.createdByLastName}` : "—"}
                     </td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-2">

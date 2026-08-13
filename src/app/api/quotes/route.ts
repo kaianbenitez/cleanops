@@ -115,6 +115,7 @@ export async function POST(req: NextRequest) {
       customerId: data.customerId,
       status: "draft",
       publicToken,
+      createdByUserId: admin.id,
       serviceLocationId: data.serviceLocationId,
       requestedServiceType: data.requestedServiceType ?? null,
       travelZoneId: data.travelZoneId,

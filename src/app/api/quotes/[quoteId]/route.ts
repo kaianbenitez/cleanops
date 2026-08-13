@@ -24,11 +24,14 @@ export async function GET(
       locationName: serviceLocations.name,
       hourlyRateCents: serviceLocations.hourlyRateCents,
       travelZoneName: travelZones.name,
+      createdByFirstName: users.firstName,
+      createdByLastName: users.lastName,
     })
     .from(quotes)
     .innerJoin(customers, eq(quotes.customerId, customers.id))
     .leftJoin(serviceLocations, eq(quotes.serviceLocationId, serviceLocations.id))
     .leftJoin(travelZones, eq(quotes.travelZoneId, travelZones.id))
+    .leftJoin(users, eq(quotes.createdByUserId, users.id))
     .where(and(eq(quotes.id, quoteId), eq(quotes.companyId, admin.companyId)))
     .limit(1);
 
@@ -72,6 +75,7 @@ export async function GET(
     locationName: row.locationName,
     hourlyRateCents: row.hourlyRateCents,
     travelZoneName: row.travelZoneName,
+    createdByName: [row.createdByFirstName, row.createdByLastName].filter(Boolean).join(" ") || null,
     viewCount: Number(viewCountRow?.viewCount ?? 0),
     lastViewedAt: lastViewedRow?.lastViewedAt ?? null,
     bookingOverride: bookingOverride

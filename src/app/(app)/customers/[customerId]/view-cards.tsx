@@ -19,6 +19,7 @@ type CustomerQuote = {
   requestedServiceType: string | null;
   acceptedServiceType: string | null;
   createdAt: string;
+  createdByName?: string | null;
 };
 
 function UpcomingVisits({ upcomingJobs }: { upcomingJobs: CustomerJob[] }) {
@@ -187,6 +188,7 @@ export function CustomerViewCards({
               <Detail icon={Mail} label="Email address">{customer.email || "No email on file"}</Detail>
               <div className="border-t border-[var(--co-line)] pt-4"><Detail icon={MapPin} label="Service address">{primaryAddress || "No service address on file"}</Detail></div>
               {primaryAddress ? <iframe title="Customer location map" src={`https://maps.google.com/maps?q=${encodeURIComponent(primaryAddress)}&output=embed`} className="h-32 w-full rounded-lg border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" /> : null}
+              <div className="border-t border-[var(--co-line)] pt-4"><Detail icon={NotebookText} label="Added by">{customer.createdByName || "Not recorded"}</Detail></div>
             </div>
           </Card>
           <Card title="Billing" action={<CreditCard className="h-5 w-5 text-[var(--co-muted)]" />}>
@@ -231,7 +233,7 @@ export function CustomerViewCards({
                   <Link key={quote.id} href={`/quotes/${quote.id}`} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-[var(--co-surface-muted)] sm:px-6">
                     <div>
                       <p className="text-sm font-medium">Q-{quote.id.slice(0, 6).toUpperCase()} · {formatDisplayDate(quote.createdAt.slice(0, 10))}</p>
-                      <p className="text-xs text-[var(--co-muted)]">{(quote.acceptedServiceType ?? quote.requestedServiceType)?.replaceAll("_", " ") ?? "Service not selected"}</p>
+                      <p className="text-xs text-[var(--co-muted)]">{(quote.acceptedServiceType ?? quote.requestedServiceType)?.replaceAll("_", " ") ?? "Service not selected"}{quote.createdByName ? ` · Quoted by ${quote.createdByName}` : ""}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <p className="text-sm font-semibold">{quote.acceptedServiceType || quote.requestedServiceType ? money(quote.totalCents) : "—"}</p>

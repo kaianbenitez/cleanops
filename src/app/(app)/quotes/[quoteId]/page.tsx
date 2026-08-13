@@ -31,6 +31,7 @@ type Quote = {
 type QuoteDetails = Quote & {
   viewCount?: number;
   lastViewedAt?: string | null;
+  createdByName?: string | null;
 };
 
 type BookingOverride = {
@@ -100,7 +101,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
     const response = await fetch(`/api/quotes/${quoteId}`, { cache: "no-store" });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(body.error ?? `Quote could not be loaded (${response.status}).`);
-    const loadedQuote = { ...body.quote, viewCount: body.viewCount, lastViewedAt: body.lastViewedAt } as QuoteDetails;
+    const loadedQuote = { ...body.quote, viewCount: body.viewCount, lastViewedAt: body.lastViewedAt, createdByName: body.createdByName } as QuoteDetails;
     setQuote(loadedQuote);
     setSelectedServiceType((current) => {
       if (current && loadedQuote.allTierPricing?.[current]) return current;
@@ -390,6 +391,10 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
             ) : null}
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Quoted by</p>
+                <p className="mt-2 text-sm font-medium">{quote.createdByName ?? "Not recorded"}</p>
+              </div>
+              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Sent</p>
                 <p className="mt-2 text-sm font-medium"><LocalDateTime value={quote.sentAt} fallback="Not sent" /></p>
               </div>
@@ -397,8 +402,6 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Viewed / accepted</p>
                 <p className="mt-2 text-sm font-medium"><LocalDateTime value={quote.acceptedAt} fallback="No response yet" /></p>
               </div>
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Viewed count</p>
                 <p className="mt-2 text-sm font-medium">{quote.viewCount ?? 0} times</p>

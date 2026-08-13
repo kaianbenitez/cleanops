@@ -222,6 +222,9 @@ export const customers = pgTable("customers", {
   // which do not reference a customer_locations row.
   geocodedLatitude: numeric("geocoded_latitude", { precision: 10, scale: 7 }),
   geocodedLongitude: numeric("geocoded_longitude", { precision: 10, scale: 7 }),
+  // Nullable: customers created by the GHL webhook ingestion (src/app/api/webhooks/ghl)
+  // have no admin account to attribute, and existing rows predate this column.
+  createdByUserId: uuid("created_by_user_id").references(() => users.id),
   ...timestamps,
 }, (t) => ({
   companyIdx: index("customers_company_idx").on(t.companyId),
@@ -370,6 +373,9 @@ export const quotes = pgTable("quotes", {
   customerId: uuid("customer_id").notNull().references(() => customers.id),
   status: text("status", { enum: quoteStatusEnum }).notNull().default("draft"),
   publicToken: text("public_token").notNull(),
+  // Nullable: existing rows predate this column. Every quote created going
+  // forward goes through the one admin-only POST /api/quotes route.
+  createdByUserId: uuid("created_by_user_id").references(() => users.id),
 
   // Room-count pricing engine inputs/outputs — see the block comment above.
   // The quote computes ALL 7 service-tier prices from the same room counts
