@@ -7,7 +7,7 @@ export type PulseMetrics = { jobsToday: { scheduled: number; completed: number; 
 export type CashToCollect = { totalCents: number; invoices: Array<{ id: string; customerId: string; customerName: string; amountDueCents: number; daysBeyondGrace: number }> };
 export type CrewCoverage = { days: string[]; employees: Array<{ id: string; name: string; hoursByDay: number[]; ptoByDay: Array<"full" | "morning" | "afternoon" | null> }>; ptoCount: number };
 export type OperationsDashboard = {
-  clients: { total: number; gained: number; lost: number };
+  clients: { total: number; active: number; gained: number; lost: number; newLeads: number };
   quotes: { sent: number; accepted: number; booked: number; aging: number; previousSent: number; previousAccepted: number };
   weeklyRevenue: { dates: string[]; amountsCents: number[]; totalCents: number };
   weeklyRevenueTargetCents: number | null;

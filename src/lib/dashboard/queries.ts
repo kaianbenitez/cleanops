@@ -45,8 +45,10 @@ export async function getOperationsDashboard(companyId: string, range: Dashboard
   const [clientRows, quoteRows, previousQuoteRows, weeklyRevenueRows, agingRows] = await Promise.all([
     db.select({
       total: sql<number>`count(*) filter (where ${customers.isArchived} = false)`,
+      active: sql<number>`count(*) filter (where ${customers.isArchived} = false and ${customers.recurrence} is not null and ${customers.recurrence} <> 'none')`,
       gained: sql<number>`count(*) filter (where ${customers.isArchived} = false and ${timestampRangeCondition(customers.createdAt, range.fromIso, range.toIso, range.timeZone)})`,
       lost: sql<number>`count(*) filter (where ${customers.isArchived} = true and ${timestampRangeCondition(customers.archivedAt, range.fromIso, range.toIso, range.timeZone)})`,
+      newLeads: sql<number>`count(*) filter (where ${customers.status} = 'lead' and ${timestampRangeCondition(customers.createdAt, range.fromIso, range.toIso, range.timeZone)})`,
     }).from(customers).where(eq(customers.companyId, companyId)),
     db.select({
       sent: sql<number>`count(*) filter (where ${quotes.status} <> 'draft' and ${timestampRangeCondition(quotes.createdAt, range.fromIso, range.toIso, range.timeZone)})`,
@@ -64,7 +66,7 @@ export async function getOperationsDashboard(companyId: string, range: Dashboard
   const amountsCents = weeklyDates.map((date) => revenueByDay.get(date) ?? 0);
   const weeklyRevenueTargetCents = revenueTargetCents === null ? null : weeklyDates.reduce((total, date) => total + revenueTargetCents / daysInMonth(date), 0);
   return {
-    clients: { total: n(clientRows[0]?.total), gained: n(clientRows[0]?.gained), lost: n(clientRows[0]?.lost) },
+    clients: { total: n(clientRows[0]?.total), active: n(clientRows[0]?.active), gained: n(clientRows[0]?.gained), lost: n(clientRows[0]?.lost), newLeads: n(clientRows[0]?.newLeads) },
     quotes: { sent: n(quoteRows[0]?.sent), accepted: n(quoteRows[0]?.accepted), booked: n(quoteRows[0]?.booked), aging: n(agingRows[0]?.count), previousSent: n(previousQuoteRows[0]?.sent), previousAccepted: n(previousQuoteRows[0]?.accepted) },
     weeklyRevenue: { dates: weeklyDates, amountsCents, totalCents: amountsCents.reduce((total, amount) => total + amount, 0) },
     weeklyRevenueTargetCents,

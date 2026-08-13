@@ -5,6 +5,7 @@ import {
   UsersRound,
   UserMinus,
   UserPlus,
+  Sparkles,
 } from "lucide-react";
 import { money } from "@/lib/format";
 import { getOperationsDashboard } from "@/lib/dashboard/queries";
@@ -104,14 +105,20 @@ export default async function OperationsOverview({
   return (
     <div className="space-y-5">
       <section
-        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"
         aria-label="Client and sales metrics"
       >
         <KpiCard
-          label="Total clients"
-          value={String(data.clients.total)}
-          note="Active clients today"
+          label="Active clients"
+          value={String(data.clients.active)}
+          note="On a recurring subscription"
           icon={UsersRound}
+        />
+        <KpiCard
+          label="New leads"
+          value={String(data.clients.newLeads)}
+          note={`Added during ${range.label.toLowerCase()}`}
+          icon={Sparkles}
         />
         <KpiCard
           label="Clients gained"
