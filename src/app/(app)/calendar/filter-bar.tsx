@@ -16,6 +16,7 @@ const TYPES = [
 ] as const;
 
 const RECURRENCES = [
+  { value: "recurring", label: "Recurring (any frequency)" },
   { value: "weekly", label: "Weekly" },
   { value: "biweekly", label: "Biweekly" },
   { value: "every4weeks", label: "Every 4 weeks" },

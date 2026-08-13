@@ -7,6 +7,7 @@ import {
   gte,
   ilike,
   inArray,
+  isNotNull,
   isNull,
   lte,
   notExists,
@@ -308,9 +309,12 @@ export default async function CalendarPage({
     );
   if (sp.zip) conditions.push(ilike(customers.zip, `${sp.zip}%`));
   if (sp.recurrence === "none") conditions.push(isNull(recurringSeries.id));
+  if (sp.recurrence === "recurring")
+    conditions.push(isNotNull(recurringSeries.id));
   if (
     sp.recurrence &&
     sp.recurrence !== "none" &&
+    sp.recurrence !== "recurring" &&
     (recurrenceEnum as readonly string[]).includes(sp.recurrence)
   )
     conditions.push(
