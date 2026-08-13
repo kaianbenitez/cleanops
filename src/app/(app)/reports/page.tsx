@@ -37,6 +37,8 @@ import {
   type PreviewTable,
 } from "./reports-controls";
 
+const PREVIEW_ROW_LIMIT = 500;
+
 type SearchParams = Promise<{
   area?: string;
   from?: string;
@@ -108,7 +110,7 @@ function ReportCard({
         {relativeDate(lastExported)}
       </p>
       <div className="mt-3 border-t border-[var(--co-line-soft)] pt-4">
-        <ReportActions exportHref={exportHref} preview={preview} />
+        <ReportActions exportHref={exportHref} name={name} preview={preview} />
       </div>
     </article>
   );
@@ -177,14 +179,14 @@ async function SalesReports({
   const preview: PreviewTable = {
     columns: ["Type", "Customer", "Area", "Date"],
     rows: sales
-      .slice(0, 50)
+      .slice(0, PREVIEW_ROW_LIMIT)
       .map((row) => [
         row.type,
         row.customerName,
         row.area ?? "—",
         date(row.eventDate),
       ]),
-    summary: `Showing ${Math.min(sales.length, 50)} of ${sales.length} events · ${summary.newLeads} new leads, ${summary.quotesSent} quotes sent, ${summary.quotesAccepted} accepted, ${summary.acquiredRecurring} acquired recurring, ${summary.lostRecurring} lost recurring`,
+    summary: `Showing ${Math.min(sales.length, PREVIEW_ROW_LIMIT)} of ${sales.length} events · ${summary.newLeads} new leads, ${summary.quotesSent} quotes sent, ${summary.quotesAccepted} accepted, ${summary.acquiredRecurring} acquired recurring, ${summary.lostRecurring} lost recurring`,
   };
   return (
     <section>
@@ -236,7 +238,7 @@ async function FinancialReports({
       "Gross pay",
     ],
     rows: payroll
-      .slice(0, 50)
+      .slice(0, PREVIEW_ROW_LIMIT)
       .map((row) => [
         row.employeeName,
         `${row.periodStart} – ${row.periodEnd}`,
@@ -246,7 +248,7 @@ async function FinancialReports({
         money(row.tipsCashCents),
         money(row.grossPayCents),
       ]),
-    summary: `Showing ${Math.min(payroll.length, 50)} of ${payroll.length} payroll lines`,
+    summary: `Showing ${Math.min(payroll.length, PREVIEW_ROW_LIMIT)} of ${payroll.length} payroll lines`,
   };
   const tipsPreview: PreviewTable = {
     columns: [
@@ -257,7 +259,7 @@ async function FinancialReports({
       "Total tips",
     ],
     rows: tips
-      .slice(0, 50)
+      .slice(0, PREVIEW_ROW_LIMIT)
       .map((row) => [
         row.employeeName,
         `${row.periodStart} – ${row.periodEnd}`,
@@ -265,7 +267,7 @@ async function FinancialReports({
         money(row.cashTipsCents),
         money(row.paycheckTipsCents + row.cashTipsCents),
       ]),
-    summary: `Showing ${Math.min(tips.length, 50)} of ${tips.length} employee periods`,
+    summary: `Showing ${Math.min(tips.length, PREVIEW_ROW_LIMIT)} of ${tips.length} employee periods`,
   };
   const arPreview: PreviewTable = {
     columns: [
@@ -277,7 +279,7 @@ async function FinancialReports({
       "Overdue",
     ],
     rows: receivables
-      .slice(0, 50)
+      .slice(0, PREVIEW_ROW_LIMIT)
       .map((row) => [
         row.customerName,
         row.area ?? "—",
@@ -286,7 +288,7 @@ async function FinancialReports({
         row.agingBucket,
         row.overdue ? "Yes" : "No",
       ]),
-    summary: `Showing ${Math.min(receivables.length, 50)} of ${receivables.length} invoices · ${money(totalOutstanding)} outstanding`,
+    summary: `Showing ${Math.min(receivables.length, PREVIEW_ROW_LIMIT)} of ${receivables.length} invoices · ${money(totalOutstanding)} outstanding`,
   };
   return (
     <section>
@@ -356,7 +358,7 @@ async function OperationsReports({
       "Est. duration",
     ],
     rows: jobsReport
-      .slice(0, 50)
+      .slice(0, PREVIEW_ROW_LIMIT)
       .map((row) => [
         row.customerName,
         row.area ?? "—",
@@ -367,12 +369,12 @@ async function OperationsReports({
           ? `${row.estimatedDurationMinutes} min`
           : "—",
       ]),
-    summary: `Showing ${Math.min(jobsReport.length, 50)} of ${jobsReport.length} jobs · ${summary.completed} completed, ${summary.scheduled} scheduled, ${summary.cancelled} cancelled · ${summary.estimatedMinutes} estimated minutes`,
+    summary: `Showing ${Math.min(jobsReport.length, PREVIEW_ROW_LIMIT)} of ${jobsReport.length} jobs · ${summary.completed} completed, ${summary.scheduled} scheduled, ${summary.cancelled} cancelled · ${summary.estimatedMinutes} estimated minutes`,
   };
   const skipsBumpsPreview: PreviewTable = {
     columns: ["Date", "Type", "Customer", "Area", "Detail"],
     rows: skipsBumps
-      .slice(0, 50)
+      .slice(0, PREVIEW_ROW_LIMIT)
       .map((row) => [
         date(row.eventDate),
         row.eventType === "skip" ? "Skip" : "Bump",
@@ -382,7 +384,7 @@ async function OperationsReports({
           ? row.cancellationReason ?? "—"
           : `${row.fromDate ?? "—"} → ${row.toDate ?? "—"}`,
       ]),
-    summary: `Showing ${Math.min(skipsBumps.length, 50)} of ${skipsBumps.length} events · ${skipsBumpsSummary.skips} skips, ${skipsBumpsSummary.bumps} bumps`,
+    summary: `Showing ${Math.min(skipsBumps.length, PREVIEW_ROW_LIMIT)} of ${skipsBumps.length} events · ${skipsBumpsSummary.skips} skips, ${skipsBumpsSummary.bumps} bumps`,
   };
   return (
     <section>
