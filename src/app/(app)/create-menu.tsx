@@ -59,7 +59,7 @@ export default function CreateMenu({ compact = false }: { compact?: boolean }) {
             className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-[var(--co-ink)] transition hover:bg-[var(--co-surface-muted)]"
           >
             <FileText className="h-4 w-4 text-[var(--co-muted)]" aria-hidden />
-            Estimate
+            Quote
           </Link>
           <Link
             href="/jobs/new"
