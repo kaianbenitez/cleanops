@@ -12,6 +12,8 @@ import CreateMenu from "./create-menu";
 import GlobalSearch from "./global-search";
 import MustChangePassword from "./must-change-password";
 import NotificationsMenu from "./notifications-menu";
+import ThemeProvider from "./theme-provider";
+import ThemeToggle from "./theme-toggle";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -27,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <ActionFeedbackProvider>
-      <div className="min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,rgba(0,108,73,0.06),transparent_26%),radial-gradient(circle_at_top_right,rgba(0,108,73,0.04),transparent_18%),var(--co-bg)] text-[var(--co-ink)]">
+      <ThemeProvider className="min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,rgba(0,108,73,0.06),transparent_26%),radial-gradient(circle_at_top_right,rgba(0,108,73,0.04),transparent_18%),var(--co-bg)] text-[var(--co-ink)]">
         {user.mustChangePassword ? (
           <main className="w-full px-3 py-4 sm:px-4 lg:px-5 xl:px-6 lg:py-5">
             <MustChangePassword />
@@ -40,6 +42,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <div className="flex h-[64px] items-center justify-end px-4 sm:px-6 lg:px-8">
                   <div className="flex items-center justify-end gap-3">
                     {isAdmin ? <GlobalSearch /> : null}
+                    <ThemeToggle />
                     {isAdmin ? <NotificationsMenu initialNotifications={initialNotifications} /> : null}
                     {isAdmin ? <CreateMenu /> : null}
                   </div>
@@ -53,7 +56,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
           </>
         )}
-      </div>
+      </ThemeProvider>
     </ActionFeedbackProvider>
   );
 }

@@ -356,6 +356,40 @@ button:active { transform: translateY(1px); }
 }
 
 .dark {
+  /* ServiceSpark's actual UI is built on the --co-* tokens above (not the
+     generic shadcn tokens below), so those need their own dark values. */
+  --co-bg: #0a0e1a;
+  --co-surface: #121728;
+  --co-surface-muted: #1a2036;
+  --co-surface-muted-strong: #232b47;
+  --co-ink: #eef1fb;
+  --co-muted: #9aa5c7;
+  --co-faint: #77819f;
+  --co-line: #2c3554;
+  --co-line-soft: #202744;
+  --co-evergreen: #5b82ff;
+  --co-evergreen-soft: #3a5cd6;
+  --co-accent: #5b82ff;
+  --co-accent-soft: #3a5cd6;
+  --co-spark-accent: #f0a94a;
+  --co-spark-accent-tint: #3a2a12;
+  --spark-mark: #8b95ab;
+  --spark-mark-facet: #f6f7fb;
+  --co-accent-tint: #1b2440;
+  --co-on-dark-accent: #cdd8ff;
+  --co-success: #4fce6d;
+  --co-success-bg: #163a20;
+  --co-warning: #e2a23a;
+  --co-danger: #e8695a;
+  --co-lime: #7ecf5e;
+  --co-coral: #f0806a;
+  --co-amber: #f0b23f;
+  --co-input-border: transparent;
+  --co-input-bg: #171d33;
+  --co-input-placeholder: #6f7994;
+  --co-input-border-hover: #384268;
+  --co-input-focus: #5b82ff;
+  --co-focus-ring: rgba(91, 130, 255, 0.35);
   --background: oklch(0.148 0.004 228.8);
   --foreground: oklch(0.987 0.002 197.1);
   --card: oklch(0.218 0.008 223.9);
