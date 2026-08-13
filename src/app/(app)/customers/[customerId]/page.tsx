@@ -904,7 +904,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <div className="flex flex-wrap gap-2">
                 {PAYMENT_METHOD_OPTIONS.map((method) => {
                   const selected = customer.paymentMethods?.includes(method) ?? false;
-                  return <button key={method} type="button" onClick={() => togglePaymentMethod(method)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${selected ? "border-emerald-200 bg-emerald-50 text-[var(--co-evergreen)]" : "border-[var(--co-line-soft)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)]"}`} aria-pressed={selected}>{method}</button>;
+                  return <button key={method} type="button" onClick={() => togglePaymentMethod(method)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${selected ? "border-emerald-200 bg-emerald-50 text-[var(--co-evergreen)] dark:border-[color-mix(in_srgb,var(--co-accent)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-accent)_10%,var(--co-surface))]" : "border-[var(--co-line-soft)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)] dark:bg-[var(--co-surface)]"}`} aria-pressed={selected}>{method}</button>;
                 })}
               </div>
             </div>

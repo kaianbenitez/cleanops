@@ -270,7 +270,7 @@ export default function TodayListBoard({
           </thead>
           <tbody className="divide-y divide-[var(--co-line-soft)]">
             {sortedAppointments.map((appointment) => (
-              <tr key={appointment.id} className={appointment.status === "cancelled" ? "bg-slate-50" : "bg-violet-50/40"}>
+              <tr key={appointment.id} className={appointment.status === "cancelled" ? "bg-slate-50 dark:bg-[var(--co-surface-muted)]" : "bg-violet-50/40 dark:bg-[var(--co-surface-muted)]"}>
                 <td className="px-5 py-3 font-medium">{formatAppointmentTime(appointment.startTime, appointment.durationMinutes)}</td>
                 <td className="px-5 py-3 font-medium" colSpan={4}>
                   <button type="button" onClick={() => setEditingAppointmentId(appointment.id)} className="text-base text-[var(--co-evergreen)] hover:underline">

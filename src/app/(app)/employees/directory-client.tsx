@@ -21,7 +21,7 @@ export type EmployeeDirectoryRow = {
 const FILTERS = ["All roles", "Active", "Scheduled", "Available", "Inactive"] as const;
 function money(cents: number) { return `$${(cents / 100).toFixed(2)}`; }
 function roleLabel(title: string) { return title.toLowerCase().includes("clean") ? "Cleaner" : title || "Team member"; }
-function statusTone(row: EmployeeDirectoryRow) { if (!row.isActive) return "text-slate-500"; return row.status === "Scheduled" ? "text-amber-700" : "text-[var(--co-evergreen)]"; }
+function statusTone(row: EmployeeDirectoryRow) { if (!row.isActive) return "text-slate-500 dark:text-[var(--co-faint)]"; return row.status === "Scheduled" ? "text-amber-700 dark:text-[var(--co-warning)]" : "text-[var(--co-evergreen)]"; }
 
 function Avatar({ row, large = false }: { row: EmployeeDirectoryRow; large?: boolean }) {
   return <span className={`inline-flex shrink-0 items-center justify-center rounded-full border border-white bg-[var(--co-surface-muted-strong)] font-semibold text-[var(--co-evergreen)] shadow-sm ${large ? "h-11 w-11 text-xs" : "h-9 w-9 text-[10px]"}`}>{row.initials}</span>;
