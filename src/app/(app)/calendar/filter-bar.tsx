@@ -36,11 +36,13 @@ export default function FilterBar({
   totalJobs,
   unassignedJobs,
   projectedRevenueCents,
+  discountTotalCents,
 }: {
   employees: Employee[];
   totalJobs: number;
   unassignedJobs: number;
   projectedRevenueCents: number;
+  discountTotalCents: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -84,11 +86,13 @@ export default function FilterBar({
   }
   const unassignedOnlyHref = `${pathname}?${unassignedOnlyParams.toString()}`;
   const hasFilters = employeeId || type || recurrence || status || assignment || searchParams.get("zip");
-  const projectedRevenue = new Intl.NumberFormat("en-US", {
+  const currencyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0,
-  }).format(projectedRevenueCents / 100);
+  });
+  const projectedRevenue = currencyFormatter.format(projectedRevenueCents / 100);
+  const discountTotal = currencyFormatter.format(discountTotalCents / 100);
 
   return (
     <section aria-busy={isPending} className="bg-[var(--co-surface)] px-3 py-3 sm:px-4">
@@ -102,6 +106,12 @@ export default function FilterBar({
             <span className="block text-[10px] font-medium text-[var(--co-muted)]">Projected revenue</span>
             <span className="font-semibold text-[var(--co-evergreen)]">{projectedRevenue}</span>
           </p>
+          {discountTotalCents > 0 ? (
+            <p className="border-l border-[var(--co-line-soft)] px-3 py-1.5 text-xs leading-tight">
+              <span className="block text-[10px] font-medium text-[var(--co-muted)]">Discounts</span>
+              <span className="font-semibold text-[var(--co-danger)]">-{discountTotal}</span>
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2">

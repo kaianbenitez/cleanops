@@ -80,6 +80,10 @@ export async function POST(
     return NextResponse.json({ error: "The selected service was not priced on this quote." }, { status: 400 });
   }
   const pricedBreakdown = selectedBreakdown;
+  // rawTotalCents is the pre-dirty-code-discount list price; finalCents is
+  // what the customer actually pays after that discount (and after any price
+  // minimum floor, which can only raise the price back up, never below 0).
+  const discountCents = Math.max(0, pricedBreakdown.rawTotalCents - pricedBreakdown.finalCents);
 
   // Use this tier's final matrix price, rather than room weights or the
   // original requested tier. This is especially important for recurring
@@ -118,6 +122,7 @@ export async function POST(
         dayOfWeek,
         startDate,
         priceCents: pricedBreakdown.finalCents,
+        discountCents,
         estimatedDurationMinutes,
         defaultEmployeeIds: employeeIds ?? [],
         isActive: true,
@@ -167,6 +172,7 @@ export async function POST(
       scheduledStartTime: "09:00:00",
       estimatedDurationMinutes,
       priceCents: pricedBreakdown.finalCents,
+      discountCents,
     })
     .returning();
 

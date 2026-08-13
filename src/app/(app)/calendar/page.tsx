@@ -120,6 +120,7 @@ export type CalendarJob = {
   scheduledStartTime: string | null;
   estimatedDurationMinutes: number | null;
   priceCents: number;
+  discountCents: number;
   recurringSeriesId: string | null;
   recurrenceFrequency: string | null;
   recurrenceStartDate: string | null;
@@ -337,6 +338,7 @@ export default async function CalendarPage({
         scheduledStartTime: jobs.scheduledStartTime,
         estimatedDurationMinutes: jobs.estimatedDurationMinutes,
         priceCents: jobs.priceCents,
+        discountCents: jobs.discountCents,
         recurringSeriesId: jobs.recurringSeriesId,
         recurrenceFrequency: recurringSeries.frequency,
         recurrenceStartDate: recurringSeries.startDate,
@@ -760,9 +762,11 @@ export default async function CalendarPage({
           )
           .reduce((total, summary) => total + Number(summary.jobs), 0)
       : displayedJobs.length;
-  const projectedRevenueCents = displayedJobs
-    .filter((job) => !["cancelled", "no_show"].includes(job.status))
-    .reduce((total, job) => total + job.priceCents, 0);
+  const revenueEligibleJobs = displayedJobs.filter(
+    (job) => !["cancelled", "no_show"].includes(job.status),
+  );
+  const projectedRevenueCents = revenueEligibleJobs.reduce((total, job) => total + job.priceCents, 0);
+  const discountTotalCents = revenueEligibleJobs.reduce((total, job) => total + job.discountCents, 0);
   return (
     <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
       <CalendarStateSync view={view} anchor={stateAnchor} />
@@ -799,6 +803,7 @@ export default async function CalendarPage({
         totalJobs={totalJobs}
         unassignedJobs={view === "staff" || view === "staff_vertical" ? unassignedRows.length : 0}
         projectedRevenueCents={projectedRevenueCents}
+        discountTotalCents={discountTotalCents}
       />
       </section>
 

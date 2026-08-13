@@ -153,6 +153,7 @@ export async function generateJobsForSeries(
         scheduledStartTime: "09:00:00",
         estimatedDurationMinutes,
         priceCents: series.priceCents,
+        discountCents: series.discountCents,
       })
       .onConflictDoNothing({
         target: [jobs.recurringSeriesId, jobs.scheduledDate],

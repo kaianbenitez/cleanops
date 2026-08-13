@@ -426,6 +426,8 @@ export const recurringSeries = pgTable("recurring_series", {
   startDate: date("start_date").notNull(),
   endDate: date("end_date"),
   priceCents: integer("price_cents").notNull(),
+  // Same snapshot as jobs.discountCents, propagated to every generated visit.
+  discountCents: integer("discount_cents").notNull().default(0),
   // Kept on the series so every generated visit retains the quote-derived
   // schedule budget instead of falling back to a generic duration.
   estimatedDurationMinutes: integer("estimated_duration_minutes"),
@@ -521,6 +523,12 @@ export const jobs = pgTable("jobs", {
   // A per-occurrence JTH edit must survive payroll refreshes and price edits.
   jthManualOverride: boolean("jth_manual_override").notNull().default(false),
   priceCents: integer("price_cents").notNull(),
+  // Snapshotted at quote-conversion time: how much of the dirty-code-tier
+  // discount was baked into priceCents (list price minus the discounted/final
+  // price, floored at 0). 0 for jobs created without a quote (manual
+  // appointments, recurring series set up directly) — there's no list price
+  // to discount off of.
+  discountCents: integer("discount_cents").notNull().default(0),
   recurringSeriesId: uuid("recurring_series_id").references(() => recurringSeries.id),
   // Custom main-job preset this job was created from (services.category =
   // "main"), when the admin picked one instead of a built-in job type.
