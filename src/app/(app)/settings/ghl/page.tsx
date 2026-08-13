@@ -252,7 +252,7 @@ export default function GhlSettingsPage() {
                 </span>
                 <span>
                   <input
-                    className={`co-input w-full font-mono text-sm ${conflict ? "border-rose-300 bg-rose-50" : ""}`}
+                    className={`co-input w-full font-mono text-sm ${conflict ? "border-rose-300 bg-rose-50 dark:border-[color-mix(in_srgb,var(--co-danger)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-danger)_10%,var(--co-surface))]" : ""}`}
                     value={tagMap[key]}
                     onChange={(event) => setTagMap((current) => ({ ...current, [key]: event.target.value }))}
                   />

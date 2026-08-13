@@ -39,6 +39,10 @@
   --co-input-border-hover: #bbcabf;
   --co-input-focus: #2457ff;
   --co-focus-ring: rgba(36, 87, 255, 0.32);
+  /* Anchor color for the color-mix() tints below (badges, etc). Mixing
+     against a fixed "white" made every tinted badge stay pale in dark mode
+     regardless of theme — this lets the mix target the current surface. */
+  --co-tint-base: white;
   --background: #f6f8ff;
   --foreground: #18213d;
   --card: #ffffff;
@@ -322,10 +326,13 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 button, a, input, select, textarea { transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
 button:active { transform: translateY(1px); }
 
-/* Status badges: text + tinted color together, never color alone (DESIGN.md). */
-.co-badge-success { background: color-mix(in srgb, var(--co-success) 10%, white); color: var(--co-success); border: 1px solid color-mix(in srgb, var(--co-success) 24%, white); }
-.co-badge-warning { background: color-mix(in srgb, var(--co-warning) 10%, white); color: var(--co-warning); border: 1px solid color-mix(in srgb, var(--co-warning) 24%, white); }
-.co-badge-danger { background: color-mix(in srgb, var(--co-danger) 10%, white); color: var(--co-danger); border: 1px solid color-mix(in srgb, var(--co-danger) 24%, white); }
+/* Status badges: text + tinted color together, never color alone (DESIGN.md).
+   Tints mix against --co-tint-base (white in light, the dark surface in
+   dark) so the badge background actually darkens with the theme instead of
+   staying a pale near-white chip that washes out its own foreground color. */
+.co-badge-success { background: color-mix(in srgb, var(--co-success) 10%, var(--co-tint-base)); color: var(--co-success); border: 1px solid color-mix(in srgb, var(--co-success) 24%, var(--co-tint-base)); }
+.co-badge-warning { background: color-mix(in srgb, var(--co-warning) 10%, var(--co-tint-base)); color: var(--co-warning); border: 1px solid color-mix(in srgb, var(--co-warning) 24%, var(--co-tint-base)); }
+.co-badge-danger { background: color-mix(in srgb, var(--co-danger) 10%, var(--co-tint-base)); color: var(--co-danger); border: 1px solid color-mix(in srgb, var(--co-danger) 24%, var(--co-tint-base)); }
 .co-badge-neutral { background: var(--co-surface-muted); color: var(--co-muted); border: 1px solid var(--co-line-soft); }
 :focus-visible { outline: 3px solid var(--co-focus-ring); outline-offset: 2px; }
 
@@ -364,7 +371,11 @@ button:active { transform: translateY(1px); }
   --co-surface-muted-strong: #232b47;
   --co-ink: #eef1fb;
   --co-muted: #9aa5c7;
-  --co-faint: #77819f;
+  /* Lightened from #77819f: that value cleared 4.5:1 against --co-surface
+     (barely) but only 4.16:1 against --co-surface-muted, where this token is
+     used just as often (labels, meta text, disabled states). This value
+     clears AA against surface, surface-muted, and surface-muted-strong. */
+  --co-faint: #8993b1;
   --co-line: #2c3554;
   --co-line-soft: #202744;
   --co-evergreen: #5b82ff;
@@ -390,6 +401,7 @@ button:active { transform: translateY(1px); }
   --co-input-border-hover: #384268;
   --co-input-focus: #5b82ff;
   --co-focus-ring: rgba(91, 130, 255, 0.35);
+  --co-tint-base: var(--co-surface);
   --background: oklch(0.148 0.004 228.8);
   --foreground: oklch(0.987 0.002 197.1);
   --card: oklch(0.218 0.008 223.9);
@@ -422,6 +434,61 @@ button:active { transform: translateY(1px); }
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.56 0.021 213.5);
 }
+
+/* --co-evergreen is used both as small accent text (needs to be light
+   enough to read against the dark surface) and as a solid fill behind white
+   button/pill text (needs to be dark enough for white text to read against
+   it). No single value satisfies both AA 4.5:1 requirements at once in
+   dark mode — as text it's 5.16:1, but white text on top of it as a fill is
+   only 3.45:1. Rather than compromise the token (and every accent-text use
+   of it) to chase a middle ground that still wouldn't clear AA either way,
+   these overrides redirect solid-fill + white-text combinations specifically
+   to --co-evergreen-soft, which gives white text 5.70:1. This only affects
+   dark mode; light mode is untouched. */
+.dark .co-button-primary { background: var(--co-evergreen-soft); border-color: var(--co-evergreen-soft); }
+.dark .co-button-primary:hover { background: color-mix(in srgb, var(--co-evergreen-soft) 85%, black); border-color: color-mix(in srgb, var(--co-evergreen-soft) 85%, black); }
+.dark .co-button-primary:disabled:hover { background: var(--co-evergreen-soft); }
+.dark .co-date-day-selected { background: var(--co-evergreen-soft); }
+.dark .co-date-day-selected:hover { background: color-mix(in srgb, var(--co-evergreen-soft) 85%, black); }
+/* Same fix for the many ad hoc `bg-[var(--co-evergreen)] text-white` chips,
+   pills, and table headers throughout the app (customers, calendar, jobs,
+   payroll, quotes, employees, pagination, time-picker, …). Uses an
+   attribute selector matching the literal space-separated class tokens in
+   the rendered className, rather than replicating Tailwind's escaped
+   selector output — that keeps this rule correct regardless of how the
+   Tailwind compiler escapes bracket/paren characters in its own generated
+   CSS, and it means no component files needed per-instance edits.
+
+   IMPORTANT — this rule is deliberately written OUTSIDE any @layer, while
+   every Tailwind utility (including hover:/focus:/focus-visible:/active:/
+   aria-* variants) is emitted inside `@layer utilities`. Per the CSS cascade,
+   an unlayered rule beats a layered one regardless of specificity or source
+   order. That's *why* three classes of specificity here reliably beat a
+   single-class Tailwind utility — but it also means this rule overrides
+   EVERY background utility on a matching element unconditionally, not just
+   the base (unhovered/unfocused) state. Any element that pairs
+   bg-[var(--co-evergreen)] + text-white with a hover:/focus:/active:/aria-*
+   background variant needs a matching pseudo-class override added here (see
+   the :hover rule below) or that variant is silently dead in dark mode. */
+.dark [class~="bg-[var(--co-evergreen)]"][class~="text-white"] { background-color: var(--co-evergreen-soft); }
+/* Restores hover feedback for the handful of call sites that pair the
+   combo above with a static (non-ternary) hover:bg-* utility on the same
+   element — e.g. the room-count "+" buttons in customers/new and
+   quotes/new. Same darken-on-hover treatment as .co-button-primary above.
+   Audited every bg-[var(--co-evergreen)]+text-white element in src/ for
+   hover:/focus:/focus-visible:/active:/aria-*:bg- or :border- variants
+   co-occurring on the same element (not just the same line/file — several
+   look like a conflict on a same-line grep but are actually mutually
+   exclusive ternary branches, e.g. the selected-view button in
+   calendar/date-picker.tsx and the selected pill in time-picker.tsx, whose
+   hover: classes only ever render on the *other*, non-evergreen branch and
+   were never reachable together with this rule's base override). This
+   :hover rule still applies uniformly to every match, including those
+   ternary cases — for them it adds a subtle hover affordance in dark mode
+   where none existed in either theme before, which is a harmless
+   enhancement, not a fix for a regression, since there was nothing to
+   regress on those elements. */
+.dark [class~="bg-[var(--co-evergreen)]"][class~="text-white"]:hover { background-color: color-mix(in srgb, var(--co-evergreen-soft) 85%, black); }
 
 @layer base {
   * {

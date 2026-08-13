@@ -35,12 +35,18 @@ export type CardJob = {
   } | null;
 };
 
+// The card's own text (customer name, time, crew) uses --co-ink / --co-muted
+// / --co-evergreen, which flip to near-white in dark mode. These tints did
+// not flip, so a dark-mode card kept its pale light-blue/amber/emerald/rose
+// background under near-white text — effectively unreadable (~1:1 contrast).
+// The dark: variants mix each status color into --co-surface instead,
+// matching the same tint recipe as .co-badge-* in globals.css.
 const STATUS_TONES: Record<string, string> = {
-  scheduled: "border-blue-200 bg-blue-50",
-  in_progress: "border-amber-300 bg-amber-50",
-  completed: "border-emerald-300 bg-emerald-50",
+  scheduled: "border-blue-200 bg-blue-50 dark:border-[color-mix(in_srgb,var(--co-accent)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-accent)_10%,var(--co-surface))]",
+  in_progress: "border-amber-300 bg-amber-50 dark:border-[color-mix(in_srgb,var(--co-warning)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-warning)_10%,var(--co-surface))]",
+  completed: "border-emerald-300 bg-emerald-50 dark:border-[color-mix(in_srgb,var(--co-success)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-success)_10%,var(--co-surface))]",
   cancelled: "border-[var(--co-line)] bg-[var(--co-surface-muted)] opacity-60",
-  no_show: "border-rose-300 bg-rose-50",
+  no_show: "border-rose-300 bg-rose-50 dark:border-[color-mix(in_srgb,var(--co-danger)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-danger)_10%,var(--co-surface))]",
 };
 
 export default function JobCard({ job, employees, draggable = false, onDragStart, onOpen }: { job: CardJob; employees: Employee[]; draggable?: boolean; onDragStart?: (event: React.DragEvent<HTMLAnchorElement>) => void; onOpen?: (jobId: string) => void }) {
