@@ -315,7 +315,7 @@ export default function NewCustomerPage() {
                     <div key={room.id} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-2.5">
                       <span className="truncate text-sm font-medium text-[var(--co-ink)]">{room.name}</span>
                       <div className="flex shrink-0 items-center gap-2">
-                        <button type="button" onClick={() => setRoomCount(room.id, count - 1)} aria-label={`Decrease ${room.name}`} className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--co-line)] text-[var(--co-muted)] hover:bg-white">
+                        <button type="button" onClick={() => setRoomCount(room.id, count - 1)} aria-label={`Decrease ${room.name}`} className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--co-line)] text-[var(--co-muted)] hover:bg-[var(--co-surface)]">
                           <Minus className="h-3.5 w-3.5" aria-hidden />
                         </button>
                         <span className="w-4 text-center text-sm font-semibold tabular-nums text-[var(--co-ink)]">{count}</span>

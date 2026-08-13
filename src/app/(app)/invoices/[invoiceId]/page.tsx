@@ -324,7 +324,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
           </Panel>
 
           <Panel eyebrow="Invoice preview" title="Customer-facing bill" description="This is the document you can print, email, or send through Square.">
-            <div className="rounded-3xl border border-[var(--co-line-soft)] bg-white p-5 shadow-[0_20px_60px_rgba(20,33,31,.04)] print:shadow-none">
+            <div className="rounded-3xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-5 shadow-[0_20px_60px_rgba(20,33,31,.04)] print:shadow-none">
               <div className="flex flex-wrap items-start justify-between gap-5 border-b border-[var(--co-line-soft)] pb-5">
                 <div>
                   <div className="flex items-center gap-2">

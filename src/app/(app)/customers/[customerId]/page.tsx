@@ -709,7 +709,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                     jumpToAddressFields();
                   }}
                   className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
-                    index === activeLocationIndex ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)] text-white" : "border-[var(--co-line)] bg-white text-[var(--co-muted)]"
+                    index === activeLocationIndex ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)] text-white" : "border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)]"
                   }`}
                 >
                   {item.label}
@@ -775,7 +775,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                         {job.scheduledStartTime?.slice(0, 5) ?? "No time"} · {TYPE_LABELS[job.type] ?? job.type}
                       </p>
                     </div>
-                    <span className="rounded-full border border-[var(--co-line)] bg-white px-2.5 py-1 text-xs text-[var(--co-muted)]">{job.status.replaceAll("_", " ")}</span>
+                    <span className="rounded-full border border-[var(--co-line)] bg-[var(--co-surface)] px-2.5 py-1 text-xs text-[var(--co-muted)]">{job.status.replaceAll("_", " ")}</span>
                   </Link>
                 ))}
               </div>
@@ -904,7 +904,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <div className="flex flex-wrap gap-2">
                 {PAYMENT_METHOD_OPTIONS.map((method) => {
                   const selected = customer.paymentMethods?.includes(method) ?? false;
-                  return <button key={method} type="button" onClick={() => togglePaymentMethod(method)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${selected ? "border-emerald-200 bg-emerald-50 text-[var(--co-evergreen)] dark:border-[color-mix(in_srgb,var(--co-accent)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-accent)_10%,var(--co-surface))]" : "border-[var(--co-line-soft)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)] dark:bg-[var(--co-surface)]"}`} aria-pressed={selected}>{method}</button>;
+                  return <button key={method} type="button" onClick={() => togglePaymentMethod(method)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${selected ? "border-emerald-200 bg-emerald-50 text-[var(--co-evergreen)] dark:border-[color-mix(in_srgb,var(--co-accent)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-accent)_10%,var(--co-surface))]" : "border-[var(--co-line-soft)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)] dark:bg-[var(--co-surface)]"}`} aria-pressed={selected}>{method}</button>;
                 })}
               </div>
             </div>

@@ -190,7 +190,7 @@ export default function RoutePreview({
                   <Link
                     key={job.id}
                     href={`/jobs/${job.id}`}
-                    className="flex w-full items-center gap-3 rounded-2xl border border-white/90 bg-white px-3 py-2 text-xs shadow-[0_8px_22px_rgba(27,41,37,0.08)]"
+                    className="flex w-full items-center gap-3 rounded-2xl border border-white/90 bg-[var(--co-surface)] px-3 py-2 text-xs shadow-[0_8px_22px_rgba(27,41,37,0.08)]"
                   >
                     <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--co-evergreen)] text-[11px] font-semibold text-white">{index + 1}</span>
                     <span className="flex min-w-0 flex-1 flex-col">

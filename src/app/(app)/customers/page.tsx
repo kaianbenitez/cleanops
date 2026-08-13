@@ -390,22 +390,22 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           </>
         ) : (
           <>
-          <Link href={hrefWith(sp, "recurrence", sp.recurrence === "recurring" ? "" : "recurring")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.recurrence === "recurring" ? "bg-[var(--co-evergreen)] text-white shadow-sm" : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "recurrence", sp.recurrence === "recurring" ? "" : "recurring")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.recurrence === "recurring" ? "bg-[var(--co-evergreen)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"}`}>
             Recurring <span className="ml-1 opacity-80">{recurringCount}</span>
           </Link>
-          <Link href={hrefWith(sp, "attention", sp.attention === "yes" ? "" : "yes")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.attention === "yes" ? "bg-amber-500 text-white shadow-sm" : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-amber-400 hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "attention", sp.attention === "yes" ? "" : "yes")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.attention === "yes" ? "bg-amber-500 text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-amber-400 hover:text-[var(--co-ink)]"}`}>
             Needs attention <span className="ml-1 opacity-80">{attentionCount}</span>
           </Link>
-          <Link href={hrefWith(sp, "status", sp.status === "lead" ? "" : "lead")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.status === "lead" ? "bg-[var(--co-evergreen)] text-white shadow-sm" : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "status", sp.status === "lead" ? "" : "lead")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.status === "lead" ? "bg-[var(--co-evergreen)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"}`}>
             Leads <span className="ml-1 opacity-80">{leadCount}</span>
           </Link>
-          <Link href={hrefWith(sp, "cancelled", sp.cancelled === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.cancelled === "1" ? "bg-rose-600 text-white shadow-sm" : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-rose-400 hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "cancelled", sp.cancelled === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.cancelled === "1" ? "bg-rose-600 text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-rose-400 hover:text-[var(--co-ink)]"}`}>
             Cancelled job <span className="ml-1 opacity-80">{cancelledCount}</span>
           </Link>
-          <Link href={hrefWith(sp, "repeat", sp.repeat === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.repeat === "1" ? "bg-[var(--co-evergreen)] text-white shadow-sm" : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "repeat", sp.repeat === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.repeat === "1" ? "bg-[var(--co-evergreen)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"}`}>
             Repeat customer <span className="ml-1 opacity-80">{repeatCount}</span>
           </Link>
-          <Link href={hrefWith(sp, "archived", sp.archived === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.archived === "1" ? "bg-slate-600 text-white shadow-sm" : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-slate-400 hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "archived", sp.archived === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.archived === "1" ? "bg-slate-600 text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-slate-400 hover:text-[var(--co-ink)]"}`}>
             {sp.archived === "1" ? "Hide archived" : "Show archived"}
           </Link>
           </>

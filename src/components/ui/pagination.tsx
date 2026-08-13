@@ -43,7 +43,7 @@ export function PaginationControls({
         variant === "pills" ? (
           <div className="flex items-center gap-1">
             {page > 1 ? (
-              <Link href={hrefForPage(page - 1)} aria-label="Previous page" className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)]">
+              <Link href={hrefForPage(page - 1)} aria-label="Previous page" className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)]">
                 ‹
               </Link>
             ) : (
@@ -60,7 +60,7 @@ export function PaginationControls({
                   href={hrefForPage(entry)}
                   aria-current={entry === page ? "page" : undefined}
                   className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${
-                    entry === page ? "bg-[var(--co-evergreen)] text-white" : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)]"
+                    entry === page ? "bg-[var(--co-evergreen)] text-white" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)]"
                   }`}
                 >
                   {entry}
@@ -68,7 +68,7 @@ export function PaginationControls({
               )
             )}
             {page < totalPages ? (
-              <Link href={hrefForPage(page + 1)} aria-label="Next page" className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)]">
+              <Link href={hrefForPage(page + 1)} aria-label="Next page" className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)]">
                 ›
               </Link>
             ) : (

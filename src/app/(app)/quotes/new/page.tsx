@@ -498,7 +498,7 @@ export default function NewQuotePage() {
                     key={mode}
                     type="button"
                     onClick={() => setCustomerModeAndReset(mode)}
-                    className={`flex-1 rounded-lg px-3 py-2 font-medium transition ${customerMode === mode ? "bg-white text-[var(--co-ink)] shadow-sm" : "text-[var(--co-muted)] hover:text-[var(--co-ink)]"}`}
+                    className={`flex-1 rounded-lg px-3 py-2 font-medium transition ${customerMode === mode ? "bg-[var(--co-surface)] text-[var(--co-ink)] shadow-sm" : "text-[var(--co-muted)] hover:text-[var(--co-ink)]"}`}
                   >
                     {mode === "existing" ? "Existing customer" : "New customer"}
                   </button>
@@ -677,7 +677,7 @@ export default function NewQuotePage() {
                         type="button"
                         onClick={() => setCount(room.id, count - 1)}
                         aria-label={`Decrease ${room.name}`}
-                        className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--co-line)] text-[var(--co-muted)] hover:bg-white"
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--co-line)] text-[var(--co-muted)] hover:bg-[var(--co-surface)]"
                       >
                         <Minus className="h-3.5 w-3.5" aria-hidden />
                       </button>
@@ -732,7 +732,7 @@ export default function NewQuotePage() {
                       type="button"
                       onClick={() => toggleAddOn(addOn.key)}
                       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                        selected ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)] text-white" : "border-[var(--co-line)] bg-white text-[var(--co-muted)]"
+                        selected ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)] text-white" : "border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)]"
                       }`}
                     >
                       {selected ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}

@@ -492,7 +492,7 @@ export default function MyDayClient({
                               </div>
                               {editingMileage[job.jobId] ? (
                                 <div className="mt-2 flex items-center gap-2">
-                                  <input aria-label="Mileage miles" type="number" min="0" step="0.1" autoFocus value={mileageDraft[job.jobId] ?? job.mileageMiles} onChange={(event) => setMileageDraft((current) => ({ ...current, [job.jobId]: event.target.value }))} className="co-input w-28 bg-white text-sm" />
+                                  <input aria-label="Mileage miles" type="number" min="0" step="0.1" autoFocus value={mileageDraft[job.jobId] ?? job.mileageMiles} onChange={(event) => setMileageDraft((current) => ({ ...current, [job.jobId]: event.target.value }))} className="co-input w-28 text-sm" />
                                   <span className="text-xs text-emerald-800">miles</span>
                                   <button type="button" onClick={() => saveMileage(job)} className="co-button-secondary px-2.5 py-1.5 text-xs">Save mileage</button>
                                 </div>
@@ -615,7 +615,7 @@ export default function MyDayClient({
       </footer>
 
       {undoAction ? (
-        <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] left-1/2 z-50 w-[min(92vw,28rem)] -translate-x-1/2 rounded-2xl border border-[var(--co-line-soft)] bg-white px-4 py-3 shadow-[0_10px_32px_rgba(18,24,19,0.12)]">
+        <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] left-1/2 z-50 w-[min(92vw,28rem)] -translate-x-1/2 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-3 shadow-[0_10px_32px_rgba(18,24,19,0.12)]">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm font-medium text-[var(--co-ink)]">{undoAction.label}</p>

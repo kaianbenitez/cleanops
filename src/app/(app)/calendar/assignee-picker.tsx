@@ -81,7 +81,7 @@ export default function AssigneePicker({
       </button>
 
       {open ? (
-        <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-2xl border border-[var(--co-line)] bg-white p-2 shadow-[0_12px_32px_rgba(15,23,20,0.18)]">
+        <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-2 shadow-[0_12px_32px_rgba(15,23,20,0.18)]">
           <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Assign crew</p>
           <input
             type="search"

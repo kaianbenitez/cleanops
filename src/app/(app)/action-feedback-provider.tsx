@@ -82,7 +82,7 @@ export default function ActionFeedbackProvider({ children }: { children: React.R
             role={item.tone === "error" ? "alert" : "status"}
             className={`pointer-events-auto flex items-start gap-3 rounded-lg border px-3 py-3 text-sm shadow-[0_2px_8px_rgba(15,23,20,0.12)] ${
               item.tone === "success"
-                ? "border-emerald-200 bg-white text-[var(--co-ink)]"
+                ? "border-emerald-200 bg-[var(--co-surface)] text-[var(--co-ink)]"
                 : "border-rose-200 bg-rose-50 text-rose-900"
             }`}
           >

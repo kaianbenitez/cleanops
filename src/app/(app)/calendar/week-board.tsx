@@ -218,7 +218,7 @@ export default function WeekBoard({
                     </button>
                   ) : null}
                   {expandedDate === day.iso ? (
-                    <div className="space-y-1 rounded-lg border border-[var(--co-line)] bg-white p-2 shadow-[0_8px_20px_rgba(18,24,19,0.12)]">
+                    <div className="space-y-1 rounded-lg border border-[var(--co-line)] bg-[var(--co-surface)] p-2 shadow-[0_8px_20px_rgba(18,24,19,0.12)]">
                       {overflow.map((job) => (
                         <div
                           key={job.id}

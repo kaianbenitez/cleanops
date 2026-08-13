@@ -131,7 +131,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
       <button type="button" aria-label="Close assign panel" onClick={onClose} className="absolute inset-0 bg-black/30" />
-      <aside className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-[var(--co-line)] bg-white shadow-[0_0_60px_rgba(15,23,20,0.25)]">
+      <aside className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-[var(--co-line)] bg-[var(--co-surface)] shadow-[0_0_60px_rgba(15,23,20,0.25)]">
         <div className="flex items-start justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
           <div>
             <p className="eyebrow">Assign cleaner</p>

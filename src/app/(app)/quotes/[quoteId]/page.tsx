@@ -442,7 +442,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
       </div>
       {showOverrideDialog ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="override-dialog-title">
-          <div className="w-full max-w-lg rounded-lg bg-white p-5 shadow-lg">
+          <div className="w-full max-w-lg rounded-lg bg-[var(--co-surface)] p-5 shadow-lg">
             <h2 id="override-dialog-title" className="text-lg font-semibold">Schedule without customer acceptance?</h2>
             <p className="mt-2 text-sm text-[var(--co-muted)]">Record how approval was received before creating the scheduled work.</p>
             <label className="mt-4 block text-sm font-medium" htmlFor="override-reason">Reason</label>

@@ -133,7 +133,7 @@ export default function PricingSettingsPage() {
       <section className="rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface-muted)]/70 p-4 text-sm text-[var(--co-muted)]">
         <span className="font-semibold text-[var(--co-ink)]">Keep this page operational.</span> Changes save when you leave a field, and affect new quotes immediately.
       </section>
-      <section className="rounded-2xl border border-[var(--co-line)] bg-white p-4 text-sm text-[var(--co-muted)]">
+      <section className="rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-4 text-sm text-[var(--co-muted)]">
         <p className="font-semibold text-[var(--co-ink)]">How this maps to a real business: one office, with fees for the cities around it.</p>
         <p className="mt-1">
           A <strong>service area</strong> below is your office/branch — most companies only need one. It sets the base hourly rate. If you serve a single
@@ -310,7 +310,7 @@ function LocationCard({
         <h3 className="eyebrow">Travel zones</h3>
         <div className="mt-3 divide-y divide-[var(--co-line-soft)] overflow-hidden rounded-xl border border-[var(--co-line)]">
           {location.travelZones.map((zone) => (
-            <div key={zone.id} className="flex flex-wrap items-center gap-2 bg-white px-3 py-3 text-sm">
+            <div key={zone.id} className="flex flex-wrap items-center gap-2 bg-[var(--co-surface)] px-3 py-3 text-sm">
               <input
                 defaultValue={zone.name}
                 onBlur={(e) => e.target.value !== zone.name && onSaveZone(zone.id, { name: e.target.value })}

@@ -104,7 +104,7 @@ export default function PtoEditor({ employeeId, onChange }: { employeeId: string
       ) : null}
 
       {open ? (
-        <form onSubmit={addPto} className="mt-4 grid gap-3 rounded-xl border border-[var(--co-line-soft)] bg-white p-3 sm:grid-cols-2">
+        <form onSubmit={addPto} className="mt-4 grid gap-3 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-3 sm:grid-cols-2">
           <label className="text-xs font-semibold text-[var(--co-muted)]">Start date<input required type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="co-input mt-1 w-full text-sm" /></label>
           <label className="text-xs font-semibold text-[var(--co-muted)]">End date<input required type="date" value={endDate || startDate} onChange={(event) => setEndDate(event.target.value)} className="co-input mt-1 w-full text-sm" /></label>
           <label className="text-xs font-semibold text-[var(--co-muted)]">Start period<select value={startPeriod} onChange={(event) => setStartPeriod(event.target.value as EmployeePto["startPeriod"])} className="co-input mt-1 w-full text-sm">{Object.entries(periodLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>

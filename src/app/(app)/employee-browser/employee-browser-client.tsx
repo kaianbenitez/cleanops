@@ -576,7 +576,7 @@ export default function EmployeeBrowserClient({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white px-4 py-4">
+    <div className="bg-[var(--co-surface)] px-4 py-4">
       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">{label}</p>
       <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--co-ink)]">{value}</p>
     </div>

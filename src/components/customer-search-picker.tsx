@@ -79,7 +79,7 @@ export default function CustomerSearchPicker({
           </span>
           <span className="block text-xs text-[var(--co-muted)]">{selected.status}</span>
         </span>
-        <button type="button" onClick={clear} className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-[var(--co-muted)] hover:bg-white hover:text-[var(--co-evergreen)]">
+        <button type="button" onClick={clear} className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-evergreen)]">
           Change
         </button>
       </div>

@@ -117,7 +117,7 @@ function PreviewCard({ title, url, fallback }: { title: string; url: string; fal
   const hasUrl = Boolean(url.trim());
   const isImage = /^data:image\//.test(url) || /\.(png|jpg|jpeg|webp|gif|avif)$/i.test(url);
   return (
-    <div className="overflow-hidden rounded-2xl border border-[var(--co-line-soft)] bg-white">
+    <div className="overflow-hidden rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface)]">
       <div className="flex h-36 items-end bg-[var(--co-surface-muted)] p-4">
         <span className="rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[var(--co-evergreen)]">{title}</span>
       </div>
@@ -459,7 +459,7 @@ export default function QuoteTemplateSettingsPage() {
             <p className="mt-1 text-sm text-[var(--co-muted)]">The quote page will show up to three comparison sets from the photos you upload here.</p>
             <div className="mt-4 grid gap-3">
               {template.photoSets.slice(0, 3).map((set, index) => (
-                <div key={`${set.label}-${index}`} className="rounded-2xl border border-[var(--co-line-soft)] bg-white p-4">
+                <div key={`${set.label}-${index}`} className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-4">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--co-muted)]">{set.label || `Photo set ${index + 1}`}</p>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     <PreviewCard title="Before" url={set.beforePhotoUrl} fallback="No before photo" />

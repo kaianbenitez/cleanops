@@ -314,7 +314,7 @@ export default function SuppliesPage() {
                       </div>
                       <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">Reorder</span>
                     </div>
-                    <div className="mt-3 h-2 rounded-full bg-white">
+                    <div className="mt-3 h-2 rounded-full bg-[var(--co-surface-muted)]">
                       <div
                         className="h-2 rounded-full bg-gradient-to-r from-amber-400 to-rose-500"
                         style={{ width: `${Math.max(Math.min((item.onHand / Math.max(item.reorderAt, 1)) * 100, 100), 6)}%` }}

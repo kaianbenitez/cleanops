@@ -224,13 +224,13 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
 
       <nav className="flex flex-wrap items-center justify-between gap-4 rounded-[var(--co-radius-card)] bg-[var(--co-surface-muted)]/80 p-4 sm:p-5" aria-label="Job views">
         <div className="flex rounded-2xl bg-[var(--co-surface-muted-strong)] p-1.5">
-          {[['active','Active'],['pending','Pending'],['history','History']].map(([tab, label]) => <Link key={tab} href={hrefWith(sp, { tab, status: "", page: "" })} className={`rounded-xl px-5 py-3 text-sm font-semibold ${activeTab === tab ? 'bg-white text-[var(--co-evergreen)] shadow-sm' : 'text-[var(--co-muted)] hover:text-[var(--co-ink)]'}`}>{label}</Link>)}
+          {[['active','Active'],['pending','Pending'],['history','History']].map(([tab, label]) => <Link key={tab} href={hrefWith(sp, { tab, status: "", page: "" })} className={`rounded-xl px-5 py-3 text-sm font-semibold ${activeTab === tab ? 'bg-[var(--co-surface)] text-[var(--co-evergreen)] shadow-sm' : 'text-[var(--co-muted)] hover:text-[var(--co-ink)]'}`}>{label}</Link>)}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
         <form className="flex flex-wrap items-center gap-2">
-          <input name="start" type="date" defaultValue={rangeStart} className="co-input w-[154px] bg-white text-sm" />
+          <input name="start" type="date" defaultValue={rangeStart} className="co-input w-[154px] text-sm" />
           <span className="text-xs text-[var(--co-muted)]">to</span>
-          <input name="end" type="date" defaultValue={rangeEnd} className="co-input w-[154px] bg-white text-sm" />
+          <input name="end" type="date" defaultValue={rangeEnd} className="co-input w-[154px] text-sm" />
           {sp.tab ? <input type="hidden" name="tab" value={sp.tab} /> : null}
           <button className="co-button-secondary text-sm" type="submit">Apply</button>
         </form>
@@ -263,7 +263,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                   className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${
                     !sp.missingHours && !sp.unassigned && (sp.status ?? "all") === status
                       ? "bg-[var(--co-evergreen)] text-white shadow-sm"
-                      : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"
+                      : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"
                   }`}
                 >
                   {status === "all" ? "All jobs" : statusLabel("job", status)}
@@ -274,7 +274,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                 className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${
                   sp.missingHours === "yes"
                     ? "bg-[var(--co-evergreen)] text-white shadow-sm"
-                    : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"
+                    : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"
                 }`}
               >
                 Missing hours
@@ -285,7 +285,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                 className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${
                   sp.unassigned === "yes"
                     ? "bg-[var(--co-evergreen)] text-white shadow-sm"
-                    : "border border-[var(--co-line)] bg-white text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"
+                    : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"
                 }`}
                 >
                 Unassigned

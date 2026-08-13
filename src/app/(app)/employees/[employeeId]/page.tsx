@@ -650,7 +650,7 @@ function JobRow({ job, compact = false }: { job: EmployeeJob; compact?: boolean 
   return (
     <Link
       href={`/jobs/${job.id}`}
-      className={`block border-b border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-5 py-4 transition-colors last:border-b-0 hover:bg-white ${compact ? "text-xs" : ""}`}
+      className={`block border-b border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-5 py-4 transition-colors last:border-b-0 hover:bg-[var(--co-surface)] ${compact ? "text-xs" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>

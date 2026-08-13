@@ -83,7 +83,7 @@ export default function TeamSearchPicker({
                   Make lead
                 </button>
               ) : null}
-              <button type="button" onClick={() => remove(employee.id)} aria-label={`Remove ${employee.firstName} ${employee.lastName}`} className="rounded-full p-1 text-[var(--co-muted)] hover:bg-white hover:text-rose-600">
+              <button type="button" onClick={() => remove(employee.id)} aria-label={`Remove ${employee.firstName} ${employee.lastName}`} className="rounded-full p-1 text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-rose-600">
                 ✕
               </button>
             </span>

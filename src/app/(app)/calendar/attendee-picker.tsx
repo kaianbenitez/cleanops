@@ -69,7 +69,7 @@ export default function AttendeePicker({
           {selectedStaff.map((member) => (
             <span key={member.id} className="flex items-center gap-1.5 rounded-full border border-[var(--co-line)] bg-[var(--co-surface-muted)] py-1 pl-3 pr-1.5 text-xs font-medium">
               {member.firstName} {member.lastName}
-              <button type="button" onClick={() => remove(member.id)} aria-label={`Remove ${member.firstName} ${member.lastName}`} className="rounded-full p-1 text-[var(--co-muted)] hover:bg-white hover:text-rose-600">
+              <button type="button" onClick={() => remove(member.id)} aria-label={`Remove ${member.firstName} ${member.lastName}`} className="rounded-full p-1 text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-rose-600">
                 ✕
               </button>
             </span>
