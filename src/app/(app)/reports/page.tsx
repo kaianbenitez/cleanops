@@ -1,6 +1,7 @@
 import { and, asc, eq, isNotNull } from "drizzle-orm";
 import {
   BriefcaseBusiness,
+  CalendarX2,
   CircleDollarSign,
   FileText,
   HandCoins,
@@ -24,6 +25,8 @@ import {
   getPayrollReport,
   getSalesReport,
   getSalesReportSummary,
+  getSkipsBumpsReport,
+  getSkipsBumpsSummary,
   getTipsReport,
   type ReportKey,
   type ReportsRange,
@@ -150,7 +153,8 @@ function href(reportKey: ReportKey, range: ReportsRange, area?: string) {
     area &&
     (reportKey === "accounts-receivable" ||
       reportKey === "jobs" ||
-      reportKey === "sales")
+      reportKey === "sales" ||
+      reportKey === "skips-bumps")
   )
     params.set("area", area);
   return `/api/reports/${reportKey}/export?${params.toString()}`;
@@ -334,11 +338,14 @@ async function OperationsReports({
   range: ReportsRange;
   area?: string;
 }) {
-  const [jobsReport, summary, exports] = await Promise.all([
-    getJobsReport(companyId, range, area),
-    getJobsReportSummary(companyId, range, area),
-    getLastExports(companyId),
-  ]);
+  const [jobsReport, summary, skipsBumps, skipsBumpsSummary, exports] =
+    await Promise.all([
+      getJobsReport(companyId, range, area),
+      getJobsReportSummary(companyId, range, area),
+      getSkipsBumpsReport(companyId, range, area),
+      getSkipsBumpsSummary(companyId, range, area),
+      getLastExports(companyId),
+    ]);
   const preview: PreviewTable = {
     columns: [
       "Customer",
@@ -362,6 +369,21 @@ async function OperationsReports({
       ]),
     summary: `Showing ${Math.min(jobsReport.length, 50)} of ${jobsReport.length} jobs · ${summary.completed} completed, ${summary.scheduled} scheduled, ${summary.cancelled} cancelled · ${summary.estimatedMinutes} estimated minutes`,
   };
+  const skipsBumpsPreview: PreviewTable = {
+    columns: ["Date", "Type", "Customer", "Area", "Detail"],
+    rows: skipsBumps
+      .slice(0, 50)
+      .map((row) => [
+        date(row.eventDate),
+        row.eventType === "skip" ? "Skip" : "Bump",
+        row.customerName,
+        row.area ?? "—",
+        row.eventType === "skip"
+          ? row.cancellationReason ?? "—"
+          : `${row.fromDate ?? "—"} → ${row.toDate ?? "—"}`,
+      ]),
+    summary: `Showing ${Math.min(skipsBumps.length, 50)} of ${skipsBumps.length} events · ${skipsBumpsSummary.skips} skips, ${skipsBumpsSummary.bumps} bumps`,
+  };
   return (
     <section>
       <div className="mb-3 flex items-center gap-2">
@@ -381,6 +403,14 @@ async function OperationsReports({
           lastExported={exports.jobs}
           exportHref={href("jobs", range, area)}
           preview={preview}
+        />
+        <ReportCard
+          name="Skips &amp; Bumps"
+          icon={<CalendarX2 className="h-5 w-5" />}
+          description="Recurring visits skipped and jobs rescheduled to a different date for the selected date range."
+          lastExported={exports["skips-bumps"]}
+          exportHref={href("skips-bumps", range, area)}
+          preview={skipsBumpsPreview}
         />
       </div>
     </section>

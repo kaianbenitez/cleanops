@@ -9,6 +9,7 @@ import {
   getJobsReport,
   getPayrollReport,
   getSalesReport,
+  getSkipsBumpsReport,
   getTipsReport,
   getQualityReport,
   type ReportKey,
@@ -21,6 +22,7 @@ const reportKeys = new Set<ReportKey>([
   "jobs",
   "sales",
   "quality",
+  "skips-bumps",
 ]);
 
 function escapeCsv(value: string | number | null | undefined) {
@@ -149,6 +151,20 @@ export async function GET(
         row.status,
         row.completedAt?.toISOString(),
         row.estimatedDurationMinutes,
+      ]),
+    ]);
+  } else if (key === "skips-bumps") {
+    const rows = await getSkipsBumpsReport(admin.companyId, range, area);
+    output = csv([
+      ["Date", "Type", "Customer", "Area", "Detail"],
+      ...rows.map((row) => [
+        row.eventDate.toISOString(),
+        row.eventType === "skip" ? "Skip" : "Bump",
+        row.customerName,
+        row.area,
+        row.eventType === "skip"
+          ? row.cancellationReason
+          : `${row.fromDate} -> ${row.toDate}`,
       ]),
     ]);
   } else if (key === "quality") {

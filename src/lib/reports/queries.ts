@@ -4,6 +4,7 @@ import {
   desc,
   eq,
   gte,
+  isNotNull,
   lt,
   or,
   sql,
@@ -11,6 +12,7 @@ import {
 } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  auditLog,
   customers,
   feedbackRequests,
   invoices,
@@ -33,7 +35,7 @@ export type ReportsRange = {
 };
 
 export type ReportKey =
-  "payroll" | "tips" | "accounts-receivable" | "jobs" | "sales" | "quality";
+  "payroll" | "tips" | "accounts-receivable" | "jobs" | "sales" | "quality" | "skips-bumps";
 
 const numberValue = (value: unknown) => Number(value ?? 0);
 
@@ -385,6 +387,74 @@ export async function getJobsReportSummary(
     scheduled: numberValue(row?.scheduled),
     cancelled: numberValue(row?.cancelled),
     estimatedMinutes: numberValue(row?.estimatedMinutes),
+  };
+}
+
+// A "skip" is a recurring occurrence the customer cancels without moving it
+// (recurringSeriesId is set — a one-off job cancellation isn't a "skip" of a
+// recurring pattern). A "bump" is any job whose scheduledDate was edited
+// after creation, from the job detail screen or a calendar drag. Both are
+// derived from job.updated audit_log rows rather than a dedicated column,
+// since every job PATCH already writes a before/after snapshot there.
+function skipsBumpsCondition(companyId: string, range: ReportsRange, area?: string) {
+  return and(
+    eq(auditLog.companyId, companyId),
+    eq(auditLog.entityType, "job"),
+    eq(auditLog.action, "job.updated"),
+    eq(customers.companyId, companyId),
+    timestampRange(auditLog.createdAt, range),
+    area ? eq(customers.city, area) : undefined,
+    or(
+      and(
+        sql`${auditLog.after} ->> 'status' = 'cancelled'`,
+        sql`coalesce(${auditLog.before} ->> 'status', '') <> 'cancelled'`,
+        isNotNull(jobs.recurringSeriesId),
+      ),
+      sql`${auditLog.after} ->> 'scheduledDate' is not null and ${auditLog.after} ->> 'scheduledDate' is distinct from ${auditLog.before} ->> 'scheduledDate'`,
+    ),
+  );
+}
+
+export async function getSkipsBumpsReport(
+  companyId: string,
+  range: ReportsRange,
+  area?: string,
+) {
+  const rows = await db
+    .select({
+      eventType: sql<"skip" | "bump">`case when ${auditLog.after} ->> 'status' = 'cancelled' then 'skip' else 'bump' end`,
+      eventDate: auditLog.createdAt,
+      customerName: sql<string>`coalesce(nullif(${customers.companyName}, ''), concat(${customers.firstName}, ' ', ${customers.lastName}))`,
+      area: customers.city,
+      cancellationReason: sql<string | null>`${auditLog.after} ->> 'cancellationReason'`,
+      fromDate: sql<string | null>`${auditLog.before} ->> 'scheduledDate'`,
+      toDate: sql<string | null>`${auditLog.after} ->> 'scheduledDate'`,
+    })
+    .from(auditLog)
+    .innerJoin(jobs, eq(auditLog.entityId, jobs.id))
+    .innerJoin(customers, eq(jobs.customerId, customers.id))
+    .where(skipsBumpsCondition(companyId, range, area))
+    .orderBy(desc(auditLog.createdAt));
+  return rows;
+}
+
+export async function getSkipsBumpsSummary(
+  companyId: string,
+  range: ReportsRange,
+  area?: string,
+) {
+  const [row] = await db
+    .select({
+      skips: sql<number>`count(*) filter (where ${auditLog.after} ->> 'status' = 'cancelled')`,
+      bumps: sql<number>`count(*) filter (where coalesce(${auditLog.after} ->> 'status', '') <> 'cancelled')`,
+    })
+    .from(auditLog)
+    .innerJoin(jobs, eq(auditLog.entityId, jobs.id))
+    .innerJoin(customers, eq(jobs.customerId, customers.id))
+    .where(skipsBumpsCondition(companyId, range, area));
+  return {
+    skips: numberValue(row?.skips),
+    bumps: numberValue(row?.bumps),
   };
 }
 
