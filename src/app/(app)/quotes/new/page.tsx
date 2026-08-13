@@ -774,11 +774,15 @@ export default function NewQuotePage() {
                   onChange={(event) => setDirtScore(event.target.value === "" ? "" : Number(event.target.value))}
                 >
                   <option value="">None</option>
-                  {Array.from({ length: 10 }, (_, index) => ({ level: index + 1, discountPercent: 0 })).map((tier) => (
-                    <option key={tier.level} value={tier.level}>
-                      Level {tier.level} · {(tier.discountPercent * 100).toFixed(0)}%
-                    </option>
-                  ))}
+                  {Array.from({ length: 10 }, (_, index) => index + 1).map((score) => {
+                    const dirtyCodeLevel = score <= 2 ? 1 : score <= 5 ? 2 : score <= 8 ? 3 : 4;
+                    const discountPercent = selectedLocation?.dirtyCodeTiers.find((t) => t.level === dirtyCodeLevel)?.discountPercent ?? 0;
+                    return (
+                      <option key={score} value={score}>
+                        Level {score} · {(discountPercent * 100).toFixed(0)}%
+                      </option>
+                    );
+                  })}
                 </select>
               </label>
 
