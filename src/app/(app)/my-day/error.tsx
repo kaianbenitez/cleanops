@@ -1,0 +1,28 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect } from "react";
+
+export default function MyDayError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
+
+  return (
+    <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center">
+      <h1 className="page-title !text-2xl">Something went wrong</h1>
+      <p className="text-sm text-[var(--co-muted)]">
+        This screen hit an unexpected error — your clock-in/out and photos already saved are safe.
+        Try again, or call the office if a button keeps not working.
+      </p>
+      <div className="flex gap-2">
+        <button type="button" onClick={reset} className="co-button-primary">
+          Try again
+        </button>
+        <Link href="/my-day" className="co-button-secondary">
+          Back to My day
+        </Link>
+      </div>
+    </div>
+  );
+}

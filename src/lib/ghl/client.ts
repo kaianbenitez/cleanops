@@ -32,6 +32,7 @@ async function ghlFetch(path: string, init: RequestInit): Promise<GhlResponse> {
       "Content-Type": "application/json",
       ...init.headers,
     },
+    signal: AbortSignal.timeout(8000),
   });
 
   const body = await res.json().catch(() => null);

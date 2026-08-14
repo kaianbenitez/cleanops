@@ -42,7 +42,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <div className="flex h-[64px] items-center justify-end px-4 sm:px-6 lg:px-8">
                   <div className="flex items-center justify-end gap-3">
                     {isAdmin ? <GlobalSearch /> : null}
-                    <ThemeToggle />
+                    {isAdmin ? <ThemeToggle /> : null}
                     {isAdmin ? <NotificationsMenu initialNotifications={initialNotifications} /> : null}
                     {isAdmin ? <CreateMenu /> : null}
                   </div>

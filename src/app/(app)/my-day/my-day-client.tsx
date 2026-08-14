@@ -132,6 +132,11 @@ export default function MyDayClient({
   const [arrivedJobId, setArrivedJobId] = useState<string | null>(null);
   const [mileageDraft, setMileageDraft] = useState<Record<string, string>>({});
   const [editingMileage, setEditingMileage] = useState<Record<string, boolean>>({});
+  const [busy, setBusyState] = useState<Record<string, boolean>>({});
+
+  function setBusy(key: string, value: boolean) {
+    setBusyState((current) => ({ ...current, [key]: value }));
+  }
 
   useEffect(() => {
     // Initialize the client-only clock after hydration, then keep it current.
@@ -194,32 +199,46 @@ export default function MyDayClient({
 
   async function clockIn(jobId: string, options?: { undoLabel?: string; undoAction?: () => void | Promise<void>; onSuccess?: () => void }) {
     setError(null);
-    const res = await fetch(`/api/jobs/${jobId}/clock-in`, { method: "POST" });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(typeof body.error === "string" ? body.error : "Could not clock in.");
-      return;
-    }
-    setSelectedJobId(jobId);
-    if (options?.undoAction) setUndoAction({ label: options.undoLabel ?? "Clock in saved", onUndo: options.undoAction });
-    if (options?.onSuccess) {
-      options.onSuccess();
-    } else {
-      startTransition(() => router.refresh());
+    setBusy(`clock:${jobId}`, true);
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/clock-in`, { method: "POST" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof body.error === "string" ? body.error : "Could not clock in.");
+        return;
+      }
+      setSelectedJobId(jobId);
+      if (options?.undoAction) setUndoAction({ label: options.undoLabel ?? "Clock in saved", onUndo: options.undoAction });
+      if (options?.onSuccess) {
+        options.onSuccess();
+      } else {
+        startTransition(() => router.refresh());
+      }
+    } catch {
+      setError("Couldn't reach the office — check your signal and try again.");
+    } finally {
+      setBusy(`clock:${jobId}`, false);
     }
   }
 
   async function clockOut(jobId: string, options?: { undoLabel?: string; undoAction?: () => void | Promise<void> }) {
     setError(null);
-    const res = await fetch(`/api/jobs/${jobId}/clock-out`, { method: "POST" });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(typeof body.error === "string" ? body.error : "Could not clock out.");
-      return;
+    setBusy(`clock:${jobId}`, true);
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/clock-out`, { method: "POST" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof body.error === "string" ? body.error : "Could not clock out.");
+        return;
+      }
+      if (arrivedJobId === jobId) setArrivedJobId(null);
+      if (options?.undoAction) setUndoAction({ label: options.undoLabel ?? "Action saved", onUndo: options.undoAction });
+      startTransition(() => router.refresh());
+    } catch {
+      setError("Couldn't reach the office — check your signal and try again.");
+    } finally {
+      setBusy(`clock:${jobId}`, false);
     }
-    if (arrivedJobId === jobId) setArrivedJobId(null);
-    if (options?.undoAction) setUndoAction({ label: options.undoLabel ?? "Action saved", onUndo: options.undoAction });
-    startTransition(() => router.refresh());
   }
 
   function onMyWay(jobId: string) {
@@ -238,13 +257,22 @@ export default function MyDayClient({
   }
 
   async function saveMileage(job: JobCard) {
-    const value = Number(mileageDraft[job.jobId] ?? job.mileageMiles ?? 0);
-    const res = await fetch(`/api/jobs/${job.jobId}/mileage`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mileageMiles: value }) });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) setError(typeof body.error === "string" ? body.error : "Could not save mileage.");
-    else {
+    setError(null);
+    setBusy(`mileage:${job.jobId}`, true);
+    try {
+      const value = Number(mileageDraft[job.jobId] ?? job.mileageMiles ?? 0);
+      const res = await fetch(`/api/jobs/${job.jobId}/mileage`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mileageMiles: value }) });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof body.error === "string" ? body.error : "Could not save mileage.");
+        return;
+      }
       setEditingMileage((current) => ({ ...current, [job.jobId]: false }));
       startTransition(() => router.refresh());
+    } catch {
+      setError("Couldn't reach the office — check your signal and try again.");
+    } finally {
+      setBusy(`mileage:${job.jobId}`, false);
     }
   }
 
@@ -254,15 +282,22 @@ export default function MyDayClient({
 
   async function undoClockIn(jobId: string) {
     setError(null);
-    const res = await fetch(`/api/jobs/${jobId}/clock-in`, { method: "DELETE" });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(typeof body.error === "string" ? body.error : "Could not discard this clock-in.");
-      return;
+    setBusy(`clock:${jobId}`, true);
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/clock-in`, { method: "DELETE" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof body.error === "string" ? body.error : "Could not discard this clock-in.");
+        return;
+      }
+      if (arrivedJobId === jobId) setArrivedJobId(null);
+      setUndoAction({ label: "Clock in discarded", onUndo: () => onMyWay(jobId) });
+      startTransition(() => router.refresh());
+    } catch {
+      setError("Couldn't reach the office — check your signal and try again.");
+    } finally {
+      setBusy(`clock:${jobId}`, false);
     }
-    if (arrivedJobId === jobId) setArrivedJobId(null);
-    setUndoAction({ label: "Clock in discarded", onUndo: () => onMyWay(jobId) });
-    startTransition(() => router.refresh());
   }
 
   return (
@@ -450,15 +485,15 @@ export default function MyDayClient({
                               type="button"
                               onClick={() => discardJob(job.jobId)}
                               className="co-button-secondary col-span-2 justify-center gap-1.5 border-rose-200 text-rose-700 hover:border-rose-300 hover:bg-rose-50"
-                              disabled={pending}
+                              disabled={pending || busy[`clock:${job.jobId}`]}
                             >
                               <X className="h-4 w-4" aria-hidden />
                               Discard
                             </button>
                           ) : (
-                            <button type="button" onClick={() => onMyWay(job.jobId)} className="co-button-primary col-span-2 justify-center gap-1.5" disabled={pending}>
+                            <button type="button" onClick={() => onMyWay(job.jobId)} className="co-button-primary col-span-2 justify-center gap-1.5" disabled={pending || busy[`clock:${job.jobId}`]}>
                               <Car className="h-4 w-4" aria-hidden />
-                              On my way
+                              {busy[`clock:${job.jobId}`] ? "Saving…" : "On my way"}
                             </button>
                           )}
                           {isWorking ? (
@@ -494,7 +529,9 @@ export default function MyDayClient({
                                 <div className="mt-2 flex items-center gap-2">
                                   <input aria-label="Mileage miles" type="number" min="0" step="0.1" autoFocus value={mileageDraft[job.jobId] ?? job.mileageMiles} onChange={(event) => setMileageDraft((current) => ({ ...current, [job.jobId]: event.target.value }))} className="co-input w-28 text-sm" />
                                   <span className="text-xs text-emerald-800">miles</span>
-                                  <button type="button" onClick={() => saveMileage(job)} className="co-button-secondary px-2.5 py-1.5 text-xs">Save mileage</button>
+                                  <button type="button" onClick={() => saveMileage(job)} className="co-button-secondary px-2.5 py-1.5 text-xs" disabled={busy[`mileage:${job.jobId}`]}>
+                                    {busy[`mileage:${job.jobId}`] ? "Saving…" : "Save mileage"}
+                                  </button>
                                 </div>
                               ) : null}
                             </div>

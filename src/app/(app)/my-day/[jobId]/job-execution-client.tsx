@@ -47,6 +47,44 @@ type Photo = { id: string; slot: "before" | "after" | "extra"; url: string | nul
 
 type Coworker = { firstName: string; lastName: string; done: boolean };
 
+const OFFLINE_ERROR = "Couldn't reach the office — check your signal and try again.";
+
+const DOWNSCALE_MAX_EDGE = 1600;
+const DOWNSCALE_QUALITY = 0.8;
+
+/** Shrinks a photo to ~1600px on its long edge before upload — modern phone
+ * cameras routinely produce files over the server's 5 MB cap, with no way
+ * for the employee to shrink one from the field. Falls back to the original
+ * file untouched if the browser can't decode it (e.g. HEIC). */
+async function downscaleImage(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    return file;
+  }
+  const scale = Math.min(1, DOWNSCALE_MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+  if (scale >= 1) {
+    bitmap.close();
+    return file;
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bitmap.close();
+    return file;
+  }
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", DOWNSCALE_QUALITY));
+  if (!blob) return file;
+  const name = file.name.replace(/\.\w+$/, "") + ".jpg";
+  return new File([blob], name, { type: "image/jpeg" });
+}
+
 function formatNameList(names: string[]): string {
   if (names.length === 0) return "";
   if (names.length === 1) return names[0];
@@ -86,6 +124,8 @@ export default function JobExecutionClient({
   const [cleanerNotes, setCleanerNotes] = useState("");
   const [feedbackUrl, setFeedbackUrl] = useState<string | null>(null);
   const [sendingFeedback, setSendingFeedback] = useState(false);
+  const [clockingIn, setClockingIn] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -98,7 +138,10 @@ export default function JobExecutionClient({
     fetch(`/api/jobs/${job.jobId}/photos`, { cache: "no-store" })
       .then((response) => response.json())
       .then((body) => setPhotos(body.photos ?? []))
-      .catch(() => setPhotos([]));
+      .catch(() => {
+        setPhotos([]);
+        setError("Couldn't load photos already on this job — check your signal and try refreshing.");
+      });
   }, [job.jobId]);
 
   const started = Boolean(timeEntry);
@@ -136,56 +179,87 @@ export default function JobExecutionClient({
     if (!file) return;
     const slot = pendingSlotRef.current;
     setError(null);
-    const body = new FormData();
-    body.set("photo", file);
-    body.set("slot", slot);
-    const response = await fetch(`/api/jobs/${job.jobId}/photos`, { method: "POST", body });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) return setError(typeof result.error === "string" ? result.error : "Could not upload photo.");
-    setPhotos((current) => [result.photo, ...current]);
+    setUploading(true);
+    try {
+      const uploadFile = await downscaleImage(file);
+      const body = new FormData();
+      body.set("photo", uploadFile);
+      body.set("slot", slot);
+      const response = await fetch(`/api/jobs/${job.jobId}/photos`, { method: "POST", body });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(typeof result.error === "string" ? result.error : "Could not upload photo.");
+        return;
+      }
+      setPhotos((current) => [result.photo, ...current]);
+    } catch {
+      setError(OFFLINE_ERROR);
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function clockIn() {
     setError(null);
-    const res = await fetch(`/api/jobs/${job.jobId}/clock-in`, { method: "POST" });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(typeof body.error === "string" ? body.error : "Could not clock in.");
-      return;
+    setClockingIn(true);
+    try {
+      const res = await fetch(`/api/jobs/${job.jobId}/clock-in`, { method: "POST" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof body.error === "string" ? body.error : "Could not clock in.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError(OFFLINE_ERROR);
+    } finally {
+      setClockingIn(false);
     }
-    router.refresh();
   }
 
   async function completeJob() {
     setError(null);
     setCompleting(true);
-    const res = await fetch(`/api/jobs/${job.jobId}/clock-out`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        paymentMethodCollected: paymentMethod || undefined,
-        checkNumberCollected: paymentMethod === "check" ? checkNumber.trim() || undefined : undefined,
-        cleanerNotes: cleanerNotes.trim() || undefined,
-      }),
-    });
-    const body = await res.json().catch(() => ({}));
-    setCompleting(false);
-    if (!res.ok) {
-      setError(typeof body.error === "string" ? body.error : "Could not complete this job.");
-      return;
+    try {
+      const res = await fetch(`/api/jobs/${job.jobId}/clock-out`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentMethodCollected: paymentMethod || undefined,
+          checkNumberCollected: paymentMethod === "check" ? checkNumber.trim() || undefined : undefined,
+          cleanerNotes: cleanerNotes.trim() || undefined,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof body.error === "string" ? body.error : "Could not complete this job.");
+        return;
+      }
+      setMyPortionDone(true);
+      setJobFullyCompleted(Boolean(body.jobCompleted));
+      if (body.jobCompleted) await requestCustomerFeedback();
+    } catch {
+      setError(OFFLINE_ERROR);
+    } finally {
+      setCompleting(false);
     }
-    setMyPortionDone(true);
-    setJobFullyCompleted(Boolean(body.jobCompleted));
-    if (body.jobCompleted) await requestCustomerFeedback();
   }
 
   async function requestCustomerFeedback() {
     setSendingFeedback(true);
-    const response = await fetch(`/api/jobs/${job.jobId}/feedback-link`, { method: "POST" });
-    const body = await response.json().catch(() => ({}));
-    setSendingFeedback(false);
-    if (!response.ok) return setError(typeof body.error === "string" ? body.error : "Could not create feedback link.");
-    setFeedbackUrl(body.feedbackUrl ?? null);
+    try {
+      const response = await fetch(`/api/jobs/${job.jobId}/feedback-link`, { method: "POST" });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(typeof body.error === "string" ? body.error : "Could not create feedback link.");
+        return;
+      }
+      setFeedbackUrl(body.feedbackUrl ?? null);
+    } catch {
+      setError(OFFLINE_ERROR);
+    } finally {
+      setSendingFeedback(false);
+    }
   }
 
   return (
@@ -251,8 +325,8 @@ export default function JobExecutionClient({
       {!started ? (
         <section className="co-card p-5">
           <p className="text-sm text-[var(--co-muted)]">Previewing this job before departure. Review the address and entry details, then return to My Day when you&apos;re ready to head out.</p>
-          <button type="button" onClick={clockIn} className="co-button-primary mt-4">
-            Clock in when you arrive
+          <button type="button" onClick={clockIn} disabled={clockingIn} className="co-button-primary mt-4">
+            {clockingIn ? "Clocking in…" : "Clock in when you arrive"}
           </button>
         </section>
       ) : null}
@@ -327,8 +401,8 @@ export default function JobExecutionClient({
               <section className="co-card p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <h2 className="text-base font-semibold text-[var(--co-ink)]">Photo evidence</h2>
-                  <button type="button" onClick={() => openUpload("extra")} className="co-button-primary px-4 py-2 text-xs">
-                    Upload photo
+                  <button type="button" onClick={() => openUpload("extra")} disabled={uploading} className="co-button-primary px-4 py-2 text-xs">
+                    {uploading ? "Uploading…" : "Upload photo"}
                   </button>
                 </div>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -345,7 +419,8 @@ export default function JobExecutionClient({
                           <button
                             type="button"
                             onClick={() => openUpload(slot)}
-                            className="relative flex aspect-square items-center justify-center rounded-xl border-2 border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)] text-[var(--co-faint)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-evergreen)]"
+                            disabled={uploading}
+                            className="relative flex aspect-square items-center justify-center rounded-xl border-2 border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)] text-[var(--co-faint)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-evergreen)] disabled:opacity-60"
                           >
                             <span className="text-3xl">+</span>
                             <span className="absolute bottom-2 left-2 rounded bg-[var(--co-ink)]/70 px-2 py-0.5 text-[10px] font-bold uppercase text-white">Required</span>
@@ -366,7 +441,8 @@ export default function JobExecutionClient({
                   <button
                     type="button"
                     onClick={() => openUpload("extra")}
-                    className="flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-[var(--co-faint)] hover:text-[var(--co-evergreen)]"
+                    disabled={uploading}
+                    className="flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-[var(--co-faint)] hover:text-[var(--co-evergreen)] disabled:opacity-60"
                   >
                     <span className="text-2xl">+</span>
                     <span className="px-4 text-center text-[10px] font-bold uppercase">Add more photos</span>
