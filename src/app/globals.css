@@ -363,7 +363,9 @@ button:active { transform: translateY(1px); }
 .co-badge-success { background: color-mix(in srgb, var(--co-success) 10%, var(--co-tint-base)); color: var(--co-success); border: 1px solid color-mix(in srgb, var(--co-success) 24%, var(--co-tint-base)); }
 .co-badge-warning { background: color-mix(in srgb, var(--co-warning) 10%, var(--co-tint-base)); color: var(--co-warning); border: 1px solid color-mix(in srgb, var(--co-warning) 24%, var(--co-tint-base)); }
 .co-badge-danger { background: color-mix(in srgb, var(--co-danger) 10%, var(--co-tint-base)); color: var(--co-danger); border: 1px solid color-mix(in srgb, var(--co-danger) 24%, var(--co-tint-base)); }
+.co-badge-info { background: color-mix(in srgb, var(--co-accent-text) 10%, var(--co-tint-base)); color: var(--co-accent-text); border: 1px solid color-mix(in srgb, var(--co-accent-text) 24%, var(--co-tint-base)); }
 .co-badge-neutral { background: var(--co-surface-muted); color: var(--co-muted); border: 1px solid var(--co-line-soft); }
+.co-badge-muted { background: var(--co-surface-muted); color: var(--co-faint); border: 1px solid var(--co-line-soft); }
 :focus-visible { outline: 3px solid var(--co-focus-ring); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: no-preference) {

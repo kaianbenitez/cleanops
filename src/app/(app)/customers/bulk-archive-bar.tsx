@@ -101,7 +101,7 @@ export function BulkArchiveTable({ rows }: { rows: EligibleCustomerRow[] }) {
                   <p className="text-xs text-[var(--co-muted)]">{row.clientTypeLabel}</p>
                 </td>
                 <td className="px-5 py-4">
-                  <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${row.statusClassName}`}>{row.statusLabel}</span>
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${row.statusClassName}`}>{row.statusLabel}</span>
                 </td>
                 <td className="px-5 py-4 text-[var(--co-muted)]">{row.address}</td>
                 <td className="px-5 py-4 text-right">
