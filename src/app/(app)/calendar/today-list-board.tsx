@@ -61,14 +61,14 @@ const STATUS_OPTIONS = [
 
 function clockStatus(entries: TimeEntryRow[], now: number) {
   const open = entries.find((entry) => !entry.clockOut);
-  if (open) return { label: `Cleaning · ${formatElapsed(open.clockIn, now)}`, className: "border-emerald-200 bg-emerald-50 text-emerald-700" };
+  if (open) return { label: `Cleaning · ${formatElapsed(open.clockIn, now)}`, className: "co-badge-success" };
   if (entries.length) {
     const totalMinutes = entries.reduce((sum, entry) => sum + (entry.minutesWorked ?? 0), 0);
     const hours = Math.floor(totalMinutes / 60);
     const duration = hours ? `${hours}h ${totalMinutes % 60}m` : `${totalMinutes}m`;
-    return { label: `Cleaned · ${duration}`, className: "border-slate-200 bg-slate-50 text-slate-700" };
+    return { label: `Cleaned · ${duration}`, className: "co-badge-neutral" };
   }
-  return { label: "Not started", className: "border-slate-200 bg-slate-50 text-slate-500" };
+  return { label: "Not started", className: "co-badge-muted" };
 }
 
 export default function TodayListBoard({
@@ -253,8 +253,8 @@ export default function TodayListBoard({
         <p className="eyebrow">List view</p>
         <h2 className="mt-1 text-lg font-semibold">{isToday ? "Today" : dayLabel}&apos;s jobs</h2>
         <p className="mt-1 text-xs text-[var(--co-muted)]">Edit date, time, or crew directly — changes save as soon as you leave the field.</p>
-        {error ? <p className="mt-2 text-xs font-medium text-rose-600">{error}</p> : null}
-        {warning ? <p role="status" className="mt-2 border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">Scheduling warning: {warning}</p> : null}
+        {error ? <p className="mt-2 text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
+        {warning ? <p role="status" className="co-badge-warning mt-2 px-3 py-2 text-xs font-medium">Scheduling warning: {warning}</p> : null}
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1240px] text-left text-base">
@@ -270,13 +270,13 @@ export default function TodayListBoard({
           </thead>
           <tbody className="divide-y divide-[var(--co-line-soft)]">
             {sortedAppointments.map((appointment) => (
-              <tr key={appointment.id} className={appointment.status === "cancelled" ? "bg-slate-50 dark:bg-[var(--co-surface-muted)]" : "bg-violet-50/40 dark:bg-[var(--co-surface-muted)]"}>
+              <tr key={appointment.id} className={appointment.status === "cancelled" ? "bg-[var(--co-surface-muted)]" : "bg-[var(--co-spark-tint)]/40"}>
                 <td className="px-5 py-3 font-medium">{formatAppointmentTime(appointment.startTime, appointment.durationMinutes)}</td>
                 <td className="px-5 py-3 font-medium" colSpan={4}>
                   <button type="button" onClick={() => setEditingAppointmentId(appointment.id)} className="text-base text-[var(--co-evergreen)] hover:underline">
                     📅 {appointment.title}
                   </button>
-                  <span className={`ml-2 inline-block rounded-full border px-2.5 py-1 text-xs font-semibold ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}>
+                  <span className={`ml-2 inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}>
                     {appointment.status === "cancelled" ? "Cancelled meeting" : "Meeting"}
                   </span>
                   <span className="ml-2 text-sm text-[var(--co-muted)]">{appointment.attendeeUserIds.length} attendee{appointment.attendeeUserIds.length === 1 ? "" : "s"}</span>
@@ -374,7 +374,7 @@ export default function TodayListBoard({
                                 {employee.firstName} {employee.lastName}
                                 {employee.isActive === false ? " (Inactive): " : ": "}
                               </span>
-                              <span className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-1 font-semibold ${state.className}`}>{state.label}</span>
+                              <span className={`inline-block whitespace-nowrap rounded-full px-2.5 py-1 font-semibold ${state.className}`}>{state.label}</span>
                             </li>
                           );
                         })}
@@ -389,7 +389,7 @@ export default function TodayListBoard({
                       <StatusPill domain="job" status="cancelled" />
                     ) : confirmingCancelId === job.id ? (
                       <div className="flex flex-col items-start gap-1.5">
-                        <p className="text-xs font-medium text-rose-700">Cancel this appointment?</p>
+                        <p className="text-xs font-medium text-[var(--co-danger)]">Cancel this appointment?</p>
                         <textarea value={cancellationReasons[job.id] ?? ""} onChange={(event) => setCancellationReasons((current) => ({ ...current, [job.id]: event.target.value }))} rows={2} placeholder="Why is this job being cancelled?" className="co-input w-full resize-none text-xs" />
                         <div className="flex gap-1.5">
                           <button type="button" disabled={savingId === job.id} onClick={() => { setConfirmingCancelId(null); setCancellationReasons((current) => ({ ...current, [job.id]: "" })); }} className="co-button-secondary py-1 text-xs disabled:opacity-50">
@@ -399,14 +399,14 @@ export default function TodayListBoard({
                             type="button"
                             disabled={savingId === job.id || !cancellationReasons[job.id]?.trim()}
                             onClick={() => cancelJob(job)}
-                            className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                            className="rounded-lg border border-[var(--co-danger)]/30 bg-[var(--co-danger)]/10 px-3 py-1 text-xs font-semibold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/20 disabled:opacity-50"
                           >
                             Confirm cancel
                           </button>
                         </div>
                       </div>
                     ) : cancellable ? (
-                      <button type="button" disabled={savingId === job.id} onClick={() => setConfirmingCancelId(job.id)} className="text-xs font-semibold text-rose-700 hover:underline disabled:opacity-50">
+                      <button type="button" disabled={savingId === job.id} onClick={() => setConfirmingCancelId(job.id)} className="text-xs font-semibold text-[var(--co-danger)] hover:underline disabled:opacity-50">
                         Cancel
                       </button>
                     ) : (
@@ -432,7 +432,7 @@ export default function TodayListBoard({
                         ) : null}
                         {job.doNotClean ? (
                           <p className="whitespace-pre-wrap break-words">
-                            <span className="font-semibold text-rose-700">Don&apos;t clean: </span>
+                            <span className="font-semibold text-[var(--co-danger)]">Don&apos;t clean: </span>
                             {cleanNoteText(job.doNotClean)}
                           </p>
                         ) : null}
