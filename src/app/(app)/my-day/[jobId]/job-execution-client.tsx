@@ -150,9 +150,9 @@ export default function JobExecutionClient({
   const notes = groupNotes(job);
   const clientNote = cleanNoteText(job.generalNotes);
   const instructions = [
-    job.doNotClean ? { label: "Do not clean", value: cleanNoteText(job.doNotClean), icon: CircleAlert, tone: "border-rose-200 bg-rose-50 text-rose-800" } : null,
-    job.petNotes ? { label: "Pets", value: cleanNoteText(job.petNotes), icon: Cat, tone: "border-amber-200 bg-amber-50 text-amber-900" } : null,
-    job.importantToCustomer ? { label: "Important", value: cleanNoteText(job.importantToCustomer), icon: Sparkles, tone: "border-violet-200 bg-violet-50 text-violet-900" } : null,
+    job.doNotClean ? { label: "Do not clean", value: cleanNoteText(job.doNotClean), icon: CircleAlert, tone: "co-badge-danger" } : null,
+    job.petNotes ? { label: "Pets", value: cleanNoteText(job.petNotes), icon: Cat, tone: "co-badge-warning" } : null,
+    job.importantToCustomer ? { label: "Important", value: cleanNoteText(job.importantToCustomer), icon: Sparkles, tone: "co-badge-spark" } : null,
   ].filter(Boolean) as Array<{ label: string; value: string; icon: typeof CircleAlert; tone: string }>;
   const beforePhotos = photos.filter((photo) => photo.slot === "before");
   const afterPhotos = photos.filter((photo) => photo.slot === "after");
@@ -317,7 +317,7 @@ export default function JobExecutionClient({
       </section>
 
       {error ? (
-        <p role="alert" className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <p role="alert" className="co-badge-danger mb-4 rounded-2xl px-4 py-3 text-sm">
           {error}
         </p>
       ) : null}
@@ -380,7 +380,7 @@ export default function JobExecutionClient({
               <div className="mt-4 grid gap-2 sm:grid-cols-3">
                 {instructions.map((instruction) => {
                   const Icon = instruction.icon;
-                  return <section key={instruction.label} className={`rounded-lg border p-3 ${instruction.tone}`}><div className="flex items-center gap-2 text-xs font-bold"><Icon className="h-4 w-4" />{instruction.label}</div><p className="mt-2 whitespace-pre-line text-sm leading-5">{instruction.value}</p></section>;
+                  return <section key={instruction.label} className={`rounded-lg p-3 ${instruction.tone}`}><div className="flex items-center gap-2 text-xs font-bold"><Icon className="h-4 w-4" />{instruction.label}</div><p className="mt-2 whitespace-pre-line text-sm leading-5">{instruction.value}</p></section>;
                 })}
               </div>
             ) : null}
@@ -520,9 +520,9 @@ export default function JobExecutionClient({
               <p className="mt-1 text-sm text-[var(--co-muted)]">
                 Worked {elapsed} · finished {timeEntry?.clockOut ? timeLabel(new Date(timeEntry.clockOut).toISOString()) : timeLabel(new Date().toISOString())}
               </p>
-              <div className="mx-auto mt-4 max-w-sm rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left">
-                <p className="text-sm font-semibold text-amber-900">Waiting on {waitingOnLabel}</p>
-                <p className="mt-1 text-xs text-amber-800">This job finishes once everyone assigned has clocked out.</p>
+              <div className="co-badge-warning mx-auto mt-4 max-w-sm rounded-xl px-4 py-3 text-left">
+                <p className="text-sm font-semibold">Waiting on {waitingOnLabel}</p>
+                <p className="mt-1 text-xs">This job finishes once everyone assigned has clocked out.</p>
               </div>
               <Link href="/my-day" className="co-button-primary mt-4 inline-flex">
                 Back to My day
