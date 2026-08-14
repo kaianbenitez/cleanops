@@ -30,7 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <ActionFeedbackProvider>
-      <ThemeProvider className="min-h-[100dvh] bg-[var(--co-bg)] bg-[image:radial-gradient(circle_at_top_left,rgba(0,108,73,0.06),transparent_26%),radial-gradient(circle_at_top_right,rgba(0,108,73,0.04),transparent_18%)] text-[var(--co-ink)]">
+      <ThemeProvider className="min-h-[100dvh] bg-[var(--co-bg)] text-[var(--co-ink)]">
         {user.mustChangePassword ? (
           <main className="w-full px-3 py-4 sm:px-4 lg:px-5 xl:px-6 lg:py-5">
             <MustChangePassword />
