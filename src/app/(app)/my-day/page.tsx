@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { companies, customerLocations, customers, jobs, jobAssignments, recurringSeries, roomTypes, timeEntries } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasFieldAccess } from "@/lib/auth/field-staff";
 import { payrollWeekRangeForDate } from "@/lib/payroll/periods";
 import MyDayClient from "./my-day-client";
 import { rotationalTaskForDate } from "@/lib/scheduling/rotational-tasks";
@@ -109,7 +110,7 @@ function formatDayLabel(value: string, timezone: string) {
 export default async function MyDayPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (user.role === "admin") redirect("/dashboard");
+  if (!hasFieldAccess(user)) redirect("/dashboard");
 
   const company = await db.select({ name: companies.name, timezone: companies.timezone, settings: companies.settings }).from(companies).where(eq(companies.id, user.companyId)).limit(1).then((rows) => rows[0] ?? null);
   if (!company) redirect("/login");

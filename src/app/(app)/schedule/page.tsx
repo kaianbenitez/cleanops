@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { companies, customerLocations, customers, jobs, jobAssignments } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasFieldAccess } from "@/lib/auth/field-staff";
 import { dateLabel, formatEstimatedTime, jobAddress, jobTypeLabel, timeLabel } from "@/lib/my-day/job-format";
 
 function todayInTimezone(timezone: string) {
@@ -27,7 +28,7 @@ function todayInTimezone(timezone: string) {
 export default async function SchedulePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (user.role === "admin") redirect("/calendar");
+  if (!hasFieldAccess(user)) redirect("/calendar");
 
   const company = await db
     .select({ timezone: companies.timezone })

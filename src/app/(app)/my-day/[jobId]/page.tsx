@@ -3,13 +3,14 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { companies, customerLocations, customers, jobs, jobAssignments, timeEntries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasFieldAccess } from "@/lib/auth/field-staff";
 import JobExecutionClient from "./job-execution-client";
 
 export default async function JobExecutionPage({ params }: { params: Promise<{ jobId: string }> }) {
   const { jobId } = await params;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (user.role === "admin") redirect("/dashboard");
+  if (!hasFieldAccess(user)) redirect("/dashboard");
 
   const company = await db
     .select({ timezone: companies.timezone, settings: companies.settings })

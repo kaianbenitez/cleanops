@@ -4,6 +4,7 @@ import { Star } from "lucide-react";
 import { db } from "@/db";
 import { companies } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasFieldAccess } from "@/lib/auth/field-staff";
 import { resolveRange } from "@/lib/dashboard/range";
 import { getEmployeeQualityReport } from "@/lib/reports/queries";
 import { ReportsFilters } from "../reports/reports-controls";
@@ -31,7 +32,7 @@ function statusClass(status: string) {
 export default async function MyScoresPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (user.role === "admin") redirect("/quality");
+  if (!hasFieldAccess(user)) redirect("/quality");
   const params = await searchParams;
   const [company] = await db.select({ timezone: companies.timezone }).from(companies).where(eq(companies.id, user.companyId)).limit(1);
   if (!company) redirect("/my-day");

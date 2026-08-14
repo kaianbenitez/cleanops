@@ -2,12 +2,13 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasFieldAccess } from "@/lib/auth/field-staff";
 import PtoRequests from "../pto-requests";
 
 export default async function MyDayPtoPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (user.role === "admin") redirect("/dashboard");
+  if (!hasFieldAccess(user)) redirect("/dashboard");
 
   return (
     <div className="mx-auto max-w-[560px] space-y-4 pb-10">
