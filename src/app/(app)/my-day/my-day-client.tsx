@@ -49,12 +49,12 @@ type JobCard = {
 
 function RotationReminder({ reminder }: { reminder: NonNullable<JobCard["rotationalTaskReminder"]> }) {
   return (
-    <details className="mt-3 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-950">
+    <details className="mt-3 rounded-lg border border-[var(--co-spark-fill)]/30 bg-[var(--co-spark-tint)] px-3 py-2 text-xs text-[var(--co-spark-text)]">
       <summary className="cursor-pointer font-semibold">All-day rotation · Week {reminder.currentWeek}</summary>
       <p className="mt-2 font-medium">Every time: {reminder.everyTime}</p>
       <div className="mt-1.5 space-y-1">
         {reminder.weeks.map((week) => (
-          <p key={week.week} className={week.week === reminder.currentWeek ? "font-bold" : "text-violet-800"}>
+          <p key={week.week} className={week.week === reminder.currentWeek ? "font-bold" : "text-[var(--co-spark-text)]/70"}>
             {week.label}: Weekly — {week.weekly}; Biweekly — {week.biweekly}; Monthly — {week.monthly}
           </p>
         ))}
@@ -333,7 +333,7 @@ export default function MyDayClient({
 
         <div className="flex items-center justify-between gap-3 border-t border-[var(--co-line-soft)] px-4 py-2.5 sm:px-5">
           <div className="flex min-w-0 items-center gap-2">
-            <span className={`h-2 w-2 shrink-0 rounded-full ${openEntry ? "animate-pulse bg-emerald-500" : "bg-[var(--co-line)]"}`} aria-hidden />
+            <span className={`h-2 w-2 shrink-0 rounded-full ${openEntry ? "animate-pulse bg-[var(--co-success)]" : "bg-[var(--co-line)]"}`} aria-hidden />
             <p className="truncate text-xs font-medium text-[var(--co-muted)]">
               {openEntry ? (
                 <>
@@ -371,15 +371,15 @@ export default function MyDayClient({
       </Link>
 
       {error ? (
-        <p role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <p role="alert" className="co-badge-danger rounded-2xl px-4 py-3 text-sm">
           {error}
         </p>
       ) : null}
 
       <section className="co-card overflow-hidden">
         {todayRotationJobs.length ? (
-          <div className="border-b border-violet-200 bg-violet-50 px-4 py-4 text-violet-950 sm:px-5">
-            <p className="eyebrow text-violet-800">All-day client reminder</p>
+          <div className="border-b border-[var(--co-spark-fill)]/30 bg-[var(--co-spark-tint)] px-4 py-4 text-[var(--co-spark-text)] sm:px-5">
+            <p className="eyebrow text-[var(--co-spark-text)]/70">All-day client reminder</p>
             <h2 className="mt-1 text-lg font-semibold">Rotational tasks</h2>
             <div className="mt-3 space-y-4">
               {todayRotationJobs.map((job) => (
@@ -453,10 +453,8 @@ export default function MyDayClient({
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-2">
                           <span
-                            className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
-                              job.role === "lead"
-                                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                : "border-slate-200 bg-slate-50 text-slate-600"
+                            className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
+                              job.role === "lead" ? "co-badge-success" : "co-badge-neutral"
                             }`}
                           >
                             {job.role === "lead" ? "Lead / driver" : job.role === "trainer" ? "Trainer" : "Helper"}
@@ -484,7 +482,7 @@ export default function MyDayClient({
                             <button
                               type="button"
                               onClick={() => discardJob(job.jobId)}
-                              className="co-button-secondary col-span-2 justify-center gap-1.5 border-rose-200 text-rose-700 hover:border-rose-300 hover:bg-rose-50"
+                              className="co-button-secondary col-span-2 justify-center gap-1.5 border-[var(--co-danger)]/40 text-[var(--co-danger)] hover:border-[var(--co-danger)]/60 hover:bg-[var(--co-danger)]/10"
                               disabled={pending || busy[`clock:${job.jobId}`]}
                             >
                               <X className="h-4 w-4" aria-hidden />
@@ -512,14 +510,14 @@ export default function MyDayClient({
                         </div>
                           {job.rotationalTaskReminder ? <RotationReminder reminder={job.rotationalTaskReminder} /> : null}
                           {job.role === "lead" ? (
-                            <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                            <div className="mt-3 rounded-lg border border-[var(--co-success)]/30 bg-[var(--co-success)]/10 px-3 py-2">
                               <div className="flex items-center justify-between gap-2">
-                                <p className="text-xs font-semibold text-emerald-900">You are the driver</p>
+                                <p className="text-xs font-semibold text-[var(--co-success)]">You are the driver</p>
                                 {!editingMileage[job.jobId] ? (
                                   <button
                                     type="button"
                                     onClick={() => setEditingMileage((current) => ({ ...current, [job.jobId]: true }))}
-                                    className="-mx-2 -my-2 flex min-h-11 items-center px-2 text-xs font-semibold text-emerald-800 underline underline-offset-2"
+                                    className="-mx-2 -my-2 flex min-h-11 items-center px-2 text-xs font-semibold text-[var(--co-success)] underline underline-offset-2"
                                   >
                                     {Number(job.mileageMiles) > 0 ? `${job.mileageMiles} mi logged · Edit` : "Log mileage"}
                                   </button>
@@ -528,7 +526,7 @@ export default function MyDayClient({
                               {editingMileage[job.jobId] ? (
                                 <div className="mt-2 flex items-center gap-2">
                                   <input aria-label="Mileage miles" type="number" min="0" step="0.1" autoFocus value={mileageDraft[job.jobId] ?? job.mileageMiles} onChange={(event) => setMileageDraft((current) => ({ ...current, [job.jobId]: event.target.value }))} className="co-input w-28 text-sm" />
-                                  <span className="text-xs text-emerald-800">miles</span>
+                                  <span className="text-xs text-[var(--co-success)]">miles</span>
                                   <button type="button" onClick={() => saveMileage(job)} className="co-button-secondary px-2.5 py-1.5 text-xs" disabled={busy[`mileage:${job.jobId}`]}>
                                     {busy[`mileage:${job.jobId}`] ? "Saving…" : "Save mileage"}
                                   </button>
