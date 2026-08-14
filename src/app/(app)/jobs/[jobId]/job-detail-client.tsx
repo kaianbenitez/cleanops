@@ -219,14 +219,14 @@ export default function JobDetailClient({
               </button>
             )}
             {job.status === "cancelled" ? null : confirmingCancel ? (
-              <div className="w-full space-y-2 rounded-lg border border-rose-200 bg-rose-50 p-3 sm:w-[22rem]">
-                <label className="block text-xs font-semibold text-rose-800">
+              <div className="co-badge-danger w-full space-y-2 rounded-lg p-3 sm:w-[22rem]">
+                <label className="block text-xs font-semibold">
                   Cancellation reason
                   <textarea value={cancellationReason} onChange={(event) => setCancellationReason(event.target.value)} rows={2} placeholder="Why is this job being cancelled?" className="co-input mt-1 w-full resize-none" />
                 </label>
                 <div className="flex gap-2">
                   <button type="button" disabled={saving} onClick={() => { setConfirmingCancel(false); setCancellationReason(""); }} className="co-button-secondary py-1 text-xs disabled:opacity-50">Keep job</button>
-                  <button type="button" disabled={saving || !cancellationReason.trim()} onClick={cancelJob} className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50">Confirm cancel</button>
+                  <button type="button" disabled={saving || !cancellationReason.trim()} onClick={cancelJob} className="rounded-lg border border-[var(--co-danger)]/30 bg-[var(--co-danger)]/10 px-3 py-1 text-xs font-semibold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/20 disabled:opacity-50">Confirm cancel</button>
                 </div>
               </div>
             ) : (
@@ -234,7 +234,7 @@ export default function JobDetailClient({
                 type="button"
                 disabled={saving}
                 onClick={() => setConfirmingCancel(true)}
-                className="co-button-secondary border-rose-200 text-rose-700 hover:bg-rose-50"
+                className="co-button-secondary !border-[var(--co-danger)]/30 !text-[var(--co-danger)] hover:!bg-[var(--co-danger)]/10"
               >
                 <XCircle className="h-4 w-4" /> Cancel
               </button>
@@ -309,7 +309,7 @@ export default function JobDetailClient({
                       <button type="submit" disabled={saving} className="co-button-secondary px-2 py-1 text-xs disabled:opacity-50">Save</button>
                       <button type="button" disabled={saving} onClick={() => { setEditingPrice(false); setPriceEditError(null); }} className="co-button-secondary px-2 py-1 text-xs disabled:opacity-50">Cancel</button>
                     </div>
-                    {priceEditError ? <p role="alert" className="max-w-48 text-right text-xs text-rose-700">{priceEditError}</p> : null}
+                    {priceEditError ? <p role="alert" className="max-w-48 text-right text-xs text-[var(--co-danger)]">{priceEditError}</p> : null}
                   </form>
                 ) : (
                   <div className="flex items-center gap-1">
@@ -351,7 +351,7 @@ export default function JobDetailClient({
                       <button type="submit" disabled={saving} className="co-button-secondary px-2 py-1 text-xs disabled:opacity-50">Save</button>
                       <button type="button" disabled={saving} onClick={() => { setEditingJth(false); setJthEditError(null); }} className="co-button-secondary px-2 py-1 text-xs disabled:opacity-50">Cancel</button>
                     </div>
-                    {jthEditError ? <p id="job-ticket-hours-error" role="alert" className="mt-1 text-xs text-rose-700">{jthEditError}</p> : <p className="mt-1 text-xs text-[var(--co-muted)]">Use HH:MM, from 0:15 to 10:00.</p>}
+                    {jthEditError ? <p id="job-ticket-hours-error" role="alert" className="mt-1 text-xs text-[var(--co-danger)]">{jthEditError}</p> : <p className="mt-1 text-xs text-[var(--co-muted)]">Use HH:MM, from 0:15 to 10:00.</p>}
                   </form>
                 ) : (
                   <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -431,9 +431,9 @@ export default function JobDetailClient({
               {job.feedbackStatus ? (
                 <div className="mt-3 rounded-xl bg-[#f4f8f3] p-3">
                   <p className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--co-muted)]">Customer check-out</p>
-                  {job.feedbackExpired ? <p className="mt-1 text-xs font-semibold text-amber-700">Link expired — activate a new link to resend.</p> : null}
+                  {job.feedbackExpired ? <p className="mt-1 text-xs font-semibold text-[var(--co-warning)]">Link expired — activate a new link to resend.</p> : null}
                   <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
-                    {job.feedbackQualityRating ? <span className="font-semibold text-amber-700">{job.feedbackQualityRating}/5 quality</span> : <span className="text-[var(--co-muted)]">Awaiting response</span>}
+                    {job.feedbackQualityRating ? <span className="font-semibold text-[var(--co-warning)]">{job.feedbackQualityRating}/5 quality</span> : <span className="text-[var(--co-muted)]">Awaiting response</span>}
                     {job.feedbackTipCents && job.feedbackTipCents > 0 ? <span className="font-semibold text-[var(--co-evergreen)]">{money(job.feedbackTipCents)} tip</span> : null}
                   </div>
                   {job.feedbackQualityComment ? <p className="mt-2 text-sm text-[var(--co-ink)]">“{job.feedbackQualityComment}”</p> : null}
@@ -580,7 +580,7 @@ export default function JobDetailClient({
       {warning ? (
         <div
           role="status"
-          className="fixed bottom-5 left-1/2 z-30 w-[min(92vw,600px)] -translate-x-1/2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-lg"
+          className="co-badge-warning fixed bottom-5 left-1/2 z-30 w-[min(92vw,600px)] -translate-x-1/2 rounded-xl px-4 py-3 text-sm shadow-lg"
         >
           <div className="flex items-start justify-between gap-3">
             <span>Scheduling warning: {warning}</span>
@@ -594,7 +594,7 @@ export default function JobDetailClient({
       {error ? (
         <div
           role="alert"
-          className="fixed bottom-5 left-1/2 z-30 w-[min(92vw,600px)] -translate-x-1/2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-lg"
+          className="co-badge-danger fixed bottom-5 left-1/2 z-30 w-[min(92vw,600px)] -translate-x-1/2 rounded-xl px-4 py-3 text-sm shadow-lg"
         >
           <div className="flex items-start justify-between gap-3">
             <span>{error}</span>
