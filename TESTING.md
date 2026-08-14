@@ -19,6 +19,17 @@ only about running and verifying things.
    once actually run, failed on three separate stale selectors that had drifted
    during UI redesigns. A skipped test is not a passing test.
 
+   `tests/browser/hybrid-access.spec.ts` additionally reads:
+
+   ```
+   BROWSER_HYBRID_USERNAME=<username of an admin account with isFieldStaff=true>
+   BROWSER_HYBRID_PASSWORD=<that account's password>
+   ```
+
+   `BROWSER_ADMIN_USERNAME` itself is assumed **not** field staff for that
+   spec's "office-only admin bounced off /my-day" case — repoint it at a
+   genuinely office-only account if that assumption stops holding.
+
 2. **Install the Claude Chrome extension** if you want an agent to drive a real
    browser — see [Chrome](#chrome-claude-in-chrome) below. Nothing else in this
    file depends on it.
@@ -48,7 +59,7 @@ the reasoning — a committed migration file is not evidence it was applied).
 | `npm run verify` | env vars present, lint, types, production build compiles | nothing at runtime |
 | `npm run smoke:routes` | 5 routes, signed out: `/login`, a bad quote token, and 3 redirect-to-login checks | every authenticated page |
 | `npm run smoke:auth` | 22 checks — logs in, then fetches the main pages and APIs and asserts a marker in each | interaction; it only reads HTML |
-| `npm run test:browser` | real Chromium: login page, signed-out redirects, public proposal, one admin employee flow | any page not in `tests/browser/` |
+| `npm run test:browser` | real Chromium: login page, signed-out redirects, public proposal, one admin employee flow, hybrid admin+field-staff `/my-day` access (needs `BROWSER_HYBRID_USERNAME`/`PASSWORD`) | any page not in `tests/browser/` |
 
 None of these cover a page you just changed unless you add a spec. `smoke:auth`
 is the highest-value one and is **not** in the `AGENTS.md` release sequence —

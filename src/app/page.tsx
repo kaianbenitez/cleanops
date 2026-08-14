@@ -3,7 +3,7 @@ import { cookies, headers } from "next/headers";
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasAdminAccess, hasFieldAccess } from "@/lib/auth/field-staff";
-import { SURFACE_COOKIE } from "@/lib/auth/surface";
+import { resolveLandingSurface, SURFACE_COOKIE } from "@/lib/auth/surface";
 import { hasAssignmentToday } from "@/lib/my-day/assignment";
 import MarketingPage from "@/components/marketing/marketing-page";
 
@@ -36,20 +36,16 @@ export default async function Home() {
   const user = await getCurrentUser();
   if (!user) return <MarketingPage />;
 
-  if (!hasAdminAccess(user)) redirect("/my-day");
-  if (!hasFieldAccess(user)) redirect("/dashboard");
+  const isAdmin = hasAdminAccess(user);
+  const hasField = hasFieldAccess(user);
+  const rawSurfaceCookie = (await cookies()).get(SURFACE_COOKIE)?.value;
+  const surfaceCookie = rawSurfaceCookie === "field" || rawSurfaceCookie === "admin" ? rawSurfaceCookie : undefined;
+  const isMobile = MOBILE_UA_PATTERN.test((await headers()).get("user-agent") ?? "");
 
-  // Hybrid admin + field staff from here — resolve on device/context instead
-  // of role, per the precedence order in Hybrid Employee Access Plan.md.
-  const cookieStore = await cookies();
-  const surface = cookieStore.get(SURFACE_COOKIE)?.value;
-  if (surface === "field") redirect("/my-day");
-  if (surface === "admin") redirect("/dashboard");
+  // Only hit the DB for hybrids with no cookie yet — every other branch
+  // resolves without it, and hasJobToday is unused when it does.
+  const needsJobCheck = isAdmin && hasField && !surfaceCookie && isMobile;
+  const hasJobToday = needsJobCheck ? await hasAssignmentToday(user.id, user.companyId) : false;
 
-  const userAgent = (await headers()).get("user-agent") ?? "";
-  if (MOBILE_UA_PATTERN.test(userAgent) && (await hasAssignmentToday(user.id, user.companyId))) {
-    redirect("/my-day");
-  }
-
-  redirect("/dashboard");
+  redirect(resolveLandingSurface({ isAdmin, hasField, surfaceCookie, isMobile, hasJobToday }));
 }
