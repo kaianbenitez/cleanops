@@ -31,6 +31,7 @@ import GlobalSearch from "./global-search";
 import NotificationsMenu, { type Notification } from "./notifications-menu";
 import CreateMenu from "./create-menu";
 import ThemeToggle, { ThemeToggleMenuItem } from "./theme-toggle";
+import SurfaceSwitcher from "./surface-switcher";
 
 const links = [
   ["/dashboard", "Dashboard"],
@@ -191,6 +192,7 @@ export default function AppNav({
             {isAdmin ? <CreateMenu compact /> : null}
             {isAdmin ? <ThemeToggle /> : null}
             {isAdmin ? <NotificationsMenu initialNotifications={initialNotifications} /> : null}
+            {showFieldGroup ? <SurfaceSwitcher onFieldSurface={onFieldSurface} variant="icon" /> : null}
             <Link href="/account" aria-label="Account" className="rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]">
               <CircleUserRound aria-hidden="true" strokeWidth={2} className="h-5 w-5 text-[var(--co-muted)]" />
             </Link>
@@ -352,6 +354,12 @@ export default function AppNav({
         >
           <PanelLeftOpen aria-hidden="true" className="h-5 w-5" />
         </button> : null}
+
+        {showFieldGroup ? (
+          <div className={`mb-4 ${navCollapsed ? "flex justify-center" : ""}`}>
+            <SurfaceSwitcher onFieldSurface={onFieldSurface} variant={navCollapsed ? "icon" : "full"} />
+          </div>
+        ) : null}
 
         <nav className="min-h-0 flex-1 space-y-6 overflow-y-auto">
           <div>
