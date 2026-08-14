@@ -45,6 +45,12 @@ const links = [
   ["/employees", "Employees"],
 ] as const;
 
+const fieldLinks = [
+  ["/my-day", "My day"],
+  ["/schedule", "Schedule"],
+  ["/scores", "My scores"],
+] as const;
+
 const iconByHref: Record<string, LucideIcon> = {
   "/dashboard": LayoutDashboard,
   "/reports": LineChart,
@@ -74,21 +80,55 @@ function NavIcon({ href }: { href: string }) {
   return <Icon aria-hidden="true" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0 opacity-90" />;
 }
 
+function SidebarLinks({ items, pathname, navCollapsed }: { items: readonly (readonly [string, string])[]; pathname: string; navCollapsed: boolean }) {
+  return (
+    <div className="space-y-1">
+      {items.map(([href, label]) => {
+        const active = isActive(pathname, href);
+        return (
+          <Link
+            key={href}
+            href={href}
+            aria-current={active ? "page" : undefined}
+            aria-label={navCollapsed ? label : undefined}
+            title={navCollapsed ? label : undefined}
+            className={`group relative flex items-center rounded-[14px] py-[0.6875rem] text-[13px] transition ${navCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${
+              active
+                ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)] font-medium"
+                : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
+            }`}
+          >
+            {active ? <span className="absolute inset-y-2 left-1 w-1 rounded-full bg-[var(--co-evergreen)]" /> : null}
+            <span className={navCollapsed ? "" : "ml-1"}>
+              <NavIcon href={href} />
+            </span>
+            {navCollapsed ? null : <span>{label}</span>}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function AppNav({
   isAdmin,
+  isFieldStaff,
   userName,
   userEmail,
   initialNotifications,
 }: {
   isAdmin: boolean;
+  isFieldStaff: boolean;
   userName: string;
   userEmail: string;
   initialNotifications: Notification[];
 }) {
   const pathname = usePathname();
-  const visibleLinks = isAdmin
-    ? links
-    : [["/my-day", "My day"], ["/schedule", "Schedule"], ["/scores", "My scores"] as const];
+  const visibleLinks = isAdmin ? links : fieldLinks;
+  const showFieldGroup = isAdmin && isFieldStaff;
+  const mobileLinks = showFieldGroup ? [...visibleLinks, ...fieldLinks] : visibleLinks;
+  const onFieldSurface = fieldLinks.some(([href]) => isActive(pathname, href));
+  const logoHref = isAdmin ? (showFieldGroup && onFieldSurface ? "/my-day" : "/dashboard") : "/my-day";
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
@@ -142,7 +182,7 @@ export default function AppNav({
             <Menu aria-hidden="true" strokeWidth={2} className="h-5 w-5 text-[var(--co-ink)]" />
           </button>
 
-          <Link href={isAdmin ? "/dashboard" : "/my-day"} className="flex items-center gap-2">
+          <Link href={logoHref} className="flex items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="h-7 w-7"><path d="M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z" fill="var(--spark-mark)"/><path d="M32 12 L36 27 L51 32 L36 37 L32 52 L28 37 L13 32 L28 27 Z" fill="var(--spark-mark-facet)"/><path d="M49 8 L51.4 14.6 L58 17 L51.4 19.4 L49 26 L46.6 19.4 L40 17 L46.6 14.6 Z" fill="var(--spark-mark)"/></svg></span>
             <span className="text-base font-bold text-[var(--co-evergreen)]">ServiceSpark</span>
           </Link>
@@ -181,7 +221,7 @@ export default function AppNav({
         }`}
       >
         <div className="flex items-center justify-between gap-3 border-b border-[var(--co-line-soft)] px-4 py-4">
-          <Link href={isAdmin ? "/dashboard" : "/my-day"} onClick={() => setMenuOpen(false)} className="flex items-center gap-2">
+          <Link href={logoHref} onClick={() => setMenuOpen(false)} className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="h-8 w-8"><path d="M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z" fill="var(--spark-mark)"/><path d="M32 12 L36 27 L51 32 L36 37 L32 52 L28 37 L13 32 L28 27 Z" fill="var(--spark-mark-facet)"/><path d="M49 8 L51.4 14.6 L58 17 L51.4 19.4 L49 26 L46.6 19.4 L40 17 L46.6 14.6 Z" fill="var(--spark-mark)"/></svg></span>
             <span className="text-base font-bold text-[var(--co-evergreen)]">ServiceSpark</span>
           </Link>
@@ -196,7 +236,7 @@ export default function AppNav({
         </div>
 
         <nav className="flex-1 min-h-0 space-y-1 overflow-y-auto px-3 py-4">
-          {visibleLinks.map(([href, label]) => {
+          {mobileLinks.map(([href, label]) => {
             const active = isActive(pathname, href);
             return (
               <Link
@@ -281,7 +321,7 @@ export default function AppNav({
       }`}>
         <div className={`mb-8 flex items-center ${navCollapsed ? "justify-center" : "gap-2"}`}>
           <Link
-            href={isAdmin ? "/dashboard" : "/my-day"}
+            href={logoHref}
             aria-label="ServiceSpark home"
             title={navCollapsed ? "ServiceSpark home" : undefined}
             className={`flex items-center rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] ${navCollapsed ? "h-12 w-12 justify-center" : "flex-1 gap-3 px-3 py-3"}`}
@@ -316,32 +356,15 @@ export default function AppNav({
         <nav className="min-h-0 flex-1 space-y-6 overflow-y-auto">
           <div>
             {navCollapsed ? null : <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--co-faint)]">Workspace</p>}
-            <div className="space-y-1">
-              {visibleLinks.map(([href, label]) => {
-                const active = isActive(pathname, href);
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    aria-current={active ? "page" : undefined}
-                    aria-label={navCollapsed ? label : undefined}
-                    title={navCollapsed ? label : undefined}
-                    className={`group relative flex items-center rounded-[14px] py-[0.6875rem] text-[13px] transition ${navCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${
-                      active
-                        ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)] font-medium"
-                        : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
-                    }`}
-                  >
-                    {active ? <span className="absolute inset-y-2 left-1 w-1 rounded-full bg-[var(--co-evergreen)]" /> : null}
-                    <span className={navCollapsed ? "" : "ml-1"}>
-                      <NavIcon href={href} />
-                    </span>
-                    {navCollapsed ? null : <span>{label}</span>}
-                  </Link>
-                );
-              })}
-            </div>
+            <SidebarLinks items={visibleLinks} pathname={pathname} navCollapsed={navCollapsed} />
           </div>
+
+          {showFieldGroup ? (
+            <div>
+              {navCollapsed ? null : <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--co-faint)]">Field</p>}
+              <SidebarLinks items={fieldLinks} pathname={pathname} navCollapsed={navCollapsed} />
+            </div>
+          ) : null}
 
           <div className="space-y-1 border-t border-[var(--co-line-soft)] pt-3">
             {isAdmin ? (

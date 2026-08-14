@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasFieldAccess } from "@/lib/auth/field-staff";
 import { emailToUsername } from "@/lib/auth/username";
 import { db } from "@/db";
 import { appNotifications } from "@/db/schema";
@@ -36,7 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </main>
         ) : (
           <>
-            <AppNav isAdmin={isAdmin} userName={`${user.firstName} ${user.lastName}`} userEmail={emailToUsername(user.email)} initialNotifications={initialNotifications} />
+            <AppNav isAdmin={isAdmin} isFieldStaff={hasFieldAccess(user)} userName={`${user.firstName} ${user.lastName}`} userEmail={emailToUsername(user.email)} initialNotifications={initialNotifications} />
             <div className="transition-[padding] duration-200 xl:pl-[var(--app-nav-width)]">
               <header className="sticky top-0 z-20 hidden border-b border-[var(--co-line-soft)] bg-[var(--co-surface)]/90 backdrop-blur-xl xl:block">
                 <div className="flex h-[64px] items-center justify-end px-4 sm:px-6 lg:px-8">
