@@ -482,7 +482,7 @@ export default function MyDayClient({
                             <button
                               type="button"
                               onClick={() => discardJob(job.jobId)}
-                              className="co-button-secondary col-span-2 justify-center gap-1.5 border-[var(--co-danger)]/40 text-[var(--co-danger)] hover:border-[var(--co-danger)]/60 hover:bg-[var(--co-danger)]/10"
+                              className="co-button-secondary col-span-2 justify-center gap-1.5 !border-[var(--co-danger)]/40 !text-[var(--co-danger)] hover:!border-[var(--co-danger)]/60 hover:!bg-[var(--co-danger)]/10"
                               disabled={pending || busy[`clock:${job.jobId}`]}
                             >
                               <X className="h-4 w-4" aria-hidden />
