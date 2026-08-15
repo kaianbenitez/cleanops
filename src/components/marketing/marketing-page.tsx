@@ -18,8 +18,17 @@ const features = [
 
 const steps = ["Tell us how your business works today.", "We help bring over your team, customers, and schedule.", "Try ServiceSpark with your crew in the day-to-day work.", "Tell us what would make it more useful as we build."] as const;
 
+// Landing-page-only mark: cobalt + spark-orange, distinct from the app's
+// "Pure Spark" sidebar/login badge (--spark-mark tokens, a separate
+// deliberately-grey-blue mark tied to a real story) — not touched here.
 function SparkMark() {
-  return <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="h-9 w-9"><path d="M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z" fill="var(--spark-mark)"/><path d="M32 12 L36 27 L51 32 L36 37 L32 52 L28 37 L13 32 L28 27 Z" fill="var(--spark-mark-facet)"/><path d="M49 8 L51.4 14.6 L58 17 L51.4 19.4 L49 26 L46.6 19.4 L40 17 L46.6 14.6 Z" fill="var(--spark-mark)"/></svg>;
+  return (
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="h-9 w-9">
+      <path d="M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z" fill="var(--co-accent)" />
+      <path d="M32 12 L36 27 L51 32 L36 37 L32 52 L28 37 L13 32 L28 27 Z" fill="var(--co-spark-accent)" />
+      <path d="M49 8 L51.4 14.6 L58 17 L51.4 19.4 L49 26 L46.6 19.4 L40 17 L46.6 14.6 Z" fill="var(--co-accent)" />
+    </svg>
+  );
 }
 
 export default function MarketingPage() {
