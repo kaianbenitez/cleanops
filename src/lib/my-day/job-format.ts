@@ -22,9 +22,15 @@ type NotesLike = {
   subdivision: string | null;
 };
 
+/** Matches "HH:MM" or "HH:MM:SS" with no date/timezone — what Postgres `time`
+ * columns (e.g. jobs.scheduledStartTime) come back as. `new Date()` can't
+ * parse that on its own and returns Invalid Date, so it needs an arbitrary
+ * anchor date first. */
+const BARE_TIME = /^\d{2}:\d{2}(:\d{2})?$/;
+
 export function timeLabel(value: string | null) {
   if (!value) return "—";
-  const date = new Date(value);
+  const date = new Date(BARE_TIME.test(value) ? `1970-01-01T${value}` : value);
   return Number.isNaN(date.getTime()) ? "Time not set" : date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
