@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     description:
       "ServiceSpark is maid service and cleaning business software for scheduling, crew management, customer records, quotes, invoicing, and payroll — all in one place.",
     type: "website",
-    images: [{ url: "/marketing/dashboard.jpg", width: 1568, height: 744, alt: "ServiceSpark dashboard for a cleaning business" }],
+    images: [{ url: "/marketing/dashboard.jpg", width: 1489, height: 812, alt: "ServiceSpark dashboard for a cleaning business" }],
   },
   twitter: {
     card: "summary_large_image",
