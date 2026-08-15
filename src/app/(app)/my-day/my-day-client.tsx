@@ -49,7 +49,7 @@ type JobCard = {
 
 function RotationReminder({ reminder }: { reminder: NonNullable<JobCard["rotationalTaskReminder"]> }) {
   return (
-    <details className="mt-3 rounded-lg border border-[var(--co-spark-fill)]/30 bg-[var(--co-spark-tint)] px-3 py-2 text-xs text-[var(--co-spark-text)]">
+    <details className="mt-3 rounded-lg border border-[var(--co-spark-fill)]/30 bg-[var(--co-spark-tint)] px-3 py-2 type-field-meta text-[var(--co-spark-text)]">
       <summary className="cursor-pointer font-semibold">All-day rotation · Week {reminder.currentWeek}</summary>
       <p className="mt-2 font-medium">Every time: {reminder.everyTime}</p>
       <div className="mt-1.5 space-y-1">
@@ -67,7 +67,7 @@ function EquipmentRow({ job }: { job: JobCard }) {
   const hasConfirmedMopCount = job.mopHeadCount !== null && job.mopHeadCount !== undefined;
   const mopHeads = hasConfirmedMopCount ? String(job.mopHeadCount) : job.mopHeadEstimate === null || job.mopHeadEstimate === undefined ? "Not set" : `~${job.mopHeadEstimate}`;
   return (
-    <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--co-muted)]" aria-label={`Equipment: Mop heads ${mopHeads}, rags ${job.ragCount ?? "not set"}, vacuum ${job.vacuumCount ?? "not set"}`}>
+    <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 type-field-meta text-[var(--co-muted)]" aria-label={`Equipment: Mop heads ${mopHeads}, rags ${job.ragCount ?? "not set"}, vacuum ${job.vacuumCount ?? "not set"}`}>
       <span className={hasConfirmedMopCount ? "inline-flex items-center gap-1 font-medium text-[var(--co-ink)]" : "inline-flex items-center gap-1"}><WashingMachine className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden />Mopheads {mopHeads}{!hasConfirmedMopCount && job.mopHeadEstimate !== null && job.mopHeadEstimate !== undefined ? <span className="sr-only"> estimated</span> : null}</span>
       <span className="inline-flex items-center gap-1"><Shirt className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden />Rags {job.ragCount ?? "Not set"}</span>
       <span className="inline-flex items-center gap-1"><Wind className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden />Vacuum {job.vacuumCount ?? "Not set"}</span>
@@ -308,13 +308,13 @@ export default function MyDayClient({
             {companyLogoUrl ? (
               <img src={companyLogoUrl} alt={`${companyName} logo`} className="h-full w-full object-contain p-1" />
             ) : (
-              <span className="text-xs font-semibold text-[var(--co-ink)]">{companyName.slice(0, 2).toUpperCase()}</span>
+              <span className="text-[13px] font-semibold text-[var(--co-ink)]">{companyName.slice(0, 2).toUpperCase()}</span>
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-lg font-semibold tracking-[-0.03em] text-[var(--co-ink)]">{employeeName}</h1>
-            <p className="text-xs text-[var(--co-muted)]">
-              {dayLabel} · {todayJobs.length} stops · {weeklyHours.toFixed(2)}h this week
+            <h1 className="type-field-title truncate font-semibold tracking-[-0.03em] text-[var(--co-ink)]">{employeeName}</h1>
+            <p className="type-field-meta text-[var(--co-muted)]">
+              {todayJobs.length} {todayJobs.length === 1 ? "stop" : "stops"} today · {weeklyHours.toFixed(1)}h this week
             </p>
             <p className="sr-only">
               {employeeTitle} at {companyName}
@@ -323,7 +323,7 @@ export default function MyDayClient({
           <button
             type="button"
             onClick={() => router.refresh()}
-            className="co-button-secondary shrink-0 gap-1.5 px-3 py-1.5 text-xs"
+            className="co-button-secondary shrink-0 gap-1.5 px-3 py-1.5 type-field-meta"
             disabled={pending}
           >
             <RefreshCw className="h-4 w-4" aria-hidden />
@@ -334,7 +334,7 @@ export default function MyDayClient({
         <div className="flex items-center justify-between gap-3 border-t border-[var(--co-line-soft)] px-4 py-2.5 sm:px-5">
           <div className="flex min-w-0 items-center gap-2">
             <span className={`h-2 w-2 shrink-0 rounded-full ${openEntry ? "animate-pulse bg-[var(--co-success)]" : "bg-[var(--co-line)]"}`} aria-hidden />
-            <p className="truncate text-xs font-medium text-[var(--co-muted)]">
+            <p className="truncate type-field-meta font-medium text-[var(--co-muted)]">
               {openEntry ? (
                 <>
                   Clocked in · <span className="font-mono text-[var(--co-ink)]">{activeTimerLabel}</span>
@@ -346,12 +346,12 @@ export default function MyDayClient({
             </p>
           </div>
           {activeJob && openEntry ? (
-            <Link href={`/my-day/${activeJob.jobId}`} className="flex shrink-0 items-center gap-1 text-xs font-semibold text-[var(--co-evergreen)]">
+            <Link href={`/my-day/${activeJob.jobId}`} className="flex min-h-11 shrink-0 items-center gap-1 type-field-meta font-semibold text-[var(--co-evergreen)]">
               Continue job
               <ArrowRight className="h-3.5 w-3.5" aria-hidden />
             </Link>
           ) : officePhone ? (
-            <a href={`tel:${officePhone}`} className="flex shrink-0 items-center gap-1 text-xs font-semibold text-[var(--co-evergreen)]">
+            <a href={`tel:${officePhone}`} className="flex min-h-11 shrink-0 items-center gap-1 type-field-meta font-semibold text-[var(--co-evergreen)]">
               <Phone className="h-3.5 w-3.5" aria-hidden />
               Call office
             </a>
@@ -361,7 +361,7 @@ export default function MyDayClient({
 
       <Link
         href="/my-day/pto"
-        className="co-card flex items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-[var(--co-ink)] sm:px-5"
+        className="co-card flex min-h-11 items-center justify-between gap-3 px-4 py-3 type-field-body font-medium text-[var(--co-ink)] sm:px-5"
       >
         <span className="inline-flex items-center gap-2">
           <CalendarCheck className="h-4 w-4 text-[var(--co-evergreen)]" aria-hidden />
@@ -371,7 +371,7 @@ export default function MyDayClient({
       </Link>
 
       {error ? (
-        <p role="alert" className="co-badge-danger rounded-2xl px-4 py-3 text-sm">
+        <p role="alert" className="co-badge-danger rounded-2xl px-4 py-3 type-field-body">
           {error}
         </p>
       ) : null}
@@ -379,8 +379,7 @@ export default function MyDayClient({
       <section className="co-card overflow-hidden">
         {todayRotationJobs.length ? (
           <div className="border-b border-[var(--co-spark-fill)]/30 bg-[var(--co-spark-tint)] px-4 py-4 text-[var(--co-spark-text)] sm:px-5">
-            <p className="eyebrow text-[var(--co-spark-text)]/70">All-day client reminder</p>
-            <h2 className="mt-1 text-lg font-semibold">Rotational tasks</h2>
+            <h2 className="type-field-title font-semibold">Rotational tasks</h2>
             <div className="mt-3 space-y-4">
               {todayRotationJobs.map((job) => (
                 <div key={job.jobId}>
@@ -393,16 +392,15 @@ export default function MyDayClient({
         ) : null}
         <div className="border-b border-[var(--co-line-soft)] px-4 py-4 sm:px-5">
           <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="eyebrow">Route preview</p>
-              <h2 className="mt-1 text-lg font-semibold">Today&apos;s jobs</h2>
-            </div>
-            <span className="rounded-full bg-[var(--co-accent-tint)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--co-evergreen)]">
+            <h2 className="type-field-title font-semibold">Today&apos;s jobs</h2>
+            <span className="rounded-full bg-[var(--co-accent-tint)] px-2.5 py-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--co-evergreen)]">
               {routeJobs.length} stops
             </span>
           </div>
-          <p className="mt-2 text-sm text-[var(--co-muted)]">
-            {routeJobs.length > 0 ? `${routeJobs[0].scheduledDate} service order` : "No route stops scheduled for today."}
+          <p className="mt-2 type-field-meta text-[var(--co-muted)]">
+            {routeJobs.length > 0
+              ? `${dayLabel} · ${routeJobs.length} ${routeJobs.length === 1 ? "stop" : "stops"}, first at ${timeLabel(routeJobs[0].scheduledStartTime)}`
+              : "No route stops scheduled for today."}
           </p>
         </div>
         <div className="space-y-3 p-4 sm:p-5">
@@ -411,7 +409,7 @@ export default function MyDayClient({
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--co-surface-muted)]">
                 <CalendarCheck className="h-7 w-7 text-[var(--co-muted)]" aria-hidden />
               </div>
-              <p className="mt-4 text-base font-medium text-[var(--co-ink)]">That&apos;s everything for today.</p>
+              <p className="mt-4 type-field-body font-medium text-[var(--co-ink)]">That&apos;s everything for today.</p>
             </div>
           ) : (
             routeJobs.map((job, index) => {
@@ -426,25 +424,25 @@ export default function MyDayClient({
                   }`}
                 >
                   {isNextUp ? (
-                    <div className="flex items-center justify-between bg-[var(--co-evergreen)] px-4 py-1.5 text-white">
-                      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em]">{bannerLabel}</span>
-                      <span className="text-xs font-medium">{timeLabel(job.scheduledStartTime)}</span>
+                    <div className="flex items-center justify-between bg-[var(--co-evergreen)] px-4 py-2 text-white">
+                      <span className="text-[13px] font-semibold">{bannerLabel}</span>
+                      <span className="text-[13px] font-medium">{timeLabel(job.scheduledStartTime)}</span>
                     </div>
                   ) : null}
                   <div className="flex items-center gap-3 px-4 py-4">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--co-surface-muted)] text-xs font-semibold text-[var(--co-ink)]">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--co-surface-muted)] text-[13px] font-semibold text-[var(--co-ink)]">
                       {index + 1}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="font-medium text-[var(--co-ink)]">
+                          <p className="type-field-body font-medium text-[var(--co-ink)]">
                             {job.customerFirstName} {job.customerLastName}
                           </p>
-                          <span className="co-badge-neutral mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                          <span className="co-badge-neutral mt-1 inline-flex rounded-full px-2 py-0.5 text-[13px] font-semibold">
                             {jobTypeLabel(job.type)}
                           </span>
-                          <p className="mt-1 text-xs text-[var(--co-muted)]">
+                          <p className="mt-1 type-field-meta text-[var(--co-muted)]">
                             {isNextUp
                               ? `${jobAddress(job) || "Address not set"} · ${formatEstimatedTime(job.estimatedDurationMinutes)}`
                               : `${timeLabel(job.scheduledStartTime)} · ${jobAddress(job) || "Address not set"} · ${formatEstimatedTime(job.estimatedDurationMinutes)}`}
@@ -453,71 +451,73 @@ export default function MyDayClient({
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-2">
                           <span
-                            className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
+                            className={`rounded-full px-2.5 py-1 text-[13px] font-semibold uppercase tracking-[0.08em] ${
                               job.role === "lead" ? "co-badge-success" : "co-badge-neutral"
                             }`}
                           >
                             {job.role === "lead" ? "Lead / driver" : job.role === "trainer" ? "Trainer" : "Helper"}
                           </span>
-                          {!isNextUp ? <span className="co-badge-neutral rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]">Scheduled</span> : null}
+                          {!isNextUp ? <span className="co-badge-neutral rounded-full px-2.5 py-1 text-[13px] font-semibold uppercase tracking-[0.08em]">Scheduled</span> : null}
                         </div>
                       </div>
 
                       {isNextUp ? (
                         <>
-                        <div className="mt-3 grid grid-cols-2 gap-2">
-                          <a
-                            href={`https://maps.google.com/?q=${encodeURIComponent(jobAddress(job) || "")}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="co-button-secondary justify-center gap-1.5"
-                          >
-                            <MapPin className="h-4 w-4" aria-hidden />
-                            Directions
-                          </a>
-                          <Link href={`/my-day/${job.jobId}`} className="co-button-secondary justify-center gap-1.5">
-                            Job details
-                          </Link>
+                        <div className="mt-3 space-y-2">
                           {isWorking ? (
-                            <button
-                              type="button"
-                              onClick={() => discardJob(job.jobId)}
-                              className="co-button-secondary col-span-2 justify-center gap-1.5 !border-[var(--co-danger)]/40 !text-[var(--co-danger)] hover:!border-[var(--co-danger)]/60 hover:!bg-[var(--co-danger)]/10"
-                              disabled={pending || busy[`clock:${job.jobId}`]}
-                            >
-                              <X className="h-4 w-4" aria-hidden />
-                              Discard
-                            </button>
+                            arrivedJobId === job.jobId ? (
+                              <button type="button" onClick={() => beginJob(job.jobId)} className="co-button-primary w-full justify-center gap-1.5" disabled={pending}>
+                                <Play className="h-4 w-4" aria-hidden />
+                                Start
+                              </button>
+                            ) : (
+                              <button type="button" onClick={() => markArrived(job.jobId)} className="co-button-primary w-full justify-center gap-1.5" disabled={pending}>
+                                <CheckCircle2 className="h-4 w-4" aria-hidden />
+                                Arrived
+                              </button>
+                            )
                           ) : (
-                            <button type="button" onClick={() => onMyWay(job.jobId)} className="co-button-primary col-span-2 justify-center gap-1.5" disabled={pending || busy[`clock:${job.jobId}`]}>
+                            <button type="button" onClick={() => onMyWay(job.jobId)} className="co-button-primary w-full justify-center gap-1.5" disabled={pending || busy[`clock:${job.jobId}`]}>
                               <Car className="h-4 w-4" aria-hidden />
                               {busy[`clock:${job.jobId}`] ? "Saving…" : "On my way"}
                             </button>
                           )}
                           {isWorking ? (
-                            arrivedJobId === job.jobId ? (
-                              <button type="button" onClick={() => beginJob(job.jobId)} className="co-button-primary justify-center gap-1.5 col-span-2" disabled={pending}>
-                                <Play className="h-4 w-4" aria-hidden />
-                                Start
-                              </button>
-                            ) : (
-                              <button type="button" onClick={() => markArrived(job.jobId)} className="co-button-primary justify-center gap-1.5 col-span-2" disabled={pending}>
-                                <CheckCircle2 className="h-4 w-4" aria-hidden />
-                                Arrived
-                              </button>
-                            )
+                            <button
+                              type="button"
+                              onClick={() => discardJob(job.jobId)}
+                              className="co-button-secondary w-full justify-center gap-1.5 !border-[var(--co-danger)]/40 !text-[var(--co-danger)] hover:!border-[var(--co-danger)]/60 hover:!bg-[var(--co-danger)]/10"
+                              disabled={pending || busy[`clock:${job.jobId}`]}
+                            >
+                              <X className="h-4 w-4" aria-hidden />
+                              Discard
+                            </button>
                           ) : null}
+                          <div className="grid grid-cols-2 gap-2">
+                            <a
+                              href={`https://maps.google.com/?q=${encodeURIComponent(jobAddress(job) || "")}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="co-button-secondary justify-center gap-1.5"
+                            >
+                              <MapPin className="h-4 w-4" aria-hidden />
+                              Directions
+                            </a>
+                            <Link href={`/my-day/${job.jobId}`} className="co-button-secondary justify-center gap-1.5">
+                              Job details
+                            </Link>
+                          </div>
                         </div>
                           {job.rotationalTaskReminder ? <RotationReminder reminder={job.rotationalTaskReminder} /> : null}
                           {job.role === "lead" ? (
                             <div className="mt-3 rounded-lg border border-[var(--co-success)]/30 bg-[var(--co-success)]/10 px-3 py-2">
                               <div className="flex items-center justify-between gap-2">
-                                <p className="text-xs font-semibold text-[var(--co-success)]">You are the driver</p>
+                                <p className="type-field-meta font-semibold text-[var(--co-success)]">You are the driver</p>
                                 {!editingMileage[job.jobId] ? (
                                   <button
                                     type="button"
                                     onClick={() => setEditingMileage((current) => ({ ...current, [job.jobId]: true }))}
-                                    className="-mx-2 -my-2 flex min-h-11 items-center px-2 text-xs font-semibold text-[var(--co-success)] underline underline-offset-2"
+                                    className="-mx-2 -my-2 flex min-h-11 items-center px-2 type-field-meta font-semibold text-[var(--co-success)] underline underline-offset-2"
                                   >
                                     {Number(job.mileageMiles) > 0 ? `${job.mileageMiles} mi logged · Edit` : "Log mileage"}
                                   </button>
@@ -526,8 +526,8 @@ export default function MyDayClient({
                               {editingMileage[job.jobId] ? (
                                 <div className="mt-2 flex items-center gap-2">
                                   <input aria-label="Mileage miles" type="number" min="0" step="0.1" autoFocus value={mileageDraft[job.jobId] ?? job.mileageMiles} onChange={(event) => setMileageDraft((current) => ({ ...current, [job.jobId]: event.target.value }))} className="co-input w-28 text-sm" />
-                                  <span className="text-xs text-[var(--co-success)]">miles</span>
-                                  <button type="button" onClick={() => saveMileage(job)} className="co-button-secondary px-2.5 py-1.5 text-xs" disabled={busy[`mileage:${job.jobId}`]}>
+                                  <span className="type-field-meta text-[var(--co-success)]">miles</span>
+                                  <button type="button" onClick={() => saveMileage(job)} className="co-button-secondary px-2.5 py-1.5 type-field-meta" disabled={busy[`mileage:${job.jobId}`]}>
                                     {busy[`mileage:${job.jobId}`] ? "Saving…" : "Save mileage"}
                                   </button>
                                 </div>
@@ -536,11 +536,11 @@ export default function MyDayClient({
                           ) : null}
                           {job.accessInstructions || job.keyNumber || job.garageCode || job.gateCode || job.alarmCode ? (
                             <details open className="mt-3 rounded-lg border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-3 py-2">
-                              <summary className="cursor-pointer text-xs font-semibold text-[var(--co-ink)]">Entry instructions</summary>
-                              <div className="mt-2 space-y-2 text-xs text-[var(--co-muted)]">
+                              <summary className="cursor-pointer type-field-meta font-semibold text-[var(--co-ink)]">Entry instructions</summary>
+                              <div className="mt-2 space-y-2 type-field-meta text-[var(--co-muted)]">
                                 {job.accessInstructions ? <p className="whitespace-pre-line">{job.accessInstructions}</p> : null}
                                 {job.keyNumber || job.garageCode || job.gateCode || job.alarmCode ? (
-                                  <MaskedCode className="max-w-full text-left text-xs">
+                                  <MaskedCode className="max-w-full text-left type-field-meta">
                                     {[job.keyNumber && `Key #${job.keyNumber}`, job.garageCode && `Garage ${job.garageCode}`, job.gateCode && `Gate ${job.gateCode}`, job.alarmCode && `Alarm ${job.alarmCode}`].filter(Boolean).join(" · ")}
                                   </MaskedCode>
                                 ) : null}
@@ -567,27 +567,26 @@ export default function MyDayClient({
 
       <section className="co-card overflow-hidden">
         <div className="border-b border-[var(--co-line-soft)] px-4 py-4 sm:px-5">
-          <p className="eyebrow">What&apos;s next</p>
-          <h2 className="mt-1 text-lg font-semibold">Upcoming jobs</h2>
+          <h2 className="type-field-title font-semibold">Upcoming jobs</h2>
         </div>
         <div className="space-y-3 p-4 sm:p-5">
           {upcomingJobs.length === 0 ? (
-            <p className="text-sm text-[var(--co-muted)]">Nothing scheduled after today yet.</p>
+            <p className="type-field-meta text-[var(--co-muted)]">Nothing scheduled after today yet.</p>
           ) : (
             upcomingJobs.map((job) => (
               <Link
                 key={job.jobId}
                 href={`/my-day/${job.jobId}`}
-                className="flex items-start justify-between gap-3 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-4 transition-colors hover:border-[var(--co-line)]"
+                className="flex min-h-11 items-start justify-between gap-3 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-4 transition-colors hover:border-[var(--co-line)]"
               >
                 <div className="min-w-0">
-                  <p className="font-medium text-[var(--co-ink)]">
+                  <p className="type-field-body font-medium text-[var(--co-ink)]">
                     {job.customerFirstName} {job.customerLastName}
                   </p>
-                  <p className="mt-1 text-xs text-[var(--co-muted)]">
+                  <p className="mt-1 type-field-meta text-[var(--co-muted)]">
                     {dateLabel(job.scheduledDate, companyTimezone)} · {timeLabel(job.scheduledStartTime)} · {formatEstimatedTime(job.estimatedDurationMinutes)}
                   </p>
-                  <p className="mt-1 text-xs text-[var(--co-faint)]">{jobAddress(job) || "Address not set"}</p>
+                  <p className="mt-1 type-field-meta text-[var(--co-faint)]">{jobAddress(job) || "Address not set"}</p>
                 </div>
                 <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-faint)]" aria-hidden />
               </Link>
@@ -598,30 +597,29 @@ export default function MyDayClient({
 
       <section className="co-card overflow-hidden">
         <div className="border-b border-[var(--co-line-soft)] px-4 py-4 sm:px-5">
-          <p className="eyebrow">Completed today</p>
-          <h2 className="mt-1 text-lg font-semibold">Finished jobs</h2>
+          <h2 className="type-field-title font-semibold">Finished jobs</h2>
         </div>
         <div className="space-y-3 p-4 sm:p-5">
           {completedJobs.length === 0 ? (
-            <p className="text-sm text-[var(--co-muted)]">No completed jobs yet.</p>
+            <p className="type-field-meta text-[var(--co-muted)]">No completed jobs yet.</p>
           ) : (
             completedJobs.map((job) => (
               <Link
                 key={job.jobId}
                 href={`/my-day/${job.jobId}`}
-                className="flex items-start justify-between gap-3 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-4 py-4 opacity-80 transition-opacity hover:opacity-100"
+                className="flex min-h-11 items-start justify-between gap-3 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-4 py-4 opacity-80 transition-opacity hover:opacity-100"
               >
                 <div className="min-w-0">
-                  <p className="font-medium text-[var(--co-muted)] line-through decoration-[var(--co-line)]">
+                  <p className="type-field-body font-medium text-[var(--co-muted)] line-through decoration-[var(--co-line)]">
                     {job.customerFirstName} {job.customerLastName}
                   </p>
-                  <p className="mt-1 text-xs text-[var(--co-faint)]">
+                  <p className="mt-1 type-field-meta text-[var(--co-faint)]">
                     {dateLabel(job.scheduledDate, companyTimezone)} · {timeLabel(job.scheduledStartTime)} · {formatEstimatedTime(job.estimatedDurationMinutes)}
                   </p>
-                  <p className="mt-1 text-xs text-[var(--co-faint)]">{jobAddress(job) || "Address not set"}</p>
+                  <p className="mt-1 type-field-meta text-[var(--co-faint)]">{jobAddress(job) || "Address not set"}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
-                  <span className="co-badge-success inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]">
+                  <span className="co-badge-success inline-flex items-center rounded-full px-2.5 py-1 text-[13px] font-semibold uppercase tracking-[0.08em]">
                     Completed
                   </span>
                   <ChevronRight className="h-4 w-4 text-[var(--co-faint)]" aria-hidden />
@@ -633,28 +631,28 @@ export default function MyDayClient({
       </section>
 
       <footer className="border-t border-[var(--co-line-soft)] pt-4 text-center">
-        <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-medium text-[var(--co-muted)]">
-          <Link href="/help-center" className="hover:text-[var(--co-ink)]">
+        <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 type-field-body font-medium text-[var(--co-muted)]">
+          <Link href="/help-center" className="inline-flex min-h-11 items-center hover:text-[var(--co-ink)]">
             Help Center
           </Link>
-          <Link href="/privacy-policy" className="hover:text-[var(--co-ink)]">
+          <Link href="/privacy-policy" className="inline-flex min-h-11 items-center hover:text-[var(--co-ink)]">
             Privacy Policy
           </Link>
           <form action="/api/auth/logout" method="post">
-            <button type="submit" className="font-medium text-[var(--co-muted)] hover:text-[var(--co-ink)]">
+            <button type="submit" className="inline-flex min-h-11 items-center font-medium text-[var(--co-muted)] hover:text-[var(--co-ink)]">
               Logout
             </button>
           </form>
         </nav>
-        <p className="mt-3 text-xs text-[var(--co-faint)]">© {currentYear} ServiceSpark Professional Services</p>
+        <p className="mt-3 type-field-micro text-[var(--co-faint)]">© {currentYear} ServiceSpark Professional Services</p>
       </footer>
 
       {undoAction ? (
         <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] left-1/2 z-50 w-[min(92vw,28rem)] -translate-x-1/2 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-3 shadow-[0_10px_32px_rgba(18,24,19,0.12)]">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-[var(--co-ink)]">{undoAction.label}</p>
-              <p className="text-xs text-[var(--co-muted)]">Tap undo if you hit the wrong button.</p>
+              <p className="type-field-body font-medium text-[var(--co-ink)]">{undoAction.label}</p>
+              <p className="type-field-meta text-[var(--co-muted)]">Tap undo if you hit the wrong button.</p>
             </div>
             <button
               type="button"
