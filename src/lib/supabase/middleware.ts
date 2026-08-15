@@ -33,7 +33,9 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/quote/") ||
     request.nextUrl.pathname.startsWith("/api/webhooks/") ||
     request.nextUrl.pathname.startsWith("/api/public/") ||
-    request.nextUrl.pathname.startsWith("/api/leads");
+    request.nextUrl.pathname.startsWith("/api/leads") ||
+    request.nextUrl.pathname === "/privacy-policy" ||
+    request.nextUrl.pathname === "/terms";
 
   if (!user && !isRootRoute && !isAuthRoute && !isPublicRoute) {
     const url = request.nextUrl.clone();

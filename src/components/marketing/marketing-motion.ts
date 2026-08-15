@@ -15,7 +15,7 @@ export function prefersReducedMotion() {
 }
 
 type RevealOptions = { y?: number; duration?: number; stagger?: number; start?: string };
-const defaults = { y: 24, duration: 0.5, stagger: 0.08, start: "top 85%" };
+const defaults = { y: 24, duration: 0.35, stagger: 0.04, start: "top 85%" };
 
 /** One ScrollTrigger per element matching `rowSelector`; items matching `itemSelector` inside each row stagger in together. */
 export function useRowReveal(rowSelector: string, itemSelector: string, options?: RevealOptions) {

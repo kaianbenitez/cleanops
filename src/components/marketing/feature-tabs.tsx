@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useRef, useState } from "react";
 import { gsap, prefersReducedMotion, useGroupReveal } from "./marketing-motion";
 
-type Feature = readonly [string, string, string, string];
+type Feature = readonly [string, string, string];
 
 function FeatureIcon({ index }: { index: number }) {
   const shared = { fill: "none", stroke: "currentColor", strokeWidth: 2.2, strokeLinejoin: "miter" as const, strokeLinecap: "square" as const };
@@ -33,7 +33,7 @@ export function FeatureTabs({ features }: { features: readonly Feature[] }) {
     setActive(index);
   }
 
-  const [title, description, screenshot, objectPosition] = features[active];
+  const [title, description, screenshot] = features[active];
   const isCrewApp = screenshot === "/marketing/my-day-home.png";
 
   return (
@@ -62,12 +62,12 @@ export function FeatureTabs({ features }: { features: readonly Feature[] }) {
       <div data-reveal-item>
         <div ref={panel} className="overflow-hidden rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)]">
           {isCrewApp ? (
-            <div className="flex h-[380px] items-center justify-center px-6 py-6 sm:h-[440px]">
+            <div className="flex h-[380px] items-center justify-center bg-[var(--co-surface-muted)] px-6 py-6 sm:h-[440px]">
               <Image src={screenshot} alt={`${title} in the ServiceSpark app`} width={800} height={1498} sizes="300px" className="h-full w-auto object-contain" />
             </div>
           ) : (
-            <div className="relative h-[380px] sm:h-[440px]">
-              <Image src={screenshot} alt={`${title} in the ServiceSpark app`} fill sizes="(min-width: 1024px) 800px, 100vw" quality={90} className="object-cover" style={{ objectPosition }} />
+            <div className="relative h-[380px] bg-[var(--co-surface-muted)] p-6 sm:h-[440px] sm:p-8">
+              <Image src={screenshot} alt={`${title} in the ServiceSpark app`} fill sizes="(min-width: 1024px) 800px, 100vw" className="object-contain" />
             </div>
           )}
         </div>
