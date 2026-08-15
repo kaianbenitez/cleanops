@@ -152,7 +152,7 @@ export default function MarketingPage() {
         <p className="mt-3 leading-7 text-[var(--co-muted)]">A few practical details about using ServiceSpark and joining the beta.</p>
         <div className="mt-8">
           <a href="#join-beta" className="co-button-primary">
-            Join the beta
+            Try it with your crew
           </a>
         </div>
       </div>

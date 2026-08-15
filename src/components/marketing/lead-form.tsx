@@ -38,6 +38,15 @@ export default function LeadForm() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    // crewSize is optional at the API layer (existing product decision, not
+    // touched here), but the landing page's required set is business name,
+    // email, and crew size, so enforce that client-side.
+    if (!form.crewSize) {
+      setErrors((current) => ({ ...current, crewSize: "Select a crew size." }));
+      return;
+    }
+
     setSubmitting(true);
     setServerError(null);
 
@@ -74,7 +83,7 @@ export default function LeadForm() {
   if (submitted) {
     return (
       <div ref={successRef} role="status" tabIndex={-1} className="rounded-xl border border-[color-mix(in_srgb,var(--co-success)_35%,var(--co-line))] bg-[color-mix(in_srgb,var(--co-success)_8%,var(--co-surface))] p-6">
-        <h3 className="text-lg font-semibold text-[var(--co-ink)]">Thanks — we&apos;ll be in touch.</h3>
+        <h3 className="text-lg font-semibold text-[var(--co-ink)]">Thanks, we&apos;ll be in touch.</h3>
         <p className="mt-2 text-sm leading-6 text-[var(--co-muted)]">We&apos;ve received your early-access request.</p>
       </div>
     );
@@ -93,16 +102,16 @@ export default function LeadForm() {
       <Field label="Email" name="email" required error={errors.email}>
         <input id="email" type="email" className={inputClass("email")} value={form.email} onChange={(event) => update("email", event.target.value)} autoComplete="email" aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? "email-error" : undefined} />
       </Field>
-      <Field label="Phone" name="phone" error={errors.phone}>
-        <input id="phone" type="tel" className={inputClass("phone")} value={form.phone} onChange={(event) => update("phone", event.target.value)} autoComplete="tel" aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? "phone-error" : undefined} />
-      </Field>
-      <Field label="Crew size" name="crewSize" error={errors.crewSize}>
+      <Field label="Crew size" name="crewSize" required error={errors.crewSize}>
         <select id="crewSize" className={inputClass("crewSize")} value={form.crewSize} onChange={(event) => update("crewSize", event.target.value)} aria-invalid={Boolean(errors.crewSize)} aria-describedby={errors.crewSize ? "crewSize-error" : undefined}>
           <option value="">Select crew size</option>
           <option value="1-5">1-5</option>
           <option value="6-15">6-15</option>
           <option value="16+">16+</option>
         </select>
+      </Field>
+      <Field label="Phone (only if you'd rather we call than email)" name="phone" error={errors.phone}>
+        <input id="phone" type="tel" className={inputClass("phone")} value={form.phone} onChange={(event) => update("phone", event.target.value)} autoComplete="tel" aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? "phone-error" : undefined} />
       </Field>
       <Field label="Message" name="message" error={errors.message}>
         <textarea id="message" rows={3} className={`${inputClass("message")} resize-y`} value={form.message} onChange={(event) => update("message", event.target.value)} aria-invalid={Boolean(errors.message)} aria-describedby={errors.message ? "message-error" : undefined} />
@@ -112,11 +121,17 @@ export default function LeadForm() {
         <input id="company_website" name="company_website" type="text" tabIndex={-1} autoComplete="off" value={form.companyWebsite} onChange={(event) => update("companyWebsite", event.target.value)} />
       </div>
       <div className="sm:col-span-2">
-        {LEADS_TURNSTILE_SITE_KEY ? <Turnstile ref={turnstileRef} siteKey={LEADS_TURNSTILE_SITE_KEY} onSuccess={setCaptchaToken} onExpire={() => setCaptchaToken(null)} onError={() => setCaptchaToken(null)} options={{ size: "flexible" }} /> : null}
-        <p className="mb-3 mt-3 text-xs leading-5 text-[var(--co-muted)]">No obligation. We&apos;ll use your details only to follow up about ServiceSpark beta access.</p>
+        <ul className="mb-4 space-y-1.5 text-sm leading-6 text-[var(--co-muted)]">
+          <li>No credit card, and no charge during beta.</li>
+          <li>We won&apos;t call unless you tick the box below.</li>
+          <li>Your data is yours: full CSV export any time, no lock-in.</li>
+        </ul>
+        <div className="min-h-16">
+          {LEADS_TURNSTILE_SITE_KEY ? <Turnstile ref={turnstileRef} siteKey={LEADS_TURNSTILE_SITE_KEY} onSuccess={setCaptchaToken} onExpire={() => setCaptchaToken(null)} onError={() => setCaptchaToken(null)} options={{ size: "flexible" }} /> : null}
+        </div>
         {serverError ? <p role="alert" className="mb-3 text-sm text-rose-700">{serverError}</p> : null}
         <button type="submit" disabled={submitting} className="co-button-primary w-full sm:w-auto">
-          {submitting ? "Sending…" : "Join the beta"}
+          {submitting ? "Sending…" : "Send my request"}
         </button>
       </div>
     </form>
