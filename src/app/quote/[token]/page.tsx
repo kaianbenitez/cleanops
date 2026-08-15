@@ -346,15 +346,15 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
   const remainingCents = requiresDeposit ? Math.max(0, quotedTotalCents - depositCents) : 0;
 
   if (notFound) {
-    return <div className="flex min-h-screen items-center justify-center bg-[var(--co-bg)] p-6 text-center text-sm text-[var(--co-muted)]">This proposal link is invalid or has expired.</div>;
+    return <div className="flex min-h-[100dvh] items-center justify-center bg-[var(--co-bg)] p-6 text-center text-sm text-[var(--co-muted)]">This proposal link is invalid or has expired.</div>;
   }
 
   if (!data) {
-    return <div className="flex min-h-screen items-center justify-center bg-[var(--co-bg)] p-6 text-sm text-[var(--co-muted)]">Loading your proposal...</div>;
+    return <div className="flex min-h-[100dvh] items-center justify-center bg-[var(--co-bg)] p-6 text-sm text-[var(--co-muted)]">Loading your proposal...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-[var(--co-bg)] px-4 py-6 text-[var(--co-ink)] sm:px-6 lg:px-8">
+    <div className="min-h-[100dvh] bg-[var(--co-bg)] px-4 py-6 text-[var(--co-ink)] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <header className="mb-6 rounded-[32px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-5 shadow-[0_12px_40px_rgba(15,23,42,0.05)] sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">

@@ -3,7 +3,7 @@
 // list shows the dispatch layout's shape immediately instead of a blank screen.
 export default function JobDetailLoading() {
   return (
-    <div className="-mx-4 -mt-6 min-h-screen animate-pulse bg-[#f7f9f6] pb-10 sm:-mx-6 lg:-mx-8" aria-hidden>
+    <div className="-mx-4 -mt-6 min-h-[100dvh] animate-pulse bg-[#f7f9f6] pb-10 sm:-mx-6 lg:-mx-8" aria-hidden>
       <div className="border-b border-[#d7e0d7] bg-[#fbfdf9]/95 px-5 py-3 sm:px-8">
         <div className="mx-auto flex max-w-[1500px] items-center gap-3">
           <div className="h-9 w-9 rounded-lg bg-[#e4eae3]" />

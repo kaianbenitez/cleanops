@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.47",
+    date: "August 16, 2026",
+    title: "ServiceSpark can now be installed to your home screen",
+    changes: [
+      "On an iPhone or iPad, open ServiceSpark in Safari, tap Share, then Add to Home Screen — it launches full-screen with no browser bar and its own icon, just like a regular app.",
+      "If you haven't installed it yet, a one-time banner at the top now walks you through the steps. Dismiss it and it won't come back.",
+    ],
+  },
+  {
     version: "v0.2.46",
     date: "August 13, 2026",
     title: "Double-booking warnings now show up when you edit a job",

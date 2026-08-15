@@ -196,7 +196,7 @@ export default function JobDetailClient({
   }
 
   return (
-    <div className="-mx-4 -mt-6 min-h-screen bg-[#f7f9f6] pb-10 sm:-mx-6 lg:-mx-8">
+    <div className="-mx-4 -mt-6 min-h-[100dvh] bg-[#f7f9f6] pb-10 sm:-mx-6 lg:-mx-8">
       <header className="sticky top-0 z-20 border-b border-[#d7e0d7] bg-[#fbfdf9]/95 px-5 py-3 backdrop-blur sm:px-8">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
