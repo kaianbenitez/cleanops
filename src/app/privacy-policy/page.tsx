@@ -1,10 +1,4 @@
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth/current-user";
-
-export default async function PrivacyPolicyPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-
+export default function PrivacyPolicyPage() {
   return (
     <div className="max-w-3xl space-y-4">
       <div>
