@@ -7,6 +7,19 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.48",
+    date: "August 16, 2026",
+    title: "My Day redesigned around your next stop",
+    changes: [
+      "Your next job now owns the top of the screen — big time, customer name, and a tappable address that opens Directions directly, no separate button.",
+      "While you're clocked in, a running timer bar shows how long you've been on the current house.",
+      "Today's mop heads, rags, and vacuums are now totaled once at the top of the day instead of repeated on every job.",
+      "The rest of today and the rest of the week now read as a single route with a line connecting your stops, instead of a stack of separate cards.",
+      "A missing address now shows up in amber with a way to call the office, instead of blending in as regular grey text.",
+      "Pet notes and do-not-clean notes now show as small tags on the job when a customer has them set.",
+    ],
+  },
+  {
     version: "v0.2.47",
     date: "August 16, 2026",
     title: "ServiceSpark can now be installed to your home screen",
