@@ -41,6 +41,8 @@ type JobCard = {
   ragCount?: number | null;
   vacuumCount?: number | null;
   mopHeadEstimate?: number | null;
+  petNotes: string | null;
+  doNotClean: string | null;
 };
 
 const HARD_FLOOR_ROOM_NAMES = new Set(["Master Bathroom", "Full Bathroom", "Half Bathroom", "Kitchen Large", "Kitchen Medium", "Kitchen Small", "Laundry Room", "Hallway"]);
@@ -156,6 +158,8 @@ export default async function MyDayPage() {
       preferredDays: customers.preferredDays,
       preferredTimeOfDay: customers.preferredTimeOfDay,
       subdivision: customers.subdivision,
+      petNotes: customers.petNotes,
+      doNotClean: customers.doNotClean,
       homeDetails: customers.homeDetails,
       mopHeadCount: customers.mopHeadCount,
       ragCount: customers.ragCount,
@@ -204,6 +208,8 @@ export default async function MyDayPage() {
       preferredDays: customers.preferredDays,
       preferredTimeOfDay: customers.preferredTimeOfDay,
       subdivision: customers.subdivision,
+      petNotes: customers.petNotes,
+      doNotClean: customers.doNotClean,
     })
     .from(jobAssignments)
     .innerJoin(jobs, eq(jobAssignments.jobId, jobs.id))
@@ -245,6 +251,8 @@ export default async function MyDayPage() {
       preferredDays: customers.preferredDays,
       preferredTimeOfDay: customers.preferredTimeOfDay,
       subdivision: customers.subdivision,
+      petNotes: customers.petNotes,
+      doNotClean: customers.doNotClean,
     })
     .from(jobAssignments)
     .innerJoin(jobs, eq(jobAssignments.jobId, jobs.id))
@@ -294,6 +302,8 @@ export default async function MyDayPage() {
       preferredDays: customers.preferredDays,
       preferredTimeOfDay: customers.preferredTimeOfDay,
       subdivision: customers.subdivision,
+      petNotes: customers.petNotes,
+      doNotClean: customers.doNotClean,
     })
     .from(timeEntries)
     .innerJoin(jobs, eq(timeEntries.jobId, jobs.id))
@@ -338,6 +348,8 @@ export default async function MyDayPage() {
       preferredDays: customers.preferredDays,
       preferredTimeOfDay: customers.preferredTimeOfDay,
       subdivision: customers.subdivision,
+      petNotes: customers.petNotes,
+      doNotClean: customers.doNotClean,
     })
     .from(timeEntries)
     .innerJoin(jobs, eq(timeEntries.jobId, jobs.id))
@@ -396,6 +408,8 @@ export default async function MyDayPage() {
         preferredDays: openEntry.preferredDays,
         preferredTimeOfDay: openEntry.preferredTimeOfDay,
         subdivision: openEntry.subdivision,
+        petNotes: openEntry.petNotes,
+        doNotClean: openEntry.doNotClean,
       }
     : currentJob
       ? {
@@ -427,15 +441,14 @@ export default async function MyDayPage() {
           preferredDays: currentJob.preferredDays,
           preferredTimeOfDay: currentJob.preferredTimeOfDay,
           subdivision: currentJob.subdivision,
+          petNotes: currentJob.petNotes,
+          doNotClean: currentJob.doNotClean,
         }
       : null;
 
   return (
     <MyDayClient
       employeeName={`${user.firstName} ${user.lastName}`}
-      employeeTitle={user.title ?? "Employee"}
-      companyName={company.name}
-      companyLogoUrl={branding?.logoUrl ?? null}
       officePhone={officePhone}
       companyTimezone={company.timezone}
       weeklyHours={hoursThisPeriod}

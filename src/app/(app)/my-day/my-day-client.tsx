@@ -3,8 +3,25 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw, Phone, ArrowRight, MapPin, Car, CheckCircle2, Play, X, ChevronRight, CalendarCheck, Shirt, WashingMachine, Wind } from "lucide-react";
-import { timeLabel, dateLabel, jobAddress, formatElapsed, formatEstimatedTime, jobTypeLabel } from "@/lib/my-day/job-format";
+import {
+  Phone,
+  MapPin,
+  Car,
+  CheckCircle2,
+  Play,
+  X,
+  ChevronRight,
+  CalendarCheck,
+  PawPrint,
+  CircleSlash,
+  TriangleAlert,
+  Sparkles,
+  Repeat,
+  Clock3,
+  Star,
+  Package,
+} from "lucide-react";
+import { timeLabel, jobAddress, formatElapsed, jobTypeLabel } from "@/lib/my-day/job-format";
 import { MaskedCode } from "@/components/ui/masked-code";
 
 type JobCard = {
@@ -36,6 +53,8 @@ type JobCard = {
   preferredDays?: string[] | null;
   preferredTimeOfDay?: string | null;
   subdivision: string | null;
+  petNotes?: string | null;
+  doNotClean?: string | null;
   mopHeadCount?: number | null;
   ragCount?: number | null;
   vacuumCount?: number | null;
@@ -47,31 +66,104 @@ type JobCard = {
   } | null;
 };
 
-function RotationReminder({ reminder }: { reminder: NonNullable<JobCard["rotationalTaskReminder"]> }) {
+const SERVICE_TYPE_ICON: Record<string, typeof Sparkles> = {
+  deep_clean: Sparkles,
+  recurring: Repeat,
+  one_time: Clock3,
+  first_clean: Star,
+  move_out: Package,
+};
+
+function ServiceTypeIcon({ type, className }: { type: string; className?: string }) {
+  const Icon = SERVICE_TYPE_ICON[type] ?? Sparkles;
+  return <Icon className={className} aria-hidden strokeWidth={1.8} />;
+}
+
+function shortDuration(minutes: number | null | undefined) {
+  if (!minutes) return null;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h && m) return `${h}h ${m}m`;
+  if (h) return `${h}h`;
+  return `${m}m`;
+}
+
+function weekdayLabel(dateIso: string, timezone: string) {
+  const date = new Date(`${dateIso}T12:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return dateIso;
+  return new Intl.DateTimeFormat("en-US", { timeZone: timezone, weekday: "short" }).format(date);
+}
+
+function relativeTime(scheduledStartTime: string | null, now: number) {
+  if (!scheduledStartTime || !now) return null;
+  const target = new Date(scheduledStartTime).getTime();
+  if (Number.isNaN(target)) return null;
+  const diffMin = Math.round((target - now) / 60000);
+  if (diffMin > 90 || diffMin < -90) return null;
+  if (diffMin > 1) return `in ${diffMin} min`;
+  if (diffMin >= -1) return "now";
+  return `${Math.abs(diffMin)} min ago`;
+}
+
+function roleLabel(role: JobCard["role"]) {
+  return role === "lead" ? "You're driving" : role === "trainer" ? "Training" : "Helping";
+}
+
+/** Current week's rotation only — folded into the job card it belongs to. Full history stays on the job-detail page. */
+function RotationChecklist({ reminder }: { reminder: NonNullable<JobCard["rotationalTaskReminder"]> }) {
+  const current = reminder.weeks.find((week) => week.week === reminder.currentWeek);
+  const items = [reminder.everyTime, current?.weekly, current?.biweekly, current?.monthly].filter(
+    (item): item is string => Boolean(item)
+  );
+  if (!items.length) return null;
   return (
-    <details className="mt-3 rounded-lg border border-[var(--co-spark-fill)]/30 bg-[var(--co-spark-tint)] px-3 py-2 type-field-meta text-[var(--co-spark-text)]">
-      <summary className="cursor-pointer font-semibold">All-day rotation · Week {reminder.currentWeek}</summary>
-      <p className="mt-2 font-medium">Every time: {reminder.everyTime}</p>
-      <div className="mt-1.5 space-y-1">
-        {reminder.weeks.map((week) => (
-          <p key={week.week} className={week.week === reminder.currentWeek ? "font-bold" : "text-[var(--co-spark-text)]/70"}>
-            {week.label}: Weekly — {week.weekly}; Biweekly — {week.biweekly}; Monthly — {week.monthly}
-          </p>
+    <div className="mt-3 rounded-[10px] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-3 py-2.5">
+      <p className="type-field-meta font-semibold text-[var(--co-ink)]">This week&apos;s extras</p>
+      <ul className="mt-1 space-y-0.5 type-field-meta text-[var(--co-muted)]">
+        {items.map((item, index) => (
+          <li key={index}>{item}</li>
         ))}
-      </div>
-    </details>
+      </ul>
+    </div>
   );
 }
 
-function EquipmentRow({ job }: { job: JobCard }) {
-  const hasConfirmedMopCount = job.mopHeadCount !== null && job.mopHeadCount !== undefined;
-  const mopHeads = hasConfirmedMopCount ? String(job.mopHeadCount) : job.mopHeadEstimate === null || job.mopHeadEstimate === undefined ? "Not set" : `~${job.mopHeadEstimate}`;
+function RouteRow({
+  href,
+  time,
+  name,
+  meta,
+  done,
+  flagged,
+}: {
+  href: string;
+  time: string;
+  name: string;
+  meta: React.ReactNode;
+  done?: boolean;
+  flagged?: boolean;
+}) {
   return (
-    <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 type-field-meta text-[var(--co-muted)]" aria-label={`Equipment: Mop heads ${mopHeads}, rags ${job.ragCount ?? "not set"}, vacuum ${job.vacuumCount ?? "not set"}`}>
-      <span className={hasConfirmedMopCount ? "inline-flex items-center gap-1 font-medium text-[var(--co-ink)]" : "inline-flex items-center gap-1"}><WashingMachine className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden />Mopheads {mopHeads}{!hasConfirmedMopCount && job.mopHeadEstimate !== null && job.mopHeadEstimate !== undefined ? <span className="sr-only"> estimated</span> : null}</span>
-      <span className="inline-flex items-center gap-1"><Shirt className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden />Rags {job.ragCount ?? "Not set"}</span>
-      <span className="inline-flex items-center gap-1"><Wind className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden />Vacuum {job.vacuumCount ?? "Not set"}</span>
-    </div>
+    <Link
+      href={href}
+      className="co-route-row grid min-h-[64px] grid-cols-[50px_18px_minmax(0,1fr)_16px] items-center gap-2.5 border-t border-[var(--co-line-soft)] px-4 py-2.5 transition-colors hover:bg-[var(--co-surface-muted)] sm:px-5"
+    >
+      <span
+        className={`type-field-meta font-semibold tabular-nums ${
+          flagged ? "text-[var(--co-spark-text)]" : done ? "text-[var(--co-success)]" : "text-[var(--co-ink)]"
+        }`}
+      >
+        {time}
+      </span>
+      <span className="co-route-rail flex items-center justify-center">
+        <span className={`co-route-node ${done ? "is-done" : ""} ${flagged ? "is-flagged" : ""}`} />
+      </span>
+      <span className="min-w-0">
+        <p className={`type-field-body font-medium ${done ? "text-[var(--co-muted)]" : "text-[var(--co-ink)]"}`}>{name}</p>
+        <span className="mt-0.5 flex items-center gap-1.5 type-field-meta text-[var(--co-muted)]">{meta}</span>
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-[var(--co-faint)]" aria-hidden />
+    </Link>
   );
 }
 
@@ -91,12 +183,9 @@ type UndoAction = {
 
 export default function MyDayClient({
   employeeName,
-  employeeTitle,
-  companyName,
-  companyLogoUrl,
-  officePhone,
   companyTimezone,
   weeklyHours,
+  officePhone,
   currentJob,
   openEntry,
   todayJobs,
@@ -106,9 +195,6 @@ export default function MyDayClient({
   currentYear,
 }: {
   employeeName: string;
-  employeeTitle: string;
-  companyName: string;
-  companyLogoUrl: string | null;
   officePhone: string | null;
   companyTimezone: string;
   weeklyHours: number;
@@ -121,7 +207,7 @@ export default function MyDayClient({
   currentYear: number;
 }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [selectedJobId, setSelectedJobId] = useState<string | null>(currentJob?.jobId ?? todayJobs[0]?.jobId ?? upcomingJobs[0]?.jobId ?? completedJobs[0]?.jobId ?? null);
   const [localTodayJobs, setLocalTodayJobs] = useState<JobCard[]>(todayJobs);
   const [localUpcomingJobs, setLocalUpcomingJobs] = useState<JobCard[]>(upcomingJobs);
@@ -194,8 +280,27 @@ export default function MyDayClient({
 
   const activeTimerLabel = formatElapsed(openEntry?.clockIn ?? null, now);
   const routeJobs = [...localTodayJobs].sort((a, b) => (a.scheduledStartTime ?? "").localeCompare(b.scheduledStartTime ?? ""));
-  // Exclude the active job here — its rotation reminder already renders inline on its own card below.
-  const todayRotationJobs = localTodayJobs.filter((job) => job.rotationalTaskReminder && job.jobId !== activeJob?.jobId);
+  const restOfToday = routeJobs.filter((job) => job.jobId !== activeJob?.jobId);
+  const restOfWeekUpcoming = localUpcomingJobs.filter((job) => job.jobId !== activeJob?.jobId);
+  const weekRows = [...localCompletedJobs, ...restOfWeekUpcoming];
+  const dayStarted = Boolean(openEntry) || localCompletedJobs.length > 0;
+  const loadout = routeJobs.reduce(
+    (acc, job) => {
+      acc.mop += job.mopHeadCount ?? job.mopHeadEstimate ?? 0;
+      acc.rag += job.ragCount ?? 0;
+      acc.vacuum += job.vacuumCount ?? 0;
+      return acc;
+    },
+    { mop: 0, rag: 0, vacuum: 0 }
+  );
+  const hasLoadout = loadout.mop > 0 || loadout.rag > 0 || loadout.vacuum > 0;
+
+  const isWorking = Boolean(activeJob) && openEntry?.jobId === activeJob?.jobId;
+  const hasArrived = Boolean(activeJob) && arrivedJobId === activeJob?.jobId;
+  const hasAddress = Boolean(activeJob && jobAddress(activeJob));
+  const heroTime = activeJob ? timeLabel(activeJob.scheduledStartTime) : null;
+  const hasTime = Boolean(heroTime) && heroTime !== "—" && heroTime !== "Time not set";
+  const rel = activeJob ? relativeTime(activeJob.scheduledStartTime, now) : null;
 
   async function clockIn(jobId: string, options?: { undoLabel?: string; undoAction?: () => void | Promise<void>; onSuccess?: () => void }) {
     setError(null);
@@ -301,343 +406,345 @@ export default function MyDayClient({
   }
 
   return (
-    <div className="mx-auto max-w-[560px] space-y-4 pb-10">
-      <section className="co-card overflow-hidden">
-        <div className="flex items-center gap-3 px-4 py-3 sm:px-5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]">
-            {companyLogoUrl ? (
-              <img src={companyLogoUrl} alt={`${companyName} logo`} className="h-full w-full object-contain p-1" />
-            ) : (
-              <span className="text-[13px] font-semibold text-[var(--co-ink)]">{companyName.slice(0, 2).toUpperCase()}</span>
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="type-field-title truncate font-semibold tracking-[-0.03em] text-[var(--co-ink)]">{employeeName}</h1>
-            <p className="type-field-meta text-[var(--co-muted)]">
-              {todayJobs.length} {todayJobs.length === 1 ? "stop" : "stops"} today · {weeklyHours.toFixed(1)}h this week
-            </p>
-            <p className="sr-only">
-              {employeeTitle} at {companyName}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => router.refresh()}
-            className="co-button-secondary shrink-0 gap-1.5 px-3 py-1.5 type-field-meta"
-            disabled={pending}
-          >
-            <RefreshCw className="h-4 w-4" aria-hidden />
-            Refresh
-          </button>
+    <div className="mx-auto max-w-[560px] pb-16">
+      <div className="flex items-start justify-between gap-3 px-4 pb-3 pt-1 sm:px-5">
+        <div className="min-w-0">
+          <p className="type-field-title font-bold tracking-[-0.01em] text-[var(--co-ink)]">{dayLabel}</p>
+          <p className="mt-0.5 type-field-meta tabular-nums text-[var(--co-muted)]">
+            {routeJobs.length > 0
+              ? `${routeJobs.length} ${routeJobs.length === 1 ? "stop" : "stops"} · first at ${timeLabel(routeJobs[0].scheduledStartTime)} · ${weeklyHours.toFixed(1)}h this week`
+              : `No stops today · ${weeklyHours.toFixed(1)}h this week`}
+          </p>
+          <p className="sr-only">{employeeName}</p>
         </div>
-
-        <div className="flex items-center justify-between gap-3 border-t border-[var(--co-line-soft)] px-4 py-2.5 sm:px-5">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className={`h-2 w-2 shrink-0 rounded-full ${openEntry ? "animate-pulse bg-[var(--co-success)]" : "bg-[var(--co-line)]"}`} aria-hidden />
-            <p className="truncate type-field-meta font-medium text-[var(--co-muted)]">
-              {openEntry ? (
-                <>
-                  Clocked in · <span className="font-mono text-[var(--co-ink)]">{activeTimerLabel}</span>
-                  {activeJob ? ` · ${activeJob.customerFirstName} ${activeJob.customerLastName}` : ""}
-                </>
-              ) : (
-                "Not clocked in"
-              )}
-            </p>
-          </div>
-          {activeJob && openEntry ? (
-            <Link href={`/my-day/${activeJob.jobId}`} className="flex min-h-11 shrink-0 items-center gap-1 type-field-meta font-semibold text-[var(--co-evergreen)]">
-              Continue job
-              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-            </Link>
-          ) : officePhone ? (
-            <a href={`tel:${officePhone}`} className="flex min-h-11 shrink-0 items-center gap-1 type-field-meta font-semibold text-[var(--co-evergreen)]">
-              <Phone className="h-3.5 w-3.5" aria-hidden />
-              Call office
-            </a>
-          ) : null}
-        </div>
-      </section>
-
-      <Link
-        href="/my-day/pto"
-        className="co-card flex min-h-11 items-center justify-between gap-3 px-4 py-3 type-field-body font-medium text-[var(--co-ink)] sm:px-5"
-      >
-        <span className="inline-flex items-center gap-2">
-          <CalendarCheck className="h-4 w-4 text-[var(--co-evergreen)]" aria-hidden />
+        <Link
+          href="/my-day/pto"
+          className="flex min-h-11 shrink-0 items-center gap-1.5 type-field-meta font-medium text-[var(--co-muted)] hover:text-[var(--co-ink)]"
+        >
+          <CalendarCheck className="h-4 w-4" aria-hidden strokeWidth={1.8} />
           Time off
-        </span>
-        <ChevronRight className="h-4 w-4 text-[var(--co-muted)]" aria-hidden />
-      </Link>
+        </Link>
+      </div>
 
       {error ? (
-        <p role="alert" className="co-badge-danger rounded-2xl px-4 py-3 type-field-body">
+        <p role="alert" className="co-badge-danger mx-4 mb-3 rounded-xl px-4 py-3 type-field-body sm:mx-5">
           {error}
         </p>
       ) : null}
 
-      <section className="co-card overflow-hidden">
-        {todayRotationJobs.length ? (
-          <div className="border-b border-[var(--co-spark-fill)]/30 bg-[var(--co-spark-tint)] px-4 py-4 text-[var(--co-spark-text)] sm:px-5">
-            <h2 className="type-field-title font-semibold">Rotational tasks</h2>
-            <div className="mt-3 space-y-4">
-              {todayRotationJobs.map((job) => (
-                <div key={job.jobId}>
-                  <p className="font-semibold">{job.customerFirstName} {job.customerLastName}</p>
-                  <RotationReminder reminder={job.rotationalTaskReminder!} />
-                </div>
-              ))}
+      {openEntry ? (
+        <Link
+          href={`/my-day/${openEntry.jobId}`}
+          aria-label={`Clocked in, continue ${activeJob ? `${activeJob.customerFirstName} ${activeJob.customerLastName}'s job` : "your job"}`}
+          className="mx-4 mb-3 flex items-baseline gap-2.5 rounded-[var(--co-radius-card)] border px-3.5 py-2.5 sm:mx-5"
+          style={{ background: "color-mix(in srgb, var(--co-success) 12%, var(--co-surface))", borderColor: "color-mix(in srgb, var(--co-success) 26%, transparent)" }}
+        >
+          <span className="h-2 w-2 shrink-0 animate-pulse self-center rounded-full" style={{ background: "var(--co-success)" }} aria-hidden />
+          <span className="font-mono text-[20px] font-semibold tabular-nums tracking-[-0.01em]" style={{ color: "var(--co-success)" }}>
+            {activeTimerLabel}
+          </span>
+          <span className="type-field-meta font-medium text-[var(--co-muted)]">on this house</span>
+          <span className="ml-auto type-field-meta font-medium tabular-nums text-[var(--co-muted)]">since {timeLabel(openEntry.clockIn)}</span>
+        </Link>
+      ) : null}
+
+      {!dayStarted && hasLoadout ? (
+        <div className="mx-4 mb-3.5 rounded-[var(--co-radius-card)] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-3.5 py-3 sm:mx-5">
+          <p className="type-field-meta font-semibold text-[var(--co-muted)]">Load out for today</p>
+          <div className="mt-2 grid grid-cols-3 gap-1.5">
+            <div className="flex items-center gap-2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} className="h-[21px] w-[21px] shrink-0 text-[var(--co-muted)]" aria-hidden>
+                <path d="M12 2v7" />
+                <path d="M7.5 9h9" />
+                <path d="M8.6 9 7 21M11 9l-.7 12M13 9l.7 12M15.4 9 17 21" />
+              </svg>
+              <span>
+                <span className="block type-field-body font-bold tabular-nums leading-none">{loadout.mop}</span>
+                <span className="block type-field-micro font-medium leading-tight text-[var(--co-muted)]">mop heads</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} className="h-[21px] w-[21px] shrink-0 text-[var(--co-muted)]" aria-hidden>
+                <path d="m3 12 9 5 9-5" />
+                <path d="m3 7.5 9 5 9-5" />
+                <path d="m3 16.5 9 5 9-5" />
+              </svg>
+              <span>
+                <span className="block type-field-body font-bold tabular-nums leading-none">{loadout.rag}</span>
+                <span className="block type-field-micro font-medium leading-tight text-[var(--co-muted)]">rags</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} className="h-[21px] w-[21px] shrink-0 text-[var(--co-muted)]" aria-hidden>
+                <circle cx="17" cy="6.5" r="3.5" />
+                <path d="M17 10v2a5 5 0 0 1-5 5h-1v4" />
+                <path d="M4 21h9v-3.5H6.5A2.5 2.5 0 0 0 4 20v1Z" />
+              </svg>
+              <span>
+                <span className="block type-field-body font-bold tabular-nums leading-none">{loadout.vacuum}</span>
+                <span className="block type-field-micro font-medium leading-tight text-[var(--co-muted)]">vacuums</span>
+              </span>
             </div>
           </div>
-        ) : null}
-        <div className="border-b border-[var(--co-line-soft)] px-4 py-4 sm:px-5">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="type-field-title font-semibold">Today&apos;s jobs</h2>
-            <span className="rounded-full bg-[var(--co-accent-tint)] px-2.5 py-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--co-evergreen)]">
-              {routeJobs.length} stops
-            </span>
+        </div>
+      ) : null}
+
+      {activeJob ? (
+        <div className="border-y border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-5 sm:px-5">
+          <div className="flex flex-wrap items-baseline gap-2.5">
+            <p className={`type-field-hero tabular-nums ${hasTime ? "text-[var(--co-ink)]" : "text-[var(--co-spark-text)]"}`}>
+              {hasTime ? heroTime : "Time not set"}
+            </p>
+            {rel ? <span className="type-field-meta font-semibold text-[var(--co-muted)]">{rel}</span> : null}
           </div>
-          <p className="mt-2 type-field-meta text-[var(--co-muted)]">
-            {routeJobs.length > 0
-              ? `${dayLabel} · ${routeJobs.length} ${routeJobs.length === 1 ? "stop" : "stops"}, first at ${timeLabel(routeJobs[0].scheduledStartTime)}`
-              : "No route stops scheduled for today."}
+          <p className="type-field-display mt-1.5 font-semibold text-[var(--co-ink)]">
+            {activeJob.customerFirstName} {activeJob.customerLastName}
           </p>
-        </div>
-        <div className="space-y-3 p-4 sm:p-5">
-          {routeJobs.length === 0 ? (
-            <div className="flex flex-col items-center py-6 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--co-surface-muted)]">
-                <CalendarCheck className="h-7 w-7 text-[var(--co-muted)]" aria-hidden />
-              </div>
-              <p className="mt-4 type-field-body font-medium text-[var(--co-ink)]">That&apos;s everything for today.</p>
+
+          {hasAddress ? (
+            <a
+              href={`https://maps.google.com/?q=${encodeURIComponent(jobAddress(activeJob))}`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex items-center gap-1.5 border-b type-field-body font-medium text-[var(--co-accent-text)]"
+              style={{ borderColor: "color-mix(in srgb, var(--co-accent-text) 35%, transparent)" }}
+            >
+              <MapPin className="h-4 w-4 shrink-0" aria-hidden strokeWidth={2.1} />
+              {jobAddress(activeJob)}
+            </a>
+          ) : officePhone ? (
+            <a
+              href={`tel:${officePhone}`}
+              className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[var(--co-spark-tint)] px-2.5 py-1.5 type-field-meta font-semibold text-[var(--co-spark-text)]"
+            >
+              <TriangleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={2.1} />
+              Address not set · call the office
+            </a>
+          ) : (
+            <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--co-spark-tint)] px-2.5 py-1 type-field-meta font-semibold text-[var(--co-spark-text)]">
+              <TriangleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={2.1} />
+              Address not set
+            </p>
+          )}
+
+          <p className="mt-2.5 flex items-center gap-1.5 type-field-meta text-[var(--co-muted)]">
+            <ServiceTypeIcon type={activeJob.type} className="h-[17px] w-[17px] shrink-0 text-[var(--co-ink)]" />
+            {jobTypeLabel(activeJob.type)} · {shortDuration(activeJob.estimatedDurationMinutes) ?? "Est. pending"} · {roleLabel(activeJob.role)}
+          </p>
+
+          {activeJob.petNotes || activeJob.doNotClean ? (
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {activeJob.petNotes ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2.5 py-1 type-field-micro font-semibold text-[var(--co-muted)]">
+                  <PawPrint className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.9} />
+                  {activeJob.petNotes}
+                </span>
+              ) : null}
+              {activeJob.doNotClean ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2.5 py-1 type-field-micro font-semibold text-[var(--co-muted)]">
+                  <CircleSlash className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.9} />
+                  {activeJob.doNotClean}
+                </span>
+              ) : null}
             </div>
-          ) : (
-            routeJobs.map((job, index) => {
-              const isNextUp = job.jobId === activeJob?.jobId;
-              const isWorking = openEntry?.jobId === job.jobId;
-              const bannerLabel = isWorking ? "In progress" : "Next up";
-              return (
-                <div
-                  key={job.jobId}
-                  className={`overflow-hidden rounded-xl border bg-[var(--co-surface)] transition-colors ${
-                    isNextUp ? "border-[var(--co-evergreen)]" : "border-[var(--co-line-soft)]"
-                  }`}
+          ) : null}
+
+          <div className="mt-4">
+            {isWorking ? (
+              hasArrived ? (
+                <button type="button" onClick={() => beginJob(activeJob.jobId)} className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full bg-[var(--co-accent-fill)] px-5 text-[17px] font-semibold text-white transition-colors hover:bg-[var(--co-accent-fill-hover)]">
+                  <Play className="h-[19px] w-[19px]" aria-hidden />
+                  Start
+                </button>
+              ) : (
+                <button type="button" onClick={() => markArrived(activeJob.jobId)} className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full bg-[var(--co-accent-fill)] px-5 text-[17px] font-semibold text-white transition-colors hover:bg-[var(--co-accent-fill-hover)]">
+                  <CheckCircle2 className="h-[19px] w-[19px]" aria-hidden />
+                  Arrived
+                </button>
+              )
+            ) : (
+              <button
+                type="button"
+                onClick={() => onMyWay(activeJob.jobId)}
+                disabled={busy[`clock:${activeJob.jobId}`]}
+                className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full bg-[var(--co-accent-fill)] px-5 text-[17px] font-semibold text-white transition-colors hover:bg-[var(--co-accent-fill-hover)] disabled:opacity-60"
+              >
+                <Car className="h-[19px] w-[19px]" aria-hidden />
+                {busy[`clock:${activeJob.jobId}`] ? "Saving…" : "On my way"}
+              </button>
+            )}
+          </div>
+
+          {activeJob.accessInstructions || activeJob.keyNumber || activeJob.garageCode || activeJob.gateCode || activeJob.alarmCode ? (
+            <details className="mt-3.5">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 type-field-body font-semibold text-[var(--co-muted)] [&::-webkit-details-marker]:hidden">
+                <ChevronRight className="h-[15px] w-[15px] shrink-0 transition-transform [details[open]_&]:rotate-90" aria-hidden />
+                Entry instructions
+              </summary>
+              <div className="mt-1 space-y-2 rounded-[10px] bg-[var(--co-surface-muted)] px-3.5 py-3 type-field-meta text-[var(--co-ink)]">
+                {activeJob.accessInstructions ? <p className="whitespace-pre-line">{activeJob.accessInstructions}</p> : null}
+                {activeJob.keyNumber || activeJob.garageCode || activeJob.gateCode || activeJob.alarmCode ? (
+                  <MaskedCode className="max-w-full text-left type-field-meta">
+                    {[activeJob.keyNumber && `Key #${activeJob.keyNumber}`, activeJob.garageCode && `Garage ${activeJob.garageCode}`, activeJob.gateCode && `Gate ${activeJob.gateCode}`, activeJob.alarmCode && `Alarm ${activeJob.alarmCode}`].filter(Boolean).join(" · ")}
+                  </MaskedCode>
+                ) : null}
+              </div>
+            </details>
+          ) : null}
+
+          {activeJob.rotationalTaskReminder ? <RotationChecklist reminder={activeJob.rotationalTaskReminder} /> : null}
+
+          <div className="mt-3.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+            <Link href={`/my-day/${activeJob.jobId}`} className="flex min-h-11 items-center border-b border-[var(--co-line)] type-field-meta font-semibold text-[var(--co-muted)] hover:text-[var(--co-ink)]">
+              Job details
+            </Link>
+            {activeJob.role === "lead" ? (
+              !editingMileage[activeJob.jobId] ? (
+                <button
+                  type="button"
+                  onClick={() => setEditingMileage((current) => ({ ...current, [activeJob.jobId]: true }))}
+                  className="flex min-h-11 items-center border-b border-[var(--co-line)] type-field-meta font-semibold text-[var(--co-muted)] hover:text-[var(--co-ink)]"
                 >
-                  {isNextUp ? (
-                    <div className="flex items-center justify-between bg-[var(--co-evergreen)] px-4 py-2 text-white">
-                      <span className="text-[13px] font-semibold">{bannerLabel}</span>
-                      <span className="text-[13px] font-medium">{timeLabel(job.scheduledStartTime)}</span>
-                    </div>
-                  ) : null}
-                  <div className="flex items-center gap-3 px-4 py-4">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--co-surface-muted)] text-[13px] font-semibold text-[var(--co-ink)]">
-                      {index + 1}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="type-field-body font-medium text-[var(--co-ink)]">
-                            {job.customerFirstName} {job.customerLastName}
-                          </p>
-                          <span className="co-badge-neutral mt-1 inline-flex rounded-full px-2 py-0.5 text-[13px] font-semibold">
-                            {jobTypeLabel(job.type)}
-                          </span>
-                          <p className="mt-1 type-field-meta text-[var(--co-muted)]">
-                            {isNextUp
-                              ? `${jobAddress(job) || "Address not set"} · ${formatEstimatedTime(job.estimatedDurationMinutes)}`
-                              : `${timeLabel(job.scheduledStartTime)} · ${jobAddress(job) || "Address not set"} · ${formatEstimatedTime(job.estimatedDurationMinutes)}`}
-                          </p>
-                          <EquipmentRow job={job} />
-                        </div>
-                        <div className="flex shrink-0 flex-col items-end gap-2">
-                          <span
-                            className={`rounded-full px-2.5 py-1 text-[13px] font-semibold uppercase tracking-[0.08em] ${
-                              job.role === "lead" ? "co-badge-success" : "co-badge-neutral"
-                            }`}
-                          >
-                            {job.role === "lead" ? "Lead / driver" : job.role === "trainer" ? "Trainer" : "Helper"}
-                          </span>
-                          {!isNextUp ? <span className="co-badge-neutral rounded-full px-2.5 py-1 text-[13px] font-semibold uppercase tracking-[0.08em]">Scheduled</span> : null}
-                        </div>
-                      </div>
+                  {Number(activeJob.mileageMiles) > 0 ? `${activeJob.mileageMiles} mi logged` : "Log mileage"}
+                </button>
+              ) : null
+            ) : null}
+            {isWorking ? (
+              <button
+                type="button"
+                onClick={() => discardJob(activeJob.jobId)}
+                disabled={busy[`clock:${activeJob.jobId}`]}
+                className="flex min-h-11 items-center border-b border-[var(--co-danger)]/40 type-field-meta font-semibold text-[var(--co-danger)] hover:border-[var(--co-danger)]"
+              >
+                <X className="mr-1 h-3.5 w-3.5" aria-hidden />
+                Discard
+              </button>
+            ) : null}
+          </div>
 
-                      {isNextUp ? (
-                        <>
-                        <div className="mt-3 space-y-2">
-                          {isWorking ? (
-                            arrivedJobId === job.jobId ? (
-                              <button type="button" onClick={() => beginJob(job.jobId)} className="co-button-primary w-full justify-center gap-1.5" disabled={pending}>
-                                <Play className="h-4 w-4" aria-hidden />
-                                Start
-                              </button>
-                            ) : (
-                              <button type="button" onClick={() => markArrived(job.jobId)} className="co-button-primary w-full justify-center gap-1.5" disabled={pending}>
-                                <CheckCircle2 className="h-4 w-4" aria-hidden />
-                                Arrived
-                              </button>
-                            )
-                          ) : (
-                            <button type="button" onClick={() => onMyWay(job.jobId)} className="co-button-primary w-full justify-center gap-1.5" disabled={pending || busy[`clock:${job.jobId}`]}>
-                              <Car className="h-4 w-4" aria-hidden />
-                              {busy[`clock:${job.jobId}`] ? "Saving…" : "On my way"}
-                            </button>
-                          )}
-                          {isWorking ? (
-                            <button
-                              type="button"
-                              onClick={() => discardJob(job.jobId)}
-                              className="co-button-secondary w-full justify-center gap-1.5 !border-[var(--co-danger)]/40 !text-[var(--co-danger)] hover:!border-[var(--co-danger)]/60 hover:!bg-[var(--co-danger)]/10"
-                              disabled={pending || busy[`clock:${job.jobId}`]}
-                            >
-                              <X className="h-4 w-4" aria-hidden />
-                              Discard
-                            </button>
-                          ) : null}
-                          <div className="grid grid-cols-2 gap-2">
-                            <a
-                              href={`https://maps.google.com/?q=${encodeURIComponent(jobAddress(job) || "")}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="co-button-secondary justify-center gap-1.5"
-                            >
-                              <MapPin className="h-4 w-4" aria-hidden />
-                              Directions
-                            </a>
-                            <Link href={`/my-day/${job.jobId}`} className="co-button-secondary justify-center gap-1.5">
-                              Job details
-                            </Link>
-                          </div>
-                        </div>
-                          {job.rotationalTaskReminder ? <RotationReminder reminder={job.rotationalTaskReminder} /> : null}
-                          {job.role === "lead" ? (
-                            <div className="mt-3 rounded-lg border border-[var(--co-success)]/30 bg-[var(--co-success)]/10 px-3 py-2">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="type-field-meta font-semibold text-[var(--co-success)]">You are the driver</p>
-                                {!editingMileage[job.jobId] ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => setEditingMileage((current) => ({ ...current, [job.jobId]: true }))}
-                                    className="-mx-2 -my-2 flex min-h-11 items-center px-2 type-field-meta font-semibold text-[var(--co-success)] underline underline-offset-2"
-                                  >
-                                    {Number(job.mileageMiles) > 0 ? `${job.mileageMiles} mi logged · Edit` : "Log mileage"}
-                                  </button>
-                                ) : null}
-                              </div>
-                              {editingMileage[job.jobId] ? (
-                                <div className="mt-2 flex items-center gap-2">
-                                  <input aria-label="Mileage miles" type="number" min="0" step="0.1" autoFocus value={mileageDraft[job.jobId] ?? job.mileageMiles} onChange={(event) => setMileageDraft((current) => ({ ...current, [job.jobId]: event.target.value }))} className="co-input w-28 text-sm" />
-                                  <span className="type-field-meta text-[var(--co-success)]">miles</span>
-                                  <button type="button" onClick={() => saveMileage(job)} className="co-button-secondary px-2.5 py-1.5 type-field-meta" disabled={busy[`mileage:${job.jobId}`]}>
-                                    {busy[`mileage:${job.jobId}`] ? "Saving…" : "Save mileage"}
-                                  </button>
-                                </div>
-                              ) : null}
-                            </div>
-                          ) : null}
-                          {job.accessInstructions || job.keyNumber || job.garageCode || job.gateCode || job.alarmCode ? (
-                            <details open className="mt-3 rounded-lg border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-3 py-2">
-                              <summary className="cursor-pointer type-field-meta font-semibold text-[var(--co-ink)]">Entry instructions</summary>
-                              <div className="mt-2 space-y-2 type-field-meta text-[var(--co-muted)]">
-                                {job.accessInstructions ? <p className="whitespace-pre-line">{job.accessInstructions}</p> : null}
-                                {job.keyNumber || job.garageCode || job.gateCode || job.alarmCode ? (
-                                  <MaskedCode className="max-w-full text-left type-field-meta">
-                                    {[job.keyNumber && `Key #${job.keyNumber}`, job.garageCode && `Garage ${job.garageCode}`, job.gateCode && `Gate ${job.gateCode}`, job.alarmCode && `Alarm ${job.alarmCode}`].filter(Boolean).join(" · ")}
-                                  </MaskedCode>
-                                ) : null}
-                              </div>
-                            </details>
-                          ) : null}
-                        </>
-                      ) : (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <a href={`https://maps.google.com/?q=${encodeURIComponent(jobAddress(job) || "")}`} target="_blank" rel="noreferrer" className="co-button-secondary gap-1.5">
-                            <MapPin className="h-4 w-4" aria-hidden /> Directions
-                          </a>
-                          <Link href={`/my-day/${job.jobId}`} className="co-button-secondary">Job details</Link>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+          {editingMileage[activeJob.jobId] ? (
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                aria-label="Mileage miles"
+                type="number"
+                min="0"
+                step="0.1"
+                autoFocus
+                value={mileageDraft[activeJob.jobId] ?? activeJob.mileageMiles}
+                onChange={(event) => setMileageDraft((current) => ({ ...current, [activeJob.jobId]: event.target.value }))}
+                className="co-input w-28 text-sm"
+              />
+              <span className="type-field-meta text-[var(--co-muted)]">miles</span>
+              <button type="button" onClick={() => saveMileage(activeJob)} className="co-button-secondary px-2.5 py-1.5 type-field-meta" disabled={busy[`mileage:${activeJob.jobId}`]}>
+                {busy[`mileage:${activeJob.jobId}`] ? "Saving…" : "Save"}
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center border-y border-[var(--co-line-soft)] px-4 py-10 text-center sm:px-5">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--co-surface-muted)]">
+            <CalendarCheck className="h-7 w-7 text-[var(--co-muted)]" aria-hidden />
+          </div>
+          <p className="mt-4 type-field-body font-medium text-[var(--co-ink)]">That&apos;s everything for today.</p>
+        </div>
+      )}
+
+      {restOfToday.length > 0 ? (
+        <div>
+          <p className="px-4 pb-2 pt-5 type-field-meta font-semibold text-[var(--co-muted)] sm:px-5">Rest of today</p>
+          <div>
+            {restOfToday.map((job) => {
+              const flagged = !jobAddress(job);
+              return (
+                <RouteRow
+                  key={job.jobId}
+                  href={`/my-day/${job.jobId}`}
+                  time={timeLabel(job.scheduledStartTime)}
+                  name={`${job.customerFirstName} ${job.customerLastName}`}
+                  flagged={flagged}
+                  meta={
+                    flagged ? (
+                      <>
+                        <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-[var(--co-spark-text)]" aria-hidden strokeWidth={2.1} />
+                        <span className="text-[var(--co-spark-text)]">No address · call office</span>
+                      </>
+                    ) : (
+                      <>
+                        <ServiceTypeIcon type={job.type} className="h-[15px] w-[15px] shrink-0" />
+                        {jobTypeLabel(job.type)} · {job.city ?? "No city"} · {shortDuration(job.estimatedDurationMinutes) ?? "Est. pending"}
+                      </>
+                    )
+                  }
+                />
               );
-            })
-          )}
+            })}
+          </div>
         </div>
-      </section>
+      ) : null}
 
-      <section className="co-card overflow-hidden">
-        <div className="border-b border-[var(--co-line-soft)] px-4 py-4 sm:px-5">
-          <h2 className="type-field-title font-semibold">Upcoming jobs</h2>
-        </div>
-        <div className="space-y-3 p-4 sm:p-5">
-          {upcomingJobs.length === 0 ? (
-            <p className="type-field-meta text-[var(--co-muted)]">Nothing scheduled after today yet.</p>
-          ) : (
-            upcomingJobs.map((job) => (
-              <Link
+      {weekRows.length > 0 ? (
+        <div>
+          <p className="px-4 pb-2 pt-5 type-field-meta font-semibold text-[var(--co-muted)] sm:px-5">Rest of the week</p>
+          <div>
+            {localCompletedJobs.map((job) => (
+              <RouteRow
                 key={job.jobId}
                 href={`/my-day/${job.jobId}`}
-                className="flex min-h-11 items-start justify-between gap-3 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-4 transition-colors hover:border-[var(--co-line)]"
-              >
-                <div className="min-w-0">
-                  <p className="type-field-body font-medium text-[var(--co-ink)]">
-                    {job.customerFirstName} {job.customerLastName}
-                  </p>
-                  <p className="mt-1 type-field-meta text-[var(--co-muted)]">
-                    {dateLabel(job.scheduledDate, companyTimezone)} · {timeLabel(job.scheduledStartTime)} · {formatEstimatedTime(job.estimatedDurationMinutes)}
-                  </p>
-                  <p className="mt-1 type-field-meta text-[var(--co-faint)]">{jobAddress(job) || "Address not set"}</p>
-                </div>
-                <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-faint)]" aria-hidden />
-              </Link>
-            ))
-          )}
+                time="Today"
+                name={`${job.customerFirstName} ${job.customerLastName}`}
+                done
+                meta={
+                  <>
+                    <ServiceTypeIcon type={job.type} className="h-[15px] w-[15px] shrink-0" />
+                    {jobTypeLabel(job.type)} · Completed
+                  </>
+                }
+              />
+            ))}
+            {restOfWeekUpcoming.map((job) => {
+              const flagged = !jobAddress(job);
+              return (
+                <RouteRow
+                  key={job.jobId}
+                  href={`/my-day/${job.jobId}`}
+                  time={weekdayLabel(job.scheduledDate, companyTimezone)}
+                  name={`${job.customerFirstName} ${job.customerLastName}`}
+                  flagged={flagged}
+                  meta={
+                    flagged ? (
+                      <>
+                        <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-[var(--co-spark-text)]" aria-hidden strokeWidth={2.1} />
+                        <span className="text-[var(--co-spark-text)]">No address · call office</span>
+                      </>
+                    ) : (
+                      <>
+                        <ServiceTypeIcon type={job.type} className="h-[15px] w-[15px] shrink-0" />
+                        {jobTypeLabel(job.type)} · {job.city ?? "No city"} · {timeLabel(job.scheduledStartTime)}
+                      </>
+                    )
+                  }
+                />
+              );
+            })}
+          </div>
         </div>
-      </section>
+      ) : null}
 
-      <section className="co-card overflow-hidden">
-        <div className="border-b border-[var(--co-line-soft)] px-4 py-4 sm:px-5">
-          <h2 className="type-field-title font-semibold">Finished jobs</h2>
-        </div>
-        <div className="space-y-3 p-4 sm:p-5">
-          {completedJobs.length === 0 ? (
-            <p className="type-field-meta text-[var(--co-muted)]">No completed jobs yet.</p>
-          ) : (
-            completedJobs.map((job) => (
-              <Link
-                key={job.jobId}
-                href={`/my-day/${job.jobId}`}
-                className="flex min-h-11 items-start justify-between gap-3 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-4 py-4 opacity-80 transition-opacity hover:opacity-100"
-              >
-                <div className="min-w-0">
-                  <p className="type-field-body font-medium text-[var(--co-muted)] line-through decoration-[var(--co-line)]">
-                    {job.customerFirstName} {job.customerLastName}
-                  </p>
-                  <p className="mt-1 type-field-meta text-[var(--co-faint)]">
-                    {dateLabel(job.scheduledDate, companyTimezone)} · {timeLabel(job.scheduledStartTime)} · {formatEstimatedTime(job.estimatedDurationMinutes)}
-                  </p>
-                  <p className="mt-1 type-field-meta text-[var(--co-faint)]">{jobAddress(job) || "Address not set"}</p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <span className="co-badge-success inline-flex items-center rounded-full px-2.5 py-1 text-[13px] font-semibold uppercase tracking-[0.08em]">
-                    Completed
-                  </span>
-                  <ChevronRight className="h-4 w-4 text-[var(--co-faint)]" aria-hidden />
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
-      </section>
-
-      <footer className="border-t border-[var(--co-line-soft)] pt-4 text-center">
-        <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 type-field-body font-medium text-[var(--co-muted)]">
+      <footer className="mt-8 border-t border-[var(--co-line-soft)] px-4 pt-4 text-center sm:px-5">
+        <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 type-field-meta font-medium text-[var(--co-muted)]">
           <Link href="/help-center" className="inline-flex min-h-11 items-center hover:text-[var(--co-ink)]">
             Help Center
           </Link>
           <Link href="/privacy-policy" className="inline-flex min-h-11 items-center hover:text-[var(--co-ink)]">
             Privacy Policy
           </Link>
+          {officePhone ? (
+            <a href={`tel:${officePhone}`} className="inline-flex min-h-11 items-center gap-1 hover:text-[var(--co-ink)]">
+              <Phone className="h-3.5 w-3.5" aria-hidden />
+              Call office
+            </a>
+          ) : null}
           <form action="/api/auth/logout" method="post">
             <button type="submit" className="inline-flex min-h-11 items-center font-medium text-[var(--co-muted)] hover:text-[var(--co-ink)]">
               Logout

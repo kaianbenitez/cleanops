@@ -196,6 +196,7 @@ body {
 .type-admin-meta { font-size: 0.8125rem; line-height: 1.125rem; }
 .type-admin-micro { font-size: 0.75rem; line-height: 1rem; }
 
+.type-field-hero { font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif; font-size: 2rem; line-height: 2.25rem; font-weight: 700; letter-spacing: -0.03em; }
 .type-field-display { font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif; font-size: 1.5rem; line-height: 1.875rem; }
 .type-field-title { font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif; font-size: 1.1875rem; line-height: 1.625rem; }
 .type-field-body { font-size: 1rem; line-height: 1.5rem; }
@@ -526,6 +527,35 @@ button:active { transform: translateY(1px); }
    enhancement, not a fix for a regression, since there was nothing to
    regress on those elements. */
 .dark [class~="bg-[var(--co-evergreen)]"][class~="text-white"]:hover { background-color: color-mix(in srgb, var(--co-evergreen-soft) 85%, black); }
+
+/* My Day route rail: draws the day's stops as one continuous route instead of
+   a stack of cards — a 2px line down the row list with a node per stop. The
+   rail extends into the row's own top/bottom padding (-11px) so it stays
+   unbroken across the hairline dividers between rows, and is clipped to 50%
+   on the first and last row so it doesn't run past the list. */
+.co-route-rail { position: relative; }
+.co-route-rail::before {
+  content: "";
+  position: absolute;
+  top: -11px;
+  bottom: -11px;
+  left: 50%;
+  width: 2px;
+  background: var(--co-line-soft);
+  transform: translateX(-50%);
+}
+.co-route-row:first-child .co-route-rail::before { top: 50%; }
+.co-route-row:last-child .co-route-rail::before { bottom: 50%; }
+.co-route-node {
+  position: relative;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--co-bg);
+  border: 2px solid var(--co-line);
+}
+.co-route-node.is-done { background: var(--co-success); border-color: var(--co-success); }
+.co-route-node.is-flagged { border-color: var(--co-spark-fill); }
 
 @layer base {
   * {
