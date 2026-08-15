@@ -196,7 +196,7 @@ export default function MarketingPage() {
               <div className="border-t border-[var(--co-line-soft)] pt-6">
                 <p className="text-sm font-semibold text-[var(--co-accent)]">Who&apos;s building this</p>
                 <p className="mt-2 leading-7 text-[var(--co-muted)]">
-                  I&apos;m Kaian. I handle day-to-day operations for a real U.S. cleaning business, and I built ServiceSpark because the scheduling and invoicing tools we were using never quite fit how a maid service actually runs. I work on it full time from Manila.
+                  I&apos;m Kaian. I handle day-to-day operations for a real U.S. cleaning business, and I built ServiceSpark on the side because the scheduling and invoicing tools we were using never quite fit how a maid service actually runs. I work on it from Manila.
                 </p>
               </div>
               <div className="border-t border-[var(--co-line-soft)] pt-6">
