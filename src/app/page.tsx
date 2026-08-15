@@ -14,12 +14,12 @@ const MOBILE_UA_PATTERN = /Mobi/i;
 export const metadata: Metadata = {
   title: "ServiceSpark | Maid Service & Cleaning Business Software",
   description:
-    "ServiceSpark is maid service and cleaning business software for scheduling, crew management, customer records, quotes, invoicing, and payroll — all in one place.",
+    "ServiceSpark is maid service and cleaning business software for scheduling, crew management, customer records, quotes, invoicing, and payroll, all in one place.",
   alternates: { canonical: "/" },
   openGraph: {
     title: "ServiceSpark | Maid Service & Cleaning Business Software",
     description:
-      "ServiceSpark is maid service and cleaning business software for scheduling, crew management, customer records, quotes, invoicing, and payroll — all in one place.",
+      "ServiceSpark is maid service and cleaning business software for scheduling, crew management, customer records, quotes, invoicing, and payroll, all in one place.",
     type: "website",
     images: [{ url: "/marketing/dashboard.jpg", width: 1489, height: 812, alt: "ServiceSpark dashboard for a cleaning business" }],
   },
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "ServiceSpark | Maid Service & Cleaning Business Software",
     description:
-      "ServiceSpark is maid service and cleaning business software for scheduling, crew management, customer records, quotes, invoicing, and payroll — all in one place.",
+      "ServiceSpark is maid service and cleaning business software for scheduling, crew management, customer records, quotes, invoicing, and payroll, all in one place.",
     images: ["/marketing/dashboard.jpg"],
   },
 };
@@ -42,7 +42,7 @@ export default async function Home() {
   const surfaceCookie = rawSurfaceCookie === "field" || rawSurfaceCookie === "admin" ? rawSurfaceCookie : undefined;
   const isMobile = MOBILE_UA_PATTERN.test((await headers()).get("user-agent") ?? "");
 
-  // Only hit the DB for hybrids with no cookie yet — every other branch
+  // Only hit the DB for hybrids with no cookie yet; every other branch
   // resolves without it, and hasJobToday is unused when it does.
   const needsJobCheck = isAdmin && hasField && !surfaceCookie && isMobile;
   const hasJobToday = needsJobCheck ? await hasAssignmentToday(user.id, user.companyId) : false;

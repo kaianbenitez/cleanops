@@ -4,7 +4,6 @@ import { MarketingFaq } from "./marketing-faq";
 import { FeatureTabs } from "./feature-tabs";
 import { FeatureBento } from "./feature-bento";
 import { MobileShowcase } from "./mobile-showcase";
-import { MagneticCta } from "./magnetic-cta";
 import { ProductScreenshot } from "./marketing-visuals";
 
 const features = [
@@ -35,14 +34,50 @@ export default function MarketingPage() {
   const year = new Date().getFullYear();
   return <main className="min-h-[100dvh] bg-[var(--co-bg)] text-[var(--co-ink)]">
     <nav className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6 lg:px-8" aria-label="Main navigation">
-      <Link href="/" className="flex items-center gap-2.5" aria-label="ServiceSpark home"><SparkMark /><span className="text-lg font-semibold tracking-tight">ServiceSpark</span></Link>
-      <div className="flex items-center gap-3 sm:gap-5"><Link href="/login" className="text-sm font-semibold text-[var(--co-muted)] hover:text-[var(--co-ink)]">Log in</Link><a href="#join-beta" className="co-button-primary whitespace-nowrap"><span className="sm:hidden">Join beta</span><span className="hidden sm:inline">Join the beta — it&apos;s free</span></a></div>
+      <Link href="/" className="flex items-center gap-2.5" aria-label="ServiceSpark home">
+        <SparkMark />
+        <span className="text-lg font-semibold tracking-tight">ServiceSpark</span>
+      </Link>
+      <div className="flex items-center gap-3 sm:gap-5">
+        <Link href="/login" className="text-sm font-semibold text-[var(--co-muted)] hover:text-[var(--co-ink)]">
+          Log in
+        </Link>
+        <a href="#join-beta" className="co-button-primary whitespace-nowrap">
+          Join the beta
+        </a>
+      </div>
     </nav>
 
-    <section className="bg-[linear-gradient(135deg,#edf3ff_0%,#f7f9ff_48%,var(--co-spark-accent-tint)_100%)]"><div className="mx-auto grid max-w-6xl gap-12 px-4 pb-20 pt-14 sm:px-6 sm:pb-24 sm:pt-20 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-16 lg:px-8 lg:pt-28">
-      <div className="marketing-hero-content"><p className="eyebrow text-[var(--co-accent)]">Cleaning business &amp; maid service software</p><h1 className="mt-3 text-balance text-4xl font-semibold leading-tight tracking-[-0.035em] sm:text-5xl lg:text-6xl">Run your cleaning business with less chasing and more clarity.</h1><p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--co-muted)]">ServiceSpark is maid service software built for owners and office teams — one clear place for scheduling, crew handoffs, customer records, quotes, invoicing, and payroll.</p><div className="mt-8 flex flex-wrap items-center gap-3"><MagneticCta href="#join-beta" className="co-button-primary px-5 py-3 text-sm">Join the beta — it&apos;s free</MagneticCta><a href="#product" className="co-button-secondary px-5 py-3 text-sm">See how it works</a><Link href="/login" className="text-sm font-semibold text-[var(--co-muted)] underline decoration-[var(--co-line)] underline-offset-4 hover:text-[var(--co-ink)]">Log in</Link></div><p className="mt-5 text-sm font-medium text-[var(--co-muted)]">Early access includes setup help and full product access while we build with cleaning businesses.</p></div>
-      <div className="marketing-hero-visual"><ProductScreenshot src="/marketing/dashboard.jpg" alt="ServiceSpark dashboard showing a cleaning business performance overview" width={1568} height={744} priority /></div>
-    </div></section>
+    <section className="bg-[linear-gradient(135deg,var(--co-accent-tint)_0%,var(--co-surface)_48%,var(--co-spark-accent-tint)_100%)]">
+      <div className="mx-auto grid max-w-6xl gap-12 px-4 pb-20 pt-14 sm:px-6 sm:pb-24 sm:pt-20 lg:grid-cols-[1.05fr_0.95fr] lg:items-start lg:gap-16 lg:px-8 lg:pt-16">
+        <div className="marketing-hero-content">
+          <p className="eyebrow text-[var(--co-accent)]">Cleaning business &amp; maid service software</p>
+          <h1 className="mt-3 text-balance text-4xl font-semibold leading-tight tracking-[-0.035em] sm:text-4xl lg:text-5xl">
+            Run your cleaning business with less chasing.
+          </h1>
+          <p className="mt-6 max-w-xl text-lg leading-8 text-[var(--co-muted)]">
+            One place for scheduling, crew handoffs, customers, quotes, invoicing, and payroll, built for cleaning companies with 2 to 30 cleaners.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <a href="#join-beta" className="co-button-primary px-5 py-3 text-sm">
+              Get early access
+            </a>
+            <a href="#product" className="co-button-secondary px-5 py-3 text-sm">
+              See how it works
+            </a>
+          </div>
+        </div>
+        <div className="marketing-hero-visual">
+          <ProductScreenshot
+            src="/marketing/dashboard-revenue-crop.webp"
+            alt="Weekly revenue and a performance figure from a real ServiceSpark cleaning business account"
+            width={1231}
+            height={608}
+            priority
+          />
+        </div>
+      </div>
+    </section>
 
     <section id="product" className="scroll-mt-6 bg-[#f1f5ff]"><div className="mx-auto grid max-w-6xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-center lg:px-8"><div><p className="eyebrow text-[var(--co-accent)]">One operating rhythm</p><h2 className="mt-2 text-3xl font-semibold tracking-[-0.025em]">The cleaning business software your office and crew both trust.</h2><ul className="mt-7 space-y-4 text-lg font-medium leading-7"><li>Spend less time chasing schedule changes.</li><li>Keep the small details from falling through the cracks.</li><li>Give your crew one clear place to see the day&apos;s work.</li><li>Handle billing without another piece of software.</li></ul></div><figure><ProductScreenshot src="/marketing/scheduling.jpg" alt="ServiceSpark staff calendar for a cleaning business" width={1568} height={744} /><figcaption className="mt-4 text-sm font-medium text-[var(--co-muted)]">One shared calendar the whole team works from.</figcaption></figure></div></section>
 
