@@ -16,11 +16,16 @@ const features = [
   ["Payroll tied to tracked time", "Use tiered hourly rates and commission support, with time tracking flowing straight into payroll runs.", "/marketing/payroll-team.jpg"],
 ] as const;
 
-const steps = ["Tell us how your business works today.", "We help bring over your team, customers, and schedule.", "Try ServiceSpark with your crew in the day-to-day work.", "Tell us what would make it more useful as we build."] as const;
+const steps = [
+  "Tell us how your business works today. We reply within one business day, and it's a conversation, not a sales call.",
+  "We help bring over your team, customers, and schedule.",
+  "Try ServiceSpark with your crew in the day-to-day work.",
+  "Tell us what would make it more useful as we build.",
+] as const;
 
 // Landing-page-only mark: cobalt + spark-orange, distinct from the app's
 // "Pure Spark" sidebar/login badge (--spark-mark tokens, a separate
-// deliberately-grey-blue mark tied to a real story) — not touched here.
+// deliberately-grey-blue mark tied to a real story), which is not touched here.
 function SparkMark() {
   return (
     <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="h-9 w-9">
@@ -129,12 +134,118 @@ export default function MarketingPage() {
 
     <MobileShowcase />
 
-    <section className="bg-[var(--co-surface)]"><div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8"><div className="max-w-2xl"><p className="eyebrow text-[var(--co-accent)]">More than the basics</p><h2 className="mt-2 text-3xl font-semibold tracking-[-0.025em]">Everything else a growing crew needs.</h2><p className="mt-3 leading-7 text-[var(--co-muted)]">Quality tracking, reporting, automation, and the day-to-day details that keep a bigger team organized.</p></div><div className="mt-10"><FeatureBento /></div></div></section>
+    <section className="bg-[var(--co-surface)]">
+      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="max-w-2xl">
+          <h2 className="text-3xl font-semibold tracking-[-0.025em]">Everything else a growing crew needs.</h2>
+          <p className="mt-3 leading-7 text-[var(--co-muted)]">Quality tracking, reporting, automation, and the day-to-day details that keep a bigger team organized.</p>
+        </div>
+        <div className="mt-10">
+          <FeatureBento />
+        </div>
+      </div>
+    </section>
 
-    <section className="relative border-y border-[var(--co-line)] bg-[var(--co-surface-muted)]"><div aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,var(--co-accent),var(--co-spark-accent),var(--co-accent))]" /><div className="mx-auto grid max-w-6xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[0.7fr_1.3fr] lg:gap-16 lg:px-8"><div><h2 className="text-3xl font-semibold tracking-[-0.025em]">Questions, answered.</h2><p className="mt-3 leading-7 text-[var(--co-muted)]">A few practical details about using ServiceSpark and joining the beta.</p><div className="mt-8"><a href="#join-beta" className="co-button-primary">Join the beta</a></div></div><MarketingFaq /></div></section>
+    <section className="border-y border-[var(--co-line)] bg-[var(--co-surface-muted)]">
+      <div className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6 lg:px-8">
+        <h2 className="text-3xl font-semibold tracking-[-0.025em]">Questions, answered.</h2>
+        <p className="mt-3 leading-7 text-[var(--co-muted)]">A few practical details about using ServiceSpark and joining the beta.</p>
+        <div className="mt-8">
+          <a href="#join-beta" className="co-button-primary">
+            Join the beta
+          </a>
+        </div>
+      </div>
+      <div className="mx-auto max-w-3xl px-4 pb-20 text-left sm:px-6 lg:px-8">
+        <MarketingFaq />
+      </div>
+    </section>
 
-    <section id="join-beta" className="scroll-mt-6 border-y border-[var(--co-line)] bg-[linear-gradient(180deg,var(--co-surface-muted)_0%,var(--co-bg)_100%)]"><div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8"><div className="max-w-2xl"><p className="eyebrow text-[var(--co-accent)]">Free during beta</p><h2 className="mt-2 text-3xl font-semibold tracking-[-0.025em] text-[var(--co-ink)]">Join the beta — it&apos;s free.</h2><p className="mt-3 leading-7 text-[var(--co-muted)]">Tell us a little about your cleaning business, then try ServiceSpark with your real team and day-to-day work while we keep building it.</p></div><ol className="mt-10 max-w-3xl divide-y divide-[var(--co-line-soft)] border-y border-[var(--co-line-soft)]">{steps.map((step, index) => <li key={step} className="flex gap-5 py-5"><span className="font-mono text-sm font-semibold text-[var(--co-accent)]">0{index + 1}</span><p className="font-medium leading-6 text-[var(--co-ink)]">{step}</p></li>)}</ol><div className="mt-14"><div className="max-w-3xl"><LeadForm /></div></div></div></section>
+    <section id="join-beta" className="scroll-mt-6 border-y border-[var(--co-line)] bg-[linear-gradient(180deg,var(--co-surface-muted)_0%,var(--co-bg)_100%)]">
+      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
+          <div>
+            <p className="eyebrow text-[var(--co-accent)]">Founding cohort, free during beta</p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-[-0.025em] text-[var(--co-ink)]">Join the beta.</h2>
+            <p className="mt-3 leading-7 text-[var(--co-muted)]">
+              Tell us a little about your cleaning business, then try ServiceSpark with your real team and day-to-day work while we keep building it.
+            </p>
+            <ol className="mt-10 divide-y divide-[var(--co-line-soft)] border-y border-[var(--co-line-soft)]">
+              {steps.map((step, index) => (
+                <li key={step} className="flex gap-4 py-5">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--co-accent-tint)] text-xs font-semibold text-[var(--co-accent)]">
+                    {index + 1}
+                  </span>
+                  <p className="font-medium leading-6 text-[var(--co-ink)]">{step}</p>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-10">
+              <LeadForm />
+            </div>
+          </div>
 
-    <footer className="border-t border-[var(--co-line-soft)]"><div className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-7 text-sm text-[var(--co-muted)] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8"><div className="flex items-center gap-2"><SparkMark /><span className="font-semibold text-[var(--co-ink)]">ServiceSpark</span></div><div className="flex items-center gap-5"><Link href="/privacy-policy" className="hover:text-[var(--co-ink)]">Privacy Policy</Link><span>&copy; {year} ServiceSpark</span></div></div></footer>
+          <aside className="lg:sticky lg:top-8 lg:self-start">
+            <div className="co-card space-y-8 p-6 sm:p-8">
+              <div>
+                <p className="text-sm font-semibold text-[var(--co-accent)]">How early this actually is</p>
+                <p className="mt-2 leading-7 text-[var(--co-muted)]">
+                  ServiceSpark already runs full time on a real cleaning business: scheduling, customers, quotes, invoicing, payroll, all of it. What&apos;s brand new is opening it up to other businesses. You&apos;d be among the very first outside crews on it, early enough that what you ask for gets built, and early enough to hit the occasional rough edge. We&apos;d rather tell you that now than have you find out in week two.
+                </p>
+              </div>
+              <div className="border-t border-[var(--co-line-soft)] pt-6">
+                <p className="text-sm font-semibold text-[var(--co-accent)]">Who&apos;s building this</p>
+                <p className="mt-2 leading-7 text-[var(--co-muted)]">
+                  I&apos;m Kaian. I handle day-to-day operations for a real U.S. cleaning business, and I built ServiceSpark because the scheduling and invoicing tools we were using never quite fit how a maid service actually runs. I work on it full time from Manila.
+                </p>
+              </div>
+              <div className="border-t border-[var(--co-line-soft)] pt-6">
+                <p className="text-sm font-semibold text-[var(--co-accent)]">Our guarantees</p>
+                <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--co-muted)]">
+                  <li className="flex gap-2">
+                    <Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-accent)]" strokeWidth={3} />
+                    No credit card, and no charge during beta.
+                  </li>
+                  <li className="flex gap-2">
+                    <Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-accent)]" strokeWidth={3} />
+                    We won&apos;t call unless you tick the box.
+                  </li>
+                  <li className="flex gap-2">
+                    <Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-accent)]" strokeWidth={3} />
+                    Your data is yours: full CSV export any time, no lock-in.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <footer className="border-t border-[var(--co-line-soft)]">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 text-sm text-[var(--co-muted)] sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <SparkMark />
+            <span className="font-semibold text-[var(--co-ink)]">ServiceSpark</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <Link href="/privacy-policy" className="hover:text-[var(--co-ink)]">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="hover:text-[var(--co-ink)]">
+              Terms
+            </Link>
+            <a href="mailto:kbenitez1118@gmail.com" className="hover:text-[var(--co-ink)]">
+              kbenitez1118@gmail.com
+            </a>
+          </div>
+        </div>
+        <div className="flex flex-col gap-1 border-t border-[var(--co-line-soft)] pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <span>Manila, Philippines</span>
+          <span>&copy; {year} ServiceSpark</span>
+        </div>
+      </div>
+    </footer>
   </main>;
 }

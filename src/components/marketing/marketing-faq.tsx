@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 const questions = [
-  ["I don't have time to enter all my clients — can you help?", <>Yes — send us your customer list however you have it (a spreadsheet, an export from your old system, even handwritten) and we&apos;ll get it set up in your account for you.</>],
-  ["What happens to my information? Do I still own it?", <>Yes, it&apos;s yours. We only use your data to run your account — see our <Link href="/privacy-policy" className="font-semibold text-[var(--co-accent)] underline underline-offset-4">Privacy Policy</Link> for the details.</>],
-  ["Do my cleaners need to download an app?", <>No — it opens right in their phone&apos;s browser, nothing to install.</>],
-  ["What does it cost right now?", <>ServiceSpark is currently in beta, so early testers get full access for free while we build this out together.</>],
+  ["What is ServiceSpark?", <>Operations software built specifically for residential and commercial cleaning businesses: scheduling, a crew app, customer records, online quotes, invoicing, and payroll, all in one place, so you&apos;re not stitching together five different tools to run your day.</>],
+  ["What happens to pricing after the beta?", <>Free while we&apos;re in beta. When we do start charging we&apos;ll give you at least 30 days&apos; notice, and you&apos;ll never be billed by surprise. We haven&apos;t set a price yet; the beta group will help us work out what&apos;s fair.</>],
+  ["I don't have time to enter all my clients, can you help?", <>Yes, send us your customer list however you have it (a spreadsheet, an export from your old system, even handwritten) and we&apos;ll get it set up in your account for you.</>],
+  ["What happens to my information? Do I still own it?", <>Yes, it&apos;s yours. We only use your data to run your account; see our <Link href="/privacy-policy" className="font-semibold text-[var(--co-accent)] underline underline-offset-4">Privacy Policy</Link> for the details.</>],
+  ["Do my cleaners need to download an app?", <>No, it opens right in their phone&apos;s browser, nothing to install.</>],
   ["Is customer access info like gate codes secure?", <>Kept masked in the system, only revealed to the assigned technician.</>],
-  ["Does it handle payroll too?", <>Yes — payroll is generated from tracked clock-in/out time, with tiered hourly rates and commission support.</>],
-  ["What is ServiceSpark?", <>Operations software built specifically for residential and commercial cleaning businesses — scheduling, a crew app, customer records, online quotes, invoicing, and payroll, all in one place, so you&apos;re not stitching together five different tools to run your day.</>],
+  ["Does it handle payroll too?", <>Yes, payroll is generated from tracked clock-in/out time, with tiered hourly rates and commission support.</>],
 ] as const;
 
 export function MarketingFaq() {
