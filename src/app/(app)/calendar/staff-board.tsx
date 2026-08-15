@@ -719,7 +719,7 @@ export default function StaffBoard({
                           key={appointment.id}
                           type="button"
                           onClick={() => setEditingAppointmentId(appointment.id)}
-                          className={`absolute inset-x-1 z-20 flex flex-col items-start gap-0.5 overflow-hidden rounded-md border px-2 py-1 text-left text-[10px] font-semibold shadow-sm ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}
+                          className={`absolute inset-x-1 z-20 flex flex-col items-start gap-0.5 overflow-hidden rounded-md px-2 py-1 text-left text-[10px] font-semibold shadow-sm ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}
                           style={appointmentStyle(appointment)}
                         >
                           <span className="truncate">📅 {appointment.title}</span>

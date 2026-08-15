@@ -190,7 +190,7 @@ export default function AppNav({
 
           <div className="flex items-center gap-1">
             {isAdmin ? <CreateMenu compact /> : null}
-            {isAdmin ? <ThemeToggle /> : null}
+            <ThemeToggle />
             {isAdmin ? <NotificationsMenu initialNotifications={initialNotifications} /> : null}
             {showFieldGroup ? <SurfaceSwitcher onFieldSurface={onFieldSurface} variant="icon" /> : null}
             <Link href="/account" aria-label="Account" className="rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]">
@@ -301,11 +301,9 @@ export default function AppNav({
         </nav>
 
         <div className="space-y-2 border-t border-[var(--co-line-soft)] p-3">
-          {isAdmin ? (
-            <div className="overflow-hidden rounded-[14px] border border-[var(--co-line-soft)]">
-              <ThemeToggleMenuItem />
-            </div>
-          ) : null}
+          <div className="overflow-hidden rounded-[14px] border border-[var(--co-line-soft)]">
+            <ThemeToggleMenuItem />
+          </div>
           <form action="/api/auth/logout" method="post">
             <button
               type="submit"
@@ -437,7 +435,7 @@ export default function AppNav({
                 role="menu"
                 className={`absolute bottom-full mb-2 overflow-hidden rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] py-1 shadow-[0_10px_32px_rgba(18,24,19,0.12)] ${navCollapsed ? "left-0 w-[180px]" : "inset-x-0"}`}
               >
-                {isAdmin ? <ThemeToggleMenuItem /> : null}
+                <ThemeToggleMenuItem />
                 <form action="/api/auth/logout" method="post">
                   <button
                     type="submit"

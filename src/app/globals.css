@@ -7,36 +7,48 @@
 :root {
   --app-nav-width: 260px;
   /* ServiceSpark: cobalt navigation, bright semantic scheduling cues, calm surfaces. */
-  --co-bg: #f6f8ff;
+  --co-bg: #f4f6fb;
   --co-surface: #ffffff;
-  --co-surface-muted: #edf1ff;
+  --co-surface-muted: #edf0f8;
   --co-surface-muted-strong: #dbe5ff;
-  --co-ink: #18213d;
+  --co-surface-muted-2: #e0e5f2;
+  --co-ink: #141a2e;
   --co-muted: #4b587a;
-  --co-faint: #667493;
-  --co-line: #c7d1ed;
-  --co-line-soft: #e0e6f5;
+  --co-body: #414a63;
+  --co-faint: #5c6580;
+  --co-line: #c9d0e2;
+  --co-line-soft: #e4e8f2;
   --co-evergreen: #2457ff;
   --co-evergreen-soft: #1737a8;
   --co-accent: #2457ff;
   --co-accent-soft: #1737a8;
+  /* Brand: locked, do not retune. */
+  --co-brand-cobalt: #2457ff;
+  --co-brand-spark: #e4942b;
+  /* Accent, split by fill (solid, white text on it) vs text (on a surface/tint). */
+  --co-accent-fill: #2457ff;
+  --co-accent-fill-hover: #1737a8;
+  --co-accent-text: #2457ff;
   --co-spark-accent: #e4942b;
   --co-spark-accent-tint: #fff4e3;
+  --co-spark-fill: #e4942b;
+  --co-spark-text: #96590a;
+  --co-spark-tint: #fdf3e4;
   --spark-mark: #707C8D;
   --spark-mark-facet: #FCFCFA;
   --co-accent-tint: #edf1ff;
   --co-on-dark-accent: #cdd8ff;
-  --co-success: #278b3b;
+  --co-success: #1f7a3a;
   --co-success-bg: #b8f17b;
-  --co-warning: #b76e00;
-  --co-danger: #c54835;
+  --co-warning: #8a5a00;
+  --co-danger: #b03024;
   --co-lime: #58b947;
   --co-coral: #e85c43;
   --co-amber: #e9a11a;
   --co-input-border: transparent;
   --co-input-bg: #f1f5f9;
-  --co-input-placeholder: #6c7a71;
-  --co-input-border-hover: #bbcabf;
+  --co-input-placeholder: var(--co-faint);
+  --co-input-border-hover: var(--co-line);
   --co-input-focus: #2457ff;
   --co-focus-ring: rgba(36, 87, 255, 0.32);
   /* Anchor color for the color-mix() tints below (badges, etc). Mixing
@@ -58,34 +70,35 @@
   --accent: #2457ff;
   --accent-foreground: #ffffff;
   --destructive: #ba1a1a;
-  --border: #bbcabf;
-  --input: #bbcabf;
-  --ring: #006c49;
-  --chart-1: #006c49;
+  --border: var(--co-line);
+  --input: var(--co-line);
+  --ring: var(--co-accent-fill);
+  --chart-1: var(--co-accent-fill);
   --chart-2: #10b981;
   --chart-3: #565e74;
   --chart-4: #a43a3a;
-  --chart-5: #4edea3;
+  --chart-5: var(--co-spark-fill);
   --radius: 0.5rem;
   /* DESIGN.md: 8px for controls, 12px for cards and panels, pills for status. */
   --co-radius-control: 0.5rem;
   --co-radius-card: 0.75rem;
-  --sidebar: #eef6ee;
+  --sidebar: var(--co-accent-tint);
   --sidebar-foreground: #161d19;
-  --sidebar-primary: #006c49;
+  --sidebar-primary: var(--co-accent-fill);
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #e8f0e9;
   --sidebar-accent-foreground: #161d19;
-  --sidebar-border: #bbcabf;
-  --sidebar-ring: #006c49;
+  --sidebar-border: var(--co-line);
+  --sidebar-ring: var(--co-accent-fill);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --font-heading: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -125,15 +138,15 @@
 
 body {
   background: var(--co-bg);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   overflow-x: hidden;
   scroll-behavior: smooth;
 }
 
 ::selection {
-  background: rgba(0, 108, 73, 0.22);
-  color: var(--co-evergreen);
+  background: color-mix(in srgb, var(--co-accent-fill) 22%, transparent);
+  color: var(--co-accent-text);
 }
 
 .co-card {
@@ -146,7 +159,7 @@ body {
 
 .eyebrow {
   color: var(--co-faint);
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
   font-size: 0.75rem;
   font-weight: 500;
   letter-spacing: 0.05em;
@@ -156,6 +169,7 @@ body {
 
 .page-title {
   color: var(--co-ink);
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   font-size: clamp(1.5rem, 2.5vw, 2.25rem);
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -170,6 +184,23 @@ body {
   margin-top: 0.55rem;
   max-width: 64ch;
 }
+
+/* Type scale (HANDOFF.design-refinement.md §4): two scales for two reading
+   distances. Display and title levels carry the display face (Archivo);
+   body/meta/micro stay on the body face (Inter, via html's font-sans).
+   Foundation only — not yet applied to any surface. §5.1/§5.2 apply
+   type-field-* to /my-day and type-admin-* to the admin console per file. */
+.type-admin-display { font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif; font-size: 1.875rem; line-height: 2.25rem; }
+.type-admin-title { font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif; font-size: 1.25rem; line-height: 1.75rem; }
+.type-admin-body { font-size: 0.875rem; line-height: 1.25rem; }
+.type-admin-meta { font-size: 0.8125rem; line-height: 1.125rem; }
+.type-admin-micro { font-size: 0.75rem; line-height: 1rem; }
+
+.type-field-display { font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif; font-size: 1.5rem; line-height: 1.875rem; }
+.type-field-title { font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif; font-size: 1.1875rem; line-height: 1.625rem; }
+.type-field-body { font-size: 1rem; line-height: 1.5rem; }
+.type-field-meta { font-size: 0.875rem; line-height: 1.25rem; }
+.type-field-micro { font-size: 0.8125rem; line-height: 1.125rem; }
 
 .co-input {
   background: var(--co-input-bg);
@@ -186,9 +217,8 @@ body {
 
 .co-button-primary {
   align-items: center;
-  background: var(--co-evergreen);
-  border: 1px solid var(--co-evergreen);
-  box-shadow: 0 8px 18px rgba(0, 108, 73, 0.2);
+  background: var(--co-accent-fill);
+  border: 1px solid var(--co-accent-fill);
   border-radius: var(--co-radius-control);
   color: white;
   display: inline-flex;
@@ -200,14 +230,14 @@ body {
   padding: 0.65rem 1rem;
 }
 
-.co-button-primary:hover { background: var(--co-evergreen-soft); }
+.co-button-primary:hover { background: var(--co-accent-fill-hover); }
 .co-button-primary:disabled,
 .co-button-secondary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
 }
-.co-button-primary:disabled:hover { background: var(--co-evergreen); }
+.co-button-primary:disabled:hover { background: var(--co-accent-fill); }
 .co-button-secondary {
   align-items: center;
   background: var(--co-surface);
@@ -250,8 +280,8 @@ body {
   font-size: 0.75rem;
 }
 .co-date-day:hover { background: var(--co-accent-tint); }
-.co-date-day-selected { background: var(--co-evergreen); color: white; font-weight: 700; }
-.co-date-day-selected:hover { background: var(--co-evergreen-soft); }
+.co-date-day-selected { background: var(--co-accent-fill); color: white; font-weight: 700; }
+.co-date-day-selected:hover { background: var(--co-accent-fill-hover); }
 
 /* Custom date and time inputs — distinctive, on-brand, mobile-friendly. */
 .co-date-input, .co-time-input {
@@ -333,7 +363,10 @@ button:active { transform: translateY(1px); }
 .co-badge-success { background: color-mix(in srgb, var(--co-success) 10%, var(--co-tint-base)); color: var(--co-success); border: 1px solid color-mix(in srgb, var(--co-success) 24%, var(--co-tint-base)); }
 .co-badge-warning { background: color-mix(in srgb, var(--co-warning) 10%, var(--co-tint-base)); color: var(--co-warning); border: 1px solid color-mix(in srgb, var(--co-warning) 24%, var(--co-tint-base)); }
 .co-badge-danger { background: color-mix(in srgb, var(--co-danger) 10%, var(--co-tint-base)); color: var(--co-danger); border: 1px solid color-mix(in srgb, var(--co-danger) 24%, var(--co-tint-base)); }
+.co-badge-info { background: color-mix(in srgb, var(--co-accent-text) 10%, var(--co-tint-base)); color: var(--co-accent-text); border: 1px solid color-mix(in srgb, var(--co-accent-text) 24%, var(--co-tint-base)); }
+.co-badge-spark { background: color-mix(in srgb, var(--co-spark-text) 10%, var(--co-tint-base)); color: var(--co-spark-text); border: 1px solid color-mix(in srgb, var(--co-spark-text) 24%, var(--co-tint-base)); }
 .co-badge-neutral { background: var(--co-surface-muted); color: var(--co-muted); border: 1px solid var(--co-line-soft); }
+.co-badge-muted { background: var(--co-surface-muted); color: var(--co-faint); border: 1px solid var(--co-line-soft); }
 :focus-visible { outline: 3px solid var(--co-focus-ring); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -365,33 +398,42 @@ button:active { transform: translateY(1px); }
 .dark {
   /* ServiceSpark's actual UI is built on the --co-* tokens above (not the
      generic shadcn tokens below), so those need their own dark values. */
-  --co-bg: #0a0e1a;
-  --co-surface: #121728;
-  --co-surface-muted: #1a2036;
+  --co-bg: #0b1020;
+  --co-surface: #141a2c;
+  --co-surface-muted: #1c2338;
   --co-surface-muted-strong: #232b47;
-  --co-ink: #eef1fb;
+  --co-surface-muted-2: #262f47;
+  --co-ink: #e9edf7;
   --co-muted: #9aa5c7;
+  --co-body: #a7b1c9;
   /* Lightened from #77819f: that value cleared 4.5:1 against --co-surface
      (barely) but only 4.16:1 against --co-surface-muted, where this token is
      used just as often (labels, meta text, disabled states). This value
      clears AA against surface, surface-muted, and surface-muted-strong. */
-  --co-faint: #8993b1;
-  --co-line: #2c3554;
-  --co-line-soft: #202744;
+  --co-faint: #8f99b4;
+  --co-line: #2f3743;
+  --co-line-soft: #242b35;
   --co-evergreen: #5b82ff;
   --co-evergreen-soft: #3a5cd6;
   --co-accent: #5b82ff;
   --co-accent-soft: #3a5cd6;
+  /* Accent, split by fill (solid, white text on it) vs text (on a surface/tint). */
+  --co-accent-fill: #1e47cc;
+  --co-accent-fill-hover: #1737a8;
+  --co-accent-text: #8fb0ff;
   --co-spark-accent: #f0a94a;
   --co-spark-accent-tint: #3a2a12;
+  --co-spark-fill: #e4942b;
+  --co-spark-text: #e9a94f;
+  --co-spark-tint: #33240f;
   --spark-mark: #8b95ab;
   --spark-mark-facet: #f6f7fb;
-  --co-accent-tint: #1b2440;
+  --co-accent-tint: #18213d;
   --co-on-dark-accent: #cdd8ff;
-  --co-success: #4fce6d;
+  --co-success: #4fbf6d;
   --co-success-bg: #163a20;
-  --co-warning: #e2a23a;
-  --co-danger: #e8695a;
+  --co-warning: #dda13c;
+  --co-danger: #e8756a;
   --co-lime: #7ecf5e;
   --co-coral: #f0806a;
   --co-amber: #f0b23f;
@@ -408,14 +450,12 @@ button:active { transform: translateY(1px); }
   --card-foreground: oklch(0.987 0.002 197.1);
   --popover: oklch(0.218 0.008 223.9);
   --popover-foreground: oklch(0.987 0.002 197.1);
-  --primary: oklch(0.448 0.119 151.328);
-  --primary-foreground: oklch(0.982 0.018 155.826);
+  --primary: var(--co-accent-fill);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.275 0.011 216.9);
   --muted-foreground: oklch(0.723 0.014 214.4);
-  --accent: oklch(0.448 0.119 151.328);
-  --accent-foreground: oklch(0.982 0.018 155.826);
+  --accent: var(--co-accent-fill);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
@@ -427,33 +467,30 @@ button:active { transform: translateY(1px); }
   --chart-5: oklch(0.45 0.085 224.283);
   --sidebar: oklch(0.218 0.008 223.9);
   --sidebar-foreground: oklch(0.987 0.002 197.1);
-  --sidebar-primary: oklch(0.723 0.219 149.579);
-  --sidebar-primary-foreground: oklch(0.982 0.018 155.826);
+  --sidebar-primary: var(--co-accent-fill-hover);
   --sidebar-accent: oklch(0.275 0.011 216.9);
   --sidebar-accent-foreground: oklch(0.987 0.002 197.1);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.56 0.021 213.5);
 }
 
-/* --co-evergreen is used both as small accent text (needs to be light
-   enough to read against the dark surface) and as a solid fill behind white
-   button/pill text (needs to be dark enough for white text to read against
-   it). No single value satisfies both AA 4.5:1 requirements at once in
-   dark mode — as text it's 5.16:1, but white text on top of it as a fill is
-   only 3.45:1. Rather than compromise the token (and every accent-text use
-   of it) to chase a middle ground that still wouldn't clear AA either way,
-   these overrides redirect solid-fill + white-text combinations specifically
-   to --co-evergreen-soft, which gives white text 5.70:1. This only affects
-   dark mode; light mode is untouched. */
-.dark .co-button-primary { background: var(--co-evergreen-soft); border-color: var(--co-evergreen-soft); }
-.dark .co-button-primary:hover { background: color-mix(in srgb, var(--co-evergreen-soft) 85%, black); border-color: color-mix(in srgb, var(--co-evergreen-soft) 85%, black); }
-.dark .co-button-primary:disabled:hover { background: var(--co-evergreen-soft); }
-.dark .co-date-day-selected { background: var(--co-evergreen-soft); }
-.dark .co-date-day-selected:hover { background: color-mix(in srgb, var(--co-evergreen-soft) 85%, black); }
-/* Same fix for the many ad hoc `bg-[var(--co-evergreen)] text-white` chips,
-   pills, and table headers throughout the app (customers, calendar, jobs,
-   payroll, quotes, employees, pagination, time-picker, …). Uses an
-   attribute selector matching the literal space-separated class tokens in
+/* --co-button-primary and .co-date-day-selected now read --co-accent-fill /
+   --co-accent-fill-hover directly (see their base rules above), which already
+   carry correct dark-mode values (white on --co-accent-fill: 7.42:1). The
+   dark-mode override that used to redirect them to --co-evergreen-soft is
+   gone; the split token layer makes it unnecessary.
+
+   The remaining problem is every OTHER ad hoc `bg-[var(--co-evergreen)]
+   text-white` chip, pill, and table header throughout the app (customers,
+   calendar, jobs, payroll, quotes, employees, pagination, time-picker, …)
+   still reads --co-evergreen directly, and --co-evergreen itself is still
+   used both as small accent text (needs to be light enough to read against
+   the dark surface: 5.16:1) and, at those call sites, as a solid fill behind
+   white text (only 3.45:1 at that same value). No single value satisfies
+   both AA 4.5:1 requirements at once, so this rule remains until those call
+   sites are renamed onto --co-accent-fill directly (§3.3 rule 5, its own
+   commit — out of scope for the token-layer commit, since it touches
+   markup). Uses an attribute selector matching the literal space-separated class tokens in
    the rendered className, rather than replicating Tailwind's escaped
    selector output — that keeps this rule correct regardless of how the
    Tailwind compiler escapes bracket/paren characters in its own generated
@@ -499,5 +536,8 @@ button:active { transform: translateY(1px); }
   }
   html {
     @apply font-sans;
+  }
+  h1, h2 {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   }
 }

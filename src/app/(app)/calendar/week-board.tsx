@@ -160,7 +160,7 @@ export default function WeekBoard({
                           key={appointment.id}
                           type="button"
                           onClick={() => setEditingAppointmentId(appointment.id)}
-                          className={`flex w-full items-center gap-1.5 rounded-md border px-2 py-1.5 text-left text-[11px] font-semibold ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}
+                          className={`flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[11px] font-semibold ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}
                         >
                           <span aria-hidden>📅</span>
                           <span className="truncate">{formatAppointmentTime(appointment.startTime, appointment.durationMinutes)} · {appointment.title}</span>

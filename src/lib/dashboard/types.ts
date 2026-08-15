@@ -11,4 +11,5 @@ export type OperationsDashboard = {
   quotes: { sent: number; accepted: number; booked: number; aging: number; previousSent: number; previousAccepted: number };
   weeklyRevenue: { dates: string[]; amountsCents: number[]; totalCents: number };
   weeklyRevenueTargetCents: number | null;
+  needsAttention: { unassignedToday: number; missingHoursToday: number; overdueInvoices: number };
 };

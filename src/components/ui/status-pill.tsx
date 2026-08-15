@@ -4,19 +4,19 @@
 // rather than re-colours — the only deliberate change is that surfaces which
 // rendered a raw enum ("in_progress") now get the same labels as everywhere else.
 
-// Light-mode values are the original raw Tailwind palette colors, left
-// untouched. None of them flip with the theme, so every status pill across
-// jobs/quotes/customers/invoices rendered as a pale, near-white chip in dark
-// mode — dark: variants below mix the equivalent --co-* token into
-// --co-surface instead (same recipe as .co-badge-* in globals.css) so the
-// pill actually darkens and its text stays legible.
+// Tones map onto the shared .co-badge-* recipe in globals.css, which mixes
+// each --co-* token against --co-tint-base (white in light, the dark surface
+// in dark) so the badge itself darkens with the theme instead of staying a
+// pale near-white chip that washes out its own foreground color. Each
+// .co-badge-* class already supplies its own border, so callers should not
+// pair these with a separate `border` utility.
 const TONES = {
-  neutral: "border-slate-200 bg-slate-50 text-slate-600 dark:border-[var(--co-line-soft)] dark:bg-[var(--co-surface-muted)] dark:text-[var(--co-muted)]",
-  info: "border-blue-200 bg-blue-50 text-blue-700 dark:border-[color-mix(in_srgb,var(--co-accent)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-accent)_10%,var(--co-surface))] dark:text-[var(--co-accent)]",
-  warning: "border-amber-200 bg-amber-50 text-amber-700 dark:border-[color-mix(in_srgb,var(--co-warning)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-warning)_10%,var(--co-surface))] dark:text-[var(--co-warning)]",
-  success: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-[color-mix(in_srgb,var(--co-success)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-success)_10%,var(--co-surface))] dark:text-[var(--co-success)]",
-  danger: "border-rose-200 bg-rose-50 text-rose-700 dark:border-[color-mix(in_srgb,var(--co-danger)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-danger)_10%,var(--co-surface))] dark:text-[var(--co-danger)]",
-  muted: "border-slate-200 bg-slate-50 text-slate-400 dark:border-[var(--co-line-soft)] dark:bg-[var(--co-surface-muted)] dark:text-[var(--co-faint)]",
+  neutral: "co-badge-neutral",
+  info: "co-badge-info",
+  warning: "co-badge-warning",
+  success: "co-badge-success",
+  danger: "co-badge-danger",
+  muted: "co-badge-muted",
 } as const;
 
 type Tone = keyof typeof TONES;
@@ -89,7 +89,7 @@ export function StatusPill({
 }) {
   const entry = entryFor(domain, status);
   return (
-    <span className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium ${TONES[entry.tone]} ${className}`}>
+    <span className={`inline-block whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${TONES[entry.tone]} ${className}`}>
       {label ?? entry.label}
     </span>
   );

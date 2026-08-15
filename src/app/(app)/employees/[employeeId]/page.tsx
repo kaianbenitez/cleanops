@@ -68,11 +68,11 @@ const JOB_TYPE_LABELS: Record<EmployeeJob["type"], string> = {
 };
 
 const JOB_STATUS_CLASSES: Record<EmployeeJob["status"], string> = {
-  scheduled: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  in_progress: "border-blue-200 bg-blue-50 text-blue-700",
-  completed: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  cancelled: "border-rose-200 bg-rose-50 text-rose-700",
-  no_show: "border-amber-200 bg-amber-50 text-amber-700",
+  scheduled: "co-badge-success",
+  in_progress: "co-badge-info",
+  completed: "co-badge-success",
+  cancelled: "co-badge-danger",
+  no_show: "co-badge-warning",
 };
 
 function dollars(cents: number) {
@@ -131,22 +131,22 @@ function WeekStrip({ days, pto = [] }: { days: WeekDay[]; pto?: EmployeePto[] })
             key={day.date}
             className={`rounded-xl border px-2 py-2.5 text-center ${
               isPto
-                ? "border-amber-200 bg-amber-50"
+                ? "border-[var(--co-warning)]/30 bg-[var(--co-warning)]/10"
                 : isOff
-                ? "border-rose-200 bg-rose-50"
+                ? "border-[var(--co-danger)]/30 bg-[var(--co-danger)]/10"
                 : isToday
                   ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)]/5"
                   : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40"
             }`}
           >
-            <p className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${isPto ? "text-amber-700" : isOff ? "text-rose-500" : "text-[var(--co-muted)]"}`}>
+            <p className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${isPto ? "text-[var(--co-warning)]" : isOff ? "text-[var(--co-danger)]" : "text-[var(--co-muted)]"}`}>
               {WEEKDAY_LABELS[i]}
             </p>
-            <p className={`mt-0.5 text-sm font-semibold ${isPto ? "text-amber-800" : isOff ? "text-rose-600" : "text-[var(--co-ink)]"}`}>{dayNumber}</p>
+            <p className={`mt-0.5 text-sm font-semibold ${isPto ? "text-[var(--co-warning)]" : isOff ? "text-[var(--co-danger)]" : "text-[var(--co-ink)]"}`}>{dayNumber}</p>
             {isPto ? (
-              <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-amber-700">Time off</p>
+              <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--co-warning)]">Time off</p>
             ) : isOff ? (
-              <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-rose-500">Off</p>
+              <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--co-danger)]">Off</p>
             ) : (
               <p className="mt-1 text-[11px] font-semibold text-[var(--co-evergreen)]">
                 {day.jobCount} job{day.jobCount === 1 ? "" : "s"}
@@ -263,7 +263,7 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
   }
 
   if (error || !employee || !stats) {
-    return <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">{error ?? "Employee not found."}</div>;
+    return <div className="co-badge-danger rounded-2xl p-6 text-sm">{error ?? "Employee not found."}</div>;
   }
 
   const fullName = `${employee.firstName} ${employee.lastName}`;
@@ -357,12 +357,12 @@ function CompactProfile({
         <div className="flex min-w-0 items-center gap-4">
           <div className="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-2xl border-2 border-[var(--co-evergreen)] bg-[var(--co-surface-muted)] text-2xl font-semibold text-[var(--co-evergreen)]">
             {employee.profilePhotoUrl ? <img src={employee.profilePhotoUrl} alt={`${fullName} profile`} className="h-full w-full rounded-[14px] object-cover" /> : initials}
-            <span className={`absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] ${employee.isActive ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-500"}`}>{employee.isActive ? "Active" : "Inactive"}</span>
+            <span className={`absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] ${employee.isActive ? "co-badge-success" : "co-badge-muted"}`}>{employee.isActive ? "Active" : "Inactive"}</span>
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--co-ink)]">{fullName}</h1>
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-[var(--co-evergreen)]">{employee.title ?? "Team member"}</span>
+              <span className="co-badge-info rounded-full px-2.5 py-1 text-[11px] font-semibold">{employee.title ?? "Team member"}</span>
               {employee.tags.map((tag) => (
                 <span key={tag} className="rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--co-muted)]">{tag}</span>
               ))}
@@ -541,7 +541,7 @@ function EmployeeAccountManagement({
       </form>
 
       {message ? <p className="mt-3 text-xs font-semibold text-[var(--co-evergreen)]">{message}</p> : null}
-      {error ? <p className="mt-3 text-xs font-semibold text-rose-600">{error}</p> : null}
+      {error ? <p className="mt-3 text-xs font-semibold text-[var(--co-danger)]">{error}</p> : null}
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--co-line-soft)] pt-5">
         <div>
@@ -551,7 +551,7 @@ function EmployeeAccountManagement({
         {!linkedRecords ? (
           <button
             type="button"
-            className="rounded-xl border border-rose-200 px-3.5 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+            className="rounded-xl border border-[var(--co-danger)]/30 px-3.5 py-2.5 text-xs font-semibold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/10"
             onClick={() => {
               if (window.confirm(`Permanently delete ${employeeName}? This cannot be undone. Employees with job, payroll, or audit history must be archived instead.`)) {
                 void onDelete();
@@ -564,9 +564,9 @@ function EmployeeAccountManagement({
       </div>
 
       {linkedRecords ? (
-        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <p className="text-sm font-semibold text-amber-900">{employeeName} has history in ServiceSpark</p>
-          <p className="mt-1 text-xs leading-5 text-amber-900">
+        <div className="co-badge-warning mt-4 rounded-xl p-4">
+          <p className="text-sm font-semibold">{employeeName} has history in ServiceSpark</p>
+          <p className="mt-1 text-xs leading-5">
             {describeLinkedRecords(linkedRecords)}. They can&apos;t be permanently removed without losing that history — archive
             them instead (button above), or force-delete: their profile is marked inactive and their login is revoked so they
             can&apos;t sign in or be assigned new work, but their name stays on every past job, time entry, and payroll line,
@@ -575,7 +575,7 @@ function EmployeeAccountManagement({
           <div className="mt-3 flex gap-2">
             <button
               type="button"
-              className="rounded-xl border border-rose-300 bg-white px-3.5 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+              className="rounded-xl border border-[var(--co-danger)]/40 bg-[var(--co-surface)] px-3.5 py-2 text-xs font-semibold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/10"
               onClick={() => {
                 if (window.confirm(`Force-delete ${employeeName}? Their login will be revoked immediately and they'll no longer be assignable, but their name stays on past jobs and payroll. This cannot be undone.`)) {
                   void onDelete(true);
@@ -664,7 +664,7 @@ function JobRow({ job, compact = false }: { job: EmployeeJob; compact?: boolean 
             {job.state ? `, ${job.state}` : ""}
           </div>
         </div>
-        <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${JOB_STATUS_CLASSES[job.status]}`}>
+        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${JOB_STATUS_CLASSES[job.status]}`}>
           {statusLabel("job", job.status)}
         </span>
       </div>
@@ -764,7 +764,7 @@ function TierRatesEditor({
           Save tier rates
         </button>
         {saved && <span className="text-xs font-semibold text-[var(--co-evergreen)]">Saved</span>}
-        {error && <span className="text-xs font-semibold text-rose-600">{error}</span>}
+        {error && <span className="text-xs font-semibold text-[var(--co-danger)]">{error}</span>}
       </div>
     </div>
   );

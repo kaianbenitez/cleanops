@@ -67,7 +67,7 @@ export type AuditEntry = {
 };
 
 /** Card chrome shared by every panel in the dispatch layout. */
-export const CARD_CLASS = "rounded-2xl border border-[#cad6ca] bg-white p-5 shadow-[0_2px_6px_rgba(18,33,27,0.04)]";
+export const CARD_CLASS = "rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-5 shadow-[0_2px_6px_rgba(18,33,27,0.04)]";
 
 export const TYPE_LABELS: Record<string, string> = {
   first_clean: "First clean",

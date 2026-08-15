@@ -1,18 +1,24 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Archivo } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
 const sansFont = Inter({
-  variable: "--font-geist-sans",
+  variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
 const monoFont = JetBrains_Mono({
-  variable: "--font-geist-mono",
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
   weight: ["500"],
+});
+
+const displayFont = Archivo({
+  variable: "--font-archivo",
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -29,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("h-full", "antialiased", sansFont.variable, monoFont.variable, "font-sans")}>
+    <html lang="en" className={cn("h-full", "antialiased", sansFont.variable, monoFont.variable, displayFont.variable, "font-sans")}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

@@ -416,7 +416,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
     return (
       <div className="co-card p-8 text-center">
         <p className="font-medium">Unable to load this customer.</p>
-        <p className="mt-2 text-sm text-rose-600">{error}</p>
+        <p className="mt-2 text-sm text-[var(--co-danger)]">{error}</p>
         <button className="co-button-secondary mt-5" onClick={() => load()}>
           Try again
         </button>
@@ -436,7 +436,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
             <div className="mt-1 flex flex-wrap items-center gap-3">
             {customer.isArchived ? null : <StatusPill domain="customer" status={customer.status} />}
             {customer.isArchived ? (
-              <span className="whitespace-nowrap rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-500">
+              <span className="co-badge-muted whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium">
                 Archived{customer.archivedAt ? ` ${new Date(customer.archivedAt).toLocaleDateString()}` : ""}
               </span>
             ) : null}
@@ -471,7 +471,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <button className="co-button-secondary" onClick={() => endRecurringService(activeRecurringSeries.id, "suspend")} disabled={endingSeries}>
                 {endingSeries ? "Updating..." : "Suspend recurring service"}
               </button>
-              <button className="co-button-secondary border-rose-200 text-rose-700 hover:bg-rose-50" onClick={() => endRecurringService(activeRecurringSeries.id, "cancel")} disabled={endingSeries}>
+              <button className="co-button-secondary !border-[var(--co-danger)]/30 !text-[var(--co-danger)] hover:!bg-[var(--co-danger)]/10" onClick={() => endRecurringService(activeRecurringSeries.id, "cancel")} disabled={endingSeries}>
                 Cancel recurring service
               </button>
             </>
@@ -505,13 +505,13 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
       </header>
 
       {showArchiveConfirm ? (
-        <div className="co-card space-y-3 border-amber-200 bg-amber-50 p-4">
-          <p className="text-sm font-medium text-amber-800">
+        <div className="co-card co-badge-warning space-y-3 p-4">
+          <p className="text-sm font-medium">
             Archive {customer.companyName || `${customer.firstName} ${customer.lastName}`}? They&apos;ll drop out of the
             default customers list — history is kept and this can be undone from here.
           </p>
           <label className="block text-sm">
-            <span className="mb-1 block text-xs font-semibold text-amber-800">Reason (optional)</span>
+            <span className="mb-1 block text-xs font-semibold">Reason (optional)</span>
             <input
               value={archiveReasonInput}
               onChange={(event) => setArchiveReasonInput(event.target.value)}
@@ -531,12 +531,12 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
       ) : null}
 
       {message ? (
-        <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div role="status" className="co-badge-success rounded-xl px-4 py-3 text-sm">
           {message}
         </div>
       ) : null}
       {error ? (
-        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div role="alert" className="co-badge-danger rounded-xl px-4 py-3 text-sm">
           {error}
         </div>
       ) : null}
@@ -904,7 +904,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <div className="flex flex-wrap gap-2">
                 {PAYMENT_METHOD_OPTIONS.map((method) => {
                   const selected = customer.paymentMethods?.includes(method) ?? false;
-                  return <button key={method} type="button" onClick={() => togglePaymentMethod(method)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${selected ? "border-emerald-200 bg-emerald-50 text-[var(--co-evergreen)] dark:border-[color-mix(in_srgb,var(--co-accent)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-accent)_10%,var(--co-surface))]" : "border-[var(--co-line-soft)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)] dark:bg-[var(--co-surface)]"}`} aria-pressed={selected}>{method}</button>;
+                  return <button key={method} type="button" onClick={() => togglePaymentMethod(method)} className={`rounded-lg px-3 py-2 text-xs font-semibold ${selected ? "co-badge-info" : "border border-[var(--co-line-soft)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)]"}`} aria-pressed={selected}>{method}</button>;
                 })}
               </div>
             </div>

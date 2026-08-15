@@ -16,8 +16,11 @@ export const TYPE_COLORS: Record<string, string> = {
 
 // Internal meeting/appointment styling — deliberately not part of
 // TYPE_COLORS (which is job-type specific) since appointments aren't jobs.
-export const APPOINTMENT_COLOR = "border-violet-300 bg-violet-50 text-violet-800";
-export const APPOINTMENT_COLOR_CANCELLED = "border-slate-200 bg-slate-50 text-slate-400 line-through";
+// Uses --co-spark-* per the design refinement handoff's §3.4 rule that
+// violet (an attention-esque marker, not a status) maps to spark, not a
+// seventh hue.
+export const APPOINTMENT_COLOR = "co-badge-spark";
+export const APPOINTMENT_COLOR_CANCELLED = "co-badge-muted line-through";
 
 function clockLabelFromMinutes(totalMinutes: number) {
   const hour24 = Math.floor(totalMinutes / 60) % 24;

@@ -373,7 +373,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
       {!isEligibleView && eligibleCount > 0 ? (
         <Link
           href="/customers?eligible=archive"
-          className="co-card flex items-center justify-between gap-3 border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 hover:border-amber-300"
+          className="co-card co-badge-warning flex items-center justify-between gap-3 p-4 text-sm hover:!border-[var(--co-warning)]/50"
         >
           <span>
             <strong>{Number(eligibleCount)}</strong> one-time customer{Number(eligibleCount) === 1 ? " hasn't" : "s haven't"} booked again — review for archive.
@@ -393,19 +393,19 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           <Link href={hrefWith(sp, "recurrence", sp.recurrence === "recurring" ? "" : "recurring")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.recurrence === "recurring" ? "bg-[var(--co-evergreen)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"}`}>
             Recurring <span className="ml-1 opacity-80">{recurringCount}</span>
           </Link>
-          <Link href={hrefWith(sp, "attention", sp.attention === "yes" ? "" : "yes")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.attention === "yes" ? "bg-amber-500 text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-amber-400 hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "attention", sp.attention === "yes" ? "" : "yes")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.attention === "yes" ? "bg-[var(--co-warning)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-warning)] hover:text-[var(--co-ink)]"}`}>
             Needs attention <span className="ml-1 opacity-80">{attentionCount}</span>
           </Link>
           <Link href={hrefWith(sp, "status", sp.status === "lead" ? "" : "lead")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.status === "lead" ? "bg-[var(--co-evergreen)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"}`}>
             Leads <span className="ml-1 opacity-80">{leadCount}</span>
           </Link>
-          <Link href={hrefWith(sp, "cancelled", sp.cancelled === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.cancelled === "1" ? "bg-rose-600 text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-rose-400 hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "cancelled", sp.cancelled === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.cancelled === "1" ? "bg-[var(--co-danger)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-danger)] hover:text-[var(--co-ink)]"}`}>
             Cancelled job <span className="ml-1 opacity-80">{cancelledCount}</span>
           </Link>
           <Link href={hrefWith(sp, "repeat", sp.repeat === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.repeat === "1" ? "bg-[var(--co-evergreen)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"}`}>
             Repeat customer <span className="ml-1 opacity-80">{repeatCount}</span>
           </Link>
-          <Link href={hrefWith(sp, "archived", sp.archived === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.archived === "1" ? "bg-slate-600 text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-slate-400 hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "archived", sp.archived === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.archived === "1" ? "bg-[var(--co-faint)] text-[var(--co-surface)] shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-faint)] hover:text-[var(--co-ink)]"}`}>
             {sp.archived === "1" ? "Hide archived" : "Show archived"}
           </Link>
           </>
@@ -414,7 +414,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           <div className="flex items-center gap-4 rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)]/40 px-3 py-2 text-sm">
             <div>
               <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--co-muted)]">Managed</p>
-              <p className="font-semibold">{totalManaged.toLocaleString()}{trendPct !== null ? <span className={`ml-1 text-xs font-medium ${trendPct >= 0 ? "text-emerald-700" : "text-rose-600"}`}>{trendPct >= 0 ? "↑" : "↓"}{Math.abs(trendPct)}%</span> : null}</p>
+              <p className="font-semibold">{totalManaged.toLocaleString()}{trendPct !== null ? <span className={`ml-1 text-xs font-medium ${trendPct >= 0 ? "text-[var(--co-success)]" : "text-[var(--co-danger)]"}`}>{trendPct >= 0 ? "↑" : "↓"}{Math.abs(trendPct)}%</span> : null}</p>
             </div>
             <div className="border-l border-[var(--co-line-soft)] pl-4" title="Active clients as a share of everyone pursued past lead/quote">
               <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--co-muted)]">Retention</p>
@@ -535,7 +535,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                             >
                               {row.companyName ? row.companyName : `${row.firstName} ${row.lastName}`}
                             </Link>
-                            {row.isArchived ? <span className="ml-2 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-500">Archived</span> : null}
+                            {row.isArchived ? <span className="co-badge-muted ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">Archived</span> : null}
                             <p className="text-xs text-[var(--co-muted)]">
                               {clientTypeLabel} · {planLabel}
                             </p>

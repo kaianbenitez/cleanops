@@ -42,7 +42,7 @@ export async function getOperationsDashboard(companyId: string, range: Dashboard
   const weeklyDates = Array.from({ length: 7 }, (_, index) => addDaysIso(weekStartIso, index));
   const paidDay = sql<string>`to_char(${invoices.paidAt} AT TIME ZONE ${range.timeZone}, 'YYYY-MM-DD')`;
   const bookedQuote = sql`exists (select 1 from jobs where jobs.company_id = ${companyId} and jobs.quote_id = ${quotes.id})`;
-  const [clientRows, quoteRows, previousQuoteRows, weeklyRevenueRows, agingRows] = await Promise.all([
+  const [clientRows, quoteRows, previousQuoteRows, weeklyRevenueRows, agingRows, todayJobRows, overdueInvoiceRows] = await Promise.all([
     db.select({
       total: sql<number>`count(*) filter (where ${customers.isArchived} = false)`,
       active: sql<number>`count(*) filter (where ${customers.isArchived} = false and ${customers.recurrence} is not null and ${customers.recurrence} <> 'none')`,
@@ -61,6 +61,14 @@ export async function getOperationsDashboard(companyId: string, range: Dashboard
     }).from(quotes).where(eq(quotes.companyId, companyId)),
     db.select({ day: paidDay, amount: sql<number>`coalesce(sum(${invoices.amountPaidCents}), 0)` }).from(invoices).where(paidRangeCondition(companyId, weekStartIso, weekEndIso, range.timeZone)).groupBy(sql`1`),
     db.select({ count: sql<number>`count(*)` }).from(quotes).where(and(eq(quotes.companyId, companyId), eq(quotes.status, "sent"), lte(quotes.sentAt, sql`now() - interval '7 days'`))),
+    // Mirrors the Jobs page's own "unassigned"/"missingHours" metric definitions
+    // (src/app/(app)/jobs/page.tsx) so the dashboard count matches what the admin
+    // sees after clicking through to /jobs?...&start=<today>&end=<today>.
+    db.select({
+      unassigned: sql<number>`count(*) filter (where ${jobs.status} not in ('cancelled', 'no_show') and not exists (select 1 from job_assignments where job_assignments.job_id = ${jobs.id}))`,
+      missingHours: sql<number>`count(*) filter (where coalesce((select sum(minutes_worked) from time_entries where time_entries.job_id = ${jobs.id}), 0) = 0)`,
+    }).from(jobs).where(and(eq(jobs.companyId, companyId), eq(jobs.scheduledDate, range.todayIso))),
+    db.select({ count: sql<number>`count(*)` }).from(invoices).where(and(eq(invoices.companyId, companyId), overdueSqlCondition())),
   ]);
   const revenueByDay = new Map(weeklyRevenueRows.map((row) => [row.day, n(row.amount)]));
   const amountsCents = weeklyDates.map((date) => revenueByDay.get(date) ?? 0);
@@ -70,6 +78,11 @@ export async function getOperationsDashboard(companyId: string, range: Dashboard
     quotes: { sent: n(quoteRows[0]?.sent), accepted: n(quoteRows[0]?.accepted), booked: n(quoteRows[0]?.booked), aging: n(agingRows[0]?.count), previousSent: n(previousQuoteRows[0]?.sent), previousAccepted: n(previousQuoteRows[0]?.accepted) },
     weeklyRevenue: { dates: weeklyDates, amountsCents, totalCents: amountsCents.reduce((total, amount) => total + amount, 0) },
     weeklyRevenueTargetCents,
+    needsAttention: {
+      unassignedToday: n(todayJobRows[0]?.unassigned),
+      missingHoursToday: n(todayJobRows[0]?.missingHours),
+      overdueInvoices: n(overdueInvoiceRows[0]?.count),
+    },
   };
 }
 export async function getTodaysRun(companyId: string, todayIso: string): Promise<TodayRun> {
