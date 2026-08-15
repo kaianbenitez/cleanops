@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Check } from "lucide-react";
 import LeadForm from "./lead-form";
 import { MarketingFaq } from "./marketing-faq";
 import { FeatureTabs } from "./feature-tabs";
@@ -7,12 +8,12 @@ import { MobileShowcase } from "./mobile-showcase";
 import { ProductScreenshot } from "./marketing-visuals";
 
 const features = [
-  ["Scheduling that stays ahead", "Plan work on a day, week, or month view, move assignments as things change, and keep recurring visits from slipping through.", "/marketing/scheduling.jpg", "right center"],
-  ["A crew app for the workday", "Job details, protected entry codes, before/after photos, and a simple way to tag how payment was collected. Completing a job can send the customer a feedback and tip-link request automatically, and every cleaner can see their full schedule from their phone.", "/marketing/my-day-home.png", "center"],
-  ["Customer details in one record", "Keep service history, home notes, preferences, and safely masked access information close to every job.", "/marketing/customer-detail.jpg", "center top"],
-  ["Quotes customers can accept online", "Create a branded proposal, share one clear link, and turn an approved quote into the next step without extra back-and-forth.", "/marketing/quote-proposal.jpg", "center top"],
-  ["Built-in invoicing", "Create invoices in the same system you use to run the work, so the office does not have to juggle a separate tool to get paid.", "/marketing/invoicing.jpg", "center top"],
-  ["Payroll tied to tracked time", "Use tiered hourly rates and commission support, with time tracking flowing straight into payroll runs.", "/marketing/payroll-team.jpg", "left top"],
+  ["Scheduling that stays ahead", "Plan work on a day, week, or month view, move assignments as things change, and keep recurring visits from slipping through.", "/marketing/scheduling.jpg"],
+  ["A crew app for the workday", "Job details, protected entry codes, before/after photos, and a simple way to tag how payment was collected. Completing a job can send the customer a feedback and tip-link request automatically, and every cleaner can see their full schedule from their phone.", "/marketing/my-day-home.png"],
+  ["Customer details in one record", "Keep service history, home notes, preferences, and safely masked access information close to every job.", "/marketing/customer-detail.jpg"],
+  ["Quotes customers can accept online", "Create a branded proposal, share one clear link, and turn an approved quote into the next step without extra back-and-forth.", "/marketing/quote-proposal.jpg"],
+  ["Built-in invoicing", "Create invoices in the same system you use to run the work, so the office does not have to juggle a separate tool to get paid.", "/marketing/invoicing.jpg"],
+  ["Payroll tied to tracked time", "Use tiered hourly rates and commission support, with time tracking flowing straight into payroll runs.", "/marketing/payroll-team.jpg"],
 ] as const;
 
 const steps = ["Tell us how your business works today.", "We help bring over your team, customers, and schedule.", "Try ServiceSpark with your crew in the day-to-day work.", "Tell us what would make it more useful as we build."] as const;
@@ -79,9 +80,52 @@ export default function MarketingPage() {
       </div>
     </section>
 
-    <section id="product" className="scroll-mt-6 bg-[#f1f5ff]"><div className="mx-auto grid max-w-6xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-center lg:px-8"><div><p className="eyebrow text-[var(--co-accent)]">One operating rhythm</p><h2 className="mt-2 text-3xl font-semibold tracking-[-0.025em]">The cleaning business software your office and crew both trust.</h2><ul className="mt-7 space-y-4 text-lg font-medium leading-7"><li>Spend less time chasing schedule changes.</li><li>Keep the small details from falling through the cracks.</li><li>Give your crew one clear place to see the day&apos;s work.</li><li>Handle billing without another piece of software.</li></ul></div><figure><ProductScreenshot src="/marketing/scheduling.jpg" alt="ServiceSpark staff calendar for a cleaning business" width={1568} height={744} /><figcaption className="mt-4 text-sm font-medium text-[var(--co-muted)]">One shared calendar the whole team works from.</figcaption></figure></div></section>
+    <section id="product" className="scroll-mt-6 bg-[var(--co-accent-tint)]">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-center lg:px-8">
+        <div>
+          <h2 className="text-3xl font-semibold tracking-[-0.025em]">The cleaning business software your office and crew both trust.</h2>
+          <ul className="mt-7 space-y-3 text-base font-medium leading-7">
+            <li className="flex gap-3">
+              <Check aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-[var(--co-accent)]" strokeWidth={3} />
+              Spend less time chasing schedule changes.
+            </li>
+            <li className="flex gap-3">
+              <Check aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-[var(--co-accent)]" strokeWidth={3} />
+              Keep the small details from falling through the cracks.
+            </li>
+            <li className="flex gap-3">
+              <Check aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-[var(--co-accent)]" strokeWidth={3} />
+              Give your crew one clear place to see the day&apos;s work.
+            </li>
+            <li className="flex gap-3">
+              <Check aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-[var(--co-accent)]" strokeWidth={3} />
+              Handle billing without another piece of software.
+            </li>
+          </ul>
+        </div>
+        <figure>
+          <ProductScreenshot
+            src="/marketing/scheduling-calendar-crop.webp"
+            alt="Three days of legible job cards on the ServiceSpark staff calendar"
+            width={708}
+            height={507}
+          />
+          <figcaption className="mt-4 text-sm font-medium text-[var(--co-muted)]">One shared calendar the whole team works from.</figcaption>
+        </figure>
+      </div>
+    </section>
 
-    <section className="border-y border-[var(--co-line-soft)] bg-[var(--co-surface)]"><div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8"><div className="max-w-2xl"><h2 className="text-3xl font-semibold tracking-[-0.025em]">The operations work, connected.</h2><p className="mt-3 leading-7 text-[var(--co-muted)]">The everyday tools your office and crew need, without stitching together a separate system for each job.</p></div><div aria-hidden="true" className="mt-8 h-px w-full bg-[linear-gradient(90deg,var(--co-accent),var(--co-spark-accent),transparent_72%)]" /><div className="mt-10"><FeatureTabs features={features} /></div></div></section>
+    <section className="border-y border-[var(--co-line-soft)] bg-[var(--co-surface)]">
+      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="max-w-2xl">
+          <h2 className="text-3xl font-semibold tracking-[-0.025em]">The operations work, connected.</h2>
+          <p className="mt-3 leading-7 text-[var(--co-muted)]">The everyday tools your office and crew need, without stitching together a separate system for each job.</p>
+        </div>
+        <div className="mt-10">
+          <FeatureTabs features={features} />
+        </div>
+      </div>
+    </section>
 
     <MobileShowcase />
 
