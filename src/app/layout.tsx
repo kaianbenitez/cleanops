@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Archivo } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,22 @@ export const metadata: Metadata = {
     template: "%s | ServiceSpark",
   },
   description: "Maid service and cleaning business software: scheduling, crew work, customers, quotes, invoicing, and payroll.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "ServiceSpark",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#141a2c" },
+  ],
 };
 
 export default function RootLayout({

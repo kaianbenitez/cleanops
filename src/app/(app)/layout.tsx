@@ -11,6 +11,7 @@ import AppSurfaceMotion from "./app-surface-motion";
 import AppContentFrame from "./app-content-frame";
 import CreateMenu from "./create-menu";
 import GlobalSearch from "./global-search";
+import InstallHintBanner from "./install-hint-banner";
 import MustChangePassword from "./must-change-password";
 import NotificationsMenu from "./notifications-menu";
 import ThemeProvider from "./theme-provider";
@@ -31,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <ActionFeedbackProvider>
       <ThemeProvider className="min-h-[100dvh] bg-[var(--co-bg)] text-[var(--co-ink)]">
+        <InstallHintBanner />
         {user.mustChangePassword ? (
           <main className="w-full px-3 py-4 sm:px-4 lg:px-5 xl:px-6 lg:py-5">
             <MustChangePassword />
