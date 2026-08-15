@@ -1,7 +1,8 @@
+import Link from "next/link";
 import {
   BarChart3,
   CircleDollarSign,
-  FileCheck2,
+  ClipboardList,
   UsersRound,
   UserMinus,
   UserPlus,
@@ -53,7 +54,7 @@ function KpiCard({
           aria-hidden
         />
       </div>
-      <p className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-[var(--co-ink)]">
+      <p className="type-admin-display tabular-nums mt-4 font-semibold text-[var(--co-ink)]">
         {value}
       </p>
       <p className="mt-4 border-t border-[var(--co-line-soft)] pt-3 text-xs text-[var(--co-muted)]">
@@ -78,34 +79,32 @@ export default async function OperationsOverview({
     revenueTargetCents,
   );
   const conversion = percent(data.quotes.accepted, data.quotes.sent);
-  const previousConversion = percent(
-    data.quotes.previousAccepted,
-    data.quotes.previousSent,
-  );
   const maxRevenue = Math.max(...data.weeklyRevenue.amountsCents, 1);
   const targetReached =
     data.weeklyRevenueTargetCents !== null &&
     data.weeklyRevenue.totalCents >= data.weeklyRevenueTargetCents;
-  const insights = [
-    data.quotes.sent === 0
-      ? "No quotes were sent in the selected period."
-      : conversion < previousConversion
-        ? `Quote conversion is ${conversion}% for this period, down from ${previousConversion}% in the prior period.`
-        : `Quote conversion is ${conversion}% for this period${data.quotes.previousSent > 0 ? `, compared with ${previousConversion}% in the prior period` : ""}.`,
-    targetReached
-      ? `Paid revenue has reached the prorated weekly target of ${money(data.weeklyRevenueTargetCents ?? 0)}.`
-      : data.weeklyRevenueTargetCents !== null
-        ? `${money(Math.max(0, data.weeklyRevenueTargetCents - data.weeklyRevenue.totalCents))} remains to reach the prorated weekly target.`
-        : `${money(data.weeklyRevenue.totalCents)} in paid revenue was recorded in the week ending ${dateLabel(range.toIso)}.`,
-    data.quotes.aging > 0
-      ? `${data.quotes.aging} sent quote${data.quotes.aging === 1 ? " has" : "s have"} been waiting more than 7 days.`
-      : "No sent quotes have been waiting more than 7 days.",
+  const attentionItems = [
+    {
+      label: "Unassigned jobs today",
+      count: data.needsAttention.unassignedToday,
+      href: `/jobs?unassigned=yes&start=${range.todayIso}&end=${range.todayIso}`,
+    },
+    {
+      label: "Jobs missing hours today",
+      count: data.needsAttention.missingHoursToday,
+      href: `/jobs?missingHours=yes&start=${range.todayIso}&end=${range.todayIso}`,
+    },
+    {
+      label: "Overdue invoices",
+      count: data.needsAttention.overdueInvoices,
+      href: "/invoices?overdue=yes",
+    },
   ];
 
   return (
     <div className="space-y-5">
       <section
-        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"
+        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
         aria-label="Client and sales metrics"
       >
         <KpiCard
@@ -122,23 +121,17 @@ export default async function OperationsOverview({
         />
         <KpiCard
           label="Clients gained"
-          value={String(data.clients.gained)}
+          value={`+${data.clients.gained}`}
           note={`Added during ${range.label.toLowerCase()}`}
           icon={UserPlus}
           tone="var(--co-success)"
         />
         <KpiCard
           label="Clients lost"
-          value={String(data.clients.lost)}
+          value={`−${data.clients.lost}`}
           note={`Archived during ${range.label.toLowerCase()}`}
           icon={UserMinus}
           tone="var(--co-danger)"
-        />
-        <KpiCard
-          label="Conversion rate"
-          value={`${conversion}%`}
-          note={`${data.quotes.accepted} accepted of ${data.quotes.sent} sent`}
-          icon={FileCheck2}
         />
       </section>
 
@@ -161,9 +154,16 @@ export default async function OperationsOverview({
             </div>
             <p className="text-sm text-[var(--co-muted)]">
               Total:{" "}
-              <span className="text-lg font-semibold text-[var(--co-ink)]">
+              <span className="type-admin-title tabular-nums font-semibold text-[var(--co-ink)]">
                 {money(data.weeklyRevenue.totalCents)}
               </span>
+              {data.weeklyRevenueTargetCents !== null && (
+                <span className="ml-1">
+                  {targetReached
+                    ? ` · target of ${money(data.weeklyRevenueTargetCents)} reached`
+                    : ` · ${money(Math.max(0, data.weeklyRevenueTargetCents - data.weeklyRevenue.totalCents))} to target`}
+                </span>
+              )}
             </p>
           </div>
           <div
@@ -211,36 +211,53 @@ export default async function OperationsOverview({
           <dl className="mt-6 grid grid-cols-3 divide-x divide-[var(--co-line-soft)]">
             <div className="pr-3">
               <dt className="text-xs text-[var(--co-muted)]">Quotes sent</dt>
-              <dd className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
+              <dd className="type-admin-title tabular-nums mt-2 font-semibold">
                 {data.quotes.sent}
               </dd>
             </div>
             <div className="px-3">
               <dt className="text-xs text-[var(--co-muted)]">Accepted</dt>
-              <dd className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
+              <dd className="type-admin-title tabular-nums mt-2 font-semibold">
                 {data.quotes.accepted}
               </dd>
             </div>
             <div className="pl-3">
               <dt className="text-xs text-[var(--co-muted)]">Win rate</dt>
-              <dd className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
+              <dd className="type-admin-title tabular-nums mt-2 font-semibold">
                 {conversion}%
               </dd>
             </div>
           </dl>
         </article>
 
-        <article className="co-card p-5" aria-labelledby="insights-title">
-          <h2 id="insights-title" className="text-lg font-semibold">
-            System insights
-          </h2>
+        <article className="co-card p-5" aria-labelledby="attention-title">
+          <div className="flex items-center gap-2">
+            <ClipboardList
+              className="h-5 w-5 text-[var(--co-evergreen)]"
+              aria-hidden
+            />
+            <h2 id="attention-title" className="text-lg font-semibold">
+              Needs attention
+            </h2>
+          </div>
           <ul className="mt-4 divide-y divide-[var(--co-line-soft)]">
-            {insights.map((insight) => (
-              <li
-                key={insight}
-                className="py-3 text-sm leading-6 text-[var(--co-muted)]"
-              >
-                {insight}
+            {attentionItems.map((item) => (
+              <li key={item.label}>
+                <Link
+                  href={item.href}
+                  className="flex items-center justify-between gap-3 py-3 text-sm hover:underline"
+                >
+                  <span className="text-[var(--co-muted)]">{item.label}</span>
+                  <span
+                    className={`type-admin-title tabular-nums ${
+                      item.count > 0
+                        ? "font-semibold text-[var(--co-danger)]"
+                        : "text-[var(--co-muted)]"
+                    }`}
+                  >
+                    {item.count}
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>

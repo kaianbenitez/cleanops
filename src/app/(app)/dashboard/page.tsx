@@ -49,7 +49,7 @@ export default async function DashboardPage({
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="page-title">Performance overview</h1>
+          <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle">
             Client growth, paid revenue, and quote performance for your
             business.
@@ -100,11 +100,9 @@ export default async function DashboardPage({
             />
           </Suspense>
         </div>
-        <div className="grid gap-5 xl:grid-cols-2">
-          <Suspense fallback={cardSkeleton}>
-            <CashToCollect companyId={admin.companyId} />
-          </Suspense>
-        </div>
+        <Suspense fallback={cardSkeleton}>
+          <CashToCollect companyId={admin.companyId} />
+        </Suspense>
       </section>
     </div>
   );
