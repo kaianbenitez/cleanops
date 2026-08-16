@@ -9,7 +9,7 @@ import { ProductScreenshot } from "./marketing-visuals";
 
 const features = [
   ["Scheduling that stays ahead", "Plan work on a day, week, or month view, move assignments as things change, and keep recurring visits from slipping through.", "/marketing/scheduling.jpg"],
-  ["A crew app for the workday", "Job details, protected entry codes, before/after photos, and a simple way to tag how payment was collected. Completing a job can send the customer a feedback and tip-link request automatically, and every cleaner can see their full schedule from their phone.", "/marketing/my-day-home.png"],
+  ["A crew app for the workday", "Job details, entry codes, before/after photos, and how payment was collected. Cleaners see their whole schedule from their phone.", "/marketing/my-day-home.png"],
   ["Customer details in one record", "Keep service history, home notes, preferences, and safely masked access information close to every job.", "/marketing/customer-detail.jpg"],
   ["Quotes customers can accept online", "Create a branded proposal, share one clear link, and turn an approved quote into the next step without extra back-and-forth.", "/marketing/quote-proposal.jpg"],
   ["Built-in invoicing", "Create invoices in the same system you use to run the work, so the office does not have to juggle a separate tool to get paid.", "/marketing/invoicing.jpg"],
@@ -55,7 +55,7 @@ export default function MarketingPage() {
     </nav>
 
     <section className="bg-[linear-gradient(135deg,var(--co-accent-tint)_0%,var(--co-surface)_48%,var(--co-spark-accent-tint)_100%)]">
-      <div className="mx-auto grid max-w-6xl gap-12 px-4 pb-20 pt-14 sm:px-6 sm:pb-24 sm:pt-20 lg:grid-cols-[1.05fr_0.95fr] lg:items-start lg:gap-16 lg:px-8 lg:pt-16">
+      <div className="mx-auto grid max-w-6xl gap-12 px-4 pb-20 pt-14 sm:px-6 sm:pb-24 sm:pt-20 lg:grid-cols-[1fr_1.15fr] lg:items-start lg:gap-16 lg:px-8 lg:pt-16">
         <div className="marketing-hero-content">
           <p className="eyebrow text-[var(--co-accent)]">Cleaning business &amp; maid service software</p>
           <h1 className="mt-3 text-balance text-4xl font-semibold leading-tight tracking-[-0.035em] sm:text-4xl lg:text-5xl">
@@ -73,13 +73,14 @@ export default function MarketingPage() {
             </a>
           </div>
         </div>
-        <div className="marketing-hero-visual">
+        <div className="marketing-hero-visual lg:-mr-6 xl:-mr-10">
           <ProductScreenshot
-            src="/marketing/dashboard-revenue-crop.webp"
-            alt="Weekly revenue and a performance figure from a real ServiceSpark cleaning business account"
-            width={1231}
-            height={608}
+            src="/marketing/scheduling-calendar-crop.webp"
+            alt="Three days of legible job cards on the ServiceSpark staff calendar"
+            width={708}
+            height={507}
             priority
+            chrome={false}
           />
         </div>
       </div>
@@ -110,12 +111,12 @@ export default function MarketingPage() {
         </div>
         <figure>
           <ProductScreenshot
-            src="/marketing/scheduling-calendar-crop.webp"
-            alt="Three days of legible job cards on the ServiceSpark staff calendar"
-            width={708}
-            height={507}
+            src="/marketing/dashboard-revenue-crop.webp"
+            alt="Weekly revenue and a performance figure from a real ServiceSpark cleaning business account"
+            width={1231}
+            height={608}
           />
-          <figcaption className="mt-4 text-sm font-medium text-[var(--co-muted)]">One shared calendar the whole team works from.</figcaption>
+          <figcaption className="mt-4 text-sm font-medium text-[var(--co-muted)]">Revenue and performance, without another piece of software.</figcaption>
         </figure>
       </div>
     </section>
