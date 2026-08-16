@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.49",
+    date: "August 16, 2026",
+    title: "Homepage visuals cleaned up",
+    changes: [
+      "The homepage now leads with a shared-calendar preview instead of a mostly-empty chart; the weekly revenue chart moved down next to the billing section, where it fits better.",
+      "The \"crew app for the workday\" preview now shows inside a real phone frame instead of a squeezed, hard-to-read sliver of the screen.",
+    ],
+  },
+  {
     version: "v0.2.48",
     date: "August 16, 2026",
     title: "My Day redesigned around your next stop",

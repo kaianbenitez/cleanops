@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { gsap, prefersReducedMotion, useGroupReveal } from "./marketing-motion";
+import { PhoneFrame } from "./phone-frame";
 
 type Feature = readonly [string, string, string];
 
@@ -62,8 +63,8 @@ export function FeatureTabs({ features }: { features: readonly Feature[] }) {
       <div data-reveal-item>
         <div ref={panel} className="overflow-hidden rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)]">
           {isCrewApp ? (
-            <div className="flex h-[380px] items-center justify-center bg-[var(--co-surface-muted)] px-6 py-6 sm:h-[440px]">
-              <Image src={screenshot} alt={`${title} in the ServiceSpark app`} width={800} height={1498} sizes="300px" className="h-full w-auto object-contain" />
+            <div className="flex h-[380px] items-center justify-center bg-[linear-gradient(160deg,var(--co-accent-tint)_0%,var(--co-surface-muted)_100%)] px-6 py-8 sm:h-[440px]">
+              <PhoneFrame src={screenshot} alt={`${title} in the ServiceSpark app`} maxWidthClass="max-w-[210px] sm:max-w-[240px]" />
             </div>
           ) : (
             <div className="relative h-[380px] bg-[var(--co-surface-muted)] p-6 sm:h-[440px] sm:p-8">
