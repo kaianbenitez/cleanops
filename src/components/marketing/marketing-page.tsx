@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { Check } from "lucide-react";
+import Image from "next/image";
+import { Check, PlayCircle } from "lucide-react";
 import LeadForm from "./lead-form";
 import { MarketingFaq } from "./marketing-faq";
 import { FeatureTabs } from "./feature-tabs";
 import { FeatureBento } from "./feature-bento";
 import { MobileShowcase } from "./mobile-showcase";
-import { ProductScreenshot } from "./marketing-visuals";
+import { HeroProductVisual } from "./hero-product-visual";
 
 const features = [
   ["Scheduling that stays ahead", "Plan work on a day, week, or month view, move assignments as things change, and keep recurring visits from slipping through.", "/marketing/scheduling.jpg"],
@@ -54,39 +55,39 @@ export default function MarketingPage() {
       </div>
     </nav>
 
-    <section className="bg-[linear-gradient(135deg,var(--co-accent-tint)_0%,var(--co-surface)_48%,var(--co-spark-accent-tint)_100%)]">
-      <div className="mx-auto grid max-w-6xl gap-12 px-4 pb-20 pt-14 sm:px-6 sm:pb-24 sm:pt-20 lg:grid-cols-[1fr_1.15fr] lg:items-start lg:gap-16 lg:px-8 lg:pt-16">
+    <section className="bg-[#fbfcfe]">
+      <div className="mx-auto grid max-w-[1440px] gap-14 px-4 pb-24 pt-14 sm:px-6 sm:pb-28 sm:pt-20 lg:grid-cols-[0.44fr_0.56fr] lg:items-center lg:gap-10 lg:px-10 lg:pt-16 xl:gap-16">
         <div className="marketing-hero-content">
-          <p className="eyebrow text-[var(--co-accent)]">Cleaning business &amp; maid service software</p>
-          <h1 className="mt-3 text-balance text-4xl font-semibold leading-tight tracking-[-0.035em] sm:text-4xl lg:text-5xl">
-            Run your cleaning business with less chasing.
+          <span className="inline-flex items-center rounded-full bg-[var(--co-accent-tint)] px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.04em] text-[var(--co-accent)]">
+            Cleaning business &amp; maid service software
+          </span>
+          <h1 className="mt-5 text-balance text-[2.75rem] font-semibold leading-[1.04] tracking-[-0.03em] sm:text-5xl lg:text-[4rem]">
+            Run your cleaning business with <span className="text-[var(--co-accent)]">less chasing.</span>
           </h1>
-          <p className="mt-6 max-w-xl text-lg leading-8 text-[var(--co-muted)]">
+          <p className="mt-6 max-w-[540px] text-lg leading-8 text-[var(--co-muted)]">
             One place for scheduling, crew handoffs, customers, quotes, invoicing, and payroll, built for cleaning companies with 2 to 30 cleaners.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <a href="#join-beta" className="co-button-primary px-5 py-3 text-sm">
               Get early access
             </a>
-            <a href="#product" className="co-button-secondary px-5 py-3 text-sm">
-              See how it works
+            <a href="#product" className="co-button-secondary inline-flex items-center gap-2 px-5 py-3 text-sm">
+              <PlayCircle aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+              How it works
             </a>
           </div>
+          <p className="mt-7 flex items-center gap-2 text-sm font-medium text-[var(--co-muted)]">
+            <Check aria-hidden="true" className="h-4 w-4 shrink-0 text-[var(--co-accent)]" strokeWidth={3} />
+            Built for residential cleaning companies
+          </p>
         </div>
-        <div className="marketing-hero-visual lg:-mr-6 xl:-mr-10">
-          <ProductScreenshot
-            src="/marketing/scheduling-calendar-crop.webp"
-            alt="Three days of legible job cards on the ServiceSpark staff calendar"
-            width={708}
-            height={507}
-            priority
-            chrome={false}
-          />
+        <div className="marketing-hero-visual">
+          <HeroProductVisual />
         </div>
       </div>
     </section>
 
-    <section id="product" className="scroll-mt-6 bg-[var(--co-accent-tint)]">
+    <section id="product" className="scroll-mt-6 bg-[#f3f5fc]">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-center lg:px-8">
         <div>
           <h2 className="text-3xl font-semibold tracking-[-0.025em]">The cleaning business software your office and crew both trust.</h2>
@@ -110,13 +111,15 @@ export default function MarketingPage() {
           </ul>
         </div>
         <figure>
-          <ProductScreenshot
-            src="/marketing/dashboard-revenue-crop.webp"
-            alt="Weekly revenue and a performance figure from a real ServiceSpark cleaning business account"
-            width={1231}
-            height={608}
+          <Image
+            src="/marketing/product-composite.jpg"
+            alt="A ServiceSpark customer profile, the My Day crew app, and a recorded invoice payment"
+            width={1448}
+            height={1086}
+            sizes="(min-width: 1024px) 800px, 100vw"
+            className="h-auto w-full"
           />
-          <figcaption className="mt-4 text-sm font-medium text-[var(--co-muted)]">Revenue and performance, without another piece of software.</figcaption>
+          <figcaption className="mt-4 text-sm font-medium text-[var(--co-muted)]">Customer details, the crew&apos;s app, and billing — all in one place.</figcaption>
         </figure>
       </div>
     </section>

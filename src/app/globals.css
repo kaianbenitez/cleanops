@@ -373,6 +373,7 @@ button:active { transform: translateY(1px); }
 @media (prefers-reduced-motion: no-preference) {
   .marketing-hero-content { animation: marketing-enter 560ms ease-out both; }
   .marketing-hero-visual { animation: marketing-enter 560ms 110ms ease-out both; }
+  .marketing-hero-cards { animation: marketing-enter 560ms 320ms ease-out both; }
   .marketing-reveal.is-pending { opacity: 0; transform: translateY(18px); transition: opacity 500ms ease-out, transform 500ms ease-out; }
   .marketing-reveal.is-pending.is-visible { opacity: 1; transform: translateY(0); }
   .co-card:hover {
@@ -393,7 +394,7 @@ button:active { transform: translateY(1px); }
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
-  .marketing-hero-content, .marketing-hero-visual, .marketing-reveal { animation: none !important; opacity: 1 !important; transform: none !important; }
+  .marketing-hero-content, .marketing-hero-visual, .marketing-hero-cards, .marketing-reveal { animation: none !important; opacity: 1 !important; transform: none !important; }
 }
 
 .dark {
