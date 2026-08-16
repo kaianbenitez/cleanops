@@ -60,7 +60,7 @@ export function FeatureTabs({ features }: { features: readonly Feature[] }) {
 
       <div data-reveal-item>
         <div ref={panel} className="overflow-hidden rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)]">
-          <div className="relative h-[380px] bg-[var(--co-surface-muted)] p-6 sm:h-[440px] sm:p-8">
+          <div className="relative h-[380px] bg-[var(--co-surface)] p-6 sm:h-[440px] sm:p-8">
             <Image src={screenshot} alt={`${title} in the ServiceSpark app`} fill sizes="(min-width: 1024px) 800px, 100vw" className="object-contain" />
           </div>
         </div>
