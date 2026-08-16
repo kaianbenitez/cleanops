@@ -193,6 +193,7 @@ export default function MyDayClient({
   completedJobs,
   dayLabel,
   currentYear,
+  isAdmin,
 }: {
   employeeName: string;
   officePhone: string | null;
@@ -205,6 +206,7 @@ export default function MyDayClient({
   completedJobs: JobCard[];
   dayLabel: string;
   currentYear: number;
+  isAdmin: boolean;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -417,13 +419,15 @@ export default function MyDayClient({
           </p>
           <p className="sr-only">{employeeName}</p>
         </div>
-        <Link
-          href="/my-day/pto"
-          className="flex min-h-11 shrink-0 items-center gap-1.5 type-field-meta font-medium text-[var(--co-muted)] hover:text-[var(--co-ink)]"
-        >
-          <CalendarCheck className="h-4 w-4" aria-hidden strokeWidth={1.8} />
-          Time off
-        </Link>
+        {isAdmin ? (
+          <Link
+            href="/my-day/pto"
+            className="flex min-h-11 shrink-0 items-center gap-1.5 type-field-meta font-medium text-[var(--co-muted)] hover:text-[var(--co-ink)]"
+          >
+            <CalendarCheck className="h-4 w-4" aria-hidden strokeWidth={1.8} />
+            Time off
+          </Link>
+        ) : null}
       </div>
 
       {error ? (
@@ -733,23 +737,29 @@ export default function MyDayClient({
 
       <footer className="mt-8 border-t border-[var(--co-line-soft)] px-4 pt-4 text-center sm:px-5">
         <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 type-field-meta font-medium text-[var(--co-muted)]">
-          <Link href="/help-center" className="inline-flex min-h-11 items-center hover:text-[var(--co-ink)]">
-            Help Center
-          </Link>
-          <Link href="/privacy-policy" className="inline-flex min-h-11 items-center hover:text-[var(--co-ink)]">
-            Privacy Policy
-          </Link>
+          {isAdmin ? (
+            <>
+              <Link href="/help-center" className="inline-flex min-h-11 items-center hover:text-[var(--co-ink)]">
+                Help Center
+              </Link>
+              <Link href="/privacy-policy" className="inline-flex min-h-11 items-center hover:text-[var(--co-ink)]">
+                Privacy Policy
+              </Link>
+            </>
+          ) : null}
           {officePhone ? (
             <a href={`tel:${officePhone}`} className="inline-flex min-h-11 items-center gap-1 hover:text-[var(--co-ink)]">
               <Phone className="h-3.5 w-3.5" aria-hidden />
               Call office
             </a>
           ) : null}
-          <form action="/api/auth/logout" method="post">
-            <button type="submit" className="inline-flex min-h-11 items-center font-medium text-[var(--co-muted)] hover:text-[var(--co-ink)]">
-              Logout
-            </button>
-          </form>
+          {isAdmin ? (
+            <form action="/api/auth/logout" method="post">
+              <button type="submit" className="inline-flex min-h-11 items-center font-medium text-[var(--co-muted)] hover:text-[var(--co-ink)]">
+                Logout
+              </button>
+            </form>
+          ) : null}
         </nav>
         <p className="mt-3 type-field-micro text-[var(--co-faint)]">© {currentYear} ServiceSpark Professional Services</p>
       </footer>

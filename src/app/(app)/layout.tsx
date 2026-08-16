@@ -51,7 +51,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   </div>
                 </div>
               </header>
-              <main className="w-full px-3 py-4 sm:px-4 lg:px-5 xl:px-6 lg:py-5">
+              <main
+                className={`w-full px-3 py-4 sm:px-4 lg:px-5 xl:px-6 lg:py-5 ${isAdmin ? "" : "pb-[calc(88px+env(safe-area-inset-bottom))] xl:pb-5"}`}
+              >
                 <AppContentFrame>
                   <AppSurfaceMotion>{children}</AppSurfaceMotion>
                 </AppContentFrame>
