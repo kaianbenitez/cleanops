@@ -25,6 +25,8 @@ import {
   CircleUserRound,
   ChevronDown,
   LogOut,
+  CalendarCheck,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import GlobalSearch from "./global-search";
@@ -131,6 +133,7 @@ export default function AppNav({
   const onFieldSurface = fieldLinks.some(([href]) => isActive(pathname, href));
   const logoHref = isAdmin ? (showFieldGroup && onFieldSurface ? "/my-day" : "/dashboard") : "/my-day";
   const [menuOpen, setMenuOpen] = useState(false);
+  const [meOpen, setMeOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -153,12 +156,16 @@ export default function AppNav({
   if (pathname !== menuClosedForPathname) {
     setMenuClosedForPathname(pathname);
     setMenuOpen(false);
+    setMeOpen(false);
   }
 
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen && !meOpen) return;
     function handleKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setMenuOpen(false);
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        setMeOpen(false);
+      }
     }
     document.addEventListener("keydown", handleKey);
     const previousOverflow = document.body.style.overflow;
@@ -167,10 +174,12 @@ export default function AppNav({
       document.removeEventListener("keydown", handleKey);
       document.body.style.overflow = previousOverflow;
     };
-  }, [menuOpen]);
+  }, [menuOpen, meOpen]);
 
   return (
     <>
+      {isAdmin ? (
+      <>
       <div className="sticky top-0 z-30 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] text-[var(--co-ink)] backdrop-blur xl:hidden">
         <div className="flex h-16 items-center justify-between px-4">
           <button
@@ -315,6 +324,131 @@ export default function AppNav({
           </form>
         </div>
       </div>
+      </>
+      ) : (
+      <>
+        <nav
+          aria-label="Primary"
+          className="fixed inset-x-0 bottom-0 z-30 flex border-t border-[var(--co-line-soft)] bg-[var(--co-surface)]/95 pb-[calc(12px+env(safe-area-inset-bottom))] pt-2 backdrop-blur xl:hidden"
+        >
+          {fieldLinks.map(([href, label]) => {
+            const active = isActive(pathname, href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`flex flex-1 flex-col items-center gap-1 py-1.5 text-[11px] font-medium transition-colors ${
+                  active ? "text-[var(--co-evergreen)]" : "text-[var(--co-muted)]"
+                }`}
+              >
+                <NavIcon href={href} />
+                {label}
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setMeOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={meOpen}
+            className={`flex flex-1 flex-col items-center gap-1 py-1.5 text-[11px] font-medium transition-colors ${
+              meOpen ? "text-[var(--co-evergreen)]" : "text-[var(--co-muted)]"
+            }`}
+          >
+            <CircleUserRound aria-hidden="true" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0 opacity-90" />
+            Me
+          </button>
+        </nav>
+
+        <div
+          aria-hidden={!meOpen}
+          onClick={() => setMeOpen(false)}
+          className={`fixed inset-0 z-40 bg-black/40 transition-opacity xl:hidden ${
+            meOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+          }`}
+        />
+
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Account menu"
+          className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col overflow-y-auto rounded-t-[24px] border-t border-[var(--co-line-soft)] bg-[var(--co-surface)] pb-[calc(16px+env(safe-area-inset-bottom))] text-[var(--co-ink)] shadow-[0_-10px_40px_rgba(18,24,19,0.18)] transition-transform duration-300 ease-out xl:hidden ${
+            meOpen ? "translate-y-0" : "translate-y-full"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--co-accent-tint)] text-sm font-bold text-[var(--co-evergreen)]">
+                {userName.slice(0, 1).toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-[14px] font-semibold text-[var(--co-ink)]">{userName}</p>
+                <p className="truncate text-[12px] text-[var(--co-faint)]">{userEmail}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setMeOpen(false)}
+              aria-label="Close"
+              className="rounded-full p-2 text-[var(--co-muted)] transition-colors hover:bg-[var(--co-surface-muted)]"
+            >
+              <X aria-hidden="true" strokeWidth={2} className="h-5 w-5" />
+            </button>
+          </div>
+
+          <nav className="space-y-1 px-3 pb-2">
+            <Link
+              href="/account"
+              onClick={() => setMeOpen(false)}
+              className="flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+            >
+              <CircleUserRound aria-hidden="true" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0 opacity-90" />
+              Account
+            </Link>
+            <Link
+              href="/my-day/pto"
+              onClick={() => setMeOpen(false)}
+              className="flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+            >
+              <CalendarCheck aria-hidden="true" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0 opacity-90" />
+              Time off
+            </Link>
+            <Link
+              href="/help-center"
+              onClick={() => setMeOpen(false)}
+              className="flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+            >
+              <NavIcon href="/help-center" />
+              Help Center
+            </Link>
+            <Link
+              href="/privacy-policy"
+              onClick={() => setMeOpen(false)}
+              className="flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+            >
+              <FileText aria-hidden="true" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0 opacity-90" />
+              Privacy Policy
+            </Link>
+          </nav>
+
+          <div className="space-y-2 border-t border-[var(--co-line-soft)] px-3 pt-3">
+            <div className="overflow-hidden rounded-[14px] border border-[var(--co-line-soft)]">
+              <ThemeToggleMenuItem />
+            </div>
+            <form action="/api/auth/logout" method="post">
+              <button
+                type="submit"
+                className="flex w-full items-center gap-3 rounded-[14px] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-3 py-2.5 text-left text-sm font-semibold text-[var(--co-muted)] transition hover:border-[var(--co-line)] hover:text-[var(--co-ink)]"
+              >
+                <LogOut aria-hidden="true" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0 opacity-90" />
+                Sign out
+              </button>
+            </form>
+          </div>
+        </div>
+      </>
+      )}
 
       <aside className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] py-5 text-[var(--co-ink)] transition-[width,padding] duration-200 xl:flex ${
         navCollapsed ? "w-[76px] px-3" : "w-[260px] px-4"

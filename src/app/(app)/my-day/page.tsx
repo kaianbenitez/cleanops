@@ -459,6 +459,7 @@ export default async function MyDayPage() {
       completedJobs={completedJobsWithRotation.map((job) => ({ ...job }))}
       currentYear={new Date().getFullYear()}
       dayLabel={formatDayLabel(todayIso, company.timezone)}
+      isAdmin={user.role === "admin"}
     />
   );
 }
