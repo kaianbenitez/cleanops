@@ -40,7 +40,7 @@ function SparkMark() {
 export default function MarketingPage() {
   const year = new Date().getFullYear();
   return <main className="min-h-[100dvh] bg-[var(--co-bg)] text-[var(--co-ink)]">
-    <nav className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6 lg:px-8" aria-label="Main navigation">
+    <nav className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6 lg:px-10" aria-label="Main navigation">
       <Link href="/" className="flex items-center gap-2.5" aria-label="ServiceSpark home">
         <SparkMark />
         <span className="text-lg font-semibold tracking-tight">ServiceSpark</span>
