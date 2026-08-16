@@ -34,8 +34,6 @@
   --co-spark-fill: #e4942b;
   --co-spark-text: #96590a;
   --co-spark-tint: #fdf3e4;
-  --spark-mark: #707C8D;
-  --spark-mark-facet: #FCFCFA;
   --co-accent-tint: #edf1ff;
   --co-on-dark-accent: #cdd8ff;
   --co-success: #1f7a3a;
@@ -428,8 +426,6 @@ button:active { transform: translateY(1px); }
   --co-spark-fill: #e4942b;
   --co-spark-text: #e9a94f;
   --co-spark-tint: #33240f;
-  --spark-mark: #8b95ab;
-  --spark-mark-facet: #f6f7fb;
   --co-accent-tint: #18213d;
   --co-on-dark-accent: #cdd8ff;
   --co-success: #4fbf6d;
