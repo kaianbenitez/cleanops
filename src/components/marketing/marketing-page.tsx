@@ -9,7 +9,7 @@ import { ProductScreenshot } from "./marketing-visuals";
 
 const features = [
   ["Scheduling that stays ahead", "Plan work on a day, week, or month view, move assignments as things change, and keep recurring visits from slipping through.", "/marketing/scheduling.jpg"],
-  ["A crew app for the workday", "Job details, entry codes, before/after photos, and how payment was collected. Cleaners see their whole schedule from their phone.", "/marketing/my-day-home.png"],
+  ["A crew app for the workday", "Job details, entry codes, before/after photos, and how payment was collected. Cleaners see their whole schedule from their phone.", "/marketing/crew-app.jpg"],
   ["Customer details in one record", "Keep service history, home notes, preferences, and safely masked access information close to every job.", "/marketing/customer-detail.jpg"],
   ["Quotes customers can accept online", "Create a branded proposal, share one clear link, and turn an approved quote into the next step without extra back-and-forth.", "/marketing/quote-proposal.jpg"],
   ["Built-in invoicing", "Create invoices in the same system you use to run the work, so the office does not have to juggle a separate tool to get paid.", "/marketing/invoicing.jpg"],

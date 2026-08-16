@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { PhoneFrame } from "./phone-frame";
+import Image from "next/image";
 import { gsap, prefersReducedMotion } from "./marketing-motion";
 
 const steps = [
@@ -34,7 +34,7 @@ export function MobileShowcase() {
 
   return (
     <section ref={section} className="relative overflow-hidden border-y border-[var(--co-line)] bg-[linear-gradient(160deg,var(--co-surface-muted)_0%,var(--co-surface)_60%)]">
-      <div className="mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:items-center lg:gap-16 lg:px-8 lg:py-20">
+      <div className="mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:gap-16 lg:px-8 lg:py-20">
         <div>
           <p className="eyebrow text-[var(--co-spark-accent)]">Built for the field</p>
           <h2 className="mt-2 text-3xl font-semibold tracking-[-0.025em] sm:text-4xl">The same app your crew already uses every day.</h2>
@@ -48,8 +48,8 @@ export function MobileShowcase() {
             ))}
           </ol>
         </div>
-        <div ref={phone} className="relative mx-auto w-full max-w-sm">
-          <PhoneFrame src="/marketing/my-day-home.png" alt="ServiceSpark My Day app showing today's route" maxWidthClass="mx-auto max-w-[16rem]" />
+        <div ref={phone} className="relative w-full overflow-hidden rounded-2xl border border-[var(--co-line)] shadow-[0_30px_60px_-25px_rgba(15,23,42,0.35)]">
+          <Image src="/marketing/crew-app.jpg" alt="ServiceSpark My Day app: today's route, a job's entry codes, and closing out a visit" width={1448} height={1086} sizes="(min-width: 1024px) 660px, 100vw" className="h-auto w-full" />
         </div>
       </div>
     </section>
