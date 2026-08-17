@@ -7,6 +7,17 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.56",
+    date: "August 17, 2026",
+    title: "Say how many ovens or fridges — the total updates itself",
+    changes: [
+      "When a customer is picking add-ons on their proposal, Oven Clean Out and Refrigerator Clean Out now have a plus/minus counter instead of just an on/off toggle, so a home with two ovens can say so. The total updates live as the count changes, and the office quote screen shows the count too (e.g. \"Oven Clean Out × 2\").",
+      "The final price is always double-checked on our end when the customer accepts — nothing typed into a web form is trusted blindly for the total.",
+      "Older accepted quotes still display correctly; nothing about how they were saved needed to change.",
+      "Window cleaning still works the same as before (\"our scheduler will confirm the exact total with you\") — window pricing depends on window type and needs its own follow-up before it gets a count and a live price.",
+    ],
+  },
+  {
     version: "v0.2.55",
     date: "August 17, 2026",
     title: "The scheduling calendar now shows how many hours are free",

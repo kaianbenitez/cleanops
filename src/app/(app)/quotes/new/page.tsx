@@ -25,7 +25,7 @@ import {
   Check,
   type LucideIcon,
 } from "lucide-react";
-import { ADD_ONS, detectRequestedAddOns, type AddOnKey } from "@/lib/pricing/add-ons";
+import { ADD_ONS, MAX_ADD_ON_QTY, detectRequestedAddOns, type AddOnKey } from "@/lib/pricing/add-ons";
 import { resolveServiceAreaNameForZip } from "@/lib/pricing/service-area-zips";
 import AddressAutocomplete from "../../customers/address-autocomplete";
 import { DateInput } from "@/components/date-input";
@@ -219,6 +219,7 @@ export default function NewQuotePage() {
   const [petNotes, setPetNotes] = useState("");
   const [detectedAddOns, setDetectedAddOns] = useState<AddOnKey[]>([]);
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnKey[]>([]);
+  const [addOnQty, setAddOnQty] = useState<Partial<Record<AddOnKey, number>>>({});
   const [addOnsAddedToNotes, setAddOnsAddedToNotes] = useState(false);
 
   useEffect(() => {
@@ -419,12 +420,21 @@ export default function NewQuotePage() {
 
   function toggleAddOn(key: AddOnKey) {
     setSelectedAddOns((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
+    setAddOnQty((current) => ({ ...current, [key]: current[key] ?? 1 }));
+    setAddOnsAddedToNotes(false);
+  }
+
+  function setQtyForAddOn(key: AddOnKey, qty: number) {
+    const clamped = Math.max(1, Math.min(MAX_ADD_ON_QTY, Math.round(qty)));
+    setAddOnQty((current) => ({ ...current, [key]: clamped }));
     setAddOnsAddedToNotes(false);
   }
 
   function addSelectedAddOnsToNotes() {
     if (selectedAddOns.length === 0) return;
-    const labels = ADD_ONS.filter((addOn) => selectedAddOns.includes(addOn.key)).map((addOn) => addOn.label);
+    const labels = ADD_ONS.filter((addOn) => selectedAddOns.includes(addOn.key)).map((addOn) =>
+      addOn.quantified ? `${addOn.label} × ${addOnQty[addOn.key] ?? 1}` : addOn.label
+    );
     const line = `Requested add-ons: ${labels.join(", ")}.`;
     setNotes((current) => (current ? `${current}\n${line}` : line));
     setAddOnsAddedToNotes(true);
@@ -768,18 +778,40 @@ export default function NewQuotePage() {
                   const selected = selectedAddOns.includes(addOn.key);
                   const wasDetected = detectedAddOns.includes(addOn.key);
                   return (
-                    <button
-                      key={addOn.key}
-                      type="button"
-                      onClick={() => toggleAddOn(addOn.key)}
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                        selected ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-fill)] text-white" : "border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)]"
-                      }`}
-                    >
-                      {selected ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}
-                      {addOn.label} · {addOn.priceCents != null ? `+${dollars(addOn.priceCents)}` : (addOn.priceLabel ?? "ask for pricing")}
-                      {wasDetected ? <span className={`text-[10px] ${selected ? "text-white/80" : "text-[var(--co-accent-text)]"}`}>(flagged)</span> : null}
-                    </button>
+                    <span key={addOn.key} className="inline-flex items-center gap-1 rounded-full border border-[var(--co-line)] bg-[var(--co-surface)] p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => toggleAddOn(addOn.key)}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
+                          selected ? "bg-[var(--co-accent-fill)] text-white" : "text-[var(--co-muted)]"
+                        }`}
+                      >
+                        {selected ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}
+                        {addOn.label} · {addOn.priceCents != null ? `+${dollars(addOn.priceCents)}` : (addOn.priceLabel ?? "ask for pricing")}
+                        {wasDetected ? <span className={`text-[10px] ${selected ? "text-white/80" : "text-[var(--co-accent-text)]"}`}>(flagged)</span> : null}
+                      </button>
+                      {selected && addOn.quantified ? (
+                        <span className="flex items-center gap-1 pr-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setQtyForAddOn(addOn.key, (addOnQty[addOn.key] ?? 1) - 1)}
+                            className="flex h-5 w-5 items-center justify-center rounded-full border border-[var(--co-line)] text-[var(--co-ink)]"
+                            aria-label={`Fewer ${addOn.label}`}
+                          >
+                            <Minus className="h-3 w-3" aria-hidden />
+                          </button>
+                          <span className="min-w-[1rem] text-center text-xs font-semibold text-[var(--co-ink)]">{addOnQty[addOn.key] ?? 1}</span>
+                          <button
+                            type="button"
+                            onClick={() => setQtyForAddOn(addOn.key, (addOnQty[addOn.key] ?? 1) + 1)}
+                            className="flex h-5 w-5 items-center justify-center rounded-full border border-[var(--co-line)] text-[var(--co-ink)]"
+                            aria-label={`More ${addOn.label}`}
+                          >
+                            <Plus className="h-3 w-3" aria-hidden />
+                          </button>
+                        </span>
+                      ) : null}
+                    </span>
                   );
                 })}
               </div>

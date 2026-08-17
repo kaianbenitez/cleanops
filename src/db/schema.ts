@@ -404,7 +404,7 @@ export const quotes = pgTable("quotes", {
   signatureName: text("signature_name"), // typed-name e-signature, set on accept
   signatureAt: timestamp("signature_at", { withTimezone: true }),
 
-  acceptedAddOns: jsonb("accepted_add_ons").notNull().default([]), // AddOnKey[] the customer picked on accept — see lib/pricing/add-ons.ts
+  acceptedAddOns: jsonb("accepted_add_ons").notNull().default([]), // SelectedAddOn[] ({key, qty}) the customer picked on accept — see lib/pricing/add-ons.ts. Rows written before quantities existed are a bare AddOnKey[]; normalize with normalizeAddOns() before use.
   totalCents: integer("total_cents").notNull().default(0),
   notesToCustomer: text("notes_to_customer"),
   validUntil: date("valid_until"),
