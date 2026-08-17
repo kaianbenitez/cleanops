@@ -35,7 +35,7 @@ export default function SurfaceSwitcher({
         title={label}
         className="rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]"
       >
-        <ArrowLeftRight aria-hidden="true" strokeWidth={2} className="h-5 w-5 text-[var(--co-muted)]" />
+        <ArrowLeftRight aria-hidden="true" strokeWidth={1.75} className="h-5 w-5 text-[var(--co-muted)]" />
       </button>
     );
   }

@@ -191,7 +191,7 @@ export default function AppNav({
             aria-expanded={menuOpen}
             className="rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]"
           >
-            <Menu aria-hidden="true" strokeWidth={2} className="h-5 w-5 text-[var(--co-ink)]" />
+            <Menu aria-hidden="true" strokeWidth={1.75} className="h-5 w-5 text-[var(--co-ink)]" />
           </button>
 
           <Link href={logoHref} className="flex items-center gap-2">
@@ -205,7 +205,7 @@ export default function AppNav({
             {isAdmin ? <NotificationsMenu initialNotifications={initialNotifications} /> : null}
             {showFieldGroup ? <SurfaceSwitcher onFieldSurface={onFieldSurface} variant="icon" /> : null}
             <Link href="/account" aria-label="Account" className="rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]">
-              <CircleUserRound aria-hidden="true" strokeWidth={2} className="h-5 w-5 text-[var(--co-muted)]" />
+              <CircleUserRound aria-hidden="true" strokeWidth={1.75} className="h-5 w-5 text-[var(--co-muted)]" />
             </Link>
           </div>
         </div>
@@ -244,7 +244,7 @@ export default function AppNav({
             aria-label="Close menu"
             className="rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]"
           >
-            <Menu aria-hidden="true" strokeWidth={2} className="h-5 w-5 text-[var(--co-ink)]" />
+            <Menu aria-hidden="true" strokeWidth={1.75} className="h-5 w-5 text-[var(--co-ink)]" />
           </button>
         </div>
 
@@ -407,7 +407,7 @@ export default function AppNav({
               aria-label="Close"
               className="rounded-full p-2 text-[var(--co-muted)] transition-colors hover:bg-[var(--co-surface-muted)]"
             >
-              <X aria-hidden="true" strokeWidth={2} className="h-5 w-5" />
+              <X aria-hidden="true" strokeWidth={1.75} className="h-5 w-5" />
             </button>
           </div>
 

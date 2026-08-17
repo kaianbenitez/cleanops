@@ -1,8 +1,10 @@
 # ServiceSpark design system
 
-This describes the design system as it actually exists in `src/` as of the
-`design/wp7-design-md-rewrite` branch (based on `design/wp6-landing-page`,
-commit `6212425`). It replaces a prior version of this file that documented a
+This describes the design system as it actually exists in `src/` as of
+branch `design/wp3-evergreen-retirement`, which finished several mechanical
+items this file's original WP-7 pass had logged as still-open (see Known
+gaps for what changed and when). It replaces a prior version of this file
+that documented a
 Material-style token set (`surface-container-*`, `on-surface`,
 `primary-fixed`, a green `#f4fbf4` surface, a `1rem`/`1.5rem` radius scale)
 that never existed in the code. That document was aspirational and caused
@@ -250,26 +252,36 @@ design contract explicitly recommends against migrating off it — several
 icons are domain-specific and the risk of a wrong-icon bug from a blind
 family swap outweighs the stylistic win).
 
-**Stroke width is not standardized.** Explicit `strokeWidth` props currently
-in `src/**/*.tsx`:
+**Stroke width is standardized on the app side, not on marketing.** Every
+app-shell/admin/`/my-day` icon with an explicit `strokeWidth` prop reads
+`1.75` (31 instances, up from 10 — the earlier count only caught 3 of the
+app's own files and missed that `app-nav.tsx` and `surface-switcher.tsx` each
+carried a mix of `1.75` and a stray `2` on different icons in the same file).
+Explicit `strokeWidth` props remaining in `src/**/*.tsx`:
 
 | Value | Count | Where |
 |---|---|---|
-| `1.75` | 10 | `theme-toggle.tsx` (4), `app-nav.tsx` (3), `settings-nav.tsx` (2), `surface-switcher.tsx` (1) |
-| `2` | 5 | `app-nav.tsx` (3), `surface-switcher.tsx` (1), `create-menu.tsx` (1) |
-| `3` | 7 | `marketing-page.tsx` only |
+| `1.75` | 31 | app shell/admin/`/my-day` — `app-nav.tsx`, `theme-toggle.tsx`, `surface-switcher.tsx`, `notifications-menu.tsx`, `create-menu.tsx`, `install-hint-banner.tsx`, `my-day-client.tsx`, `date-input.tsx`, `time-input.tsx`, others |
+| `3` | 8 | `marketing-page.tsx` only — bold `<Check>` bullet icons |
+| `2.25` | 2 | `hero-product-visual.tsx` |
 | `2.2` | 1 | `feature-bento.tsx` |
-| `1.8` | 1 | `notifications-menu.tsx` |
+| `2` | 1 | `marketing-page.tsx`'s one `<PlayCircle>` icon |
 
-`1.75` is the plurality among app-shell chrome icons (nav, theme toggle,
-settings nav) and is the value the design contract recommends standardizing
-on. It has not been enforced — the landing page alone accounts for 7
-`strokeWidth={3}` instances, and one-off `2.2`/`1.8` values remain elsewhere.
-The overwhelming majority of icon instances (113 icons, only 24 with an
-explicit override above) render at lucide-react's implicit default of `2`,
-so in practice the app runs on a mix of an unset default (`2`) plus five
-explicit overrides. Two sizes are used, 16px inline and 20px standalone, per
-the original contract's recommendation — not independently re-verified here.
+The 3 landing-page files above (`marketing-page.tsx`, `hero-product-visual.tsx`,
+`feature-bento.tsx`) are deliberately **not** normalized to `1.75` — the
+landing page runs a higher variance/motion dial than the app by design (see
+Two-audience system), and each file's own stroke choice reads as a
+consistent, intentional decision within that file rather than drift. `donut.tsx`
+and `sparkline.tsx` also set `strokeWidth`, but that value is a chart line/ring
+thickness, not an icon glyph — a different concern, not part of this rule.
+
+**Not yet done:** icons with no explicit `strokeWidth` prop still render at
+lucide-react's implicit default of `2` — fixing those needs a systemic default
+(a wrapper component or lint rule, as the original design contract itself
+suggests) rather than adding an explicit prop to every one of the ~113
+icons/37 files it counted one at a time. Two sizes are used, 16px inline and
+20px standalone, per the original contract's recommendation — not
+independently re-verified here.
 
 ---
 
@@ -280,36 +292,19 @@ not what should eventually be true — the same philosophy the whole
 design-refinement effort was built on. An agent reading this file should
 come away knowing exactly what NOT to assume is fixed.
 
-- **`--co-evergreen` is not retired.** WP-1's own commit message logged this
-  as explicitly out of scope (retiring it needs markup edits, and WP-1 was
-  scoped to "no markup changes"). A follow-up note after WP-3 logged 86
-  usages remaining. **A full sweep of `src/` on this branch finds 316 lines
-  / 363 occurrences of `co-evergreen` across 85 `.tsx`/`.ts` files** (plus
-  16 references inside `globals.css` itself, which are the token
-  definitions and the hack described below, not call sites to convert).
-  The gap between 86 and 363 is almost certainly because the earlier count
-  was scoped to files WP-3 touched or read closely, not a full-tree grep —
-  WP-3's per-file conversion list (§7 of the design contract) never
-  included `app-nav.tsx`, the settings pages, most of `calendar/*`, or
-  several other files that are heavy `text-[var(--co-evergreen)]` users.
-  Functionally these call sites are not broken — `--co-evergreen` resolves
-  to the same cobalt value as `--co-accent-fill`/`--co-accent-text` in both
-  themes — but the name is still a lie, and this is the single largest
-  unresolved mechanical cleanup left in the codebase.
-- **The dark-mode attribute-selector hack is still in `globals.css`,
-  currently at lines 510 and 528** (`.dark [class~="bg-[var(--co-evergreen)]"]
-  [class~="text-white"]` and its `:hover` sibling). It's still load-bearing:
-  every `bg-[var(--co-evergreen)] text-white` call site in the app (there
-  are dozens, per the count above) depends on it to render correctly in dark
-  mode, because `--co-evergreen` alone can't satisfy AA contrast as both a
-  solid fill under white text and small accent text at once. The fix
-  (`--co-accent-fill`/`--co-accent-text` split) already exists in the token
-  layer — what's missing is renaming every `bg-[var(--co-evergreen)]
-  text-white` call site onto `--co-accent-fill` directly, which is exactly
-  the `--co-evergreen` retirement above. The hack is unlayered CSS
-  (deliberately, so it beats Tailwind's `@layer utilities` output) and is
-  documented in-place with a long comment explaining exactly why removing it
-  without doing the rename first will break dark mode broadly.
+- **`--co-evergreen` is retired.** Every `bg-[var(--co-evergreen)]` /
+  `text-[var(--co-evergreen)]` / etc. call site across `src/` (~330
+  occurrences, ~85 files) has been renamed onto `--co-accent-fill` (solid
+  fills) or `--co-accent-text` (text/icons/borders read against a surface)
+  by role, and the token definitions themselves are gone from `globals.css`.
+  The dark-mode attribute-selector hack that used to redirect
+  `bg-[var(--co-evergreen)]` fills to `--co-evergreen-soft` is deleted too —
+  with zero literal `bg-[var(--co-evergreen)]` strings left in any
+  `className`, its selector matched nothing, and `--co-accent-fill` already
+  carries the correct dark-mode contrast value directly (matching
+  `.co-button-primary`'s own established safe usage). `--co-evergreen` now
+  appears nowhere in `src/` except as a historical mention in the comment
+  that used to sit above the deleted hack.
 - **`--co-ink` is unsafe as a solid-fill background.** It's built to invert
   between themes (near-black in light, near-white in dark) — correct for
   text, but it will silently produce white-on-white (or black-on-black) if
@@ -346,56 +341,84 @@ come away knowing exactly what NOT to assume is fixed.
   (`rounded-[28px]` ×1), `surface-switcher.tsx` (`rounded-[14px]` ×1),
   `employees/[employeeId]/page.tsx` (`rounded-[14px]` ×1). None of these
   collapse onto `--co-radius-control`/`--co-radius-card` yet.
-- **181 raw Tailwind palette utilities remain** in `src/**/*.tsx` (down from
-  542 before WP-1/WP-3), across 59 files. By hue: rose 90, amber 58, emerald
-  24, slate 14, violet 6, blue 1, sky 1. This is expected, not a regression:
-  `payroll/page.tsx` (12 remaining) and `invoices/[invoiceId]/page.tsx` (8
-  remaining) were explicitly excluded from WP-3's conversion pass per the
-  "don't touch payroll or invoice UI" rule (Square runs in silent mock mode
-  in production; that gate hasn't moved). The rest are spread across files
-  WP-3's per-file conversion list never covered — sibling component files
-  under directories whose main page *was* converted (e.g.
-  `employees/[employeeId]/page.tsx` is clean, but `employee-tags.tsx`,
-  `pending-pto-requests.tsx`, `photo-upload.tsx`, and `pto-editor.tsx` in the
-  same directory are not), plus calendar chrome (`day-board.tsx`,
-  `week-board.tsx`, `staff-board.tsx`, and others that only got a one-line
-  border-utility fix when `shared.ts`'s `APPOINTMENT_COLOR` constants moved
-  to `.co-badge-*`, not a full conversion), plus settings pages, quotes, and
-  several other surfaces never in scope for WP-3's file list. `calendar/shared.ts`
-  also still carries a raw `sky`/`emerald`/`violet` legend
-  (`APPOINTMENT_TYPE_COLORS` or equivalent, lines 10–12) for job-type
-  badges, out of scope for the same reason.
-- **75 hex literals remain in `src/**/*.tsx`** outside the one legitimate
-  device-frame mock (`components/marketing/phone-frame.tsx`, 5 literals,
-  genuinely a physical-device chrome color and correctly out of scope).
-  Concentrated in the Job Detail page's card family
-  (`jobs/[jobId]/job-detail-client.tsx` 26, `loading.tsx` 13,
-  `time-entries-panel.tsx` 8, `team-panel.tsx` 6, `handoff-panel.tsx` 2) —
-  these are the green-gray literals (`#d3e0d2`, `#cad6ca`, `#d5ded5`,
-  `#f7fbf5`, and similar) from the pre-cobalt era, explicitly flagged as
-  out-of-scope for WP-3's raw-*hue*-utility pass since hex literals are a
-  different mechanical sweep. Smaller isolated pockets also remain in
-  `settings/branding/page.tsx`, `settings/ghl/page.tsx`,
-  `calendar/route-preview.tsx`, `scores/page.tsx`, `quality/page.tsx`,
-  `sync-issues/page.tsx`, `employee-browser/*`, and
-  `recurring/new/cadence-section.tsx` — mostly the same `#14211f` dark-green
-  ink value or `#e4f1e7`/`#d9e5cf`-family green tints, none yet converted to
-  `--co-*` tokens.
+- **Zero raw Tailwind palette utilities remain** in `src/**/*.tsx` (down
+  from 542 originally). The `payroll/page.tsx` and `invoices/[invoiceId]/
+  page.tsx` exclusion under the "don't touch payroll or invoice UI" rule
+  turned out to mean don't touch *functionality* (Square still runs in
+  silent mock mode; that gate hasn't moved) — pure color-token swaps with
+  zero logic/layout change were judged in scope and both files are
+  converted. Every other file the earlier count flagged as out of WP-3's
+  per-file list is converted too, including `calendar/shared.ts`'s
+  `TYPE_COLORS` legend, which turned out to be dead code (exported, never
+  imported anywhere) and was deleted outright rather than reformatted.
+- **Zero hex literals remain in `src/**/*.tsx`** outside legitimate
+  exceptions: the device-frame mock, `layout.tsx`'s PWA `theme-color` meta
+  tags (intentionally literal, matches `--co-surface` per theme), the
+  `#14211f` default brand color used consistently as a fallback for
+  companies with no custom branding set, the Google Maps `Polyline`
+  `strokeColor` (can't read a CSS custom property, isn't part of the DOM),
+  and two very light, brand-consistent section-background tints on the
+  light-only marketing page. The green-gray literals from the pre-cobalt
+  era that used to be concentrated in the Job Detail page's card family
+  (`job-detail-client.tsx`, `loading.tsx`, `time-entries-panel.tsx`,
+  `team-panel.tsx`, `handoff-panel.tsx`) and scattered elsewhere
+  (`settings/ghl/page.tsx`, `scores/page.tsx`, `quality/page.tsx`,
+  `sync-issues/page.tsx`, `employee-browser/*`) are gone, mapped onto the
+  neutral ramp or the matching `.co-badge-*` class by role.
 - **`calendar/shared.ts`'s `EMPLOYEE_PALETTE`** is a 16-color hardcoded hex
   array used to assign distinguishable per-employee colors on calendar
   views. This is a deliberate categorical palette for telling technicians
   apart at a glance, not a brand-token violation — noted here so a future
   session doesn't "fix" it into brand tokens and collapse the
   distinguishability it exists for.
-- **Icon stroke width is not standardized**, despite the design contract's
-  recommendation to converge on `1.75`. See the Icon convention section
-  above for the real current distribution.
+- **Icon stroke width is standardized app-side, not for icons with no
+  explicit `strokeWidth` prop.** See the Icon convention section above —
+  every app-shell/admin/`/my-day` icon that had an explicit non-`1.75` value
+  is fixed; the ones silently using lucide-react's own default of `2` are
+  not, and need a systemic default (wrapper or lint rule) rather than a
+  call-site sweep.
 - **`.co-card:hover`'s lift/shadow applies to every card**, including
   non-interactive ones, which signals clickability where none exists. Not
   scoped to actual links yet.
 - **Three overlapping neutral text tokens** (`--co-body`, `--co-faint`,
   `--co-muted`) exist without a clearly documented boundary between their
   intended uses.
+- **28 off-scale `rounded-[Npx]` instances remain**, deliberately untouched.
+  Same reasoning as when the earlier audit found them: collapsing these onto
+  `--co-radius-control`/`--co-radius-card` is a real, visible size change on
+  `app-nav.tsx`'s primary navigation (`rounded-[14px]` doesn't map cleanly
+  onto either the 8px control or 12px card step) that can't be verified
+  without a browser, and this environment's local dev login is broken — see
+  the note at the top of this section. A session with working browser access
+  should do this one.
+- **Hardcoded `bg-white`/`bg-black` on real page-surface elements are
+  fixed** (search dropdowns, avatar chips, KPI cards, form inputs, loading
+  skeletons) — this was the literal bug (a card staying white under text
+  that correctly flips light in dark mode) that kicked off this whole
+  session. What's left is all legitimate: modal backdrop scrims, white
+  overlays on a fixed-color banner (not the page theme), photo-caption
+  overlays on real uploaded images, a toggle knob, a native color-picker
+  swatch, and a logo-preview backdrop.
+- **The dark-mode flash on load is fixed.** `theme-provider.tsx` used to
+  apply the stored/OS preference inside a `useEffect`, which only runs after
+  first paint, so every dark-mode session saw a flash of the light shell on
+  every page load. A small inline script now applies the "dark" class
+  synchronously before paint, still scoped to the shell (not `<html>`) so
+  marketing/quote/feedback pages stay unaffected.
+- **`/my-day/[jobId]/job-execution-client.tsx` and `my-day/pto-requests.tsx`
+  are now on the field type scale and touch-target floor.** `my-day-client.tsx`
+  itself was already fully on `type-field-*` with zero text under 13px, but
+  its priority-1 sibling `job-execution-client.tsx` (and `pto-requests.tsx`)
+  still had raw `text-xs`/`text-[10px]` throughout, plus two sub-44px
+  interactive targets (a "Cancel" link with no padding, a "Back to My day"
+  link with no explicit height). Both fixed.
+- **Nothing in this document has been visually verified in a browser.**
+  Every fix above was verified with `npm run typecheck` / `npm run lint` /
+  `npm run build`, plus the same measured-contrast reasoning the original
+  token layer used — not by looking at the rendered page. Local dev login is
+  broken in this environment (a longstanding, unrelated gap — see
+  `HANDOFF.md`), so a real click-through in both themes is still owed before
+  calling any of this fully done.
 
 ---
 

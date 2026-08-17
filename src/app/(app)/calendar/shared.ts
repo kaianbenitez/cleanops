@@ -6,14 +6,6 @@ export const TYPE_LABELS: Record<string, string> = {
   move_out: "Move in/out",
 };
 
-export const TYPE_COLORS: Record<string, string> = {
-  first_clean: "border-sky-300 bg-sky-50 text-sky-700",
-  recurring: "border-emerald-300 bg-emerald-50 text-emerald-700",
-  one_time: "border-violet-300 bg-violet-50 text-violet-700",
-  deep_clean: "border-indigo-300 bg-indigo-50 text-indigo-700",
-  move_out: "border-orange-300 bg-orange-50 text-orange-700",
-};
-
 // Internal meeting/appointment styling — deliberately not part of
 // TYPE_COLORS (which is job-type specific) since appointments aren't jobs.
 // Uses --co-spark-* per the design refinement handoff's §3.4 rule that
