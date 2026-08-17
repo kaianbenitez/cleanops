@@ -27,11 +27,11 @@ export default function HandoffPanel({
     <section className={CARD_CLASS}>
       <h2 className="font-semibold">Time & handoff</h2>
       <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <div className="rounded-xl bg-[#f3f7f2] p-3">
+        <div className="rounded-xl bg-[var(--co-surface-muted)] p-3">
           <p className="text-xs text-[var(--co-muted)]">Recorded</p>
           <p className="mt-1 font-bold">{recordedHours.toFixed(2)} hrs</p>
         </div>
-        <div className="rounded-xl bg-[#f3f7f2] p-3">
+        <div className="rounded-xl bg-[var(--co-surface-muted)] p-3">
           <p className="text-xs text-[var(--co-muted)]">Open clocks</p>
           <p className="mt-1 font-bold">{openEntries}</p>
         </div>

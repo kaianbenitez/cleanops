@@ -85,7 +85,7 @@ export default function RoutePreview({
         overlaysRef.current.push(marker);
         if (completed === orderedJobs.length && points.length > 0) {
           map.fitBounds(bounds);
-          if (points.filter(Boolean).length > 1) overlaysRef.current.push(new maps.Polyline({ map, path: points.filter(Boolean), strokeColor: "#0f4837", strokeOpacity: 0.85, strokeWeight: 3 }));
+          if (points.filter(Boolean).length > 1) overlaysRef.current.push(new maps.Polyline({ map, path: points.filter(Boolean), strokeColor: "#2457ff", strokeOpacity: 0.85, strokeWeight: 3 }));
         }
         return;
       }
@@ -113,7 +113,7 @@ export default function RoutePreview({
             const line = new maps.Polyline({
               map,
               path: points.filter(Boolean),
-              strokeColor: "#0f4837",
+              strokeColor: "#2457ff",
               strokeOpacity: 0.85,
               strokeWeight: 3,
             });
@@ -179,7 +179,7 @@ export default function RoutePreview({
 
       <div className="mt-4 overflow-hidden rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]">
         {apiKey && !mapError ? (
-          <div ref={mapElement} className="min-h-[210px] bg-[#e8eee6]" aria-label="Route map" />
+          <div ref={mapElement} className="min-h-[210px] bg-[var(--co-surface-muted)]" aria-label="Route map" />
         ) : (
           <div
             className="relative min-h-[210px] overflow-hidden p-4"

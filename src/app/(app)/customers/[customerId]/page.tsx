@@ -814,7 +814,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                     </div>
                     <div className="text-right">
                       <p className="font-semibold">{money(invoice.totalCents)}</p>
-                      <span className={`text-xs ${invoice.status === "paid" ? "text-emerald-700" : "text-amber-700"}`}>{invoice.status}</span>
+                      <span className={`text-xs ${invoice.status === "paid" ? "text-[var(--co-success)]" : "text-[var(--co-warning)]"}`}>{invoice.status}</span>
                     </div>
                   </Link>
                 ))}

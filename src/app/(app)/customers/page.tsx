@@ -118,8 +118,8 @@ function paymentStatus(invoices: InvoiceRow[]) {
   const billable = invoices.filter((invoice) => invoice.status !== "void");
   if (!billable.length) return { label: "No invoices", className: "text-[var(--co-muted)]" };
   const outstandingCents = billable.reduce((total, invoice) => total + Math.max(invoice.totalCents - invoice.amountPaidCents, 0), 0);
-  if (outstandingCents > 0) return { label: `${money(outstandingCents)} due`, className: "text-amber-700" };
-  return { label: "Paid", className: "text-emerald-700" };
+  if (outstandingCents > 0) return { label: `${money(outstandingCents)} due`, className: "text-[var(--co-warning)]" };
+  return { label: "Paid", className: "text-[var(--co-success)]" };
 }
 
 function formatDate(date: string | Date) {

@@ -110,7 +110,7 @@ export default function MarketingPage() {
             sizes="(min-width: 1024px) 800px, 100vw"
             className="h-auto w-full"
           />
-          <figcaption className="mt-4 text-sm font-medium text-[var(--co-muted)]">Customer details, the crew&apos;s app, and billing — all in one place.</figcaption>
+          <figcaption className="mt-4 text-sm font-medium text-[var(--co-muted)]">Customer details, the crew&apos;s app, and billing, all in one place.</figcaption>
         </figure>
       </div>
     </section>

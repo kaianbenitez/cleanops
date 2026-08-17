@@ -196,11 +196,11 @@ export default function JobDetailClient({
   }
 
   return (
-    <div className="-mx-4 -mt-6 min-h-[100dvh] bg-[#f7f9f6] pb-10 sm:-mx-6 lg:-mx-8">
-      <header className="sticky top-0 z-20 border-b border-[#d7e0d7] bg-[#fbfdf9]/95 px-5 py-3 backdrop-blur sm:px-8">
+    <div className="-mx-4 -mt-6 min-h-[100dvh] bg-[var(--co-bg)] pb-10 sm:-mx-6 lg:-mx-8">
+      <header className="sticky top-0 z-20 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)]/95 px-5 py-3 backdrop-blur sm:px-8">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <Link href="/jobs" aria-label="Back to jobs" className="rounded-lg p-2 text-[var(--co-ink)] transition hover:bg-[#edf3eb]">
+            <Link href="/jobs" aria-label="Back to jobs" className="rounded-lg p-2 text-[var(--co-ink)] transition hover:bg-[var(--co-surface-muted)]">
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <span className="text-lg font-bold tracking-[-0.03em]">Job #{job.id.slice(0, 8).toUpperCase()}</span>
@@ -253,7 +253,7 @@ export default function JobDetailClient({
               </Link>
             </div>
             <div className="mt-5 flex items-center gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#e4eee2] text-sm font-bold text-[var(--co-accent-text)]">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--co-surface-muted)] text-sm font-bold text-[var(--co-accent-text)]">
                 <CircleUserRound className="h-7 w-7" />
               </span>
               <div>
@@ -294,7 +294,7 @@ export default function JobDetailClient({
 
           <section className={CARD_CLASS}>
             <h2 className="font-semibold">Service package</h2>
-            <div className="mt-5 rounded-xl border border-[#d3e0d2] bg-[#f1f7ef] p-4">
+            <div className="mt-5 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
               <div className="flex items-start justify-between gap-2">
                 <p className="font-bold text-[var(--co-accent-text)]">{job.serviceName ?? TYPE_LABELS[job.type] ?? job.type}</p>
                 {editingPrice ? (
@@ -315,7 +315,7 @@ export default function JobDetailClient({
                   <div className="flex items-center gap-1">
                     <span className="text-xs text-[var(--co-muted)]">Price charged</span>
                     <span className="text-sm font-bold text-[var(--co-accent-text)]">{money(job.priceCents)}</span>
-                    <button type="button" aria-label="Edit price charged" disabled={saving} onClick={beginPriceEdit} className="rounded p-1 text-[var(--co-accent-text)] hover:bg-white disabled:opacity-50">
+                    <button type="button" aria-label="Edit price charged" disabled={saving} onClick={beginPriceEdit} className="rounded p-1 text-[var(--co-accent-text)] hover:bg-[var(--co-surface-muted)] disabled:opacity-50">
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                   </div>
@@ -325,7 +325,7 @@ export default function JobDetailClient({
               {job.addOnNames.length > 0 ? (
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {job.addOnNames.map((name) => (
-                    <span key={name} className="rounded-full border border-[#d3e0d2] bg-white px-2.5 py-1 text-xs font-medium text-[var(--co-accent-text)]">
+                    <span key={name} className="rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-2.5 py-1 text-xs font-medium text-[var(--co-accent-text)]">
                       {name}
                     </span>
                   ))}
@@ -333,15 +333,15 @@ export default function JobDetailClient({
               ) : null}
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-[#d3e0d2] bg-[#f7fbf5] p-3">
+              <div className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-3">
                 <p className="text-xs text-[var(--co-muted)]">Scheduled</p>
                 <p className="mt-1 font-semibold">{formatDisplayDate(job.scheduledDate)}</p>
               </div>
-              <div className="rounded-xl border border-[#d3e0d2] bg-[#f7fbf5] p-3">
+              <div className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-3">
                 <p className="text-xs text-[var(--co-muted)]">Start time</p>
                 <p className="mt-1 font-semibold">{job.scheduledStartTime?.slice(0, 5) ?? "Unscheduled"}</p>
               </div>
-              <div className="col-span-2 rounded-xl border border-[#d3e0d2] bg-[#f7fbf5] p-3">
+              <div className="col-span-2 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-3">
                 <p className="text-xs text-[var(--co-muted)]">Job Ticket Hours</p>
                 {editingJth ? (
                   <form className="mt-1" onSubmit={(event) => { event.preventDefault(); void saveJth(); }}>
@@ -356,8 +356,8 @@ export default function JobDetailClient({
                 ) : (
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <p className="font-semibold">{formatEstimatedTime(job.estimatedDurationMinutes)}</p>
-                    {job.jthManualOverride ? <span className="rounded border border-[#b8c6b8] px-1.5 py-0.5 text-xs text-[var(--co-muted)]">Manually set</span> : null}
-                    <button type="button" aria-label="Edit Job Ticket Hours" disabled={saving} onClick={beginJthEdit} className="rounded p-1 text-[var(--co-accent-text)] hover:bg-white disabled:opacity-50">
+                    {job.jthManualOverride ? <span className="rounded border border-[var(--co-line)] px-1.5 py-0.5 text-xs text-[var(--co-muted)]">Manually set</span> : null}
+                    <button type="button" aria-label="Edit Job Ticket Hours" disabled={saving} onClick={beginJthEdit} className="rounded p-1 text-[var(--co-accent-text)] hover:bg-[var(--co-surface-muted)] disabled:opacity-50">
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                   </div>
@@ -365,7 +365,7 @@ export default function JobDetailClient({
               </div>
             </div>
             {job.customerNotes ? (
-              <div className="mt-4 rounded-xl border border-[#d3e0d2] bg-[#f7fbf5] p-3">
+              <div className="mt-4 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-3">
                 <p className="text-xs font-semibold text-[var(--co-muted)]">Special instructions</p>
                 <p className="mt-2 whitespace-pre-line text-sm italic leading-5">{job.customerNotes}</p>
               </div>
@@ -396,27 +396,27 @@ export default function JobDetailClient({
                 <p className="text-xs text-[var(--co-muted)]">Complete</p>
               </div>
             </div>
-            <div className="mt-5 h-2 overflow-hidden rounded-full bg-[#dfe6df]">
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-[var(--co-surface-muted-2)]">
               <div className="h-full bg-[var(--co-accent-fill)] transition-all" style={{ width: `${serviceProgress}%` }} />
             </div>
             <div className="mt-5 space-y-4">
               {serviceSteps.map((step) => (
-                <div key={step.label} className={`flex gap-3 rounded-xl p-3 ${step.done ? "bg-[#f4f8f3]" : ""}`}>
+                <div key={step.label} className={`flex gap-3 rounded-xl p-3 ${step.done ? "bg-[var(--co-surface-muted)]" : ""}`}>
                   <span
                     className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded ${
-                      step.done ? "bg-[var(--co-accent-fill)] text-white" : "border border-[#b8c6b8] bg-white"
+                      step.done ? "bg-[var(--co-accent-fill)] text-white" : "border border-[var(--co-line)] bg-[var(--co-surface)]"
                     }`}
                   >
                     {step.done ? <Check className="h-3.5 w-3.5" /> : null}
                   </span>
                   <div>
-                    <p className={`font-semibold ${step.done ? "line-through decoration-[#8da28e]" : ""}`}>{step.label}</p>
+                    <p className={`font-semibold ${step.done ? "line-through decoration-[var(--co-faint)]" : ""}`}>{step.label}</p>
                     <p className="mt-0.5 text-sm text-[var(--co-muted)]">{step.detail}</p>
                   </div>
                 </div>
               ))}
             </div>
-            <details className="mt-5 rounded-xl border border-[#d5ded5] p-3">
+            <details className="mt-5 rounded-xl border border-[var(--co-line-soft)] p-3">
               <summary className="cursor-pointer text-sm font-semibold text-[var(--co-accent-text)]">Add close-out notes</summary>
               <textarea
                 defaultValue={job.completionNotes ?? ""}
@@ -426,10 +426,10 @@ export default function JobDetailClient({
                 placeholder="Notes save when you leave this field."
               />
             </details>
-            <div className="mt-5 rounded-xl border border-[#d5ded5] p-3">
+            <div className="mt-5 rounded-xl border border-[var(--co-line-soft)] p-3">
               <p className="text-sm font-semibold text-[var(--co-accent-text)]">Reported from the field</p>
               {job.feedbackStatus ? (
-                <div className="mt-3 rounded-xl bg-[#f4f8f3] p-3">
+                <div className="mt-3 rounded-xl bg-[var(--co-surface-muted)] p-3">
                   <p className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--co-muted)]">Customer check-out</p>
                   {job.feedbackExpired ? <p className="mt-1 text-xs font-semibold text-[var(--co-warning)]">Link expired — activate a new link to resend.</p> : null}
                   <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
@@ -439,7 +439,7 @@ export default function JobDetailClient({
                   {job.feedbackQualityComment ? <p className="mt-2 text-sm text-[var(--co-ink)]">“{job.feedbackQualityComment}”</p> : null}
                   {job.feedbackStatus !== "submitted" ? <div className="mt-3 flex flex-wrap items-center gap-2"><button type="button" onClick={sendFeedbackLink} disabled={feedbackBusy} className="co-button-secondary"><Send className="h-3.5 w-3.5" />{feedbackBusy ? "Sending…" : job.feedbackExpired ? "Activate & send new link" : "Send link again"}</button>{feedbackLink ? <input readOnly value={feedbackLink} className="co-input min-w-[220px] flex-1 text-xs" onFocus={(event) => event.currentTarget.select()} /> : null}</div> : null}
                 </div>
-              ) : <div className="mt-3 rounded-xl border border-dashed border-[#d5ded5] p-3"><p className="text-sm text-[var(--co-muted)]">No customer feedback link has been sent yet.</p><button type="button" onClick={sendFeedbackLink} disabled={feedbackBusy || job.status !== "completed"} className="co-button-secondary mt-3"><Send className="h-3.5 w-3.5" />{feedbackBusy ? "Sending…" : "Activate & send feedback link"}</button>{job.status !== "completed" ? <p className="mt-2 text-xs text-[var(--co-faint)]">Available after the job is completed.</p> : null}{feedbackLink ? <input readOnly value={feedbackLink} className="co-input mt-3 w-full text-xs" onFocus={(event) => event.currentTarget.select()} /> : null}</div>}
+              ) : <div className="mt-3 rounded-xl border border-dashed border-[var(--co-line-soft)] p-3"><p className="text-sm text-[var(--co-muted)]">No customer feedback link has been sent yet.</p><button type="button" onClick={sendFeedbackLink} disabled={feedbackBusy || job.status !== "completed"} className="co-button-secondary mt-3"><Send className="h-3.5 w-3.5" />{feedbackBusy ? "Sending…" : "Activate & send feedback link"}</button>{job.status !== "completed" ? <p className="mt-2 text-xs text-[var(--co-faint)]">Available after the job is completed.</p> : null}{feedbackLink ? <input readOnly value={feedbackLink} className="co-input mt-3 w-full text-xs" onFocus={(event) => event.currentTarget.select()} /> : null}</div>}
               <label className="mt-3 block">
                 <span className="mb-1 block text-xs text-[var(--co-muted)]">Payment collected on-site</span>
                 <select
@@ -539,13 +539,13 @@ export default function JobDetailClient({
         <aside className="space-y-6">
           <section className={CARD_CLASS}>
             <h2 className="font-semibold">Activity timeline</h2>
-            <div className="mt-5 space-y-5 border-l-2 border-[#c8d7c8] pl-5">
+            <div className="mt-5 space-y-5 border-l-2 border-[var(--co-line-soft)] pl-5">
               {auditLogs.length ? (
                 auditLogs.slice(0, 5).map((log, index) => (
                   <div key={log.id} className="relative">
                     <span
                       className={`absolute -left-[1.72rem] top-1 h-3 w-3 rounded-full border-2 border-white ${
-                        index === 0 ? "bg-[var(--co-accent-fill)]" : "bg-[#b7c7b8]"
+                        index === 0 ? "bg-[var(--co-accent-fill)]" : "bg-[var(--co-line)]"
                       }`}
                     />
                     <p className="text-sm font-semibold">{log.action.replaceAll(".", " ")}</p>

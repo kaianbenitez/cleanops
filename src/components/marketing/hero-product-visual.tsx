@@ -17,7 +17,7 @@ function StatusCard({ icon, eyebrow, title, meta, tone = "accent" }: { icon: Rea
 }
 
 /** hero-composite.jpg is a single pre-composed asset (calendar + crew phone, matched
- * background and shadow already baked in) — rendered flat, no extra frame/rotation
+ * background and shadow already baked in), rendered flat with no extra frame/rotation
  * layered on top, so its own edges stay seamless against the section background. */
 export function HeroProductVisual() {
   return (
