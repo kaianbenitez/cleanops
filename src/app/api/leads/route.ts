@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
 import { productLeads } from "@/db/schema";
+import { notifyAdmins } from "@/lib/notifications/create";
 
 const WINDOW_MS = 10 * 60 * 1000;
 const MAX_REQUESTS = 5;
@@ -73,6 +74,21 @@ export async function POST(request: Request) {
     crewSize: parsed.data.crewSize,
     message: parsed.data.message,
   });
+
+  const companyId = process.env.GHL_PRIMARY_COMPANY_ID;
+  if (companyId) {
+    try {
+      await notifyAdmins({
+        companyId,
+        type: "product_lead.received",
+        title: `New lead: ${parsed.data.businessName}`,
+        body: parsed.data.contactName ?? parsed.data.email,
+        href: "/leads",
+      });
+    } catch (error) {
+      console.error("Failed to notify admins of new lead", error);
+    }
+  }
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }
