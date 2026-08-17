@@ -14,6 +14,22 @@ export function useTheme() {
   return ctx;
 }
 
+const SHELL_ID = "app-theme-shell";
+
+// Runs synchronously, before the browser paints the shell div below, so a
+// stored/OS dark preference is applied before first paint instead of in a
+// post-mount effect. Targets the shell by id rather than `<html>` — the
+// public marketing/quote/feedback pages share the root layout and must
+// never pick up an admin's stored preference.
+const NO_FLASH_SCRIPT = `(function () {
+  try {
+    var stored = window.localStorage.getItem(${JSON.stringify(STORAGE_KEY)});
+    var dark = stored === "dark" || (stored !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    var shell = document.getElementById(${JSON.stringify(SHELL_ID)});
+    if (shell && dark) shell.classList.add("dark");
+  } catch (e) {}
+})();`;
+
 /**
  * Scopes the `dark` class to this shell (the authenticated app), not
  * `<html>` — the public marketing/quote/feedback pages have no dark
@@ -27,7 +43,7 @@ export default function ThemeProvider({ children, className }: { children: React
     const stored = window.localStorage.getItem(STORAGE_KEY);
     const initial: Theme =
       stored === "dark" || stored === "light" ? stored : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage/matchMedia are unavailable during SSR, so the real preference can only be read once mounted.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage/matchMedia are unavailable during SSR, so the real preference can only be read once mounted. The no-flash script above already applied the "dark" class pre-paint; this just syncs React's own state to match and is a no-op on the DOM when it already agrees.
     setTheme(initial);
     shellRef.current?.classList.toggle("dark", initial === "dark");
   }, []);
@@ -43,7 +59,8 @@ export default function ThemeProvider({ children, className }: { children: React
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      <div ref={shellRef} className={className}>
+      <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
+      <div ref={shellRef} id={SHELL_ID} className={className} suppressHydrationWarning>
         {children}
       </div>
     </ThemeContext.Provider>
