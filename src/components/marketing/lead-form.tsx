@@ -5,7 +5,7 @@ import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 
 type FieldName = "businessName" | "contactName" | "email" | "phone" | "crewSize" | "message" | "companyWebsite";
 type LeadFormData = Record<FieldName, string>;
-const LEADS_TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_LEADS_TURNSTILE_SITE_KEY;
+const LEADS_TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 const initialForm: LeadFormData = {
   businessName: "",
