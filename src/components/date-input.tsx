@@ -15,10 +15,12 @@ interface DateInputProps {
   name?: string;
   min?: string;
   max?: string;
+  showCapacity?: boolean;
+  neededHours?: number | null;
 }
 
 export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
-  ({ value, defaultValue, onChange, onBlur, label, required, disabled, className = "", name, min, max }, ref) => {
+  ({ value, defaultValue, onChange, onBlur, label, required, disabled, className = "", name, min, max, showCapacity, neededHours }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
     const [displayValue, setDisplayValue] = useState(value ?? defaultValue ?? "");
 
@@ -88,6 +90,8 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
               onClose={() => setIsOpen(false)}
               min={min}
               max={max}
+              showCapacity={showCapacity}
+              neededHours={neededHours}
             />
           )}
         </div>

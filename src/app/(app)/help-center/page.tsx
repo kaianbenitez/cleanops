@@ -7,6 +7,17 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.55",
+    date: "August 17, 2026",
+    title: "The scheduling calendar now shows how many hours are free",
+    changes: [
+      "When you're picking a start date to convert a quote into work, each day on the calendar now shows how many crew hours are still free that day, colored green (comfortable), amber (tight), or red (already over-booked) — never just a color, always with the number too.",
+      "The calendar also shows how many hours the job you're scheduling needs, so you can compare at a glance instead of doing the math yourself.",
+      "This never blocks a day — you can still schedule anything, anytime. It's a heads-up, not a rule.",
+      "It uses time off and a new Settings → Calendar → \"Hours per cleaner\" number (defaults to 8) to figure out what's free. If that setting or the calendar's data can't load, the date picker still works normally, just without the colors.",
+    ],
+  },
+  {
     version: "v0.2.54",
     date: "August 17, 2026",
     title: "Pets now track hair rating, dog/cat counts, and names",

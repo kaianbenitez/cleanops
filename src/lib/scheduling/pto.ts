@@ -111,3 +111,10 @@ export function ptoConflictMessage(conflicts: Array<{ firstName: string; lastNam
   const names = conflicts.map((conflict) => `${conflict.firstName} ${conflict.lastName}`);
   return `${names.join(", ")} ${names.length === 1 ? "is" : "are"} marked unavailable for this date and time.`;
 }
+
+/** Hours a single PTO record takes off a given date, for capacity planning.
+ * Caller must already have confirmed `pto` covers `date` (startDate <= date
+ * <= endDate) — this only resolves full vs. half day via `periodForDate`. */
+export function ptoHoursForDate(pto: EmployeePtoRecord, date: string, workdayHours: number): number {
+  return periodForDate(pto, date) === "full" ? workdayHours : workdayHours / 2;
+}

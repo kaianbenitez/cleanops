@@ -110,6 +110,10 @@ const schema = z.object({
     .max(366)
     .optional(),
   workingDays: z.array(z.number().int().min(0).max(6)).min(1).max(7).optional(),
+  // Capacity planning (SF-7): hours one cleaner works in a normal day, and the
+  // fallback duration used when a job has no estimatedDurationMinutes yet.
+  workdayHoursPerCleaner: z.number().positive().max(24).optional(),
+  defaultJobDurationMinutes: z.number().int().positive().max(24 * 60).optional(),
   // Staff-board column order. Employee ids are validated again against the
   // company roster by the calendar UI, so stale ids from archived staff are
   // harmless and simply ignored when the board renders.
@@ -203,6 +207,12 @@ export async function PATCH(req: NextRequest) {
       : {}),
     ...(parsed.data.workingDays !== undefined
       ? { workingDays: parsed.data.workingDays }
+      : {}),
+    ...(parsed.data.workdayHoursPerCleaner !== undefined
+      ? { workdayHoursPerCleaner: parsed.data.workdayHoursPerCleaner }
+      : {}),
+    ...(parsed.data.defaultJobDurationMinutes !== undefined
+      ? { defaultJobDurationMinutes: parsed.data.defaultJobDurationMinutes }
       : {}),
     ...(parsed.data.staffColumnOrder !== undefined
       ? { staffColumnOrder: parsed.data.staffColumnOrder }

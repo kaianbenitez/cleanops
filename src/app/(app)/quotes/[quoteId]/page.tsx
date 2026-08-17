@@ -365,7 +365,16 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
                 ))}
               </select>
             </label>
-            <DateInput label="Start date" value={convertDate} onChange={setConvertDate} />
+            <DateInput
+              label="Start date"
+              value={convertDate}
+              onChange={setConvertDate}
+              showCapacity
+              neededHours={(() => {
+                const selectedTier = tiers.find(([type]) => type === selectedServiceType)?.[1];
+                return selectedTier && hourlyRateCents ? selectedTier.finalCents / hourlyRateCents : null;
+              })()}
+            />
             <div className="mt-4 grid gap-2">
               {quote.status === "accepted" ? (
                 <button onClick={() => convert(false)} className="co-button-primary w-full">
