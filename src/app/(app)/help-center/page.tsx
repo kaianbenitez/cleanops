@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.53",
+    date: "August 17, 2026",
+    title: "Pets now show up when you're building a proposal",
+    changes: [
+      "The \"Home condition and travel\" section of a new proposal now has a Pets field, so you don't have to leave the proposal and open the customer's profile to note a dog or cat.",
+      "For an existing customer, any pet notes already on file show up automatically. Add or edit them there and they're saved back to the customer's profile as soon as the proposal is created — the crew sees the same note on the job.",
+      "For a brand-new customer, whatever you type in Pets is saved onto their new profile right away.",
+    ],
+  },
+  {
     version: "v0.2.52",
     date: "August 17, 2026",
     title: "Room names no longer get cut off in the quote builder",

@@ -211,6 +211,7 @@ export default function NewQuotePage() {
   const [notes, setNotes] = useState("");
   const [validUntil, setValidUntil] = useState(defaultValidUntil);
   const [customerNotes, setCustomerNotes] = useState("");
+  const [petNotes, setPetNotes] = useState("");
   const [detectedAddOns, setDetectedAddOns] = useState<AddOnKey[]>([]);
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnKey[]>([]);
   const [addOnsAddedToNotes, setAddOnsAddedToNotes] = useState(false);
@@ -282,6 +283,7 @@ export default function NewQuotePage() {
     if (customerId) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCustomerNotes("");
+    setPetNotes("");
     setDetectedAddOns([]);
     setSelectedAddOns([]);
     setAddOnsAddedToNotes(false);
@@ -317,6 +319,7 @@ export default function NewQuotePage() {
           .filter((value): value is string => Boolean(value))
           .join(" · ");
         setCustomerNotes(noteText);
+        setPetNotes(body.customer?.petNotes ?? "");
         const detected = detectRequestedAddOns(noteText);
         setDetectedAddOns(detected);
         setSelectedAddOns(detected);
@@ -440,7 +443,7 @@ export default function NewQuotePage() {
       const customerResponse = await fetch("/api/customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newCustomerForm),
+        body: JSON.stringify({ ...newCustomerForm, petNotes: petNotes.trim() || undefined }),
       });
       const customerBody = await customerResponse.json().catch(() => ({}));
       if (!customerResponse.ok) {
@@ -451,6 +454,12 @@ export default function NewQuotePage() {
         return;
       }
       quoteCustomerId = customerBody.customer.id;
+    } else {
+      await fetch(`/api/customers/${quoteCustomerId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ petNotes: petNotes.trim() || null }),
+      }).catch(() => {});
     }
     const response = await fetch("/api/quotes", {
       method: "POST",
@@ -814,6 +823,16 @@ export default function NewQuotePage() {
                 </select>
               </label>
             </div>
+            <label className="mt-3 block text-sm">
+              <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Pets</span>
+              <textarea
+                className="co-input w-full resize-none"
+                rows={3}
+                value={petNotes}
+                onChange={(event) => setPetNotes(event.target.value)}
+                placeholder="e.g., two large dogs, keep them in the yard"
+              />
+            </label>
             <label className="mt-3 block text-sm">
               <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Notes to customer</span>
               <textarea
