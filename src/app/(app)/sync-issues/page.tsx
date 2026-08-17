@@ -78,7 +78,7 @@ export default async function SyncIssuesPage({ searchParams }: { searchParams: P
         </div>
         {rows.length === 0 ? (
           <div className="p-14 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e8f2d3] text-xl text-[#5c7436]">✓</div>
+            <div className="co-badge-success mx-auto flex h-12 w-12 items-center justify-center rounded-2xl text-xl">✓</div>
             <p className="mt-4 font-semibold">Everything is up to date</p>
             <p className="mt-1 text-sm text-[var(--co-muted)]">No failed or retrying syncs are waiting.</p>
           </div>

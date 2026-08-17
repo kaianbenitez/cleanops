@@ -168,9 +168,9 @@ export default function TimeEntriesPanel({
         <p className="co-badge-success mt-4 rounded-xl px-4 py-3 text-sm font-medium">{notice}</p>
       ) : null}
 
-      <div className="mt-4 overflow-x-auto rounded-xl border border-[#d5ded5]">
+      <div className="mt-4 overflow-x-auto rounded-xl border border-[var(--co-line-soft)]">
         <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="bg-[#f3f7f2] text-xs uppercase tracking-[0.08em] text-[var(--co-muted)]">
+          <thead className="bg-[var(--co-surface-muted)] text-xs uppercase tracking-[0.08em] text-[var(--co-muted)]">
             <tr>
               <th className="px-4 py-3">Technician</th>
               <th className="px-4 py-3">Start</th>
@@ -179,13 +179,13 @@ export default function TimeEntriesPanel({
               <th className="px-4 py-3" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#e2e9e1]">
+          <tbody className="divide-y divide-[var(--co-line-soft)]">
             {timeEntries.map((entry) => (
-              <tr key={entry.id} className="hover:bg-[#f7faf6]">
+              <tr key={entry.id} className="hover:bg-[var(--co-surface-muted)]">
                 <td className="px-4 py-3 font-medium">
                   {entry.firstName} {entry.lastName}
                   {entry.recordedByAdmin ? (
-                    <span className="ml-2 rounded-full bg-[#e4eee2] px-2 py-0.5 text-[10px] font-semibold text-[var(--co-accent-text)]">Manual</span>
+                    <span className="ml-2 rounded-full bg-[var(--co-surface-muted)] px-2 py-0.5 text-[10px] font-semibold text-[var(--co-accent-text)]">Manual</span>
                   ) : null}
                 </td>
                 <td className="px-4 py-3 text-[var(--co-muted)]">{formatTime(entry.clockIn)}</td>
@@ -211,7 +211,7 @@ export default function TimeEntriesPanel({
       </div>
 
       {editingEntryId ? (
-        <div className="mt-4 rounded-xl border border-[#cad6ca] bg-[#f7faf6] p-4">
+        <div className="mt-4 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
           <p className="text-sm font-semibold">Edit time entry</p>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <input aria-label="Edited clock in" type="datetime-local" value={editClockIn} onChange={(event) => setEditClockIn(event.target.value)} className="co-input" />
@@ -229,7 +229,7 @@ export default function TimeEntriesPanel({
         </div>
       ) : null}
 
-      <details className="mt-4 rounded-xl border border-[#d5ded5] p-3">
+      <details className="mt-4 rounded-xl border border-[var(--co-line-soft)] p-3">
         <summary className="cursor-pointer text-sm font-semibold text-[var(--co-accent-text)]">Add time manually</summary>
         {assignedEmployees.length === 0 ? (
           <p className="mt-3 text-sm text-[var(--co-muted)]">Assign the crew first — manual time is recorded against an assigned technician.</p>

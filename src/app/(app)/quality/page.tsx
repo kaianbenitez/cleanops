@@ -28,7 +28,7 @@ function feedbackLabel(status: string) {
 }
 
 function statusClass(status: string) {
-  if (status === "responded") return "bg-[#e4f1e7] text-[var(--co-accent-text)]";
+  if (status === "responded") return "co-badge-success";
   if (status === "expired") return "co-badge-warning";
   return "bg-[var(--co-surface-muted)] text-[var(--co-muted)]";
 }

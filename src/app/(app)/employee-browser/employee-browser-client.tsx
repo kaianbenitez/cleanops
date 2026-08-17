@@ -256,7 +256,7 @@ export default function EmployeeBrowserClient({
               Current value: {mileageMiles.toFixed(1)} miles
             </p>
           </div>
-          <span className="rounded-full bg-[#edf3e9] px-3 py-1 text-xs font-medium text-[#5c7436]">
+          <span className="rounded-full co-badge-info px-3 py-1 text-xs font-medium">
             {dollars(Math.round(mileageMiles * mileageRateCents))}
           </span>
         </div>
@@ -384,7 +384,7 @@ export default function EmployeeBrowserClient({
               <p className="eyebrow">Route preview</p>
               <h2 className="mt-1 text-lg font-semibold">Employee path for today</h2>
             </div>
-            <span className="rounded-full bg-[#edf3e9] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#5c7436]">
+            <span className="rounded-full co-badge-info px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]">
               {routeJobs.length} stops
             </span>
           </div>
@@ -447,7 +447,7 @@ export default function EmployeeBrowserClient({
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <div className="flex flex-col items-end gap-2">
-                      <span className="rounded-full bg-[#edf3e9] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#5c7436]">
+                      <span className="rounded-full co-badge-info px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]">
                         Planned
                       </span>
                       <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${

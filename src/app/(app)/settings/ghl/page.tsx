@@ -226,7 +226,7 @@ export default function GhlSettingsPage() {
         ))}
       </section>
 
-      <section className="co-card flex items-start gap-4 border-[#d9e5cf] bg-[var(--co-surface-muted)] p-5">
+      <section className="co-card flex items-start gap-4 border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-5">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--co-accent-fill)] text-sm font-black text-[var(--co-accent)]">GHL</span>
         <div>
           <p className="font-semibold">Connection boundary is ready</p>
