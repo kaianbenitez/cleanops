@@ -5,6 +5,7 @@ import { use, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ADD_ONS } from "@/lib/pricing/add-ons";
 import { LocalDateTime } from "@/components/local-date-time";
+import { DateInput } from "@/components/date-input";
 
 type Tier = {
   roomSubtotalCents: number;
@@ -364,10 +365,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
                 ))}
               </select>
             </label>
-            <label className="block text-sm">
-              <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Start date</span>
-              <input type="date" value={convertDate} onChange={(event) => setConvertDate(event.target.value)} className="co-input w-full" />
-            </label>
+            <DateInput label="Start date" value={convertDate} onChange={setConvertDate} />
             <div className="mt-4 grid gap-2">
               {quote.status === "accepted" ? (
                 <button onClick={() => convert(false)} className="co-button-primary w-full">

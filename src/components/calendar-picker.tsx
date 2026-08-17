@@ -7,6 +7,8 @@ interface CalendarPickerProps {
   value: string;
   onChange: (value: string) => void;
   onClose: () => void;
+  min?: string;
+  max?: string;
 }
 
 // Local calendar date -> "YYYY-MM-DD" without going through UTC (toISOString
@@ -18,7 +20,7 @@ function localISO(d: Date) {
   return `${year}-${month}-${day}`;
 }
 
-export function CalendarPicker({ value, onChange, onClose }: CalendarPickerProps) {
+export function CalendarPicker({ value, onChange, onClose, min, max }: CalendarPickerProps) {
   const [date, setDate] = useState<Date>(() => {
     const d = value ? new Date(value + "T00:00:00") : new Date();
     d.setHours(0, 0, 0, 0);
@@ -52,7 +54,8 @@ export function CalendarPicker({ value, onChange, onClose }: CalendarPickerProps
     current.setDate(current.getDate() + 1);
   }
 
-  const handleDateClick = (d: Date) => {
+  const handleDateClick = (d: Date, disabled: boolean) => {
+    if (disabled) return;
     onChange(localISO(d));
     onClose();
   };
@@ -84,16 +87,20 @@ export function CalendarPicker({ value, onChange, onClose }: CalendarPickerProps
           const dISO = localISO(d);
           const isSelected = dISO === value;
           const isToday = dISO === todayISO;
+          const isOutOfRange = (min !== undefined && dISO < min) || (max !== undefined && dISO > max);
 
           return (
             <button
               key={dISO}
               type="button"
-              onClick={() => handleDateClick(d)}
+              disabled={isOutOfRange}
+              onClick={() => handleDateClick(d, isOutOfRange)}
               aria-pressed={isSelected}
               className={`co-date-day ${isSelected ? "co-date-day-selected" : ""} ${
                 !isSelected && isToday ? "border border-[var(--co-evergreen)] font-semibold text-[var(--co-evergreen)]" : ""
-              } ${!isSelected && !isToday && !isCurrentMonth ? "text-[var(--co-faint)]" : ""}`}
+              } ${!isSelected && !isToday && !isCurrentMonth ? "text-[var(--co-faint)]" : ""} ${
+                isOutOfRange ? "opacity-30 cursor-not-allowed" : ""
+              }`}
             >
               {d.getDate()}
             </button>
