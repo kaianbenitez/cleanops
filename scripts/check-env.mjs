@@ -23,6 +23,8 @@ const optionalForIntegrations = [
   "NEXT_PUBLIC_LEADS_TURNSTILE_SITE_KEY",
   "LEADS_TURNSTILE_SECRET_KEY",
   "NEXT_PUBLIC_SITE_URL",
+  "RESEND_API_KEY",
+  "LEAD_NOTIFICATION_EMAIL",
 ];
 
 const source = fs.existsSync(".env.local") ? ".env.local" : null;

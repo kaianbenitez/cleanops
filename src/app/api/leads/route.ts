@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { productLeads } from "@/db/schema";
 import { notifyAdmins } from "@/lib/notifications/create";
+import { sendEmail } from "@/lib/email/send";
 
 const WINDOW_MS = 10 * 60 * 1000;
 const MAX_REQUESTS = 5;
@@ -87,6 +88,26 @@ export async function POST(request: Request) {
       });
     } catch (error) {
       console.error("Failed to notify admins of new lead", error);
+    }
+  }
+
+  const notifyEmail = process.env.LEAD_NOTIFICATION_EMAIL;
+  if (notifyEmail) {
+    try {
+      await sendEmail({
+        to: notifyEmail,
+        subject: `New lead: ${parsed.data.businessName}`,
+        text: [
+          `Business: ${parsed.data.businessName}`,
+          `Contact: ${parsed.data.contactName ?? "—"}`,
+          `Email: ${parsed.data.email}`,
+          `Phone: ${parsed.data.phone ?? "—"}`,
+          `Crew size: ${parsed.data.crewSize ?? "—"}`,
+          `Message: ${parsed.data.message ?? "—"}`,
+        ].join("\n"),
+      });
+    } catch (error) {
+      console.error("Failed to email lead notification", error);
     }
   }
 
