@@ -82,9 +82,9 @@ function formatLongRange(startDate: string, endDate: string) {
 function StatusPill({ status }: { status: Period["status"] }) {
   const cls =
     status === "open"
-      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+      ? "co-badge-success"
       : status === "reviewed"
-        ? "bg-amber-50 text-amber-700 border-amber-200"
+        ? "co-badge-warning"
         : "bg-[var(--co-surface-muted)] text-[var(--co-accent-text)] border-[var(--co-line-soft)]";
   return <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${cls}`}>{status.replaceAll("_", " ")}</span>;
 }
@@ -142,15 +142,15 @@ function Step({ number }: { number: string }) {
 function ReviewQueue({ reviews, lines, onDecide }: { reviews: JobReview[]; lines: Line[]; onDecide: (reviewId: string, status: "approved" | "rejected", approvedMinutes?: number) => Promise<void> }) {
   const pending = reviews.filter((review) => review.status === "pending");
   if (!pending.length) return null;
-  return <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
+  return <section className="co-badge-warning rounded-2xl p-5 text-sm">
     <p className="font-semibold">Logged-time approvals required</p>
     <p className="mt-1 text-xs">These multi-cleaner jobs ran longer than JTH. Approve the logged time before approving payroll.</p>
     <div className="mt-3 space-y-2">
       {pending.map((review) => {
         const line = lines.find((item) => item.userId === review.userId);
         const calculation = line?.calculation.find((item) => item.jobId === review.jobId);
-        return <div key={review.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-white px-3 py-3">
-          <div><p className="font-medium">{line ? `${line.firstName} ${line.lastName}` : "Employee"} · {calculation?.customerName ?? "Job"}</p><p className="text-xs text-amber-800">JTH {(review.jthMinutes / 60).toFixed(2)}h · logged {(review.loggedMinutes / 60).toFixed(2)}h · proposed pay {(review.loggedMinutes / 60).toFixed(2)}h</p></div>
+        return <div key={review.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--co-warning)]/30 bg-[var(--co-surface)] px-3 py-3">
+          <div><p className="font-medium">{line ? `${line.firstName} ${line.lastName}` : "Employee"} · {calculation?.customerName ?? "Job"}</p><p className="text-xs text-[var(--co-warning)]">JTH {(review.jthMinutes / 60).toFixed(2)}h · logged {(review.loggedMinutes / 60).toFixed(2)}h · proposed pay {(review.loggedMinutes / 60).toFixed(2)}h</p></div>
           <div className="flex gap-2"><button type="button" onClick={() => onDecide(review.id, "rejected")} className="co-button-secondary px-3 py-1.5 text-xs">Keep JTH</button><button type="button" onClick={() => onDecide(review.id, "approved", review.loggedMinutes)} className="co-button-primary px-3 py-1.5 text-xs">Approve overage</button></div>
         </div>;
       })}
@@ -197,7 +197,7 @@ function PayrollDetail({
                 <td className="py-3">{calculation.date}</td>
                 <td className="py-3">
                   {calculation.isAppointment ? (
-                    <span className="font-medium text-violet-800">📅 {calculation.appointmentTitle ?? calculation.customerName}</span>
+                    <span className="font-medium text-[var(--co-spark-text)]">📅 {calculation.appointmentTitle ?? calculation.customerName}</span>
                   ) : (
                     <>
                       <Link href={`/jobs/${calculation.jobId}`} className="font-medium text-[var(--co-accent-text)] hover:underline">
@@ -214,13 +214,13 @@ function PayrollDetail({
                 </td>
                 <td className="py-3">
                   {calculation.isAppointment ? (
-                    <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-violet-800">meeting</span>
+                    <span className="co-badge-spark rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]">meeting</span>
                   ) : (
                     <span
-                      className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${
+                      className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${
                         calculation.crewRole === "lead"
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                          : "border-slate-200 bg-slate-50 text-slate-600"
+                          ? "co-badge-success"
+                          : "co-badge-neutral"
                       }`}
                     >
                       {calculation.crewRole ?? "unassigned"}
@@ -230,7 +230,7 @@ function PayrollDetail({
                 <td className="py-3 text-[var(--co-muted)]">{calculation.isAppointment ? "Internal meeting" : calculation.cleaningType.replaceAll("_", " ")}</td>
                 <td className="py-3 text-right">{(calculation.budgetHours ?? ((calculation.estimatedMinutes ?? 0) / 60)).toFixed(2)}</td>
                 <td className="py-3 text-right font-medium">{(calculation.hoursSpent ?? 0).toFixed(2)}</td>
-                <td className="py-3 text-right font-medium">{(calculation.paidHours ?? calculation.budgetHours ?? 0).toFixed(2)} {calculation.varianceStatus ? <span className="ml-1 rounded border border-amber-200 px-1 text-[10px] text-amber-700">{calculation.varianceStatus}</span> : null}</td>
+                <td className="py-3 text-right font-medium">{(calculation.paidHours ?? calculation.budgetHours ?? 0).toFixed(2)} {calculation.varianceStatus ? <span className="co-badge-warning ml-1 rounded px-1 text-[10px]">{calculation.varianceStatus}</span> : null}</td>
                 <td className="py-3 text-right">{dollars(calculation.rateCents)}</td>
                 <td className="py-3 text-right">{dollars(calculation.averageCentsPerHour ?? 0)}</td>
                 <td className="py-3 text-right font-medium">{dollars(calculation.amountCents)}</td>
@@ -531,13 +531,13 @@ export default function PayrollPage() {
       </header>
 
       {error ? (
-        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div role="alert" className="co-badge-danger rounded-xl px-4 py-3 text-sm">
           {error}
         </div>
       ) : null}
 
       {period && period.status !== "open" && exportReadiness && !exportReadiness.ok ? (
-        <section role="status" className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+        <section role="status" className="co-badge-warning rounded-2xl px-5 py-4 text-sm">
           <p className="font-semibold">Gusto export is blocked until these items are resolved:</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {exportReadiness.blockers.map((blocker, index) => <li key={`${blocker.lineId}-${index}`}><span className="font-medium">{blocker.employee}:</span> {blocker.reason}</li>)}

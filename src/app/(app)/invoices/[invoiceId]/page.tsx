@@ -40,11 +40,11 @@ function formatDateTime(value: string | null) {
 function Pill({ children, tone }: { children: React.ReactNode; tone?: "good" | "warn" | "bad" | "neutral" }) {
   const cls =
     tone === "good"
-      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+      ? "co-badge-success"
       : tone === "warn"
-        ? "bg-amber-50 text-amber-700 border-amber-200"
+        ? "co-badge-warning"
         : tone === "bad"
-          ? "bg-rose-50 text-rose-700 border-rose-200"
+          ? "co-badge-danger"
           : "bg-[var(--co-surface-muted)] text-[var(--co-muted)] border-[var(--co-line-soft)]";
   return <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${cls}`}>{children}</span>;
 }
@@ -240,7 +240,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
     return (
       <div className="co-card p-8 text-center">
         <p className="font-medium">Unable to load this invoice.</p>
-        <p className="mt-2 text-sm text-rose-600">{error}</p>
+        <p className="mt-2 text-sm text-[var(--co-danger)]">{error}</p>
         <button className="co-button-secondary mt-5" onClick={() => load()}>
           Try again
         </button>
@@ -289,7 +289,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
         </div>
         <div className="co-card p-5">
           <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Amount paid</p>
-          <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-emerald-700">{dollars(invoice.amountPaidCents)}</p>
+          <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--co-success)]">{dollars(invoice.amountPaidCents)}</p>
         </div>
         <div className="co-card p-5">
           <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Balance due</p>
@@ -380,7 +380,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
                   <span>Total</span>
                   <span>{dollars(invoice.totalCents)}</span>
                 </div>
-                <div className="flex justify-between text-emerald-700">
+                <div className="flex justify-between text-[var(--co-success)]">
                   <span>Amount paid</span>
                   <span>{dollars(invoice.amountPaidCents)}</span>
                 </div>
@@ -544,12 +544,12 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
       </div>
 
       {error ? (
-        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 print:hidden">
+        <div role="alert" className="co-badge-danger rounded-xl px-4 py-3 text-sm print:hidden">
           {error}
         </div>
       ) : null}
       {notice ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 print:hidden">
+        <div className="co-badge-success rounded-xl px-4 py-3 text-sm print:hidden">
           {notice}
         </div>
       ) : null}
