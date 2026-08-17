@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   },
 };
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://cleanops-orcin.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://getshimmer.app";
 
 // Plain-text mirror of marketing-faq.tsx's questions, for FAQPage JSON-LD
 // only. Kept separate because that array's answers are JSX (one links to
