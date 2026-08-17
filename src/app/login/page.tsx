@@ -68,7 +68,7 @@ export default function LoginPage() {
               required
               value={username}
               onChange={(event) => setUsername(event.target.value)}
-              className="co-input w-full bg-white py-3"
+              className="co-input w-full py-3"
               placeholder="firstlast"
             />
           </label>
@@ -81,7 +81,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="co-input w-full bg-white py-3"
+              className="co-input w-full py-3"
               placeholder="Your password"
             />
           </label>

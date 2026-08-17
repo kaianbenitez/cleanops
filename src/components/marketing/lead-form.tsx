@@ -89,7 +89,7 @@ export default function LeadForm() {
     );
   }
 
-  const inputClass = (name: FieldName) => `co-input mt-1 w-full bg-white ${errors[name] ? "border-[var(--co-danger)]" : ""}`;
+  const inputClass = (name: FieldName) => `co-input mt-1 w-full ${errors[name] ? "border-[var(--co-danger)]" : ""}`;
 
   return (
     <form noValidate onSubmit={handleSubmit} className="co-card grid gap-4 p-5 sm:grid-cols-2 sm:p-6">

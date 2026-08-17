@@ -177,7 +177,7 @@ function PhotoSetCard({
             placeholder="Room or area label"
           />
         </div>
-        <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--co-accent-text)]">
+        <span className="rounded-full bg-[var(--co-surface)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--co-accent-text)]">
           {beforeUrl || afterUrl ? "Ready" : "Empty"}
         </span>
       </div>

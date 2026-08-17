@@ -106,7 +106,7 @@ export default function TeamSearchPicker({
       />
 
       {open ? (
-        <div className="absolute left-0 top-full z-30 mt-1 w-full rounded-2xl border border-[var(--co-line)] bg-white p-1.5 shadow-[0_12px_32px_rgba(15,23,20,0.18)]">
+        <div className="absolute left-0 top-full z-30 mt-1 w-full rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-1.5 shadow-[0_12px_32px_rgba(15,23,20,0.18)]">
           {matches.length ? (
             matches.map((employee) => (
               <button

@@ -574,7 +574,7 @@ export default function NewQuotePage() {
                     aria-label="Search customers"
                   />
                   {matchingCustomers.length && (!selectedCustomer || customerSearch !== `${selectedCustomer.firstName} ${selectedCustomer.lastName}`) ? (
-                    <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-[var(--co-line)] bg-white p-1 shadow-lg">
+                    <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] p-1 shadow-lg">
                       {matchingCustomers.map((customer) => (
                         <button key={customer.id} type="button" onClick={() => selectCustomer(customer)} className="w-full rounded-lg px-3 py-2.5 text-left text-sm hover:bg-[var(--co-surface-muted)]">
                           <span className="block font-semibold text-[var(--co-ink)]">{customer.firstName} {customer.lastName}</span>
@@ -990,7 +990,7 @@ export default function NewQuotePage() {
               {SERVICE_TYPES.map((service, index) => {
                 const tier = allTiers[service.value];
                 return (
-                  <div key={service.value} className="relative rounded-2xl border border-[var(--co-line)] bg-white p-4">
+                  <div key={service.value} className="relative rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-4">
                     {index === 4 ? (
                       <span className="absolute -top-3 right-3 rounded-full bg-[var(--co-accent-fill)] px-2 py-1 text-[10px] font-bold text-white">
                         Most popular

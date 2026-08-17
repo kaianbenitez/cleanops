@@ -608,11 +608,11 @@ function ProfileSkeleton() {
   return (
     <div className="space-y-5" aria-busy="true">
       <div className="h-5 w-36 animate-pulse rounded bg-[var(--co-surface-muted)]" />
-      <div className="h-36 animate-pulse rounded-2xl bg-white" />
+      <div className="h-36 animate-pulse rounded-2xl bg-[var(--co-surface-muted)]" />
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="h-28 animate-pulse rounded-2xl bg-white" />
-        <div className="h-28 animate-pulse rounded-2xl bg-white" />
-        <div className="h-28 animate-pulse rounded-2xl bg-white" />
+        <div className="h-28 animate-pulse rounded-2xl bg-[var(--co-surface-muted)]" />
+        <div className="h-28 animate-pulse rounded-2xl bg-[var(--co-surface-muted)]" />
+        <div className="h-28 animate-pulse rounded-2xl bg-[var(--co-surface-muted)]" />
       </div>
     </div>
   );

@@ -378,7 +378,7 @@ export default function NewCustomerPage() {
               </ul>
             </div>
 
-            <div className="rounded-2xl border border-dashed border-[var(--co-line-soft)] bg-white p-4 text-xs">
+            <div className="rounded-2xl border border-dashed border-[var(--co-line-soft)] bg-[var(--co-surface)] p-4 text-xs">
               Address autocomplete is supported when your Google Maps key is present. If not, you can still type the address manually.
             </div>
           </div>

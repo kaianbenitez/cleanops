@@ -265,7 +265,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
               {tiers.map(([type, tier]) => {
                 const estimatedHours = hourlyRateCents ? tier.finalCents / hourlyRateCents : null;
                 return (
-                  <div key={type} className={`rounded-2xl border p-4 ${type === quote.acceptedServiceType ? "border-[var(--co-success)]/30 bg-[var(--co-success)]/10" : "border-[var(--co-line)] bg-white dark:bg-[var(--co-surface)]"}`}>
+                  <div key={type} className={`rounded-2xl border p-4 ${type === quote.acceptedServiceType ? "border-[var(--co-success)]/30 bg-[var(--co-success)]/10" : "border-[var(--co-line)] bg-[var(--co-surface)]"}`}>
                     <p className="font-semibold">{LABELS[type] ?? type}</p>
                     <p className="mt-4 text-2xl font-semibold">{dollars(tier.finalCents)}</p>
                     <p className="mt-1 text-xs text-[var(--co-muted)]">

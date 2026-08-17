@@ -79,7 +79,7 @@ function MetricCard({
   tone?: "warning" | "neutral" | "good";
 }) {
   return (
-    <div className={`min-w-[230px] rounded-2xl border bg-white p-5 shadow-[0_8px_24px_rgba(27,41,37,0.03)] ${metricTone(tone)}`}>
+    <div className={`min-w-[230px] rounded-2xl border bg-[var(--co-surface)] p-5 shadow-[0_8px_24px_rgba(27,41,37,0.03)] ${metricTone(tone)}`}>
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] opacity-75">{label}</p>
       <div className="mt-2 flex items-end justify-between gap-4"><p className="text-4xl font-semibold tracking-[-0.06em]">{value}</p><p className="max-w-24 text-right text-xs leading-4 opacity-80">{hint}</p></div>
     </div>

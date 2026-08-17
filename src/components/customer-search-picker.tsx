@@ -69,7 +69,7 @@ export default function CustomerSearchPicker({
   if (selected) {
     return (
       <div className="flex items-center gap-3 rounded-xl border border-[var(--co-accent-text)] bg-[var(--co-surface-muted)] p-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-bold text-[var(--co-accent-text)]">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--co-surface)] text-[10px] font-bold text-[var(--co-accent-text)]">
           {selected.firstName[0]}
           {selected.lastName[0]}
         </span>
@@ -104,7 +104,7 @@ export default function CustomerSearchPicker({
       />
 
       {open ? (
-        <div className="absolute left-0 top-full z-30 mt-1 w-full rounded-2xl border border-[var(--co-line)] bg-white p-1.5 shadow-[0_12px_32px_rgba(15,23,20,0.18)]">
+        <div className="absolute left-0 top-full z-30 mt-1 w-full rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-1.5 shadow-[0_12px_32px_rgba(15,23,20,0.18)]">
           {matches.length ? (
             matches.map((customer) => (
               <button
