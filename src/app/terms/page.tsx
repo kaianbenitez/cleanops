@@ -4,13 +4,13 @@ export default function TermsPage() {
       <div>
         <p className="eyebrow">Legal</p>
         <h1 className="page-title mt-2">Terms of Service</h1>
-        <p className="page-subtitle">The terms for using Shimmer, provided by Simply Maid LLC.</p>
+        <p className="page-subtitle">The terms for using Shimmer, provided by Kaian Benitez.</p>
       </div>
 
       <section className="co-card space-y-3 p-5 text-sm leading-6 text-[var(--co-muted)]">
         <h2 className="text-lg font-semibold text-[var(--co-ink)]">Acceptance of Terms</h2>
         <p>
-          By signing in to or using Shimmer, you agree to these terms. Shimmer is the internal operations platform Simply Maid LLC provides to its admins and field staff to manage customers, jobs, scheduling, payroll, and invoicing. If you don&apos;t agree to these terms, don&apos;t use Shimmer.
+          By signing in to or using Shimmer, you agree to these terms. Shimmer is operations software provided to cleaning businesses for managing customers, jobs, scheduling, payroll, invoicing, and related day-to-day work. Your company is responsible for deciding which people may access its account and for their use of Shimmer. If you don&apos;t agree to these terms, don&apos;t use Shimmer.
         </p>
       </section>
 
@@ -45,7 +45,7 @@ export default function TermsPage() {
       <section className="co-card space-y-3 p-5 text-sm leading-6 text-[var(--co-muted)]">
         <h2 className="text-lg font-semibold text-[var(--co-ink)]">Contact</h2>
         <p>
-          Questions about these terms should go to <a href="mailto:kbenitez1118@gmail.com" className="text-[var(--co-ink)] underline hover:no-underline">kbenitez1118@gmail.com</a>.
+          Questions about these terms should go to <a href="mailto:getshimmerapp@gmail.com" className="text-[var(--co-ink)] underline hover:no-underline">getshimmerapp@gmail.com</a>.
         </p>
       </section>
     </div>

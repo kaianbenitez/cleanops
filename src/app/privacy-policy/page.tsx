@@ -4,13 +4,13 @@ export default function PrivacyPolicyPage() {
       <div>
         <p className="eyebrow">Legal</p>
         <h1 className="page-title mt-2">Privacy Policy</h1>
-        <p className="page-subtitle">How Shimmer, provided by Simply Maid LLC, collects, uses, and protects information.</p>
+        <p className="page-subtitle">How Shimmer, provided by Kaian Benitez, collects, uses, and protects information.</p>
       </div>
 
       <section className="co-card space-y-3 p-5 text-sm leading-6 text-[var(--co-muted)]">
         <h2 className="text-lg font-semibold text-[var(--co-ink)]">Overview</h2>
         <p>
-          Shimmer is the internal operations platform Simply Maid LLC&apos;s admins and field staff use to manage customers, jobs, scheduling, payroll, and invoicing. This policy explains what information Shimmer collects, how it&apos;s used, and how it&apos;s protected. It applies to your Shimmer account and the information stored in it — it is separate from the privacy policy on our public website.
+          Shimmer is operations software provided to cleaning businesses for managing customers, jobs, scheduling, payroll, invoicing, and related day-to-day work. This policy explains what information Shimmer collects, how it&apos;s used, and how it&apos;s protected. It applies to information processed through your company&apos;s Shimmer account.
         </p>
       </section>
 
@@ -36,7 +36,7 @@ export default function PrivacyPolicyPage() {
 
       <section className="co-card space-y-3 p-5 text-sm leading-6 text-[var(--co-muted)]">
         <h2 className="text-lg font-semibold text-[var(--co-ink)]">How We Use Information</h2>
-        <p>To schedule and complete cleaning jobs, manage staff assignments and payroll, generate invoices and process payments, communicate with customers about appointments, and maintain and improve Shimmer.</p>
+        <p>To provide the Shimmer service to cleaning businesses: schedule and complete cleaning jobs, manage staff assignments and payroll, generate invoices and process payments, communicate with customers about appointments, and maintain and improve the platform.</p>
       </section>
 
       <section className="co-card space-y-3 p-5 text-sm leading-6 text-[var(--co-muted)]">
@@ -46,16 +46,17 @@ export default function PrivacyPolicyPage() {
           <li>Supabase — database hosting, account authentication, and photo storage.</li>
           <li>Vercel — application hosting.</li>
           <li>Square — invoicing and payment processing.</li>
+          <li>GoHighLevel — customer relationship and communication management.</li>
+          <li>Resend — transactional email delivery.</li>
           <li>Google — address lookup and mapping.</li>
           <li>Sentry — error monitoring, to help us detect and fix problems.</li>
-          <li>GoHighLevel — customer relationship and communication management.</li>
         </ul>
-        <p>We may also disclose information if required by law, or to protect the rights, property, or safety of Simply Maid LLC, our staff, or our customers.</p>
+        <p>We may also disclose information if required by law, or to protect the rights, property, or safety of Kaian Benitez, Shimmer, our customers, or other people.</p>
       </section>
 
       <section className="co-card space-y-3 p-5 text-sm leading-6 text-[var(--co-muted)]">
         <h2 className="text-lg font-semibold text-[var(--co-ink)]">Data Security</h2>
-        <p>Shimmer requires a company account and password to sign in, and each account can only access information for its own company. Connections to Shimmer are encrypted, and we control database-level access to every record. No method of transmission or storage is completely secure, and we can&apos;t guarantee absolute security, but we work to protect your information appropriately — including a database access review completed in August 2026 that tightened record-level access controls.</p>
+        <p>Shimmer requires a company account and password to sign in, and each company account can only access information for that company. Connections to Shimmer are encrypted, and we control database-level access to every record. No method of transmission or storage is completely secure, and we can&apos;t guarantee absolute security, but we work to protect your information appropriately — including a database access review completed in August 2026 that tightened record-level access controls.</p>
       </section>
 
       <section className="co-card space-y-3 p-5 text-sm leading-6 text-[var(--co-muted)]">
@@ -65,12 +66,12 @@ export default function PrivacyPolicyPage() {
 
       <section className="co-card space-y-3 p-5 text-sm leading-6 text-[var(--co-muted)]">
         <h2 className="text-lg font-semibold text-[var(--co-ink)]">Your Choices and Rights</h2>
-        <p>Staff can review and update their own account information at any time from their account settings. To request a copy, correction, or deletion of information, contact your company administrator. We will fulfill reasonable requests, other than information we&apos;re required to keep for legal, accounting, tax, or dispute-resolution purposes.</p>
+        <p>Company administrators can review and manage the business information stored in their company account. Staff can review and update their own account information at any time from their account settings. To request a copy, correction, or deletion of information, contact your company administrator or email <a href="mailto:getshimmerapp@gmail.com" className="text-[var(--co-ink)] underline hover:no-underline">getshimmerapp@gmail.com</a>. We will fulfill reasonable requests, other than information we&apos;re required to keep for legal, accounting, tax, or dispute-resolution purposes.</p>
       </section>
 
       <section className="co-card space-y-3 p-5 text-sm leading-6 text-[var(--co-muted)]">
         <h2 className="text-lg font-semibold text-[var(--co-ink)]">Children</h2>
-        <p>Shimmer is a business tool for company staff and is not directed at or intended for use by children.</p>
+        <p>Shimmer is business software for cleaning companies and their authorized staff. It is not directed at or intended for use by children.</p>
       </section>
 
       <section className="co-card space-y-3 p-5 text-sm leading-6 text-[var(--co-muted)]">
@@ -80,7 +81,7 @@ export default function PrivacyPolicyPage() {
 
       <section className="co-card space-y-3 p-5 text-sm leading-6 text-[var(--co-muted)]">
         <h2 className="text-lg font-semibold text-[var(--co-ink)]">Contact</h2>
-        <p>Questions about this policy or how your information is handled should go to your company administrator.</p>
+        <p>Questions about this policy or how your information is handled should go to <a href="mailto:getshimmerapp@gmail.com" className="text-[var(--co-ink)] underline hover:no-underline">getshimmerapp@gmail.com</a>.</p>
       </section>
     </div>
   );
