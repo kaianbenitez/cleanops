@@ -86,7 +86,7 @@ function MarketingJsonLd() {
       "@type": "Organization",
       name: "ServiceSpark",
       url: SITE_URL,
-      email: "kbenitez1118@gmail.com",
+      email: "hello@getshimmer.app",
       address: { "@type": "PostalAddress", addressLocality: "Manila", addressCountry: "PH" },
     },
     {
