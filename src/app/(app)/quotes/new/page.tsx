@@ -211,6 +211,11 @@ export default function NewQuotePage() {
   const [notes, setNotes] = useState("");
   const [validUntil, setValidUntil] = useState(defaultValidUntil);
   const [customerNotes, setCustomerNotes] = useState("");
+  const [petHairRating, setPetHairRating] = useState<number | "">("");
+  const [dogCount, setDogCount] = useState<number | "">("");
+  const [catCount, setCatCount] = useState<number | "">("");
+  const [dogNames, setDogNames] = useState("");
+  const [catNames, setCatNames] = useState("");
   const [petNotes, setPetNotes] = useState("");
   const [detectedAddOns, setDetectedAddOns] = useState<AddOnKey[]>([]);
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnKey[]>([]);
@@ -283,6 +288,11 @@ export default function NewQuotePage() {
     if (customerId) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCustomerNotes("");
+    setPetHairRating("");
+    setDogCount("");
+    setCatCount("");
+    setDogNames("");
+    setCatNames("");
     setPetNotes("");
     setDetectedAddOns([]);
     setSelectedAddOns([]);
@@ -319,6 +329,11 @@ export default function NewQuotePage() {
           .filter((value): value is string => Boolean(value))
           .join(" · ");
         setCustomerNotes(noteText);
+        setPetHairRating(body.customer?.petHairRating ?? "");
+        setDogCount(body.customer?.dogCount ?? "");
+        setCatCount(body.customer?.catCount ?? "");
+        setDogNames(body.customer?.dogNames ?? "");
+        setCatNames(body.customer?.catNames ?? "");
         setPetNotes(body.customer?.petNotes ?? "");
         const detected = detectRequestedAddOns(noteText);
         setDetectedAddOns(detected);
@@ -439,11 +454,27 @@ export default function NewQuotePage() {
 
     setSubmitting(true);
     const serviceAddressLocationId = customerMode === "existing" ? selectedAddressId || undefined : undefined;
+    const petFields = {
+      petHairRating: petHairRating === "" ? null : petHairRating,
+      dogCount: dogCount === "" ? null : dogCount,
+      catCount: catCount === "" ? null : catCount,
+      dogNames: dogNames.trim() || null,
+      catNames: catNames.trim() || null,
+      petNotes: petNotes.trim() || null,
+    };
     if (customerMode === "new") {
       const customerResponse = await fetch("/api/customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...newCustomerForm, petNotes: petNotes.trim() || undefined }),
+        body: JSON.stringify({
+          ...newCustomerForm,
+          petHairRating: petFields.petHairRating ?? undefined,
+          dogCount: petFields.dogCount ?? undefined,
+          catCount: petFields.catCount ?? undefined,
+          dogNames: petFields.dogNames ?? undefined,
+          catNames: petFields.catNames ?? undefined,
+          petNotes: petFields.petNotes ?? undefined,
+        }),
       });
       const customerBody = await customerResponse.json().catch(() => ({}));
       if (!customerResponse.ok) {
@@ -458,7 +489,7 @@ export default function NewQuotePage() {
       await fetch(`/api/customers/${quoteCustomerId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ petNotes: petNotes.trim() || null }),
+        body: JSON.stringify(petFields),
       }).catch(() => {});
     }
     const response = await fetch("/api/quotes", {
@@ -823,16 +854,75 @@ export default function NewQuotePage() {
                 </select>
               </label>
             </div>
-            <label className="mt-3 block text-sm">
-              <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Pets</span>
-              <textarea
-                className="co-input w-full resize-none"
-                rows={3}
-                value={petNotes}
-                onChange={(event) => setPetNotes(event.target.value)}
-                placeholder="e.g., two large dogs, keep them in the yard"
-              />
-            </label>
+            <div className="mt-3">
+              <span className="mb-1.5 block text-xs font-semibold text-[var(--co-muted)]">Pets</span>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-sm">
+                  <span className="mb-1 block text-xs text-[var(--co-muted)]">Pet hair rating (1–5)</span>
+                  <select
+                    className="co-input w-full"
+                    value={petHairRating}
+                    onChange={(event) => setPetHairRating(event.target.value === "" ? "" : Number(event.target.value))}
+                  >
+                    <option value="">None</option>
+                    {[1, 2, 3, 4, 5].map((score) => <option key={score} value={score}>Level {score}</option>)}
+                  </select>
+                </label>
+                <div />
+                <label className="block text-sm">
+                  <span className="mb-1 block text-xs text-[var(--co-muted)]">Dogs</span>
+                  <input
+                    type="number"
+                    min={0}
+                    className="co-input w-full"
+                    value={dogCount}
+                    onChange={(event) => setDogCount(event.target.value === "" ? "" : Number(event.target.value))}
+                    placeholder="0"
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="mb-1 block text-xs text-[var(--co-muted)]">Cats</span>
+                  <input
+                    type="number"
+                    min={0}
+                    className="co-input w-full"
+                    value={catCount}
+                    onChange={(event) => setCatCount(event.target.value === "" ? "" : Number(event.target.value))}
+                    placeholder="0"
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="mb-1 block text-xs text-[var(--co-muted)]">Dog names</span>
+                  <input
+                    type="text"
+                    className="co-input w-full"
+                    value={dogNames}
+                    onChange={(event) => setDogNames(event.target.value)}
+                    placeholder="e.g., Max, Bella"
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="mb-1 block text-xs text-[var(--co-muted)]">Cat names</span>
+                  <input
+                    type="text"
+                    className="co-input w-full"
+                    value={catNames}
+                    onChange={(event) => setCatNames(event.target.value)}
+                    placeholder="e.g., Pixel"
+                  />
+                </label>
+              </div>
+              <label className="mt-3 block text-sm">
+                <span className="mb-1 block text-xs text-[var(--co-muted)]">Other pet notes</span>
+                <textarea
+                  className="co-input w-full resize-none"
+                  rows={2}
+                  value={petNotes}
+                  onChange={(event) => setPetNotes(event.target.value)}
+                  placeholder="e.g., keep them in the yard"
+                />
+              </label>
+            </div>
             <label className="mt-3 block text-sm">
               <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Notes to customer</span>
               <textarea

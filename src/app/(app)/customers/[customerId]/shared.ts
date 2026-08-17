@@ -23,6 +23,11 @@ export type Customer = {
   gateCodeOrKeyNotes?: string | null;
   doNotClean?: string | null;
   petNotes?: string | null;
+  petHairRating?: number | null;
+  dogCount?: number | null;
+  catCount?: number | null;
+  dogNames?: string | null;
+  catNames?: string | null;
   importantToCustomer?: string | null;
   operationalNotes?: string | null;
   isArchived?: boolean;

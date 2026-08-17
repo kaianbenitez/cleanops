@@ -168,11 +168,17 @@ export function CustomerViewCards({
   const generalNotes = compactNoteText(customer.generalNotes);
   const doNotClean = compactNoteText(customer.doNotClean);
   const petNotes = compactNoteText(customer.petNotes);
+  const petSummary = [
+    customer.petHairRating != null ? `Pet hair rating: ${customer.petHairRating}/5` : null,
+    customer.dogCount ? `${customer.dogCount} dog${customer.dogCount === 1 ? "" : "s"}${customer.dogNames ? ` (${customer.dogNames})` : ""}` : null,
+    customer.catCount ? `${customer.catCount} cat${customer.catCount === 1 ? "" : "s"}${customer.catNames ? ` (${customer.catNames})` : ""}` : null,
+  ].filter((part): part is string => Boolean(part));
+  const petText = [petSummary.join(" · "), petNotes].filter(Boolean).join("\n");
   const importantToCustomer = compactNoteText(customer.importantToCustomer);
   const notes = [
     generalNotes ? { icon: NotebookText, title: "General notes", text: generalNotes } : null,
     doNotClean ? { icon: CircleAlert, title: "Do not clean", text: doNotClean, tone: "border-rose-200 bg-rose-50 text-rose-800" } : null,
-    petNotes ? { icon: Cat, title: "Pets", text: petNotes, tone: "border-amber-200 bg-amber-50 text-amber-900" } : null,
+    petText ? { icon: Cat, title: "Pets", text: petText, tone: "border-amber-200 bg-amber-50 text-amber-900" } : null,
     importantToCustomer ? { icon: Sparkles, title: "Important to customer", text: importantToCustomer, tone: "border-violet-200 bg-violet-50 text-violet-900" } : null,
     schedulingPreference ? { icon: Clock3, title: "Scheduling preference", text: schedulingPreference } : null,
     accessNotesText || accessCodes ? { icon: KeyRound, title: "Entrance & access instructions", text: accessNotesText || "No entry instructions recorded." } : null,

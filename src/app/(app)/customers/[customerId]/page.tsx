@@ -281,6 +281,12 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
       const parsed = value.trim() === "" ? null : Number(value);
       return { ...current, [key]: parsed !== null && Number.isInteger(parsed) && parsed >= 0 ? parsed : null } as Customer;
     });
+  const updatePetCount = (key: "petHairRating" | "dogCount" | "catCount", value: string) =>
+    setCustomer((current) => {
+      if (!current) return current;
+      const parsed = value.trim() === "" ? null : Number(value);
+      return { ...current, [key]: parsed !== null && Number.isInteger(parsed) && parsed >= 0 ? parsed : null } as Customer;
+    });
   const updateRoomCount = (roomTypeId: string, value: string) =>
     setCustomer((current) => {
       if (!current) return current;
@@ -325,6 +331,11 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         generalNotes: customer.generalNotes || null,
         doNotClean: customer.doNotClean || null,
         petNotes: customer.petNotes || null,
+        petHairRating: customer.petHairRating ?? null,
+        dogCount: customer.dogCount ?? null,
+        catCount: customer.catCount ?? null,
+        dogNames: customer.dogNames || null,
+        catNames: customer.catNames || null,
         importantToCustomer: customer.importantToCustomer || null,
         homeDetails: customer.homeDetails ?? {},
         mopHeadCount: equipmentCustomer?.mopHeadCount ?? null,
@@ -857,7 +868,26 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
           <div className="space-y-4">
             <Field label="General notes" value={customer.generalNotes ?? ""} onChange={(value) => updateCustomer("generalNotes", value)} textarea />
             <Field label="Do not clean" value={customer.doNotClean ?? ""} onChange={(value) => updateCustomer("doNotClean", value || null)} textarea />
-            <Field label="Pet notes" value={customer.petNotes ?? ""} onChange={(value) => updateCustomer("petNotes", value || null)} textarea />
+            <div>
+              <span className="mb-1.5 block text-xs font-semibold text-[var(--co-muted)]">Pets</span>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-sm">
+                  <span className="mb-1 block text-xs text-[var(--co-muted)]">Pet hair rating (1–5)</span>
+                  <select className={input} value={customer.petHairRating ?? ""} onChange={(event) => updatePetCount("petHairRating", event.target.value)}>
+                    <option value="">None</option>
+                    {[1, 2, 3, 4, 5].map((score) => <option key={score} value={score}>Level {score}</option>)}
+                  </select>
+                </label>
+                <div />
+                <Field label="Dogs" type="number" value={customer.dogCount != null ? String(customer.dogCount) : ""} onChange={(value) => updatePetCount("dogCount", value)} />
+                <Field label="Cats" type="number" value={customer.catCount != null ? String(customer.catCount) : ""} onChange={(value) => updatePetCount("catCount", value)} />
+                <Field label="Dog names" value={customer.dogNames ?? ""} onChange={(value) => updateCustomer("dogNames", value || null)} />
+                <Field label="Cat names" value={customer.catNames ?? ""} onChange={(value) => updateCustomer("catNames", value || null)} />
+              </div>
+              <div className="mt-3">
+                <Field label="Other pet notes" value={customer.petNotes ?? ""} onChange={(value) => updateCustomer("petNotes", value || null)} textarea />
+              </div>
+            </div>
             <Field label="Important to customer" value={customer.importantToCustomer ?? ""} onChange={(value) => updateCustomer("importantToCustomer", value || null)} textarea />
           </div>
         </Section>
