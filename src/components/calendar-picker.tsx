@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface CalendarPickerProps {
   value: string;
   onChange: (value: string) => void;
   onClose: () => void;
+  // Trigger button the popover is anchored to. Positioned via this instead of
+  // CSS `absolute` and rendered through a portal so ancestor cards with
+  // `overflow-hidden` (used everywhere for rounded corners) can't clip it.
+  anchorRef: RefObject<HTMLElement | null>;
   min?: string;
   max?: string;
   // SF-7: opt-in per-day free-hours tinting. Off by default so every other
@@ -57,7 +62,7 @@ const TINT_CLASS: Record<"comfortable" | "tight" | "over", string> = {
   over: "co-badge-danger",
 };
 
-export function CalendarPicker({ value, onChange, onClose, min, max, showCapacity, neededHours }: CalendarPickerProps) {
+export function CalendarPicker({ value, onChange, onClose, anchorRef, min, max, showCapacity, neededHours }: CalendarPickerProps) {
   const [date, setDate] = useState<Date>(() => {
     const d = value ? new Date(value + "T00:00:00") : new Date();
     d.setHours(0, 0, 0, 0);
@@ -65,18 +70,38 @@ export function CalendarPicker({ value, onChange, onClose, min, max, showCapacit
   });
   const [capacityByDate, setCapacityByDate] = useState<Record<string, DayCapacity> | null>(null);
   const [capacityFailed, setCapacityFailed] = useState(false);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (anchorRef.current?.contains(target)) return;
+      if (containerRef.current && !containerRef.current.contains(target)) {
         onClose();
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onClose]);
+  }, [onClose, anchorRef]);
+
+  // Recompute on every render while open (scroll/resize included) so the
+  // popover tracks its trigger even inside scrollable panels.
+  useLayoutEffect(() => {
+    function updatePosition() {
+      const rect = anchorRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setPosition({ top: rect.bottom + 8, left: rect.left });
+    }
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [anchorRef]);
 
   const year = date.getFullYear();
   const month = date.getMonth();
@@ -129,10 +154,13 @@ export function CalendarPicker({ value, onChange, onClose, min, max, showCapacit
   const todayISO = localISO(new Date());
   const capacityReady = showCapacity && !capacityFailed && capacityByDate !== null;
 
-  return (
+  if (!position) return null;
+
+  return createPortal(
     <div
       ref={containerRef}
-      className="co-date-popover absolute top-full left-0 z-50 mt-2 w-72 p-3"
+      className="co-date-popover fixed z-50 w-72 p-3"
+      style={{ top: position.top, left: position.left }}
     >
       <div className="flex items-center justify-between border-b border-[var(--co-line-soft)] pb-2">
         <button type="button" aria-label="Previous month" onClick={() => setDate(new Date(year, month - 1, 1))} className="co-date-nav">
@@ -185,6 +213,7 @@ export function CalendarPicker({ value, onChange, onClose, min, max, showCapacit
           );
         })}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

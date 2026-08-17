@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useEffect, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import { CalendarPicker } from "./calendar-picker";
 
 interface DateInputProps {
@@ -23,6 +23,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
   ({ value, defaultValue, onChange, onBlur, label, required, disabled, className = "", name, min, max, showCapacity, neededHours }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
     const [displayValue, setDisplayValue] = useState(value ?? defaultValue ?? "");
+    const triggerRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
       if (value !== undefined) {
@@ -46,6 +47,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
         {label && <span className="block text-xs font-semibold text-[var(--co-muted)] mb-2">{label}</span>}
         <div className="relative">
           <button
+            ref={triggerRef}
             type="button"
             disabled={disabled}
             onClick={() => setIsOpen(!isOpen)}
@@ -88,6 +90,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
               value={displayValue}
               onChange={handleChange}
               onClose={() => setIsOpen(false)}
+              anchorRef={triggerRef}
               min={min}
               max={max}
               showCapacity={showCapacity}
