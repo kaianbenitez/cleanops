@@ -51,7 +51,7 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>(
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.75"
           >
             <circle cx="12" cy="12" r="9" />
             <polyline points="12 6 12 12 16 14" />

@@ -52,7 +52,7 @@ export default function NotificationsMenu({ initialNotifications }: { initialNot
 
   return <div ref={ref} className="relative">
     <button type="button" onClick={() => setOpen((current) => !current)} aria-haspopup="menu" aria-expanded={open} aria-label={unreadCount ? `${unreadCount} unread notifications` : "Notifications"} className="relative rounded-lg p-2 text-[var(--co-muted)] transition-colors hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]">
-      <Bell aria-hidden="true" className="h-5 w-5" strokeWidth={1.8} />
+      <Bell aria-hidden="true" className="h-5 w-5" strokeWidth={1.75} />
       {unreadCount ? <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[var(--co-accent-fill)]" /> : null}
     </button>
     {open ? <div role="menu" aria-label="Notifications" className="absolute right-0 top-full z-30 mt-2 w-96 overflow-hidden rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] shadow-[0_8px_24px_rgba(18,24,19,0.12)]">

@@ -28,7 +28,7 @@ export default function CreateMenu({ compact = false }: { compact?: boolean }) {
           aria-label="Create new"
           className="rounded-full p-2 text-[var(--co-muted)] transition-colors hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
         >
-          <Plus className="h-5 w-5" strokeWidth={2} aria-hidden />
+          <Plus className="h-5 w-5" strokeWidth={1.75} aria-hidden />
         </button>
       ) : (
         <button type="button" onClick={() => setOpen((current) => !current)} aria-haspopup="menu" aria-expanded={open} className="co-button-primary">

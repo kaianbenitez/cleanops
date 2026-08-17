@@ -76,7 +76,7 @@ const SERVICE_TYPE_ICON: Record<string, typeof Sparkles> = {
 
 function ServiceTypeIcon({ type, className }: { type: string; className?: string }) {
   const Icon = SERVICE_TYPE_ICON[type] ?? Sparkles;
-  return <Icon className={className} aria-hidden strokeWidth={1.8} />;
+  return <Icon className={className} aria-hidden strokeWidth={1.75} />;
 }
 
 function shortDuration(minutes: number | null | undefined) {
@@ -424,7 +424,7 @@ export default function MyDayClient({
             href="/my-day/pto"
             className="flex min-h-11 shrink-0 items-center gap-1.5 type-field-meta font-medium text-[var(--co-muted)] hover:text-[var(--co-ink)]"
           >
-            <CalendarCheck className="h-4 w-4" aria-hidden strokeWidth={1.8} />
+            <CalendarCheck className="h-4 w-4" aria-hidden strokeWidth={1.75} />
             Time off
           </Link>
         ) : null}
@@ -457,7 +457,7 @@ export default function MyDayClient({
           <p className="type-field-meta font-semibold text-[var(--co-muted)]">Load out for today</p>
           <div className="mt-2 grid grid-cols-3 gap-1.5">
             <div className="flex items-center gap-2">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} className="h-[21px] w-[21px] shrink-0 text-[var(--co-muted)]" aria-hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} className="h-[21px] w-[21px] shrink-0 text-[var(--co-muted)]" aria-hidden>
                 <path d="M12 2v7" />
                 <path d="M7.5 9h9" />
                 <path d="M8.6 9 7 21M11 9l-.7 12M13 9l.7 12M15.4 9 17 21" />
@@ -468,7 +468,7 @@ export default function MyDayClient({
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} className="h-[21px] w-[21px] shrink-0 text-[var(--co-muted)]" aria-hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} className="h-[21px] w-[21px] shrink-0 text-[var(--co-muted)]" aria-hidden>
                 <path d="m3 12 9 5 9-5" />
                 <path d="m3 7.5 9 5 9-5" />
                 <path d="m3 16.5 9 5 9-5" />
@@ -479,7 +479,7 @@ export default function MyDayClient({
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} className="h-[21px] w-[21px] shrink-0 text-[var(--co-muted)]" aria-hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} className="h-[21px] w-[21px] shrink-0 text-[var(--co-muted)]" aria-hidden>
                 <circle cx="17" cy="6.5" r="3.5" />
                 <path d="M17 10v2a5 5 0 0 1-5 5h-1v4" />
                 <path d="M4 21h9v-3.5H6.5A2.5 2.5 0 0 0 4 20v1Z" />
@@ -513,7 +513,7 @@ export default function MyDayClient({
               className="mt-2 inline-flex items-center gap-1.5 border-b type-field-body font-medium text-[var(--co-accent-text)]"
               style={{ borderColor: "color-mix(in srgb, var(--co-accent-text) 35%, transparent)" }}
             >
-              <MapPin className="h-4 w-4 shrink-0" aria-hidden strokeWidth={2.1} />
+              <MapPin className="h-4 w-4 shrink-0" aria-hidden strokeWidth={1.75} />
               {jobAddress(activeJob)}
             </a>
           ) : officePhone ? (
@@ -521,12 +521,12 @@ export default function MyDayClient({
               href={`tel:${officePhone}`}
               className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[var(--co-spark-tint)] px-2.5 py-1.5 type-field-meta font-semibold text-[var(--co-spark-text)]"
             >
-              <TriangleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={2.1} />
+              <TriangleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
               Address not set · call the office
             </a>
           ) : (
             <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--co-spark-tint)] px-2.5 py-1 type-field-meta font-semibold text-[var(--co-spark-text)]">
-              <TriangleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={2.1} />
+              <TriangleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
               Address not set
             </p>
           )}
@@ -540,13 +540,13 @@ export default function MyDayClient({
             <div className="mt-2.5 flex flex-wrap gap-1.5">
               {activeJob.petNotes ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2.5 py-1 type-field-micro font-semibold text-[var(--co-muted)]">
-                  <PawPrint className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.9} />
+                  <PawPrint className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
                   {activeJob.petNotes}
                 </span>
               ) : null}
               {activeJob.doNotClean ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2.5 py-1 type-field-micro font-semibold text-[var(--co-muted)]">
-                  <CircleSlash className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.9} />
+                  <CircleSlash className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
                   {activeJob.doNotClean}
                 </span>
               ) : null}
@@ -670,7 +670,7 @@ export default function MyDayClient({
                   meta={
                     flagged ? (
                       <>
-                        <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-[var(--co-spark-text)]" aria-hidden strokeWidth={2.1} />
+                        <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-[var(--co-spark-text)]" aria-hidden strokeWidth={1.75} />
                         <span className="text-[var(--co-spark-text)]">No address · call office</span>
                       </>
                     ) : (
@@ -718,7 +718,7 @@ export default function MyDayClient({
                   meta={
                     flagged ? (
                       <>
-                        <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-[var(--co-spark-text)]" aria-hidden strokeWidth={2.1} />
+                        <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-[var(--co-spark-text)]" aria-hidden strokeWidth={1.75} />
                         <span className="text-[var(--co-spark-text)]">No address · call office</span>
                       </>
                     ) : (

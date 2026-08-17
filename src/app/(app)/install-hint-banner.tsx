@@ -38,7 +38,7 @@ export default function InstallHintBanner() {
 
   return (
     <div className="flex items-center gap-2 bg-[var(--co-accent)] px-3 py-2 text-[13px] text-white">
-      <Share aria-hidden="true" strokeWidth={1.9} className="h-4 w-4 shrink-0" />
+      <Share aria-hidden="true" strokeWidth={1.75} className="h-4 w-4 shrink-0" />
       <p className="min-w-0 flex-1 truncate">
         Install ServiceSpark: tap <span className="font-medium">Share</span> then{" "}
         <span className="font-medium">Add to Home Screen</span>.
@@ -49,7 +49,7 @@ export default function InstallHintBanner() {
         aria-label="Dismiss install hint"
         className="shrink-0 rounded-full p-1 transition-colors hover:bg-white/15"
       >
-        <X aria-hidden="true" strokeWidth={1.9} className="h-4 w-4" />
+        <X aria-hidden="true" strokeWidth={1.75} className="h-4 w-4" />
       </button>
     </div>
   );
