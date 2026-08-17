@@ -1,8 +1,8 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
-import { Sparkles, Droplet, Star, Truck, PanelsTopLeft, Flame, Refrigerator, Ruler, LayoutGrid, Shirt, Minus, Plus, type LucideIcon } from "lucide-react";
-import { ADD_ONS, MOVE_IN_OUT_DEFAULT_ADD_ONS, MAX_ADD_ON_QTY, addOnLineTotalCents, type AddOnKey, type SelectedAddOn } from "@/lib/pricing/add-ons";
+import { Sparkles, Droplet, Star, Truck, PanelsTopLeft, Flame, Refrigerator, Ruler, LayoutGrid, Shirt, type LucideIcon } from "lucide-react";
+import { ADD_ONS, MOVE_IN_OUT_DEFAULT_ADD_ONS, type AddOnKey } from "@/lib/pricing/add-ons";
 import { formatDisplayDate } from "@/lib/scheduling/dates";
 
 type TierBreakdown = {
@@ -121,11 +121,6 @@ function addOnPriceLabel(item: (typeof ADD_ONS)[number]) {
   return item.priceCents != null ? `+${dollars(item.priceCents)}` : (item.priceLabel ?? "Ask for pricing");
 }
 
-function addOnLineLabel(item: (typeof ADD_ONS)[number], qty: number) {
-  if (item.priceCents == null) return item.priceLabel ?? "Ask for pricing";
-  return `+${dollars(addOnLineTotalCents(item, qty))}`;
-}
-
 function formatValidUntil(value: string | null) {
   return value ? formatDisplayDate(value) : null;
 }
@@ -225,28 +220,13 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [openFaq, setOpenFaq] = useState<string | null>(FAQS[0].q);
-  const [selectedAddOns, setSelectedAddOns] = useState<SelectedAddOn[]>([]);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
 
   // Move In/Out bundles oven/fridge/window cleaning by default — the customer can
   // still uncheck any of them, this just saves them from having to remember to ask.
   function applyTierAddOnDefaults(type: string | null) {
     if (type !== "move_in_out") return;
-    setSelectedAddOns((current) => {
-      const existingKeys = new Set(current.map((entry) => entry.key));
-      const additions = MOVE_IN_OUT_DEFAULT_ADD_ONS.filter((key) => !existingKeys.has(key)).map((key) => ({ key, qty: 1 }));
-      return [...current, ...additions];
-    });
-  }
-
-  function toggleAddOn(key: AddOnKey) {
-    setSelectedAddOns((current) =>
-      current.some((entry) => entry.key === key) ? current.filter((entry) => entry.key !== key) : [...current, { key, qty: 1 }]
-    );
-  }
-
-  function setAddOnQty(key: AddOnKey, qty: number) {
-    const clamped = Math.max(1, Math.min(MAX_ADD_ON_QTY, Math.round(qty)));
-    setSelectedAddOns((current) => current.map((entry) => (entry.key === key ? { ...entry, qty: clamped } : entry)));
+    setSelectedAddOns((current) => Array.from(new Set([...current, ...MOVE_IN_OUT_DEFAULT_ADD_ONS])));
   }
 
   useEffect(() => {
@@ -360,10 +340,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
   const contactPhone = data?.quoteTemplate?.contactPhone || data?.companyPhone || "";
   const requiresDeposit = selectedType ? ["first_time", "deep"].includes(selectedType) : false;
   const selectedTotalCents = selectedBreakdown?.finalCents ?? data?.quote.totalCents ?? 0;
-  const selectedAddOnTotalCents = selectedAddOns.reduce((sum, entry) => {
-    const addOn = ADD_ONS.find((item) => item.key === entry.key);
-    return addOn ? sum + addOnLineTotalCents(addOn, entry.qty) : sum;
-  }, 0);
+  const selectedAddOnTotalCents = selectedAddOns.reduce((sum, key) => sum + (ADD_ONS.find((item) => item.key === key)?.priceCents ?? 0), 0);
   const quotedTotalCents = selectedTotalCents + selectedAddOnTotalCents;
   const depositCents = requiresDeposit ? Math.round(quotedTotalCents * 0.5) : 0;
   const remainingCents = requiresDeposit ? Math.max(0, quotedTotalCents - depositCents) : 0;
@@ -560,19 +537,23 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
               </p>
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {ADD_ONS.map((item) => {
-                  const selectedEntry = selectedAddOns.find((entry) => entry.key === item.key);
-                  const checked = Boolean(selectedEntry);
+                  const checked = selectedAddOns.includes(item.key);
                   const style = ADD_ON_STYLES[item.key];
                   const Icon = style.icon;
                   const includedByDefault = selectedType === "move_in_out" && MOVE_IN_OUT_DEFAULT_ADD_ONS.includes(item.key);
                   return (
-                    <div
+                    <button
                       key={item.key}
+                      type="button"
+                      disabled={locked}
+                      onClick={() =>
+                        setSelectedAddOns((current) => (checked ? current.filter((key) => key !== item.key) : [...current, item.key]))
+                      }
                       className={`flex h-full min-w-0 flex-col gap-3 rounded-2xl border px-4 py-4 text-left transition ${
                         checked ? "border-[var(--co-accent-text)] bg-[var(--co-accent-tint)]" : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]"
-                      } ${locked ? "opacity-75" : ""}`}
+                      } ${locked ? "cursor-default opacity-75" : ""}`}
                     >
-                      <button type="button" disabled={locked} onClick={() => toggleAddOn(item.key)} className={`flex w-full min-w-0 items-start gap-3 text-left ${locked ? "cursor-default" : ""}`}>
+                      <div className="flex w-full min-w-0 items-start gap-3">
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: style.color }}>
                           <Icon className="h-4 w-4" aria-hidden />
                         </span>
@@ -591,37 +572,12 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                             {includedByDefault ? "Included with Move In/Out by default — tap to remove." : (item.description ?? "Tap to add or remove this extra.")}
                           </p>
                         </div>
-                      </button>
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--co-line-soft)] pt-3">
-                        <div className="flex flex-col items-start gap-2">
-                          <span className="eyebrow">{item.priceCents != null ? (item.quantified ? "Price per unit" : "Add-on price") : "Estimated range"}</span>
-                          <span className="co-badge-success max-w-full rounded-full px-3 py-1 text-sm font-semibold">{addOnPriceLabel(item)}</span>
-                        </div>
-                        {item.quantified && checked && selectedEntry ? (
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              disabled={locked}
-                              onClick={() => setAddOnQty(item.key, selectedEntry.qty - 1)}
-                              className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--co-line)] text-[var(--co-ink)] disabled:opacity-50"
-                              aria-label={`Fewer ${item.label}`}
-                            >
-                              <Minus className="h-3.5 w-3.5" aria-hidden />
-                            </button>
-                            <span className="min-w-[1.5rem] text-center text-sm font-semibold text-[var(--co-ink)]">{selectedEntry.qty}</span>
-                            <button
-                              type="button"
-                              disabled={locked}
-                              onClick={() => setAddOnQty(item.key, selectedEntry.qty + 1)}
-                              className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--co-line)] text-[var(--co-ink)] disabled:opacity-50"
-                              aria-label={`More ${item.label}`}
-                            >
-                              <Plus className="h-3.5 w-3.5" aria-hidden />
-                            </button>
-                          </div>
-                        ) : null}
                       </div>
-                    </div>
+                      <div className="flex flex-col items-start gap-2 border-t border-[var(--co-line-soft)] pt-3">
+                        <span className="eyebrow">{item.priceCents != null ? "Add-on price" : "Estimated range"}</span>
+                        <span className="co-badge-success max-w-full rounded-full px-3 py-1 text-sm font-semibold">{addOnPriceLabel(item)}</span>
+                      </div>
+                    </button>
                   );
                 })}
               </div>
@@ -629,21 +585,14 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                 <div className="mt-5 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-accent-tint)] p-4">
                   <p className="eyebrow">Add-ons selected</p>
                   <div className="mt-3 space-y-2 text-sm text-[var(--co-muted)]">
-                    {selectedAddOns.map((entry) => {
-                      const item = ADD_ONS.find((addOn) => addOn.key === entry.key);
-                      if (!item) return null;
-                      return (
-                        <div key={entry.key} className="flex min-w-0 items-center justify-between gap-3">
-                          <span className="min-w-0">
-                            {item.label}
-                            {item.quantified ? ` × ${entry.qty}` : ""}
-                          </span>
-                          <span className="shrink-0 font-medium text-[var(--co-ink)]">{addOnLineLabel(item, entry.qty)}</span>
-                        </div>
-                      );
-                    })}
+                    {ADD_ONS.filter((item) => selectedAddOns.includes(item.key)).map((item) => (
+                      <div key={item.key} className="flex min-w-0 items-center justify-between gap-3">
+                        <span className="min-w-0">{item.label}</span>
+                        <span className="shrink-0 font-medium text-[var(--co-ink)]">{addOnPriceLabel(item)}</span>
+                      </div>
+                    ))}
                   </div>
-                  {selectedAddOns.some((entry) => ADD_ONS.find((item) => item.key === entry.key)?.priceCents == null) ? (
+                  {selectedAddOns.some((key) => ADD_ONS.find((item) => item.key === key)?.priceCents == null) ? (
                     <p className="mt-3 text-xs text-[var(--co-muted)]">
                       Items without a fixed price aren&apos;t added to your total yet — we&apos;ll follow up to confirm those before your appointment.
                     </p>

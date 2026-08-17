@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ADD_ONS, normalizeAddOns } from "@/lib/pricing/add-ons";
+import { ADD_ONS } from "@/lib/pricing/add-ons";
 import { LocalDateTime } from "@/components/local-date-time";
 import { DateInput } from "@/components/date-input";
 
@@ -24,7 +24,7 @@ type Quote = {
   acceptedServiceType: string | null;
   signatureName: string | null;
   acceptedAt: string | null;
-  acceptedAddOns: unknown[]; // legacy AddOnKey[] rows or the current {key, qty}[] shape — normalize before use
+  acceptedAddOns: string[];
   sentAt: string | null;
   allTierPricing: Record<string, Tier> | null;
 };
@@ -285,23 +285,20 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
               </div>
             ) : null}
 
-            {normalizeAddOns(quote.acceptedAddOns).length ? (
+            {quote.acceptedAddOns?.length ? (
               <div className="mt-3 rounded-xl border border-[var(--co-line-soft)] p-4 text-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Add-ons requested</p>
                 <ul className="mt-2 space-y-1.5">
-                  {normalizeAddOns(quote.acceptedAddOns).map(({ key, qty }) => {
+                  {quote.acceptedAddOns.map((key) => {
                     const addOn = ADD_ONS.find((item) => item.key === key);
                     const needsPricing = addOn?.priceCents == null;
                     return (
                       <li key={key} className="flex items-center justify-between gap-3">
-                        <span>
-                          {addOn?.label ?? key}
-                          {addOn?.quantified ? ` × ${qty}` : ""}
-                        </span>
+                        <span>{addOn?.label ?? key}</span>
                         {needsPricing ? (
                           <span className="co-badge-warning rounded-full px-2 py-0.5 text-xs font-medium">Call to price — {addOn?.priceLabel}</span>
                         ) : (
-                          <span className="font-medium">{addOn ? dollars(addOn.priceCents! * (addOn.quantified ? qty : 1)) : ""}</span>
+                          <span className="font-medium">{addOn ? dollars(addOn.priceCents!) : ""}</span>
                         )}
                       </li>
                     );
