@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.50",
+    date: "August 17, 2026",
+    title: "Archived employees no longer clutter the team directory",
+    changes: [
+      "The Employees page now shows active staff by default instead of mixing in everyone who's ever been archived.",
+      "An \"Archived\" filter chip shows exactly the archived staff — their profiles, payroll history, and job history are still there, just a click away instead of front and center.",
+      "The \"Active cleaners\" count on the Employees page now counts only active staff, so it no longer looks like people are missing.",
+    ],
+  },
+  {
     version: "v0.2.49",
     date: "August 16, 2026",
     title: "Homepage visuals cleaned up",
