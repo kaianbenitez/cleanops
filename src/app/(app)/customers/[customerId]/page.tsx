@@ -179,6 +179,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
   const { customerId } = use(params);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [roomTypesLoading, setRoomTypesLoading] = useState(true);
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [jobs, setJobs] = useState<CustomerJob[]>([]);
@@ -255,7 +256,8 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
     fetch("/api/room-types")
       .then((response) => response.json())
       .then((body) => setRoomTypes(body.roomTypes ?? []))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setRoomTypesLoading(false));
   }, []);
 
   const employeesFetchedRef = useRef(false);
@@ -1049,6 +1051,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
           customer={customer as EquipmentCustomer}
           location={location}
           roomTypes={roomTypes}
+          roomTypesLoading={roomTypesLoading}
           locations={locations}
           primaryAddress={primaryAddress}
           upcomingJobs={upcomingJobs}

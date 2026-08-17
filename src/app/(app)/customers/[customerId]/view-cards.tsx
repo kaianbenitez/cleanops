@@ -120,6 +120,7 @@ export function CustomerViewCards({
   customer,
   location,
   roomTypes,
+  roomTypesLoading,
   primaryAddress,
   upcomingJobs,
   recentJobs,
@@ -131,6 +132,7 @@ export function CustomerViewCards({
   customer: EquipmentCustomer;
   location: Location | null;
   roomTypes: { id: string; name: string }[];
+  roomTypesLoading: boolean;
   locations: Location[];
   primaryAddress: string;
   upcomingJobs: CustomerJob[];
@@ -213,7 +215,7 @@ export function CustomerViewCards({
               <h2 className="text-lg font-semibold tracking-[-0.02em]">House details</h2>
             </div>
             <div className="flex flex-wrap items-center gap-2 p-5">
-              {roomTypes.length === 0 ? (
+              {roomTypesLoading ? (
                 <div className="flex gap-2" aria-hidden="true">
                   <div className="h-9 w-16 animate-pulse rounded-lg bg-[var(--co-surface-muted)]" />
                   <div className="h-9 w-16 animate-pulse rounded-lg bg-[var(--co-surface-muted)]" />

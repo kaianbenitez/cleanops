@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.93",
+    date: "August 24, 2026",
+    title: "Oven and refrigerator add-ons now support quantities",
+    changes: [
+      "Customers can choose how many ovens or refrigerators need cleaning, and the proposal total updates per unit.",
+      "The accepted proposal total is recalculated on the server, while older accepted proposals continue to display correctly.",
+    ],
+  },
+  {
     version: "v0.2.92",
     date: "August 24, 2026",
     title: "Calendar notes and room details are clearer",

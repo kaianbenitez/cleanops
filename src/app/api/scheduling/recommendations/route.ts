@@ -62,5 +62,4 @@ export async function POST(req: NextRequest) {
     console.error("Guided booking recommendations failed", cause);
     return NextResponse.json({ error: "Availability is temporarily unavailable. The guided-booking database migration may still need to be applied." }, { status: 500 });
   }
->>>>>>> 478cf1f (fix: surface guided booking availability errors)
 }

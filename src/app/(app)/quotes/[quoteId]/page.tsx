@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ADD_ONS } from "@/lib/pricing/add-ons";
+import { ADD_ONS, normalizeAddOns } from "@/lib/pricing/add-ons";
 import { LocalDateTime } from "@/components/local-date-time";
 import { BookJobPanel } from "@/components/scheduling/book-job-panel";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -28,7 +28,7 @@ type Quote = {
   acceptedAt: string | null;
   bookedAt: string | null;
   desiredCleaningDate: string | null;
-  acceptedAddOns: string[];
+  acceptedAddOns: unknown[];
   sentAt: string | null;
   allTierPricing: Record<string, Tier> | null;
 };
@@ -255,20 +255,20 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
               </div>
             ) : null}
 
-            {quote.acceptedAddOns?.length ? (
+            {normalizeAddOns(quote.acceptedAddOns).length ? (
               <div className="mt-3 rounded-xl border border-[var(--co-line-soft)] p-4 text-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Add-ons requested</p>
                 <ul className="mt-2 space-y-1.5">
-                  {quote.acceptedAddOns.map((key) => {
+                  {normalizeAddOns(quote.acceptedAddOns).map(({ key, qty }) => {
                     const addOn = ADD_ONS.find((item) => item.key === key);
                     const needsPricing = addOn?.priceCents == null;
                     return (
                       <li key={key} className="flex items-center justify-between gap-3">
-                        <span>{addOn?.label ?? key}</span>
+                        <span>{addOn?.label ?? key}{addOn?.quantified ? ` × ${qty}` : ""}</span>
                         {needsPricing ? (
                           <span className="co-badge-warning rounded-full px-2 py-0.5 text-xs font-medium">Call to price — {addOn?.priceLabel}</span>
                         ) : (
-                          <span className="font-medium">{addOn ? dollars(addOn.priceCents!) : ""}</span>
+                          <span className="font-medium">{addOn ? dollars(addOn.priceCents! * (addOn.quantified ? qty : 1)) : ""}</span>
                         )}
                       </li>
                     );
