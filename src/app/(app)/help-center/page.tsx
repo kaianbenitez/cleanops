@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.52",
+    date: "August 17, 2026",
+    title: "Room names no longer get cut off in the quote builder",
+    changes: [
+      "Room names like \"Kitchen Large\" and \"Kitchen Medium\" used to get chopped down to \"Kitchen ...\" on a proposal, making it impossible to tell which room's count you were changing. Room names now wrap to a second line instead of cutting off.",
+      "The proposal form is also wider now, and the price panel a bit narrower, so there's more room for names before wrapping even kicks in.",
+    ],
+  },
+  {
     version: "v0.2.51",
     date: "August 17, 2026",
     title: "Date fields you can click instead of type",

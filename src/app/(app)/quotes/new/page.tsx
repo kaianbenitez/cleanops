@@ -487,7 +487,7 @@ export default function NewQuotePage() {
         <p className="page-subtitle">Define customer details and property characteristics to generate an accurate estimate.</p>
       </header>
 
-      <div className="grid gap-5 xl:grid-cols-[0.82fr_1.18fr]">
+      <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-5">
           <section className="co-card p-5">
             <p className="eyebrow">Customer and location</p>
@@ -671,7 +671,7 @@ export default function NewQuotePage() {
                   >
                     <div className="flex min-w-0 items-center gap-2.5">
                       <Icon className="h-4 w-4 shrink-0 text-[var(--co-evergreen)]" aria-hidden />
-                      <span className="truncate text-sm font-medium text-[var(--co-ink)]">{room.name}</span>
+                      <span className="text-sm font-medium leading-snug text-[var(--co-ink)]">{room.name}</span>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <button
