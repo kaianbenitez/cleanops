@@ -98,7 +98,7 @@ export default function DatePicker({ view, value, label }: { view: string; value
     </div>
   ) : null;
 
-  return <div ref={pickerRef} className="relative"><button type="button" onClick={() => setOpen((current) => !current)} aria-expanded={open} aria-haspopup="dialog" className="co-button-secondary min-w-[170px] justify-start gap-2 text-left"><CalendarDays className="h-4 w-4 shrink-0 text-[var(--co-evergreen)]" aria-hidden /><span>{label}</span></button>{dialog ? createPortal(dialog, document.body) : null}</div>;
+  return <div ref={pickerRef} className="relative"><button type="button" onClick={() => setOpen((current) => !current)} aria-expanded={open} aria-haspopup="dialog" className="co-button-secondary min-w-[170px] justify-start gap-2 text-left"><CalendarDays className="h-4 w-4 shrink-0 text-[var(--co-accent-text)]" aria-hidden /><span>{label}</span></button>{dialog ? createPortal(dialog, document.body) : null}</div>;
 }
 
 export function CalendarViewSelector({ view, value }: { view: string; value: Date }) {
@@ -121,5 +121,5 @@ export function CalendarViewSelector({ view, value }: { view: string; value: Dat
     router.push(`${pathname}?${params.toString()}`);
   }
 
-  return <div role="group" aria-label="Calendar view" className="flex overflow-hidden rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-0.5">{VIEWS.map((entry) => <button key={entry.value} type="button" aria-pressed={view === entry.value} onClick={() => selectView(entry.value)} className={`whitespace-nowrap px-3 py-1.5 text-xs font-semibold ${view === entry.value ? "bg-[var(--co-evergreen)] text-white" : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"}`}>{entry.label}</button>)}</div>;
+  return <div role="group" aria-label="Calendar view" className="flex overflow-hidden rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-0.5">{VIEWS.map((entry) => <button key={entry.value} type="button" aria-pressed={view === entry.value} onClick={() => selectView(entry.value)} className={`whitespace-nowrap px-3 py-1.5 text-xs font-semibold ${view === entry.value ? "bg-[var(--co-accent-fill)] text-white" : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"}`}>{entry.label}</button>)}</div>;
 }

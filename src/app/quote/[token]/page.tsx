@@ -1,8 +1,8 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
-import { Sparkles, Droplet, Star, Truck, PanelsTopLeft, Flame, Refrigerator, Ruler, LayoutGrid, Shirt, type LucideIcon } from "lucide-react";
-import { ADD_ONS, MOVE_IN_OUT_DEFAULT_ADD_ONS, type AddOnKey } from "@/lib/pricing/add-ons";
+import { Sparkles, Droplet, Star, Truck, PanelsTopLeft, Flame, Refrigerator, Ruler, LayoutGrid, Shirt, Minus, Plus, type LucideIcon } from "lucide-react";
+import { ADD_ONS, MOVE_IN_OUT_DEFAULT_ADD_ONS, MAX_ADD_ON_QTY, addOnLineTotalCents, type AddOnKey, type SelectedAddOn } from "@/lib/pricing/add-ons";
 import { formatDisplayDate } from "@/lib/scheduling/dates";
 
 type TierBreakdown = {
@@ -97,7 +97,7 @@ const ADD_ON_STYLES: Record<AddOnKey, { icon: LucideIcon; color: string }> = {
   oven_interior: { icon: Flame, color: "var(--chart-4)" },
   fridge_interior: { icon: Refrigerator, color: "var(--chart-3)" },
   baseboards: { icon: Ruler, color: "var(--chart-2)" },
-  cabinet_fronts: { icon: LayoutGrid, color: "var(--co-evergreen-soft)" },
+  cabinet_fronts: { icon: LayoutGrid, color: "var(--co-accent-text)" },
   laundry: { icon: Shirt, color: "var(--co-warning)" },
 };
 
@@ -119,6 +119,11 @@ function dollars(cents: number) {
 
 function addOnPriceLabel(item: (typeof ADD_ONS)[number]) {
   return item.priceCents != null ? `+${dollars(item.priceCents)}` : (item.priceLabel ?? "Ask for pricing");
+}
+
+function addOnLineLabel(item: (typeof ADD_ONS)[number], qty: number) {
+  if (item.priceCents == null) return item.priceLabel ?? "Ask for pricing";
+  return `+${dollars(addOnLineTotalCents(item, qty))}`;
 }
 
 function formatValidUntil(value: string | null) {
@@ -220,13 +225,28 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [openFaq, setOpenFaq] = useState<string | null>(FAQS[0].q);
-  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [selectedAddOns, setSelectedAddOns] = useState<SelectedAddOn[]>([]);
 
   // Move In/Out bundles oven/fridge/window cleaning by default — the customer can
   // still uncheck any of them, this just saves them from having to remember to ask.
   function applyTierAddOnDefaults(type: string | null) {
     if (type !== "move_in_out") return;
-    setSelectedAddOns((current) => Array.from(new Set([...current, ...MOVE_IN_OUT_DEFAULT_ADD_ONS])));
+    setSelectedAddOns((current) => {
+      const existingKeys = new Set(current.map((entry) => entry.key));
+      const additions = MOVE_IN_OUT_DEFAULT_ADD_ONS.filter((key) => !existingKeys.has(key)).map((key) => ({ key, qty: 1 }));
+      return [...current, ...additions];
+    });
+  }
+
+  function toggleAddOn(key: AddOnKey) {
+    setSelectedAddOns((current) =>
+      current.some((entry) => entry.key === key) ? current.filter((entry) => entry.key !== key) : [...current, { key, qty: 1 }]
+    );
+  }
+
+  function setAddOnQty(key: AddOnKey, qty: number) {
+    const clamped = Math.max(1, Math.min(MAX_ADD_ON_QTY, Math.round(qty)));
+    setSelectedAddOns((current) => current.map((entry) => (entry.key === key ? { ...entry, qty: clamped } : entry)));
   }
 
   useEffect(() => {
@@ -340,7 +360,10 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
   const contactPhone = data?.quoteTemplate?.contactPhone || data?.companyPhone || "";
   const requiresDeposit = selectedType ? ["first_time", "deep"].includes(selectedType) : false;
   const selectedTotalCents = selectedBreakdown?.finalCents ?? data?.quote.totalCents ?? 0;
-  const selectedAddOnTotalCents = selectedAddOns.reduce((sum, key) => sum + (ADD_ONS.find((item) => item.key === key)?.priceCents ?? 0), 0);
+  const selectedAddOnTotalCents = selectedAddOns.reduce((sum, entry) => {
+    const addOn = ADD_ONS.find((item) => item.key === entry.key);
+    return addOn ? sum + addOnLineTotalCents(addOn, entry.qty) : sum;
+  }, 0);
   const quotedTotalCents = selectedTotalCents + selectedAddOnTotalCents;
   const depositCents = requiresDeposit ? Math.round(quotedTotalCents * 0.5) : 0;
   const remainingCents = requiresDeposit ? Math.max(0, quotedTotalCents - depositCents) : 0;
@@ -359,7 +382,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
         <header className="mb-6 rounded-[32px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-5 shadow-[0_12px_40px_rgba(15,23,42,0.05)] sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex min-w-0 items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[var(--co-evergreen)]">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[var(--co-accent-fill)]">
                 {data.companyLogoUrl ? (
                   <img src={data.companyLogoUrl} alt={`${data.companyName} logo`} className="h-full w-full object-contain p-1.5" />
                 ) : (
@@ -430,21 +453,21 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                         applyTierAddOnDefaults(type);
                       }}
                       className={`relative flex min-w-0 flex-col rounded-2xl border p-5 text-left transition-transform hover:-translate-y-0.5 ${
-                        selected ? "border-[var(--co-evergreen)] bg-[var(--co-accent-tint)] ring-2 ring-[var(--co-evergreen)]" : "border-[var(--co-line-soft)] bg-[var(--co-surface)]"
+                        selected ? "border-[var(--co-accent-text)] bg-[var(--co-accent-tint)] ring-2 ring-[var(--co-accent-fill)]" : "border-[var(--co-line-soft)] bg-[var(--co-surface)]"
                       } ${locked ? "cursor-default opacity-75" : ""}`}
                     >
                       {index === 1 ? (
-                        <span className="absolute -top-3 left-4 rounded-full bg-[var(--co-evergreen)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-white">
+                        <span className="absolute -top-3 left-4 rounded-full bg-[var(--co-accent-fill)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-white">
                           Most popular
                         </span>
                       ) : null}
                       <span
-                        className={`absolute top-5 right-5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-sm ${selected ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)] text-white" : "border-[var(--co-line)] text-transparent"}`}
+                        className={`absolute top-5 right-5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-sm ${selected ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-fill)] text-white" : "border-[var(--co-line)] text-transparent"}`}
                       >
                         ✓
                       </span>
 
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--co-evergreen)] text-white">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--co-accent-fill)] text-white">
                         <Icon className="h-4 w-4" aria-hidden />
                       </span>
                       <div className="mt-3 min-w-0 pr-8">
@@ -455,7 +478,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                       <ul className="mt-4 space-y-1.5">
                         {SERVICE_BULLETS[type]?.map((bullet) => (
                           <li key={bullet} className="flex items-start gap-2 text-xs leading-5 text-[var(--co-muted)]">
-                            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[var(--co-evergreen)]" aria-hidden />
+                            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[var(--co-accent-fill)]" aria-hidden />
                             <span className="min-w-0 break-words">{bullet}</span>
                           </li>
                         ))}
@@ -472,14 +495,14 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
               </div>
 
               {recurringTiers.length > 0 ? (
-                <div className="mt-5 rounded-2xl border border-[var(--co-evergreen)] bg-[var(--co-accent-tint)] p-5">
+                <div className="mt-5 rounded-2xl border border-[var(--co-accent-text)] bg-[var(--co-accent-tint)] p-5">
                   <label className="flex cursor-pointer items-start gap-3">
                     <input
                       type="checkbox"
                       checked={recurringInterest}
                       disabled={locked}
                       onChange={(event) => toggleRecurring(event.target.checked)}
-                      className="mt-1 h-4 w-4 shrink-0 accent-[var(--co-evergreen)]"
+                      className="mt-1 h-4 w-4 shrink-0 accent-[var(--co-accent-fill)]"
                     />
                     <span className="min-w-0">
                       <span className="block text-sm font-semibold text-[var(--co-ink)]">✨ Also sign up for recurring cleaning and save</span>
@@ -504,7 +527,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                               disabled={locked}
                               onClick={() => setRecurringFrequency(type)}
                               className={`min-w-0 rounded-xl border px-3 py-2.5 text-left transition ${
-                                selected ? "border-[var(--co-evergreen)] bg-[var(--co-surface)] ring-1 ring-[var(--co-evergreen)]" : "border-[var(--co-line-soft)] bg-[var(--co-surface)]"
+                                selected ? "border-[var(--co-accent-text)] bg-[var(--co-surface)] ring-1 ring-[var(--co-accent-fill)]" : "border-[var(--co-line-soft)] bg-[var(--co-surface)]"
                               } ${locked ? "cursor-default opacity-75" : ""}`}
                             >
                               <span className="block break-words text-sm font-semibold text-[var(--co-ink)]">{SERVICE_LABELS[type]}</span>
@@ -514,7 +537,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                         })}
                       </div>
                       {recurringBreakdown && recurringSavingsCents > 0 ? (
-                        <p className="mt-3 text-sm font-medium text-[var(--co-evergreen)]">
+                        <p className="mt-3 text-sm font-medium text-[var(--co-accent-text)]">
                           That&apos;s {dollars(recurringSavingsCents)} less per visit than {selectedType ? SERVICE_LABELS[selectedType] : "a one-time clean"}.
                         </p>
                       ) : null}
@@ -537,23 +560,19 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
               </p>
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {ADD_ONS.map((item) => {
-                  const checked = selectedAddOns.includes(item.key);
+                  const selectedEntry = selectedAddOns.find((entry) => entry.key === item.key);
+                  const checked = Boolean(selectedEntry);
                   const style = ADD_ON_STYLES[item.key];
                   const Icon = style.icon;
                   const includedByDefault = selectedType === "move_in_out" && MOVE_IN_OUT_DEFAULT_ADD_ONS.includes(item.key);
                   return (
-                    <button
+                    <div
                       key={item.key}
-                      type="button"
-                      disabled={locked}
-                      onClick={() =>
-                        setSelectedAddOns((current) => (checked ? current.filter((key) => key !== item.key) : [...current, item.key]))
-                      }
                       className={`flex h-full min-w-0 flex-col gap-3 rounded-2xl border px-4 py-4 text-left transition ${
-                        checked ? "border-[var(--co-evergreen)] bg-[var(--co-accent-tint)]" : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]"
-                      } ${locked ? "cursor-default opacity-75" : ""}`}
+                        checked ? "border-[var(--co-accent-text)] bg-[var(--co-accent-tint)]" : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]"
+                      } ${locked ? "opacity-75" : ""}`}
                     >
-                      <div className="flex w-full min-w-0 items-start gap-3">
+                      <button type="button" disabled={locked} onClick={() => toggleAddOn(item.key)} className={`flex w-full min-w-0 items-start gap-3 text-left ${locked ? "cursor-default" : ""}`}>
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: style.color }}>
                           <Icon className="h-4 w-4" aria-hidden />
                         </span>
@@ -562,7 +581,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                             <p className="min-w-0 text-sm font-medium leading-6 text-[var(--co-ink)]">{item.label}</p>
                             <span
                               className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border text-[11px] ${
-                                checked ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)] text-white" : "border-[var(--co-line)] text-transparent"
+                                checked ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-fill)] text-white" : "border-[var(--co-line)] text-transparent"
                               }`}
                             >
                               ✓
@@ -572,12 +591,37 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                             {includedByDefault ? "Included with Move In/Out by default — tap to remove." : (item.description ?? "Tap to add or remove this extra.")}
                           </p>
                         </div>
+                      </button>
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--co-line-soft)] pt-3">
+                        <div className="flex flex-col items-start gap-2">
+                          <span className="eyebrow">{item.priceCents != null ? (item.quantified ? "Price per unit" : "Add-on price") : "Estimated range"}</span>
+                          <span className="co-badge-success max-w-full rounded-full px-3 py-1 text-sm font-semibold">{addOnPriceLabel(item)}</span>
+                        </div>
+                        {item.quantified && checked && selectedEntry ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              disabled={locked}
+                              onClick={() => setAddOnQty(item.key, selectedEntry.qty - 1)}
+                              className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--co-line)] text-[var(--co-ink)] disabled:opacity-50"
+                              aria-label={`Fewer ${item.label}`}
+                            >
+                              <Minus className="h-3.5 w-3.5" aria-hidden />
+                            </button>
+                            <span className="min-w-[1.5rem] text-center text-sm font-semibold text-[var(--co-ink)]">{selectedEntry.qty}</span>
+                            <button
+                              type="button"
+                              disabled={locked}
+                              onClick={() => setAddOnQty(item.key, selectedEntry.qty + 1)}
+                              className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--co-line)] text-[var(--co-ink)] disabled:opacity-50"
+                              aria-label={`More ${item.label}`}
+                            >
+                              <Plus className="h-3.5 w-3.5" aria-hidden />
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
-                      <div className="flex flex-col items-start gap-2 border-t border-[var(--co-line-soft)] pt-3">
-                        <span className="eyebrow">{item.priceCents != null ? "Add-on price" : "Estimated range"}</span>
-                        <span className="co-badge-success max-w-full rounded-full px-3 py-1 text-sm font-semibold">{addOnPriceLabel(item)}</span>
-                      </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -585,14 +629,21 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                 <div className="mt-5 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-accent-tint)] p-4">
                   <p className="eyebrow">Add-ons selected</p>
                   <div className="mt-3 space-y-2 text-sm text-[var(--co-muted)]">
-                    {ADD_ONS.filter((item) => selectedAddOns.includes(item.key)).map((item) => (
-                      <div key={item.key} className="flex min-w-0 items-center justify-between gap-3">
-                        <span className="min-w-0">{item.label}</span>
-                        <span className="shrink-0 font-medium text-[var(--co-ink)]">{addOnPriceLabel(item)}</span>
-                      </div>
-                    ))}
+                    {selectedAddOns.map((entry) => {
+                      const item = ADD_ONS.find((addOn) => addOn.key === entry.key);
+                      if (!item) return null;
+                      return (
+                        <div key={entry.key} className="flex min-w-0 items-center justify-between gap-3">
+                          <span className="min-w-0">
+                            {item.label}
+                            {item.quantified ? ` × ${entry.qty}` : ""}
+                          </span>
+                          <span className="shrink-0 font-medium text-[var(--co-ink)]">{addOnLineLabel(item, entry.qty)}</span>
+                        </div>
+                      );
+                    })}
                   </div>
-                  {selectedAddOns.some((key) => ADD_ONS.find((item) => item.key === key)?.priceCents == null) ? (
+                  {selectedAddOns.some((entry) => ADD_ONS.find((item) => item.key === entry.key)?.priceCents == null) ? (
                     <p className="mt-3 text-xs text-[var(--co-muted)]">
                       Items without a fixed price aren&apos;t added to your total yet — we&apos;ll follow up to confirm those before your appointment.
                     </p>
@@ -628,7 +679,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                   <div className="min-w-0 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
                     <p className="eyebrow">Insurance certificate</p>
                     <p className="mt-2 text-sm leading-6 text-[var(--co-muted)]">Your certificate is available for review before you accept.</p>
-                      <a href={data.quoteTemplate.insuranceUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-medium text-[var(--co-evergreen)]">
+                      <a href={data.quoteTemplate.insuranceUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-medium text-[var(--co-accent-text)]">
                         View certificate
                       </a>
                   </div>
@@ -637,7 +688,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                   <div className="min-w-0 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
                     <p className="eyebrow">W-9 available</p>
                     <p className="mt-2 text-sm leading-6 text-[var(--co-muted)]">Business information is available when requested.</p>
-                      <a href={data.quoteTemplate.w9Url} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-medium text-[var(--co-evergreen)]">
+                      <a href={data.quoteTemplate.w9Url} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-medium text-[var(--co-accent-text)]">
                         View W-9
                       </a>
                   </div>
@@ -679,7 +730,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
               <p className="eyebrow">Your total</p>
               <p className="mt-2 text-4xl font-semibold text-[var(--co-ink)]">{dollars(quotedTotalCents)}</p>
               <p className="mt-1 break-words text-sm text-[var(--co-muted)]">{selectedType ? SERVICE_LABELS[selectedType] : "Select an option"}</p>
-              <p className="mt-2 break-words text-sm font-medium text-[var(--co-evergreen)]">{data.customerCity || data.locationName || "Your service area"}</p>
+              <p className="mt-2 break-words text-sm font-medium text-[var(--co-accent-text)]">{data.customerCity || data.locationName || "Your service area"}</p>
               <p className="mt-1 text-xs text-[var(--co-muted)]">This proposal is tailored to the home and location on file.</p>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -724,7 +775,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
               ) : null}
 
               {isAccepted ? (
-                <div className="mt-6 rounded-2xl bg-[var(--co-accent-tint)] p-4 text-center text-sm text-[var(--co-evergreen)]">
+                <div className="mt-6 rounded-2xl bg-[var(--co-accent-tint)] p-4 text-center text-sm text-[var(--co-accent-text)]">
                   Accepted{data.quote.signatureName ? ` by ${data.quote.signatureName}` : ""}. We&apos;ll be in touch to confirm scheduling.
                 </div>
               ) : isExpired ? (
@@ -749,7 +800,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
               )}
             </section>
 
-            <section className="rounded-[28px] bg-[var(--co-evergreen)] p-6 text-white shadow-[0_18px_60px_rgba(0,108,73,0.2)]">
+            <section className="rounded-[28px] bg-[var(--co-accent-fill)] p-6 text-white shadow-[0_18px_60px_rgba(0,108,73,0.2)]">
               <p className="text-sm font-semibold text-white">You&apos;re in good hands</p>
               <p className="mt-3 text-sm leading-7 text-white/80">
                 Background-checked and trained pros, thoughtful communication, and a service standard built to make your home feel calm and cared for.

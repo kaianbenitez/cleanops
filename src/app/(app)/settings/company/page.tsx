@@ -84,7 +84,7 @@ export default function CompanyProfileSettingsPage() {
             <button onClick={saveCompany} className="co-button-primary">
               Save company profile
             </button>
-            {companyMessage ? <p className="mt-3 text-sm font-medium text-[var(--co-evergreen)]">{companyMessage}</p> : null}
+            {companyMessage ? <p className="mt-3 text-sm font-medium text-[var(--co-accent-text)]">{companyMessage}</p> : null}
           </div>
         </div>
       </section>
@@ -114,7 +114,7 @@ export default function CompanyProfileSettingsPage() {
           <button onClick={saveRevenueTarget} className="co-button-secondary mt-5">
             Save monthly target
           </button>
-          {revenueMessage ? <p className="mt-3 text-sm font-medium text-[var(--co-evergreen)]">{revenueMessage}</p> : null}
+          {revenueMessage ? <p className="mt-3 text-sm font-medium text-[var(--co-accent-text)]">{revenueMessage}</p> : null}
         </div>
       </section>
     </div>

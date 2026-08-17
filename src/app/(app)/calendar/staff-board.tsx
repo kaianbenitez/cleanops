@@ -439,7 +439,7 @@ export default function StaffBoard({
         <div className="flex items-start justify-between gap-2">
           <p className="truncate text-xs font-semibold">{customerName(job)}</p>
           <span
-            className={`shrink-0 text-[10px] font-semibold ${retained ? "text-[var(--co-muted)]" : "text-[var(--co-evergreen)]"}`}
+            className={`shrink-0 text-[10px] font-semibold ${retained ? "text-[var(--co-muted)]" : "text-[var(--co-accent-text)]"}`}
           >
             {formatEstimatedTime(job.estimatedDurationMinutes)}
           </span>
@@ -531,7 +531,7 @@ export default function StaffBoard({
               onClick={() => setQueueExpanded((expanded) => !expanded)}
               aria-controls="unassigned-queue-list"
               aria-expanded={queueExpanded}
-              className={`co-button-secondary py-1.5 text-xs ${queueExpanded ? "border-[var(--co-evergreen)] text-[var(--co-evergreen)]" : ""}`}
+              className={`co-button-secondary py-1.5 text-xs ${queueExpanded ? "border-[var(--co-accent-text)] text-[var(--co-accent-text)]" : ""}`}
             >
               {queueExpanded ? "Hide unassigned jobs" : `Unassigned jobs (${unassignedJobs.length})`}
             </button>
@@ -780,7 +780,7 @@ export default function StaffBoard({
                     })}
                     {dragOver?.employeeId === employee.id ? (
                       <div
-                        className="pointer-events-none absolute inset-x-2 z-20 -translate-y-1/2 rounded-lg border border-dashed border-[var(--co-evergreen)] bg-white/90 p-2 text-center text-xs font-semibold text-[var(--co-evergreen)]"
+                        className="pointer-events-none absolute inset-x-2 z-20 -translate-y-1/2 rounded-lg border border-dashed border-[var(--co-accent-text)] bg-white/90 p-2 text-center text-xs font-semibold text-[var(--co-accent-text)]"
                         style={{
                           top: `${Math.max(0, Math.min(((dragOver.minutes - START) / TOTAL) * 100, 100))}%`,
                         }}

@@ -162,7 +162,7 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
                       key={addOn.id}
                       className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs ${
                         checked
-                          ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)]/10 text-[var(--co-evergreen)]"
+                          ? "border-[var(--co-accent-text)] bg-[var(--co-accent-text)]/10 text-[var(--co-accent-text)]"
                           : "border-[var(--co-line)] text-[var(--co-muted)]"
                       }`}
                     >

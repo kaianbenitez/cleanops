@@ -159,7 +159,7 @@ function AdminRowItem({ admin }: { admin: AdminRow }) {
           Also a field cleaner (assignable to jobs, included in payroll)
         </label>
         {isFieldStaff ? (
-          <Link href={`/employees/${admin.id}`} className="text-xs font-medium text-[var(--co-evergreen)] hover:underline">
+          <Link href={`/employees/${admin.id}`} className="text-xs font-medium text-[var(--co-accent-text)] hover:underline">
             Set up pay type & rate →
           </Link>
         ) : null}
@@ -205,7 +205,7 @@ function AdminRowItem({ admin }: { admin: AdminRow }) {
         </form>
       ) : null}
 
-      {message ? <p className="mt-2 text-xs font-semibold text-[var(--co-evergreen)]">{message}</p> : null}
+      {message ? <p className="mt-2 text-xs font-semibold text-[var(--co-accent-text)]">{message}</p> : null}
       {error ? <p className="mt-2 text-xs font-semibold text-rose-600">{error}</p> : null}
     </div>
   );

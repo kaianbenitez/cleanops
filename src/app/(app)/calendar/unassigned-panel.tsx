@@ -154,7 +154,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
           <div className="flex-1 space-y-5 px-5 py-5">
             {error ? <p className="text-xs font-medium text-rose-600">{error}</p> : null}
             {warning ? <p role="status" className="border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">Scheduling warning: {warning}</p> : null}
-            {assigned ? <p className="rounded-xl bg-[var(--co-accent-tint)] px-3 py-2 text-xs font-medium text-[var(--co-evergreen)]">Assigned. This card will drop out of the unassigned queue on refresh.</p> : null}
+            {assigned ? <p className="rounded-xl bg-[var(--co-accent-tint)] px-3 py-2 text-xs font-medium text-[var(--co-accent-text)]">Assigned. This card will drop out of the unassigned queue on refresh.</p> : null}
 
             {history?.preferredCleaner ? (
               <div className="rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface-muted)]/60 p-3.5">
@@ -291,7 +291,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
               )}
             </div>
 
-            <Link href={`/jobs/${job.id}`} className="block text-center text-xs font-semibold text-[var(--co-evergreen)] hover:underline">
+            <Link href={`/jobs/${job.id}`} className="block text-center text-xs font-semibold text-[var(--co-accent-text)] hover:underline">
               Open full job page
             </Link>
           </div>

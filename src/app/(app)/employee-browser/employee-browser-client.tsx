@@ -459,7 +459,7 @@ export default function EmployeeBrowserClient({
                       </span>
                     </div>
                     <a
-                      className="text-xs font-medium text-[var(--co-evergreen)] hover:underline"
+                      className="text-xs font-medium text-[var(--co-accent-text)] hover:underline"
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${job.addressLine1 ?? ""} ${job.city ?? ""} ${job.state ?? ""}`)}`}
                       target="_blank"
                       rel="noreferrer"

@@ -85,7 +85,7 @@ function StatusPill({ status }: { status: Period["status"] }) {
       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
       : status === "reviewed"
         ? "bg-amber-50 text-amber-700 border-amber-200"
-        : "bg-[var(--co-surface-muted)] text-[var(--co-evergreen)] border-[var(--co-line-soft)]";
+        : "bg-[var(--co-surface-muted)] text-[var(--co-accent-text)] border-[var(--co-line-soft)]";
   return <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${cls}`}>{status.replaceAll("_", " ")}</span>;
 }
 
@@ -119,7 +119,7 @@ function EditableCell({ value, onSave, prefix, suffix }: { value: string; onSave
         min="0"
         defaultValue={value}
         onBlur={(event) => onSave(Number(event.target.value || 0))}
-        className="w-20 border-b border-dashed border-[var(--co-line)] bg-transparent text-right outline-none focus:border-[var(--co-evergreen)]"
+        className="w-20 border-b border-dashed border-[var(--co-line)] bg-transparent text-right outline-none focus:border-[var(--co-accent-text)]"
       />
       <span className="text-[var(--co-muted)]">{suffix}</span>
     </div>
@@ -136,7 +136,7 @@ function ReviewFlag({ label, value }: { label: string; value: string }) {
 }
 
 function Step({ number }: { number: string }) {
-  return <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--co-evergreen)] text-xs text-white">{number}</span>;
+  return <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--co-accent-fill)] text-xs text-white">{number}</span>;
 }
 
 function ReviewQueue({ reviews, lines, onDecide }: { reviews: JobReview[]; lines: Line[]; onDecide: (reviewId: string, status: "approved" | "rejected", approvedMinutes?: number) => Promise<void> }) {
@@ -200,12 +200,12 @@ function PayrollDetail({
                     <span className="font-medium text-violet-800">📅 {calculation.appointmentTitle ?? calculation.customerName}</span>
                   ) : (
                     <>
-                      <Link href={`/jobs/${calculation.jobId}`} className="font-medium text-[var(--co-evergreen)] hover:underline">
+                      <Link href={`/jobs/${calculation.jobId}`} className="font-medium text-[var(--co-accent-text)] hover:underline">
                         {calculation.customerName}
                       </Link>
                       <div className="mt-1 flex items-center gap-2 text-[var(--co-muted)]">
                         <span>Job detail</span>
-                        <Link href={`/jobs/${calculation.jobId}`} className="font-medium text-[var(--co-evergreen)] hover:underline">
+                        <Link href={`/jobs/${calculation.jobId}`} className="font-medium text-[var(--co-accent-text)] hover:underline">
                           Open
                         </Link>
                       </div>
@@ -280,7 +280,7 @@ function PayrollTable({
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1320px] text-left text-sm">
-          <thead className="bg-[var(--co-evergreen)] text-xs uppercase tracking-[0.08em] text-white">
+          <thead className="bg-[var(--co-accent-fill)] text-xs uppercase tracking-[0.08em] text-white">
             <tr>
               <th className="px-5 py-3">Employee</th>
               <th className="px-5 py-3">Work type</th>
@@ -350,7 +350,7 @@ function PayrollTable({
                     </td>
                     <td className="px-5 py-4 text-right font-semibold">{dollars(line.finalCents)}</td>
                     <td className="px-5 py-4 text-right">
-                      <button className="text-xs font-medium text-[var(--co-evergreen)]" onClick={() => setExpandedLineId(expanded ? null : line.id)}>
+                      <button className="text-xs font-medium text-[var(--co-accent-text)]" onClick={() => setExpandedLineId(expanded ? null : line.id)}>
                         {expanded ? "Hide" : "Details"}
                       </button>
                     </td>
@@ -366,7 +366,7 @@ function PayrollTable({
               );
             })}
           </tbody>
-          <tfoot className="border-t-2 border-[var(--co-evergreen)] bg-[var(--co-surface-muted)]">
+          <tfoot className="border-t-2 border-[var(--co-accent-text)] bg-[var(--co-surface-muted)]">
             <tr>
               <td className="px-5 py-4 font-semibold" colSpan={11}>
                 Total payroll
@@ -507,7 +507,7 @@ export default function PayrollPage() {
           <p className="eyebrow">Operations / Payroll</p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <h1 className="page-title">Payroll</h1>
-            <span className="rounded-full bg-[var(--co-surface-muted)] px-3 py-1 text-xs font-semibold text-[var(--co-evergreen)]">Paid Friday morning</span>
+            <span className="rounded-full bg-[var(--co-surface-muted)] px-3 py-1 text-xs font-semibold text-[var(--co-accent-text)]">Paid Friday morning</span>
           </div>
           <p className="page-subtitle">Review last week&apos;s hours and prepare the exact amount to enter in Gusto.</p>
         </div>

@@ -232,7 +232,7 @@ function LocationCard({
           </h2>
         </div>
         <div className="flex items-center gap-2">
-          {saved && <span className="text-xs font-semibold text-[var(--co-evergreen)]">Saved</span>}
+          {saved && <span className="text-xs font-semibold text-[var(--co-accent-text)]">Saved</span>}
           <button
             onClick={() => onSave({ isActive: !location.isActive })}
             className="co-button-secondary text-xs"

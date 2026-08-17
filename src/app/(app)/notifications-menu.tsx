@@ -53,12 +53,12 @@ export default function NotificationsMenu({ initialNotifications }: { initialNot
   return <div ref={ref} className="relative">
     <button type="button" onClick={() => setOpen((current) => !current)} aria-haspopup="menu" aria-expanded={open} aria-label={unreadCount ? `${unreadCount} unread notifications` : "Notifications"} className="relative rounded-lg p-2 text-[var(--co-muted)] transition-colors hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]">
       <Bell aria-hidden="true" className="h-5 w-5" strokeWidth={1.8} />
-      {unreadCount ? <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[var(--co-evergreen)]" /> : null}
+      {unreadCount ? <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[var(--co-accent-fill)]" /> : null}
     </button>
     {open ? <div role="menu" aria-label="Notifications" className="absolute right-0 top-full z-30 mt-2 w-96 overflow-hidden rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] shadow-[0_8px_24px_rgba(18,24,19,0.12)]">
       <div className="flex items-center justify-between border-b border-[var(--co-line-soft)] px-4 py-3">
         <span className="text-sm font-semibold text-[var(--co-ink)]">Notifications</span>
-        {unreadCount ? <button type="button" onClick={markAllRead} className="flex items-center gap-1.5 text-xs font-medium text-[var(--co-evergreen)] hover:underline"><CheckCheck aria-hidden="true" className="h-3.5 w-3.5" />Mark all read</button> : null}
+        {unreadCount ? <button type="button" onClick={markAllRead} className="flex items-center gap-1.5 text-xs font-medium text-[var(--co-accent-text)] hover:underline"><CheckCheck aria-hidden="true" className="h-3.5 w-3.5" />Mark all read</button> : null}
       </div>
       <div className="max-h-[28rem] overflow-y-auto">
         {notifications.length ? notifications.map((notification) => {

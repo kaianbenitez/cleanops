@@ -140,7 +140,7 @@ export default function BrandingSettingsPage() {
             </button>
           </div>
 
-          {message ? <p className="mt-3 text-sm font-medium text-[var(--co-evergreen)]">{message}</p> : null}
+          {message ? <p className="mt-3 text-sm font-medium text-[var(--co-accent-text)]">{message}</p> : null}
         </section>
 
         <aside className="co-card h-fit overflow-hidden xl:sticky xl:top-5">

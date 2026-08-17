@@ -36,7 +36,7 @@ export type CardJob = {
 };
 
 // The card's own text (customer name, time, crew) uses --co-ink / --co-muted
-// / --co-evergreen, which flip to near-white in dark mode. These tints did
+// / --co-accent-text, which flip to near-white in dark mode. These tints did
 // not flip, so a dark-mode card kept its pale light-blue/amber/emerald/rose
 // background under near-white text — effectively unreadable (~1:1 contrast).
 // The dark: variants mix each status color into --co-surface instead,
@@ -71,7 +71,7 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
           onOpen(job.id);
         }}
         style={employeeCardStyle(leadColor)}
-        className={`group block h-full overflow-hidden rounded-lg border px-2.5 py-2 text-left transition hover:-translate-y-px hover:border-[var(--co-evergreen)] hover:shadow-[0_4px_12px_rgba(0,108,73,0.1)] ${STATUS_TONES[job.status] ?? STATUS_TONES.scheduled}`}
+        className={`group block h-full overflow-hidden rounded-lg border px-2.5 py-2 text-left transition hover:-translate-y-px hover:border-[var(--co-accent-text)] hover:shadow-[0_4px_12px_rgba(0,108,73,0.1)] ${STATUS_TONES[job.status] ?? STATUS_TONES.scheduled}`}
       >
         <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-[var(--co-muted)]"><span>{formatClockLabel(job.scheduledStartTime)}</span><span className="flex items-center gap-1.5"><ClientHomeSymbols roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} /><span className="rounded bg-[var(--co-surface)]/60 px-1.5 py-0.5 text-[10px]">{job.clientType === "commercial" ? "Commercial" : "Residential"}</span></span></div>
         <p className="mt-1 truncate text-[13px] font-semibold text-[var(--co-ink)]">{label}</p>
@@ -87,7 +87,7 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
             ) : null}
             <span className="truncate">{crew.length ? crew.join(", ") : "Unassigned"}</span>
           </span>
-          <span className="shrink-0 font-medium text-[var(--co-evergreen)]">{statusLabel("job", job.status)}</span>
+          <span className="shrink-0 font-medium text-[var(--co-accent-text)]">{statusLabel("job", job.status)}</span>
         </div>
         {job.customerNotes ? <p className="mt-1 truncate text-[10px] leading-4 text-[var(--co-muted)]" title={cleanNoteText(job.customerNotes)}>Note: {cleanNoteText(job.customerNotes)}</p> : null}
         {job.recurringSeriesId ? <p className="mt-1 text-[10px] font-medium text-[var(--co-faint)]">↻ {recurrenceLabel(job.recurrenceFrequency)}</p> : null}

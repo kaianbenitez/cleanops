@@ -106,12 +106,12 @@ export default function SettingsNav() {
             aria-current={pathname === OVERVIEW.href ? "page" : undefined}
             className={`group relative flex items-center gap-3 rounded-[14px] px-3 py-[0.6875rem] text-[13px] transition ${
               pathname === OVERVIEW.href
-                ? "bg-[var(--co-accent-tint)] font-medium text-[var(--co-evergreen)]"
+                ? "bg-[var(--co-accent-tint)] font-medium text-[var(--co-accent-text)]"
                 : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
             }`}
           >
             {pathname === OVERVIEW.href ? (
-              <span className="absolute inset-y-2 left-1 w-1 rounded-full bg-[var(--co-evergreen)]" />
+              <span className="absolute inset-y-2 left-1 w-1 rounded-full bg-[var(--co-accent-fill)]" />
             ) : null}
             <LayoutGrid aria-hidden="true" strokeWidth={1.75} className="ml-1 h-[18px] w-[18px] shrink-0 opacity-90" />
             {OVERVIEW.label}
@@ -133,12 +133,12 @@ export default function SettingsNav() {
                       aria-current={active ? "page" : undefined}
                       className={`group relative flex items-center gap-3 rounded-[14px] py-2.5 pl-6 pr-3 text-[13px] transition ${
                         active
-                          ? "bg-[var(--co-accent-tint)] font-medium text-[var(--co-evergreen)]"
+                          ? "bg-[var(--co-accent-tint)] font-medium text-[var(--co-accent-text)]"
                           : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
                       }`}
                     >
                       {active ? (
-                        <span className="absolute inset-y-2 left-1 w-1 rounded-full bg-[var(--co-evergreen)]" />
+                        <span className="absolute inset-y-2 left-1 w-1 rounded-full bg-[var(--co-accent-fill)]" />
                       ) : null}
                       {link.label}
                     </Link>

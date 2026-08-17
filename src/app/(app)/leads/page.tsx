@@ -77,7 +77,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                     <td className="px-5 py-4 font-medium">{row.businessName}</td>
                     <td className="px-5 py-4 text-[var(--co-muted)]">{row.contactName ?? "—"}</td>
                     <td className="px-5 py-4">
-                      <a href={`mailto:${row.email}`} className="text-[var(--co-evergreen)] hover:underline">
+                      <a href={`mailto:${row.email}`} className="text-[var(--co-accent-text)] hover:underline">
                         {row.email}
                       </a>
                     </td>

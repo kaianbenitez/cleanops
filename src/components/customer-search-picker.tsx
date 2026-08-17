@@ -68,8 +68,8 @@ export default function CustomerSearchPicker({
 
   if (selected) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-[var(--co-evergreen)] bg-[var(--co-surface-muted)] p-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-bold text-[var(--co-evergreen)]">
+      <div className="flex items-center gap-3 rounded-xl border border-[var(--co-accent-text)] bg-[var(--co-surface-muted)] p-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-bold text-[var(--co-accent-text)]">
           {selected.firstName[0]}
           {selected.lastName[0]}
         </span>
@@ -79,7 +79,7 @@ export default function CustomerSearchPicker({
           </span>
           <span className="block text-xs text-[var(--co-muted)]">{selected.status}</span>
         </span>
-        <button type="button" onClick={clear} className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-evergreen)]">
+        <button type="button" onClick={clear} className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-accent-text)]">
           Change
         </button>
       </div>
@@ -113,7 +113,7 @@ export default function CustomerSearchPicker({
                 onClick={() => select(customer.id)}
                 className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-sm hover:bg-[var(--co-surface-muted)]"
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--co-surface-muted)] text-[10px] font-bold text-[var(--co-evergreen)]">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--co-surface-muted)] text-[10px] font-bold text-[var(--co-accent-text)]">
                   {customer.firstName[0]}
                   {customer.lastName[0]}
                 </span>

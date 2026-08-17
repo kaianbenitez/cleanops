@@ -212,7 +212,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
     <div className="space-y-6">
       <header className="grid items-center gap-6 xl:grid-cols-[minmax(0,1fr)_auto]">
         <div className="min-w-0">
-          <p className="eyebrow text-[var(--co-evergreen)]">Admin &nbsp;›&nbsp; Jobs management</p>
+          <p className="eyebrow text-[var(--co-accent-text)]">Admin &nbsp;›&nbsp; Jobs management</p>
           <h1 className="page-title mt-2">Operations Hub</h1>
           <p className="page-subtitle max-w-[34rem]">Real-time management of residential cleaning services across all zones.</p>
         </div>
@@ -224,7 +224,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
 
       <nav className="flex flex-wrap items-center justify-between gap-4 rounded-[var(--co-radius-card)] bg-[var(--co-surface-muted)]/80 p-4 sm:p-5" aria-label="Job views">
         <div className="flex rounded-2xl bg-[var(--co-surface-muted-strong)] p-1.5">
-          {[['active','Active'],['pending','Pending'],['history','History']].map(([tab, label]) => <Link key={tab} href={hrefWith(sp, { tab, status: "", page: "" })} className={`rounded-xl px-5 py-3 text-sm font-semibold ${activeTab === tab ? 'bg-[var(--co-surface)] text-[var(--co-evergreen)] shadow-sm' : 'text-[var(--co-muted)] hover:text-[var(--co-ink)]'}`}>{label}</Link>)}
+          {[['active','Active'],['pending','Pending'],['history','History']].map(([tab, label]) => <Link key={tab} href={hrefWith(sp, { tab, status: "", page: "" })} className={`rounded-xl px-5 py-3 text-sm font-semibold ${activeTab === tab ? 'bg-[var(--co-surface)] text-[var(--co-accent-text)] shadow-sm' : 'text-[var(--co-muted)] hover:text-[var(--co-ink)]'}`}>{label}</Link>)}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
         <form className="flex flex-wrap items-center gap-2">
@@ -249,7 +249,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
               <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--co-ink)]">Service operations</h2>
               <p className="mt-1 text-sm text-[var(--co-muted)]">Open a job to manage crew, timing, customer details, photos, and close-out.</p>
             </div>
-            <Link href="/calendar" className="mt-1 text-sm font-medium text-[var(--co-evergreen)] hover:underline">
+            <Link href="/calendar" className="mt-1 text-sm font-medium text-[var(--co-accent-text)] hover:underline">
               Route preview &rarr;
             </Link>
           </div>
@@ -262,8 +262,8 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                   href={hrefWith(sp, { status, missingHours: "", unassigned: "" })}
                   className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${
                     !sp.missingHours && !sp.unassigned && (sp.status ?? "all") === status
-                      ? "bg-[var(--co-evergreen)] text-white shadow-sm"
-                      : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"
+                      ? "bg-[var(--co-accent-fill)] text-white shadow-sm"
+                      : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-ink)]"
                   }`}
                 >
                   {status === "all" ? "All jobs" : statusLabel("job", status)}
@@ -273,8 +273,8 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                 href={hrefWith(sp, { missingHours: "yes", unassigned: "", status: "" })}
                 className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${
                   sp.missingHours === "yes"
-                    ? "bg-[var(--co-evergreen)] text-white shadow-sm"
-                    : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"
+                    ? "bg-[var(--co-accent-fill)] text-white shadow-sm"
+                    : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-ink)]"
                 }`}
               >
                 Missing hours
@@ -284,8 +284,8 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                 href={hrefWith(sp, { unassigned: "yes", missingHours: "", status: "" })}
                 className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${
                   sp.unassigned === "yes"
-                    ? "bg-[var(--co-evergreen)] text-white shadow-sm"
-                    : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"
+                    ? "bg-[var(--co-accent-fill)] text-white shadow-sm"
+                    : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-ink)]"
                 }`}
                 >
                 Unassigned
@@ -346,8 +346,8 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
 
                     return (
                       <tr key={row.id} className="transition-colors hover:bg-[var(--co-surface-muted)]/55">
-                        <td className="px-5 py-4 font-mono font-semibold text-[var(--co-evergreen)]">
-                          <Link href={`/jobs/${row.id}`} className="-mx-5 -my-4 block px-5 py-4 font-medium text-[var(--co-ink)] hover:text-[var(--co-evergreen)]">
+                        <td className="px-5 py-4 font-mono font-semibold text-[var(--co-accent-text)]">
+                          <Link href={`/jobs/${row.id}`} className="-mx-5 -my-4 block px-5 py-4 font-medium text-[var(--co-ink)] hover:text-[var(--co-accent-text)]">
                             #{row.id.slice(0, 8).toUpperCase()}
                           </Link>
                         </td>
@@ -363,7 +363,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                           {assigned.length ? (
                             <div className="flex flex-wrap gap-1.5">
                               {assigned.map((person) => (
-                                <span key={person.userId} className="rounded-full bg-[var(--co-surface-muted)] px-2 py-1 text-xs text-[var(--co-evergreen)]">
+                                <span key={person.userId} className="rounded-full bg-[var(--co-surface-muted)] px-2 py-1 text-xs text-[var(--co-accent-text)]">
                                   {person.firstName} {person.lastName[0]}.
                                   {!person.isActive ? <span className="ml-1 text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--co-muted)]">Inactive</span> : null}
                                 </span>

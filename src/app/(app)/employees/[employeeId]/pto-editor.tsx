@@ -113,7 +113,7 @@ export default function PtoEditor({ employeeId, onChange }: { employeeId: string
           <div className="flex items-center justify-between gap-3 sm:col-span-2"><span className="text-xs text-rose-600">{message}</span><button disabled={saving || !startDate} type="submit" className="co-button-primary px-4 py-2 text-xs">{saving ? "Saving…" : "Save time off"}</button></div>
         </form>
       ) : null}
-      {!open && message ? <p className="mt-2 text-xs text-[var(--co-evergreen)]">{message}</p> : null}
+      {!open && message ? <p className="mt-2 text-xs text-[var(--co-accent-text)]">{message}</p> : null}
     </div>
   );
 }

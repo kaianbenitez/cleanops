@@ -441,7 +441,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         <div className="flex min-w-0 items-center gap-4">
           <InitialsAvatar firstName={customer.firstName} lastName={customer.lastName} companyName={customer.companyName} className="h-16 w-16 rounded-2xl text-xl shadow-sm" />
           <div className="min-w-0">
-            <Link href="/customers" className="text-sm font-medium text-[var(--co-evergreen)] hover:underline">
+            <Link href="/customers" className="text-sm font-medium text-[var(--co-accent-text)] hover:underline">
               ← Customers
             </Link>
             <div className="mt-1 flex flex-wrap items-center gap-3">
@@ -626,7 +626,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Next visit</p>
               {nextJob ? (
-                <Link href={`/jobs/${nextJob.id}`} className="mt-2 block text-sm font-semibold text-[var(--co-evergreen)] hover:underline">
+                <Link href={`/jobs/${nextJob.id}`} className="mt-2 block text-sm font-semibold text-[var(--co-accent-text)] hover:underline">
                   {formatCustomerDate(nextJob.scheduledDate)}
                   <span className="block text-xs font-normal text-[var(--co-muted)]">
                     {nextJob.scheduledStartTime?.slice(0, 5) ?? "No time"} · {TYPE_LABELS[nextJob.type] ?? nextJob.type}
@@ -639,7 +639,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Last visit</p>
               {lastJob ? (
-                <Link href={`/jobs/${lastJob.id}`} className="mt-2 block text-sm font-semibold text-[var(--co-evergreen)] hover:underline">
+                <Link href={`/jobs/${lastJob.id}`} className="mt-2 block text-sm font-semibold text-[var(--co-accent-text)] hover:underline">
                   {formatCustomerDate(lastJob.scheduledDate)}
                   <span className="block text-xs font-normal text-[var(--co-muted)]">
                     {TYPE_LABELS[lastJob.type] ?? lastJob.type} · {lastJob.status.replaceAll("_", " ")}
@@ -684,12 +684,12 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               </label>
             </div>
             <label className="mt-3 flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={Boolean(customer.textMessagingAllowed)} onChange={(event) => updateCustomer("textMessagingAllowed", event.target.checked)} className="accent-[var(--co-evergreen)]" />
+              <input type="checkbox" checked={Boolean(customer.textMessagingAllowed)} onChange={(event) => updateCustomer("textMessagingAllowed", event.target.checked)} className="accent-[var(--co-accent-fill)]" />
               Allow text messaging
             </label>
             <div className="mt-4 flex flex-wrap gap-2">
-              <span className="rounded-full bg-[var(--co-surface-muted)] px-3 py-1 text-xs font-medium text-[var(--co-evergreen)]">Internal only</span>
-              <span className="rounded-full bg-[var(--co-surface-muted)] px-3 py-1 text-xs font-medium text-[var(--co-evergreen)]">Takeover ready</span>
+              <span className="rounded-full bg-[var(--co-surface-muted)] px-3 py-1 text-xs font-medium text-[var(--co-accent-text)]">Internal only</span>
+              <span className="rounded-full bg-[var(--co-surface-muted)] px-3 py-1 text-xs font-medium text-[var(--co-accent-text)]">Takeover ready</span>
             </div>
           </div>
         </div>
@@ -705,7 +705,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                 {location?.state ? `, ${location.state}` : ""} {location?.zip ?? ""}
               </p>
             </div>
-            <span className="rounded-xl bg-[var(--co-surface-muted)] px-3 py-2 text-xs font-medium text-[var(--co-evergreen)]">
+            <span className="rounded-xl bg-[var(--co-surface-muted)] px-3 py-2 text-xs font-medium text-[var(--co-accent-text)]">
               {locations.length} address{locations.length === 1 ? "" : "es"}
             </span>
           </div>
@@ -720,7 +720,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                     jumpToAddressFields();
                   }}
                   className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
-                    index === activeLocationIndex ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)] text-white" : "border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)]"
+                    index === activeLocationIndex ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-fill)] text-white" : "border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)]"
                   }`}
                 >
                   {item.label}
@@ -729,7 +729,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <button className="rounded-full border border-dashed border-[var(--co-line)] px-3 py-1.5 text-xs text-[var(--co-muted)]" onClick={addLocation}>
                 + Address
               </button>
-              <button onClick={jumpToAddressFields} className="ml-auto text-xs font-medium text-[var(--co-evergreen)] hover:underline">
+              <button onClick={jumpToAddressFields} className="ml-auto text-xs font-medium text-[var(--co-accent-text)] hover:underline">
                 Edit address details ↑
               </button>
             </div>
@@ -749,7 +749,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(primaryAddress)}`}
                 target="_blank"
                 rel="noreferrer"
-                className="text-sm font-medium text-[var(--co-evergreen)] hover:underline"
+                className="text-sm font-medium text-[var(--co-accent-text)] hover:underline"
               >
                 Get directions
               </a>
@@ -854,7 +854,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                       <p className="font-medium">{formatCustomerDate(job.scheduledDate)}</p>
                       <p className="text-xs text-[var(--co-muted)]">{TYPE_LABELS[job.type] ?? job.type}</p>
                     </div>
-                    <span className="text-sm font-medium text-[var(--co-evergreen)]">Open →</span>
+                    <span className="text-sm font-medium text-[var(--co-accent-text)]">Open →</span>
                   </Link>
                 ))}
               </div>
@@ -904,7 +904,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                       key={value}
                       type="button"
                       onClick={() => togglePreferredDay(value)}
-                      className={`rounded-lg border px-3 py-2 text-xs font-semibold ${selected ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)] text-white" : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)]"}`}
+                      className={`rounded-lg border px-3 py-2 text-xs font-semibold ${selected ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-fill)] text-white" : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)]"}`}
                       aria-pressed={selected}
                     >
                       {label}
@@ -925,7 +925,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <div className="grid grid-cols-2 gap-2">
                 {["AM", "PM"].map((period) => {
                   const selected = customer.preferredTimeOfDay === period;
-                  return <button key={period} type="button" onClick={() => updateCustomer("preferredTimeOfDay", selected ? null : period)} className={`rounded-lg border px-3 py-2 text-sm font-semibold ${selected ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)] text-white" : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)]"}`} aria-pressed={selected}>{period}</button>;
+                  return <button key={period} type="button" onClick={() => updateCustomer("preferredTimeOfDay", selected ? null : period)} className={`rounded-lg border px-3 py-2 text-sm font-semibold ${selected ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-fill)] text-white" : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)]"}`} aria-pressed={selected}>{period}</button>;
                 })}
               </div>
             </div>
@@ -934,7 +934,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <div className="flex flex-wrap gap-2">
                 {PAYMENT_METHOD_OPTIONS.map((method) => {
                   const selected = customer.paymentMethods?.includes(method) ?? false;
-                  return <button key={method} type="button" onClick={() => togglePaymentMethod(method)} className={`rounded-lg px-3 py-2 text-xs font-semibold ${selected ? "co-badge-info" : "border border-[var(--co-line-soft)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)]"}`} aria-pressed={selected}>{method}</button>;
+                  return <button key={method} type="button" onClick={() => togglePaymentMethod(method)} className={`rounded-lg px-3 py-2 text-xs font-semibold ${selected ? "co-badge-info" : "border border-[var(--co-line-soft)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)]"}`} aria-pressed={selected}>{method}</button>;
                 })}
               </div>
             </div>

@@ -731,9 +731,9 @@ export default async function HelpCenterPage() {
 
       <section className="co-card overflow-hidden">
         <div className="border-b border-[var(--co-line-soft)] px-5 py-4 sm:px-6">
-          <div className="flex items-center gap-2 text-[var(--co-evergreen)]">
+          <div className="flex items-center gap-2 text-[var(--co-accent-text)]">
             <Clock3 className="h-5 w-5" aria-hidden />
-            <p className="eyebrow text-[var(--co-evergreen)]">
+            <p className="eyebrow text-[var(--co-accent-text)]">
               Product updates
             </p>
           </div>
@@ -747,7 +747,7 @@ export default async function HelpCenterPage() {
             <article key={release.version} className="px-5 py-5 sm:px-6">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-[var(--co-evergreen)] px-2.5 py-1 text-xs font-bold text-white">
+                  <span className="rounded-full bg-[var(--co-accent-fill)] px-2.5 py-1 text-xs font-bold text-white">
                     {release.version}
                   </span>
                   <h3 className="font-semibold">{release.title}</h3>
@@ -777,7 +777,7 @@ export default async function HelpCenterPage() {
 
       <aside className="co-card flex items-start gap-3 p-5">
         <Wrench
-          className="mt-0.5 h-5 w-5 shrink-0 text-[var(--co-evergreen)]"
+          className="mt-0.5 h-5 w-5 shrink-0 text-[var(--co-accent-text)]"
           aria-hidden
         />
         <p className="text-sm leading-6 text-[var(--co-muted)]">

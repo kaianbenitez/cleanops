@@ -119,7 +119,7 @@ export default function CalendarSettingsPage() {
           <button onClick={saveHolidays} className="co-button-primary mt-5">
             Save holidays
           </button>
-          {holidaysMessage ? <p className="mt-3 text-sm font-medium text-[var(--co-evergreen)]">{holidaysMessage}</p> : null}
+          {holidaysMessage ? <p className="mt-3 text-sm font-medium text-[var(--co-accent-text)]">{holidaysMessage}</p> : null}
         </div>
       </section>
 
@@ -140,7 +140,7 @@ export default function CalendarSettingsPage() {
                       current.includes(value) ? current.filter((day) => day !== value) : [...current, value].sort(),
                     )
                   }
-                  className="h-4 w-4 accent-[var(--co-evergreen)]"
+                  className="h-4 w-4 accent-[var(--co-accent-fill)]"
                 />
                 {label}
               </label>
@@ -150,7 +150,7 @@ export default function CalendarSettingsPage() {
             Save working days
           </button>
           {workingDaysMessage ? (
-            <p className="mt-3 text-sm font-medium text-[var(--co-evergreen)]">{workingDaysMessage}</p>
+            <p className="mt-3 text-sm font-medium text-[var(--co-accent-text)]">{workingDaysMessage}</p>
           ) : null}
         </div>
       </section>
@@ -181,7 +181,7 @@ export default function CalendarSettingsPage() {
             Save hours per cleaner
           </button>
           {workdayHoursMessage ? (
-            <p className="mt-3 text-sm font-medium text-[var(--co-evergreen)]">{workdayHoursMessage}</p>
+            <p className="mt-3 text-sm font-medium text-[var(--co-accent-text)]">{workdayHoursMessage}</p>
           ) : null}
         </div>
       </section>

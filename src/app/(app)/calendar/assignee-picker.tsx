@@ -109,7 +109,7 @@ export default function AssigneePicker({
                         {employee.firstName} {employee.lastName}
                         {employee.isActive === false ? <span className="ml-1 text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--co-muted)]">Inactive</span> : null}
                       </span>
-                      {checked ? <span className="ml-auto shrink-0 text-[10px] font-semibold text-[var(--co-evergreen)]">Assigned</span> : null}
+                      {checked ? <span className="ml-auto shrink-0 text-[10px] font-semibold text-[var(--co-accent-text)]">Assigned</span> : null}
                     </button>
                     {checked ? (
                       <button
@@ -118,7 +118,7 @@ export default function AssigneePicker({
                         disabled={isLead}
                         className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${
                           isLead
-                            ? "border-[var(--co-evergreen)] bg-[var(--co-surface-muted)] text-[var(--co-evergreen)]"
+                            ? "border-[var(--co-accent-text)] bg-[var(--co-surface-muted)] text-[var(--co-accent-text)]"
                             : "border-[var(--co-line-soft)] text-[var(--co-muted)] hover:border-[var(--co-line)]"
                         }`}
                       >

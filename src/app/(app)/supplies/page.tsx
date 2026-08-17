@@ -180,7 +180,7 @@ export default function SuppliesPage() {
         </div>
       </header>
 
-      {message ? <p className="text-sm font-medium text-[var(--co-evergreen)]">{message}</p> : null}
+      {message ? <p className="text-sm font-medium text-[var(--co-accent-text)]">{message}</p> : null}
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Inventory value" value={dollars(inventoryValue)} sub={`${items.length} items tracked`} />
@@ -206,7 +206,7 @@ export default function SuppliesPage() {
               </select>
               <button
                 type="button"
-                className={`co-button-secondary ${lowOnly ? "border-[var(--co-evergreen)] bg-[var(--co-surface-muted)]" : ""}`}
+                className={`co-button-secondary ${lowOnly ? "border-[var(--co-accent-text)] bg-[var(--co-surface-muted)]" : ""}`}
                 onClick={() => setLowOnly((current) => !current)}
               >
                 Low stock

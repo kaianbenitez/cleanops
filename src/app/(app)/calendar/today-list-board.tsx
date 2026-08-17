@@ -273,7 +273,7 @@ export default function TodayListBoard({
               <tr key={appointment.id} className={appointment.status === "cancelled" ? "bg-[var(--co-surface-muted)]" : "bg-[var(--co-spark-tint)]/40"}>
                 <td className="px-5 py-3 font-medium">{formatAppointmentTime(appointment.startTime, appointment.durationMinutes)}</td>
                 <td className="px-5 py-3 font-medium" colSpan={4}>
-                  <button type="button" onClick={() => setEditingAppointmentId(appointment.id)} className="text-base text-[var(--co-evergreen)] hover:underline">
+                  <button type="button" onClick={() => setEditingAppointmentId(appointment.id)} className="text-base text-[var(--co-accent-text)] hover:underline">
                     📅 {appointment.title}
                   </button>
                   <span className={`ml-2 inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}>
@@ -282,7 +282,7 @@ export default function TodayListBoard({
                   <span className="ml-2 text-sm text-[var(--co-muted)]">{appointment.attendeeUserIds.length} attendee{appointment.attendeeUserIds.length === 1 ? "" : "s"}</span>
                 </td>
                 <td className="px-5 py-3">
-                  <button type="button" onClick={() => setEditingAppointmentId(appointment.id)} className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">
+                  <button type="button" onClick={() => setEditingAppointmentId(appointment.id)} className="text-xs font-semibold text-[var(--co-accent-text)] hover:underline">
                     Edit
                   </button>
                 </td>
@@ -320,7 +320,7 @@ export default function TodayListBoard({
                     <button
                       type="button"
                       onClick={() => setDetailJobId(job.id)}
-                      className="text-base text-[var(--co-evergreen)] hover:underline"
+                      className="text-base text-[var(--co-accent-text)] hover:underline"
                     >
                       {displayCustomer(job)}
                     </button>

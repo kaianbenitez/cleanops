@@ -119,7 +119,7 @@ function PreviewCard({ title, url, fallback }: { title: string; url: string; fal
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface)]">
       <div className="flex h-36 items-end bg-[var(--co-surface-muted)] p-4">
-        <span className="rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[var(--co-evergreen)]">{title}</span>
+        <span className="rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[var(--co-accent-text)]">{title}</span>
       </div>
       <div className="space-y-1 px-4 py-3">
         <p className="text-sm font-semibold text-[var(--co-ink)]">{hasUrl ? "Configured" : fallback}</p>
@@ -128,7 +128,7 @@ function PreviewCard({ title, url, fallback }: { title: string; url: string; fal
             href={url}
             target="_blank"
             rel="noreferrer"
-            className="text-xs font-medium text-[var(--co-evergreen)] underline decoration-[var(--co-accent)] decoration-2 underline-offset-4"
+            className="text-xs font-medium text-[var(--co-accent-text)] underline decoration-[var(--co-accent)] decoration-2 underline-offset-4"
           >
             Open {isImage ? "image" : "file"}
           </a>
@@ -177,7 +177,7 @@ function PhotoSetCard({
             placeholder="Room or area label"
           />
         </div>
-        <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--co-evergreen)]">
+        <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--co-accent-text)]">
           {beforeUrl || afterUrl ? "Ready" : "Empty"}
         </span>
       </div>
@@ -430,11 +430,11 @@ export default function QuoteTemplateSettingsPage() {
               {saving ? "Saving…" : "Save quote content"}
             </button>
           </div>
-          {message ? <p className="mt-3 text-sm font-medium text-[var(--co-evergreen)]">{message}</p> : null}
+          {message ? <p className="mt-3 text-sm font-medium text-[var(--co-accent-text)]">{message}</p> : null}
         </section>
 
         <aside className="space-y-5">
-          <section className="co-card h-fit bg-[var(--co-evergreen)] p-5 text-white xl:sticky xl:top-5">
+          <section className="co-card h-fit bg-[var(--co-accent-fill)] p-5 text-white xl:sticky xl:top-5">
             <p className="eyebrow text-white/50">Preview</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">Your cleaning proposal</h2>
             <p className="mt-4 whitespace-pre-line text-sm leading-6 text-white/70">{template.introLetter || "Your introduction will appear here when a customer opens a proposal."}</p>

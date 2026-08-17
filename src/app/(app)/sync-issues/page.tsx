@@ -131,4 +131,4 @@ export default async function SyncIssuesPage({ searchParams }: { searchParams: P
   );
 }
 
-function Metric({ label, value, tone }: { label: string; value: string; tone: "good" | "warn" | "bad" }) { const color = tone === "bad" ? "text-rose-600" : tone === "warn" ? "text-amber-600" : "text-[var(--co-evergreen)]"; return <div className="co-card p-5"><p className="text-xs text-[var(--co-muted)]">{label}</p><p className={`mt-2 text-2xl font-semibold ${color}`}>{value}</p></div>; }
+function Metric({ label, value, tone }: { label: string; value: string; tone: "good" | "warn" | "bad" }) { const color = tone === "bad" ? "text-rose-600" : tone === "warn" ? "text-amber-600" : "text-[var(--co-accent-text)]"; return <div className="co-card p-5"><p className="text-xs text-[var(--co-muted)]">{label}</p><p className={`mt-2 text-2xl font-semibold ${color}`}>{value}</p></div>; }

@@ -103,7 +103,7 @@ export default function WeekBoard({
                 ? "bg-rose-50 text-rose-700"
                 : capacity >= 90
                   ? "bg-amber-50 text-amber-700"
-                  : "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]";
+                  : "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]";
             const grouped = new Map<string, CalendarJob[]>();
             dayJobs.forEach((job) => {
               const key = job.assignedUserIds.join("|") || "unassigned";
@@ -146,7 +146,7 @@ export default function WeekBoard({
                   ) : (
                     <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--co-line-soft)]">
                       <div
-                        className={`h-full ${capacity > 100 ? "bg-rose-600" : capacity >= 90 ? "bg-amber-500" : "bg-[var(--co-evergreen)]"}`}
+                        className={`h-full ${capacity > 100 ? "bg-rose-600" : capacity >= 90 ? "bg-amber-500" : "bg-[var(--co-accent-fill)]"}`}
                         style={{ width: `${Math.min(capacity, 100)}%` }}
                       />
                     </div>
@@ -186,7 +186,7 @@ export default function WeekBoard({
                                 />
                               ))
                             ) : (
-                              <span className="h-1.5 w-1.5 rounded-full bg-[var(--co-evergreen)]" />
+                              <span className="h-1.5 w-1.5 rounded-full bg-[var(--co-accent-fill)]" />
                             )}
                           </span>
                           {teamName(group[0].assignedUserIds, employees)}
@@ -212,7 +212,7 @@ export default function WeekBoard({
                           expandedDate === day.iso ? null : day.iso,
                         )
                       }
-                      className="w-full rounded-lg border border-dashed border-[var(--co-line)] px-3 py-2 text-left text-xs font-semibold text-[var(--co-evergreen)] hover:bg-[var(--co-accent-tint)]"
+                      className="w-full rounded-lg border border-dashed border-[var(--co-line)] px-3 py-2 text-left text-xs font-semibold text-[var(--co-accent-text)] hover:bg-[var(--co-accent-tint)]"
                     >
                       +{overflow.length} more jobs
                     </button>

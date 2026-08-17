@@ -35,7 +35,7 @@ export default function EmployeeTags({ tags, onSave }: { tags: string[]; onSave:
   return (
     <section className="co-card p-5">
       <div className="flex items-center gap-2">
-        <Tag className="h-4 w-4 text-[var(--co-evergreen)]" />
+        <Tag className="h-4 w-4 text-[var(--co-accent-text)]" />
         <h2 className="text-sm font-semibold">Skills &amp; specialties</h2>
       </div>
 
@@ -81,7 +81,7 @@ export default function EmployeeTags({ tags, onSave }: { tags: string[]; onSave:
               key={tag}
               type="button"
               onClick={() => addTag(tag)}
-              className="rounded-full border border-dashed border-[var(--co-line-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-evergreen)]"
+              className="rounded-full border border-dashed border-[var(--co-line-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--co-muted)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-accent-text)]"
             >
               + {tag}
             </button>

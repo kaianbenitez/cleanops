@@ -96,7 +96,7 @@ export default function MonthBoard({
                 <span className="text-sm font-semibold">
                   {date.getUTCDate()}
                 </span>
-                <span className="text-xs font-semibold text-[var(--co-evergreen)]">
+                <span className="text-xs font-semibold text-[var(--co-accent-text)]">
                   {summary.jobs} jobs
                 </span>
               </div>

@@ -25,7 +25,7 @@ import {
   Check,
   type LucideIcon,
 } from "lucide-react";
-import { ADD_ONS, detectRequestedAddOns, type AddOnKey } from "@/lib/pricing/add-ons";
+import { ADD_ONS, MAX_ADD_ON_QTY, detectRequestedAddOns, type AddOnKey } from "@/lib/pricing/add-ons";
 import { resolveServiceAreaNameForZip } from "@/lib/pricing/service-area-zips";
 import AddressAutocomplete from "../../customers/address-autocomplete";
 import { DateInput } from "@/components/date-input";
@@ -219,6 +219,7 @@ export default function NewQuotePage() {
   const [petNotes, setPetNotes] = useState("");
   const [detectedAddOns, setDetectedAddOns] = useState<AddOnKey[]>([]);
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnKey[]>([]);
+  const [addOnQty, setAddOnQty] = useState<Partial<Record<AddOnKey, number>>>({});
   const [addOnsAddedToNotes, setAddOnsAddedToNotes] = useState(false);
 
   useEffect(() => {
@@ -419,12 +420,21 @@ export default function NewQuotePage() {
 
   function toggleAddOn(key: AddOnKey) {
     setSelectedAddOns((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
+    setAddOnQty((current) => ({ ...current, [key]: current[key] ?? 1 }));
+    setAddOnsAddedToNotes(false);
+  }
+
+  function setQtyForAddOn(key: AddOnKey, qty: number) {
+    const clamped = Math.max(1, Math.min(MAX_ADD_ON_QTY, Math.round(qty)));
+    setAddOnQty((current) => ({ ...current, [key]: clamped }));
     setAddOnsAddedToNotes(false);
   }
 
   function addSelectedAddOnsToNotes() {
     if (selectedAddOns.length === 0) return;
-    const labels = ADD_ONS.filter((addOn) => selectedAddOns.includes(addOn.key)).map((addOn) => addOn.label);
+    const labels = ADD_ONS.filter((addOn) => selectedAddOns.includes(addOn.key)).map((addOn) =>
+      addOn.quantified ? `${addOn.label} × ${addOnQty[addOn.key] ?? 1}` : addOn.label
+    );
     const line = `Requested add-ons: ${labels.join(", ")}.`;
     setNotes((current) => (current ? `${current}\n${line}` : line));
     setAddOnsAddedToNotes(true);
@@ -710,7 +720,7 @@ export default function NewQuotePage() {
                     className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-2.5"
                   >
                     <div className="flex min-w-0 items-center gap-2.5">
-                      <Icon className="h-4 w-4 shrink-0 text-[var(--co-evergreen)]" aria-hidden />
+                      <Icon className="h-4 w-4 shrink-0 text-[var(--co-accent-text)]" aria-hidden />
                       <span className="text-sm font-medium leading-snug text-[var(--co-ink)]">{room.name}</span>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
@@ -727,7 +737,7 @@ export default function NewQuotePage() {
                         type="button"
                         onClick={() => setCount(room.id, count + 1)}
                         aria-label={`Increase ${room.name}`}
-                        className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--co-evergreen)] text-white hover:bg-[var(--co-evergreen-soft)]"
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--co-accent-fill)] text-white hover:bg-[var(--co-accent-fill-hover)]"
                       >
                         <Plus className="h-3.5 w-3.5" aria-hidden />
                       </button>
@@ -747,7 +757,7 @@ export default function NewQuotePage() {
                   <h2 className="mt-1 text-lg font-semibold">Anything requested via their form?</h2>
                 </div>
                 {detectedAddOns.length > 0 ? (
-                  <span className="flex items-center gap-1 rounded-full bg-[var(--co-accent-tint)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-evergreen)]">
+                  <span className="flex items-center gap-1 rounded-full bg-[var(--co-accent-tint)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-accent-text)]">
                     <Sparkles className="h-3 w-3" aria-hidden />
                     {detectedAddOns.length} flagged
                   </span>
@@ -756,7 +766,7 @@ export default function NewQuotePage() {
 
               {customerNotes ? (
                 <div className="mt-3 flex items-start gap-2 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-3 text-sm text-[var(--co-muted)]">
-                  <MessageSquareText className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-evergreen)]" aria-hidden />
+                  <MessageSquareText className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-accent-text)]" aria-hidden />
                   <p className="italic">&ldquo;{customerNotes}&rdquo;</p>
                 </div>
               ) : (
@@ -768,18 +778,40 @@ export default function NewQuotePage() {
                   const selected = selectedAddOns.includes(addOn.key);
                   const wasDetected = detectedAddOns.includes(addOn.key);
                   return (
-                    <button
-                      key={addOn.key}
-                      type="button"
-                      onClick={() => toggleAddOn(addOn.key)}
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                        selected ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)] text-white" : "border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)]"
-                      }`}
-                    >
-                      {selected ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}
-                      {addOn.label} · {addOn.priceCents != null ? `+${dollars(addOn.priceCents)}` : (addOn.priceLabel ?? "ask for pricing")}
-                      {wasDetected ? <span className={`text-[10px] ${selected ? "text-white/80" : "text-[var(--co-evergreen)]"}`}>(flagged)</span> : null}
-                    </button>
+                    <span key={addOn.key} className="inline-flex items-center gap-1 rounded-full border border-[var(--co-line)] bg-[var(--co-surface)] p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => toggleAddOn(addOn.key)}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
+                          selected ? "bg-[var(--co-accent-fill)] text-white" : "text-[var(--co-muted)]"
+                        }`}
+                      >
+                        {selected ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}
+                        {addOn.label} · {addOn.priceCents != null ? `+${dollars(addOn.priceCents)}` : (addOn.priceLabel ?? "ask for pricing")}
+                        {wasDetected ? <span className={`text-[10px] ${selected ? "text-white/80" : "text-[var(--co-accent-text)]"}`}>(flagged)</span> : null}
+                      </button>
+                      {selected && addOn.quantified ? (
+                        <span className="flex items-center gap-1 pr-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setQtyForAddOn(addOn.key, (addOnQty[addOn.key] ?? 1) - 1)}
+                            className="flex h-5 w-5 items-center justify-center rounded-full border border-[var(--co-line)] text-[var(--co-ink)]"
+                            aria-label={`Fewer ${addOn.label}`}
+                          >
+                            <Minus className="h-3 w-3" aria-hidden />
+                          </button>
+                          <span className="min-w-[1rem] text-center text-xs font-semibold text-[var(--co-ink)]">{addOnQty[addOn.key] ?? 1}</span>
+                          <button
+                            type="button"
+                            onClick={() => setQtyForAddOn(addOn.key, (addOnQty[addOn.key] ?? 1) + 1)}
+                            className="flex h-5 w-5 items-center justify-center rounded-full border border-[var(--co-line)] text-[var(--co-ink)]"
+                            aria-label={`More ${addOn.label}`}
+                          >
+                            <Plus className="h-3 w-3" aria-hidden />
+                          </button>
+                        </span>
+                      ) : null}
+                    </span>
                   );
                 })}
               </div>
@@ -944,7 +976,7 @@ export default function NewQuotePage() {
               <h2 className="mt-1 text-xl font-semibold">Compare service tiers</h2>
               <p className="mt-1 text-sm text-[var(--co-muted)]">Every tier is priced and sent — the customer picks which one to accept.</p>
             </div>
-            <span className="rounded-full bg-[var(--co-surface-muted)] px-3 py-1 text-xs font-medium text-[var(--co-evergreen)]">
+            <span className="rounded-full bg-[var(--co-surface-muted)] px-3 py-1 text-xs font-medium text-[var(--co-accent-text)]">
               {calculating ? "Calculating..." : allTiers ? `${Object.keys(allTiers).length} tiers priced` : "Waiting for rooms"}
             </span>
           </div>
@@ -960,7 +992,7 @@ export default function NewQuotePage() {
                 return (
                   <div key={service.value} className="relative rounded-2xl border border-[var(--co-line)] bg-white p-4">
                     {index === 4 ? (
-                      <span className="absolute -top-3 right-3 rounded-full bg-[var(--co-evergreen)] px-2 py-1 text-[10px] font-bold text-white">
+                      <span className="absolute -top-3 right-3 rounded-full bg-[var(--co-accent-fill)] px-2 py-1 text-[10px] font-bold text-white">
                         Most popular
                       </span>
                     ) : null}

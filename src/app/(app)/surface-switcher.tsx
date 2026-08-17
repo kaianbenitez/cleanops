@@ -45,7 +45,7 @@ export default function SurfaceSwitcher({
       type="button"
       onClick={handleClick}
       title={label}
-      className="flex w-full items-center gap-3 rounded-[14px] border border-[var(--co-line-soft)] bg-[var(--co-accent-tint)] px-3 py-2.5 text-left text-[13px] font-semibold text-[var(--co-evergreen)] transition hover:border-[var(--co-line)]"
+      className="flex w-full items-center gap-3 rounded-[14px] border border-[var(--co-line-soft)] bg-[var(--co-accent-tint)] px-3 py-2.5 text-left text-[13px] font-semibold text-[var(--co-accent-text)] transition hover:border-[var(--co-line)]"
     >
       <ArrowLeftRight aria-hidden="true" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0" />
       {label}

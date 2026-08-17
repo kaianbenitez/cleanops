@@ -52,6 +52,6 @@ export default function IntegrationsSettingsPage() {
     </section>
     <section className="co-card space-y-4 p-5"><div><p className="eyebrow">Google Maps</p><h2 className="mt-1 text-lg font-semibold">Maps connection</h2><p className="mt-1 text-sm text-[var(--co-muted)]">Maps key: {apiConfig.googleMaps?.configured ? "Configured" : "Not configured"}</p></div><label className="block text-sm font-medium">Google Maps API key<input type="password" autoComplete="off" className="co-input mt-2 w-full" value={googleMapsApiKey} onChange={(event) => setGoogleMapsApiKey(event.target.value)} placeholder="Paste a new key to replace the saved one" /></label><p className="text-xs leading-5 text-[var(--co-muted)]">Maps JavaScript keys are visible to browsers when in use; protect this key with HTTP-referrer restrictions in Google Cloud.</p></section>
     <div className="flex flex-wrap items-center gap-3"><button className="co-button-primary" disabled={saving} onClick={save}>{saving ? "Saving…" : "Save integration settings"}</button><p className="text-sm text-[var(--co-muted)]">Leave key fields blank to keep the existing saved value.</p></div>
-    {message ? <p className="text-sm font-medium text-[var(--co-evergreen)]">{message}</p> : null}
+    {message ? <p className="text-sm font-medium text-[var(--co-accent-text)]">{message}</p> : null}
   </div>;
 }

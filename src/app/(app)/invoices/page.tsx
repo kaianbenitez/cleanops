@@ -140,15 +140,15 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
             <option value="paid">Paid</option>
             <option value="void">Void</option>
           </select>
-          <label className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium ${sp.overdue === "yes" ? "border-[var(--co-evergreen)] bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]" : "border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)]"}`}>
-            <input name="overdue" type="checkbox" value="yes" defaultChecked={sp.overdue === "yes"} className="h-4 w-4 accent-[var(--co-evergreen)]" />
+          <label className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium ${sp.overdue === "yes" ? "border-[var(--co-accent-text)] bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]" : "border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)]"}`}>
+            <input name="overdue" type="checkbox" value="yes" defaultChecked={sp.overdue === "yes"} className="h-4 w-4 accent-[var(--co-accent-fill)]" />
             Overdue
           </label>
           <button type="submit" className="co-button-secondary">
             Filter invoices
           </button>
           {Object.keys(sp).length ? (
-            <Link href="/invoices" className="self-center text-sm font-medium text-[var(--co-evergreen)]">
+            <Link href="/invoices" className="self-center text-sm font-medium text-[var(--co-accent-text)]">
               Clear
             </Link>
           ) : null}
@@ -179,7 +179,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
                   return (
                     <tr key={invoice.id} className="hover:bg-[var(--co-surface-muted)]/50">
                       <td className="px-5 py-4">
-                        <Link href={`/invoices/${invoice.id}`} className="font-semibold text-[var(--co-evergreen)]">
+                        <Link href={`/invoices/${invoice.id}`} className="font-semibold text-[var(--co-accent-text)]">
                           INV-{invoice.id.slice(0, 6).toUpperCase()}
                         </Link>
                         <span className="mt-1 block text-xs text-[var(--co-muted)]">{formatDisplayDate(invoice.createdAt)}</span>
@@ -204,7 +204,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
                       </td>
                       <td className="px-5 py-4 text-[var(--co-muted)]">{invoice.method ?? "—"}</td>
                       <td className="px-5 py-4 text-right">
-                        <Link href={`/invoices/${invoice.id}`} className="font-medium text-[var(--co-evergreen)]">
+                        <Link href={`/invoices/${invoice.id}`} className="font-medium text-[var(--co-accent-text)]">
                           Open
                         </Link>
                       </td>

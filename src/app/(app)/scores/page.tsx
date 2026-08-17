@@ -24,7 +24,7 @@ function feedbackLabel(status: string) {
 }
 
 function statusClass(status: string) {
-  if (status === "responded") return "bg-[#e4f1e7] text-[var(--co-evergreen)]";
+  if (status === "responded") return "bg-[#e4f1e7] text-[var(--co-accent-text)]";
   if (status === "expired") return "bg-amber-50 text-amber-800";
   return "bg-[var(--co-surface-muted)] text-[var(--co-muted)]";
 }
@@ -42,7 +42,7 @@ export default async function MyScoresPage({ searchParams }: { searchParams: Sea
   return <div className="max-w-4xl space-y-6">
     <header className="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <div className="flex items-center gap-2 text-[var(--co-evergreen)]"><Star className="h-5 w-5" /><p className="eyebrow">Customer feedback</p></div>
+        <div className="flex items-center gap-2 text-[var(--co-accent-text)]"><Star className="h-5 w-5" /><p className="eyebrow">Customer feedback</p></div>
         <h1 className="page-title mt-2">My scores</h1>
         <p className="page-subtitle">See how customers have rated your completed jobs.</p>
       </div>
@@ -52,8 +52,8 @@ export default async function MyScoresPage({ searchParams }: { searchParams: Sea
     <div className="grid gap-3 sm:grid-cols-4">
       <div className="co-card p-4"><p className="eyebrow">Completed jobs</p><p className="mt-2 text-2xl font-semibold">{quality.completedJobs}</p></div>
       <div className="co-card p-4"><p className="eyebrow">Responses</p><p className="mt-2 text-2xl font-semibold">{quality.responses}</p><p className="mt-1 text-xs text-[var(--co-muted)]">{quality.responseRate}% response rate</p></div>
-      <div className="co-card p-4"><p className="eyebrow">Average rating</p><p className="mt-2 text-2xl font-semibold text-[var(--co-evergreen)]">{quality.responses ? `${quality.averageRating}/5` : "—"}</p></div>
-      <div className="co-card p-4"><p className="eyebrow">5-star ratings</p><p className="mt-2 text-2xl font-semibold text-[var(--co-evergreen)]">{quality.fiveStars}</p></div>
+      <div className="co-card p-4"><p className="eyebrow">Average rating</p><p className="mt-2 text-2xl font-semibold text-[var(--co-accent-text)]">{quality.responses ? `${quality.averageRating}/5` : "—"}</p></div>
+      <div className="co-card p-4"><p className="eyebrow">5-star ratings</p><p className="mt-2 text-2xl font-semibold text-[var(--co-accent-text)]">{quality.fiveStars}</p></div>
     </div>
 
     <section className="co-card overflow-hidden">

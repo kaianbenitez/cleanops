@@ -12,7 +12,7 @@ export default async function MyDayPtoPage() {
 
   return (
     <div className="mx-auto max-w-[560px] space-y-4 pb-10">
-      <Link href="/my-day" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--co-evergreen)]">
+      <Link href="/my-day" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--co-accent-text)]">
         <ChevronLeft className="h-4 w-4" aria-hidden />
         Back to My Day
       </Link>

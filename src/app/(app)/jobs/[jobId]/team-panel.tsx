@@ -42,7 +42,7 @@ export default function TeamPanel({
         {assignedEmployees.length ? (
           assignedEmployees.map((employee) => (
             <div key={employee.id} className="flex items-center gap-3 rounded-xl border border-[#d5ded5] p-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e4eee2] text-xs font-bold text-[var(--co-evergreen)]">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e4eee2] text-xs font-bold text-[var(--co-accent-text)]">
                 {employee.firstName[0]}
                 {employee.lastName[0]}
               </span>
@@ -63,7 +63,7 @@ export default function TeamPanel({
                       : "Cleaning professional"}
                 </p>
               </div>
-              <span aria-hidden className="rounded-full bg-[#f0f5ef] p-2 text-[var(--co-evergreen)]">
+              <span aria-hidden className="rounded-full bg-[#f0f5ef] p-2 text-[var(--co-accent-text)]">
                 <Phone className="h-4 w-4" />
               </span>
             </div>
@@ -76,7 +76,7 @@ export default function TeamPanel({
       </div>
 
       <details className="mt-4 rounded-xl border border-[#d5ded5] p-3">
-        <summary className="cursor-pointer text-sm font-semibold text-[var(--co-evergreen)]">Manage assignment</summary>
+        <summary className="cursor-pointer text-sm font-semibold text-[var(--co-accent-text)]">Manage assignment</summary>
         <div className="mt-3">
           <TeamSearchPicker employees={employees} selectedIds={selectedIds} onChange={setSelectedIds} />
         </div>

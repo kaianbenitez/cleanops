@@ -214,7 +214,7 @@ export default function ListBoard({ employees, jobs: initialJobs }: { employees:
                 <td className="px-5 py-3 font-medium">
                   <Link
                     href={`/jobs/${job.id}`}
-                    className="-mx-5 -my-3 block px-5 py-3 text-[var(--co-evergreen)] hover:underline"
+                    className="-mx-5 -my-3 block px-5 py-3 text-[var(--co-accent-text)] hover:underline"
                   >
                     {displayCustomer(job)}
                   </Link>

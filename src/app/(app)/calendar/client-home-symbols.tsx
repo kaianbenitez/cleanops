@@ -13,8 +13,8 @@ export default function ClientHomeSymbols({ roomCounts = [], gateCodeOrKeyNotes,
   const bedrooms = roomCounts.filter((room) => room.name.toLowerCase().includes("bed")).reduce((total, room) => total + room.count, 0);
   const bathrooms = roomCounts.filter((room) => room.name.toLowerCase().includes("bath")).reduce((total, room) => total + room.count, 0);
   const symbols = [
-    bedrooms ? { icon: BedDouble, label: `${bedrooms} bedroom${bedrooms === 1 ? "" : "s"}`, tone: "text-[var(--co-evergreen)]", count: bedrooms } : null,
-    bathrooms ? { icon: Bath, label: `${bathrooms} bathroom${bathrooms === 1 ? "" : "s"}`, tone: "text-[var(--co-evergreen)]", count: bathrooms } : null,
+    bedrooms ? { icon: BedDouble, label: `${bedrooms} bedroom${bedrooms === 1 ? "" : "s"}`, tone: "text-[var(--co-accent-text)]", count: bedrooms } : null,
+    bathrooms ? { icon: Bath, label: `${bathrooms} bathroom${bathrooms === 1 ? "" : "s"}`, tone: "text-[var(--co-accent-text)]", count: bathrooms } : null,
     petNotes ? { icon: PawPrint, label: `Pets: ${cleanNoteText(petNotes)}`, tone: "text-[var(--co-ink)]", count: null } : null,
     gateCodeOrKeyNotes ? { icon: KeyRound, label: `Entry: ${cleanNoteText(gateCodeOrKeyNotes)}`, tone: "text-[var(--co-ink)]", count: null } : null,
   ].filter((symbol): symbol is { icon: typeof BedDouble; label: string; tone: string; count: number | null } => Boolean(symbol));

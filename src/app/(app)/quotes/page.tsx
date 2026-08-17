@@ -116,7 +116,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
               <p className="mt-1 text-2xl font-semibold">{value}</p>
               <p className="mt-2 text-xs text-[var(--co-muted)]">{detail}</p>
             </div>
-            <span className="text-xl text-[var(--co-evergreen)]">{label === "Accepted" ? "✓" : "◧"}</span>
+            <span className="text-xl text-[var(--co-accent-text)]">{label === "Accepted" ? "✓" : "◧"}</span>
           </Link>
         ))}
       </section>
@@ -136,7 +136,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
             Filter quotes
           </button>
           {Object.keys(sp).length ? (
-            <Link href="/quotes" className="self-center text-sm font-medium text-[var(--co-evergreen)]">
+            <Link href="/quotes" className="self-center text-sm font-medium text-[var(--co-accent-text)]">
               Clear
             </Link>
           ) : null}
@@ -166,7 +166,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
                 {rows.map((quote) => (
                   <tr key={quote.id} className="hover:bg-[var(--co-surface-muted)]/50">
                     <td className="px-5 py-4">
-                      <Link href={`/quotes/${quote.id}`} className="font-semibold text-[var(--co-ink)] hover:text-[var(--co-evergreen)]">
+                      <Link href={`/quotes/${quote.id}`} className="font-semibold text-[var(--co-ink)] hover:text-[var(--co-accent-text)]">
                         {quote.customerFirstName} {quote.customerLastName}
                       </Link>
                       <span className="mt-1 block text-xs text-[var(--co-muted)]">Q-{quote.id.slice(0, 6).toUpperCase()}</span>
@@ -185,7 +185,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
                     </td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <Link href={`/quotes/${quote.id}`} className="rounded-lg border border-[var(--co-line)] px-3 py-2 text-xs font-medium text-[var(--co-evergreen)]">
+                        <Link href={`/quotes/${quote.id}`} className="rounded-lg border border-[var(--co-line)] px-3 py-2 text-xs font-medium text-[var(--co-accent-text)]">
                           Open
                         </Link>
                         <Link href={`/quote/${quote.publicToken}`} target="_blank" className="rounded-lg border border-[var(--co-line)] px-3 py-2 text-xs font-medium text-[var(--co-ink)]">

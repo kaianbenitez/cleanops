@@ -61,7 +61,7 @@ export function TimePicker({ value, onChange, onClose }: TimePickerProps) {
               type="button"
               onClick={() => handleTimeChange(p === period ? hours : (hours + 12) % 24, minutes)}
               className={`px-2 py-1 text-[11px] font-semibold transition-colors ${
-                period === p ? "bg-[var(--co-evergreen)] text-white" : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]"
+                period === p ? "bg-[var(--co-accent-fill)] text-white" : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]"
               }`}
             >
               {p}
@@ -82,7 +82,7 @@ export function TimePicker({ value, onChange, onClose }: TimePickerProps) {
                 onClick={() => handleTimeChange(h, minutes)}
                 className={`w-full px-2 py-1.5 text-sm font-medium transition-colors ${
                   hours === h
-                    ? "bg-[var(--co-evergreen)] text-white"
+                    ? "bg-[var(--co-accent-fill)] text-white"
                     : "text-[var(--co-ink)] hover:bg-[var(--co-accent-tint)]"
                 }`}
               >
@@ -102,7 +102,7 @@ export function TimePicker({ value, onChange, onClose }: TimePickerProps) {
                 onClick={() => handleTimeChange(hours, m)}
                 className={`w-full px-2 py-1.5 text-sm font-medium transition-colors ${
                   minutes === m
-                    ? "bg-[var(--co-evergreen)] text-white"
+                    ? "bg-[var(--co-accent-fill)] text-white"
                     : "text-[var(--co-ink)] hover:bg-[var(--co-accent-tint)]"
                 }`}
               >

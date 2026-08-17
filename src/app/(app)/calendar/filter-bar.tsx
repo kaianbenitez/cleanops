@@ -105,7 +105,7 @@ export default function FilterBar({
           </p>
           <p className="border-l border-[var(--co-line-soft)] px-3 py-1.5 text-xs leading-tight">
             <span className="block text-[10px] font-medium text-[var(--co-muted)]">Projected revenue</span>
-            <span className="font-semibold text-[var(--co-evergreen)]">{projectedRevenue}</span>
+            <span className="font-semibold text-[var(--co-accent-text)]">{projectedRevenue}</span>
           </p>
           {discountTotalCents > 0 ? (
             <p className="border-l border-[var(--co-line-soft)] px-3 py-1.5 text-xs leading-tight">
@@ -126,21 +126,21 @@ export default function FilterBar({
           {STATUSES.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}
         </select>
 
-        <Link href={unassignedOnlyHref} aria-pressed={assignment === "unassigned"} className={`co-button-secondary py-2 text-xs ${assignment === "unassigned" ? "border-[var(--co-evergreen)] text-[var(--co-evergreen)]" : ""}`}>
+        <Link href={unassignedOnlyHref} aria-pressed={assignment === "unassigned"} className={`co-button-secondary py-2 text-xs ${assignment === "unassigned" ? "border-[var(--co-accent-text)] text-[var(--co-accent-text)]" : ""}`}>
           Unassigned only
         </Link>
 
-        <button type="button" onClick={() => setAdvancedOpen((open) => !open)} aria-expanded={advancedOpen} className={`co-button-secondary gap-2 py-2 text-xs ${advancedOpen ? "border-[var(--co-evergreen)] text-[var(--co-evergreen)]" : ""}`}>
+        <button type="button" onClick={() => setAdvancedOpen((open) => !open)} aria-expanded={advancedOpen} className={`co-button-secondary gap-2 py-2 text-xs ${advancedOpen ? "border-[var(--co-accent-text)] text-[var(--co-accent-text)]" : ""}`}>
           <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
           More filters{hasFilters ? ` (${[employeeId, type, recurrence, status, assignment, searchParams.get("zip")].filter(Boolean).length})` : ""}
         </button>
 
-        {unassignedJobs ? <button type="button" onClick={() => setParam("queue", queueOpen ? "" : "unassigned")} aria-controls="unassigned-queue-list" aria-expanded={queueOpen} className={`co-button-secondary gap-2 py-2 text-xs ${queueOpen ? "border-[var(--co-evergreen)] text-[var(--co-evergreen)]" : ""}`}>
+        {unassignedJobs ? <button type="button" onClick={() => setParam("queue", queueOpen ? "" : "unassigned")} aria-controls="unassigned-queue-list" aria-expanded={queueOpen} className={`co-button-secondary gap-2 py-2 text-xs ${queueOpen ? "border-[var(--co-accent-text)] text-[var(--co-accent-text)]" : ""}`}>
           <Inbox className="h-3.5 w-3.5" aria-hidden />
           {queueOpen ? "Hide unassigned jobs" : `Unassigned jobs (${unassignedJobs})`}
         </button> : null}
 
-        {hasFilters ? <button type="button" onClick={clearAll} className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">Clear filters</button> : null}
+        {hasFilters ? <button type="button" onClick={clearAll} className="text-xs font-semibold text-[var(--co-accent-text)] hover:underline">Clear filters</button> : null}
         </div>
       </div>
 

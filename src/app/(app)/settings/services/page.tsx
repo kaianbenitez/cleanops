@@ -60,7 +60,7 @@ export default function ServiceCatalogPage() {
         </p>
       </div>
 
-      {message && <p className="text-sm font-medium text-[var(--co-evergreen)]">{message}</p>}
+      {message && <p className="text-sm font-medium text-[var(--co-accent-text)]">{message}</p>}
 
       <AddOnSection addOns={addOns} onSave={saveField} onReload={load} />
       <MainJobSection mainJobs={mainJobs} addOns={addOns} onSave={saveField} onReload={load} />
@@ -337,7 +337,7 @@ function MainJobSection({
                           key={addOn.id}
                           className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs ${
                             checked
-                              ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)]/10 text-[var(--co-evergreen)]"
+                              ? "border-[var(--co-accent-text)] bg-[var(--co-accent-text)]/10 text-[var(--co-accent-text)]"
                               : "border-[var(--co-line)] text-[var(--co-muted)]"
                           }`}
                         >
@@ -409,7 +409,7 @@ function MainJobSection({
           </p>
         )}
         {!duplicateWarning && message && (
-          <p className="mt-3 text-sm font-medium text-[var(--co-evergreen)]">{message}</p>
+          <p className="mt-3 text-sm font-medium text-[var(--co-accent-text)]">{message}</p>
         )}
       </section>
     </div>

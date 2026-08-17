@@ -23,7 +23,7 @@ export function ProgressRow({
       </div>
       <div className="h-2 overflow-hidden rounded bg-[var(--co-surface-muted)]">
         <div
-          className={tone === "primary" ? "h-full bg-[var(--co-evergreen)]" : "h-full bg-[var(--co-muted)]"}
+          className={tone === "primary" ? "h-full bg-[var(--co-accent-fill)]" : "h-full bg-[var(--co-muted)]"}
           style={{ width: `${percent}%` }}
         />
       </div>

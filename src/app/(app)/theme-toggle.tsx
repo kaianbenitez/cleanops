@@ -39,7 +39,7 @@ export function ThemeToggleMenuItem() {
       </span>
       <span
         aria-hidden="true"
-        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${dark ? "bg-[var(--co-evergreen)]" : "bg-[var(--co-line)]"}`}
+        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${dark ? "bg-[var(--co-accent-fill)]" : "bg-[var(--co-line)]"}`}
       >
         <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${dark ? "translate-x-4" : "translate-x-0.5"}`} />
       </span>

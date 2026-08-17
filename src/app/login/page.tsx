@@ -45,7 +45,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-[100dvh] items-center justify-center bg-[var(--co-bg)] bg-[image:radial-gradient(circle_at_top,color-mix(in_srgb,var(--co-accent)_14%,transparent),transparent_52%),radial-gradient(circle_at_bottom_right,color-mix(in_srgb,var(--co-evergreen)_8%,transparent),transparent_45%)] px-4 py-6 text-[var(--co-ink)] sm:px-6">
+    <main className="flex min-h-[100dvh] items-center justify-center bg-[var(--co-bg)] bg-[image:radial-gradient(circle_at_top,color-mix(in_srgb,var(--co-accent)_14%,transparent),transparent_52%),radial-gradient(circle_at_bottom_right,color-mix(in_srgb,var(--co-accent-fill)_8%,transparent),transparent_45%)] px-4 py-6 text-[var(--co-ink)] sm:px-6">
       <section className="w-full max-w-md rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] p-6 shadow-sm sm:p-8">
         <Link href="/" className="mb-4 inline-flex items-center gap-1 text-sm text-[var(--co-muted)] hover:text-[var(--co-ink)]">
           ← Back to ServiceSpark

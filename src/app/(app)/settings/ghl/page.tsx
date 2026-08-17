@@ -227,7 +227,7 @@ export default function GhlSettingsPage() {
       </section>
 
       <section className="co-card flex items-start gap-4 border-[#d9e5cf] bg-[var(--co-surface-muted)] p-5">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--co-evergreen)] text-sm font-black text-[var(--co-accent)]">GHL</span>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--co-accent-fill)] text-sm font-black text-[var(--co-accent)]">GHL</span>
         <div>
           <p className="font-semibold">Connection boundary is ready</p>
           <p className="mt-1 text-sm leading-6 text-[var(--co-muted)]">
@@ -343,7 +343,7 @@ export default function GhlSettingsPage() {
       </section>
 
       {message ? (
-        <p className={`text-sm font-medium ${messageIsError ? "text-rose-700" : "text-[var(--co-evergreen)]"}`}>
+        <p className={`text-sm font-medium ${messageIsError ? "text-rose-700" : "text-[var(--co-accent-text)]"}`}>
           {message}
         </p>
       ) : null}

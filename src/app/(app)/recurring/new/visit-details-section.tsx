@@ -22,7 +22,7 @@ export default function VisitDetailsSection({
       <p className="eyebrow">Visit details</p>
       <h2 className="mt-1 text-lg font-semibold">What does each visit cost?</h2>
       {prefilledFromQuote ? (
-        <p className="mt-2 text-xs font-medium text-[var(--co-evergreen)]">Prefilled from this customer&apos;s most recent quote — adjust it below if needed.</p>
+        <p className="mt-2 text-xs font-medium text-[var(--co-accent-text)]">Prefilled from this customer&apos;s most recent quote — adjust it below if needed.</p>
       ) : null}
 
       <label className="mt-5 block text-sm">

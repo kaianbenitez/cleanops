@@ -386,23 +386,23 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         {isEligibleView ? (
           <>
             <p className="text-sm text-[var(--co-muted)]">Customers eligible for archive</p>
-            <Link href="/customers" className="text-sm font-semibold text-[var(--co-evergreen)] hover:underline">← Back to all customers</Link>
+            <Link href="/customers" className="text-sm font-semibold text-[var(--co-accent-text)] hover:underline">← Back to all customers</Link>
           </>
         ) : (
           <>
-          <Link href={hrefWith(sp, "recurrence", sp.recurrence === "recurring" ? "" : "recurring")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.recurrence === "recurring" ? "bg-[var(--co-evergreen)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "recurrence", sp.recurrence === "recurring" ? "" : "recurring")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.recurrence === "recurring" ? "bg-[var(--co-accent-fill)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-ink)]"}`}>
             Recurring <span className="ml-1 opacity-80">{recurringCount}</span>
           </Link>
           <Link href={hrefWith(sp, "attention", sp.attention === "yes" ? "" : "yes")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.attention === "yes" ? "bg-[var(--co-warning)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-warning)] hover:text-[var(--co-ink)]"}`}>
             Needs attention <span className="ml-1 opacity-80">{attentionCount}</span>
           </Link>
-          <Link href={hrefWith(sp, "status", sp.status === "lead" ? "" : "lead")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.status === "lead" ? "bg-[var(--co-evergreen)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "status", sp.status === "lead" ? "" : "lead")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.status === "lead" ? "bg-[var(--co-accent-fill)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-ink)]"}`}>
             Leads <span className="ml-1 opacity-80">{leadCount}</span>
           </Link>
           <Link href={hrefWith(sp, "cancelled", sp.cancelled === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.cancelled === "1" ? "bg-[var(--co-danger)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-danger)] hover:text-[var(--co-ink)]"}`}>
             Cancelled job <span className="ml-1 opacity-80">{cancelledCount}</span>
           </Link>
-          <Link href={hrefWith(sp, "repeat", sp.repeat === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.repeat === "1" ? "bg-[var(--co-evergreen)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "repeat", sp.repeat === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.repeat === "1" ? "bg-[var(--co-accent-fill)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-ink)]"}`}>
             Repeat customer <span className="ml-1 opacity-80">{repeatCount}</span>
           </Link>
           <Link href={hrefWith(sp, "archived", sp.archived === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.archived === "1" ? "bg-[var(--co-faint)] text-[var(--co-surface)] shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-faint)] hover:text-[var(--co-ink)]"}`}>
@@ -482,7 +482,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
               Filter customers
             </button>
             {Object.keys(sp).length ? (
-              <Link href="/customers" className="self-center text-sm font-medium text-[var(--co-evergreen)]">
+              <Link href="/customers" className="self-center text-sm font-medium text-[var(--co-accent-text)]">
                 Clear
               </Link>
             ) : null}
@@ -523,7 +523,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                     // announced six identical links per row (150 on a full page).
                     <tr
                       key={row.id}
-                      className="group relative transition-colors hover:bg-[var(--co-surface-muted)]/50 focus-within:bg-[var(--co-surface-muted)]/50 focus-within:outline focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-[var(--co-evergreen)]"
+                      className="group relative transition-colors hover:bg-[var(--co-surface-muted)]/50 focus-within:bg-[var(--co-surface-muted)]/50 focus-within:outline focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-[var(--co-accent-fill)]"
                     >
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
@@ -531,7 +531,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                           <div className="min-w-0">
                             <Link
                               href={`/customers/${row.id}`}
-                              className="font-semibold text-[var(--co-ink)] outline-none after:absolute after:inset-0 after:content-[''] group-hover:text-[var(--co-evergreen)]"
+                              className="font-semibold text-[var(--co-ink)] outline-none after:absolute after:inset-0 after:content-[''] group-hover:text-[var(--co-accent-text)]"
                             >
                               {row.companyName ? row.companyName : `${row.firstName} ${row.lastName}`}
                             </Link>
@@ -563,7 +563,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                       </td>
                       <td className="px-5 py-4">
                         {nextJob ? (
-                          <span className="font-medium text-[var(--co-evergreen)]">{formatDate(nextJob.scheduledDate)}</span>
+                          <span className="font-medium text-[var(--co-accent-text)]">{formatDate(nextJob.scheduledDate)}</span>
                         ) : (
                           <span className="text-[var(--co-muted)]">—</span>
                         )}

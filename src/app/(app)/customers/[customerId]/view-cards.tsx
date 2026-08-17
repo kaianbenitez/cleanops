@@ -28,7 +28,7 @@ function UpcomingVisits({ upcomingJobs }: { upcomingJobs: CustomerJob[] }) {
   const remaining = upcomingJobs.length - visible.length;
 
   return (
-    <Card title="Upcoming visits" action={<Link href="/calendar" className="text-sm font-semibold text-[var(--co-evergreen)] hover:underline">Open calendar →</Link>}>
+    <Card title="Upcoming visits" action={<Link href="/calendar" className="text-sm font-semibold text-[var(--co-accent-text)] hover:underline">Open calendar →</Link>}>
       {upcomingJobs.length ? (
         <div className="divide-y divide-[var(--co-line-soft)]">
           {visible.map((job) => (
@@ -48,14 +48,14 @@ function UpcomingVisits({ upcomingJobs }: { upcomingJobs: CustomerJob[] }) {
       {remaining > 0 ? (
         <button
           onClick={() => setExpanded(true)}
-          className="w-full border-t border-[var(--co-line-soft)] px-5 py-3 text-center text-sm font-semibold text-[var(--co-evergreen)] hover:bg-[var(--co-surface-muted)] sm:px-6"
+          className="w-full border-t border-[var(--co-line-soft)] px-5 py-3 text-center text-sm font-semibold text-[var(--co-accent-text)] hover:bg-[var(--co-surface-muted)] sm:px-6"
         >
           Show {remaining} more visit{remaining === 1 ? "" : "s"}
         </button>
       ) : expanded && upcomingJobs.length > UPCOMING_VISITS_PREVIEW_COUNT ? (
         <button
           onClick={() => setExpanded(false)}
-          className="w-full border-t border-[var(--co-line-soft)] px-5 py-3 text-center text-sm font-semibold text-[var(--co-evergreen)] hover:bg-[var(--co-surface-muted)] sm:px-6"
+          className="w-full border-t border-[var(--co-line-soft)] px-5 py-3 text-center text-sm font-semibold text-[var(--co-accent-text)] hover:bg-[var(--co-surface-muted)] sm:px-6"
         >
           Show fewer
         </button>
@@ -79,7 +79,7 @@ function Card({ title, action, children, className = "" }: { title: string; acti
 function Detail({ icon: Icon, label, children }: { icon: typeof Phone; label: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-3">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--co-surface-muted)] text-[var(--co-evergreen)]"><Icon className="h-5 w-5" /></span>
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--co-surface-muted)] text-[var(--co-accent-text)]"><Icon className="h-5 w-5" /></span>
       <div className="min-w-0 pt-0.5">
         <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--co-muted)]">{label}</p>
         <div className="mt-1 text-sm font-medium leading-5 text-[var(--co-ink)]">{children}</div>
@@ -92,7 +92,7 @@ function Preference({ icon: Icon, title, tone, children }: { icon: typeof KeyRou
   return (
     <article className={`rounded-lg border p-4 ${tone ?? "border-[var(--co-line)] bg-[var(--co-surface-muted)]/80"}`}>
       <div className="flex gap-3">
-        <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${tone ? "" : "text-[var(--co-evergreen)]"}`} />
+        <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${tone ? "" : "text-[var(--co-accent-text)]"}`} />
         <div>
           <h3 className="text-sm font-semibold">{title}</h3>
           <div className={`mt-1 whitespace-pre-line text-sm leading-5 ${tone ? "" : "text-[var(--co-muted)]"}`}>{children}</div>
@@ -113,7 +113,7 @@ function compactNoteText(value: string | null | undefined) {
 function RoomIcon({ roomName }: { roomName: string }) {
   const name = roomName.toLowerCase();
   const Icon = name.includes("bed") ? BedDouble : name.includes("bath") ? Bath : name.includes("kitchen") ? CookingPot : name.includes("living") ? Sofa : name.includes("laundry") ? WashingMachine : name.includes("garage") ? Warehouse : House;
-  return <Icon className="h-4 w-4 text-[var(--co-evergreen)]" aria-hidden />;
+  return <Icon className="h-4 w-4 text-[var(--co-accent-text)]" aria-hidden />;
 }
 
 export function CustomerViewCards({
@@ -188,7 +188,7 @@ export function CustomerViewCards({
     <div className="space-y-6">
       <section className="grid gap-6 xl:grid-cols-[305px_minmax(0,1fr)]">
         <aside className="space-y-6">
-          <Card title="Contact info" action={<button onClick={onEditFocus} className="text-sm font-semibold text-[var(--co-evergreen)] hover:underline">Edit</button>}>
+          <Card title="Contact info" action={<button onClick={onEditFocus} className="text-sm font-semibold text-[var(--co-accent-text)] hover:underline">Edit</button>}>
             <div className="space-y-4 p-5">
               <Detail icon={Phone} label="Primary phone">{customer.phone || "No phone on file"}</Detail>
               <Detail icon={Mail} label="Email address">{customer.email || "No email on file"}</Detail>
@@ -198,41 +198,41 @@ export function CustomerViewCards({
             </div>
           </Card>
           <Card title="Billing" action={<CreditCard className="h-5 w-5 text-[var(--co-muted)]" />}>
-            <div className="space-y-3 p-5"><div className="rounded-lg bg-[var(--co-surface-muted)] p-3 text-sm"><p className="font-semibold">{customer.paymentMethods?.length ? customer.paymentMethods.join(" · ") : "Payment method not set"}</p><p className="mt-1 text-xs text-[var(--co-muted)]">{openBalance ? `${money(openBalance)} outstanding` : "No open balance"}</p></div><Link href="/invoices" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--co-evergreen)] hover:underline">View all invoices →</Link></div>
+            <div className="space-y-3 p-5"><div className="rounded-lg bg-[var(--co-surface-muted)] p-3 text-sm"><p className="font-semibold">{customer.paymentMethods?.length ? customer.paymentMethods.join(" · ") : "Payment method not set"}</p><p className="mt-1 text-xs text-[var(--co-muted)]">{openBalance ? `${money(openBalance)} outstanding` : "No open balance"}</p></div><Link href="/invoices" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--co-accent-text)] hover:underline">View all invoices →</Link></div>
           </Card>
         </aside>
         <div className="w-full self-start space-y-6">
           <div className="grid items-start gap-6 2xl:grid-cols-[minmax(34rem,1fr)_auto]">
           <section className="self-start rounded-xl border border-[var(--co-line)] bg-[var(--co-surface-muted)]/75 p-5 sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3 text-[var(--co-evergreen)]"><CalendarDays className="h-6 w-6" /><h2 className="text-lg font-semibold">{customer.isArchived ? "Archived service" : "Active subscription"}</h2></div><span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white ${customer.isArchived ? "bg-slate-500" : "bg-[var(--co-evergreen)]"}`}>{customer.isArchived ? "Archived" : customer.status === "client" ? "Active plan" : "Customer plan"}</span></div>
-            <div className="mt-4 grid gap-3 md:grid-cols-3"><div><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Plan details</p><p className="mt-1 text-sm font-semibold">{plan}</p></div><div><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Next visit</p>{nextJob ? <Link href={`/jobs/${nextJob.id}`} className="mt-1 block text-sm font-semibold text-[var(--co-evergreen)] hover:underline">{formatDisplayDate(nextJob.scheduledDate)}<span className="mt-1 block font-normal text-[var(--co-muted)]">{nextJob.scheduledStartTime?.slice(0, 5) ?? "Time pending"}</span></Link> : <p className="mt-1 text-sm text-[var(--co-muted)]">No visit scheduled</p>}</div><div><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Preferred cleaner</p><p className="mt-1 text-sm font-semibold">{customer.preferredCleanerId ? "Cleaner assigned" : "Any available cleaner"}</p><p className="mt-1 text-sm text-[var(--co-muted)]">{upcomingJobs.length ? `${upcomingJobs.length} upcoming visit${upcomingJobs.length === 1 ? "" : "s"}` : "No upcoming visits"}</p></div></div>
+            <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3 text-[var(--co-accent-text)]"><CalendarDays className="h-6 w-6" /><h2 className="text-lg font-semibold">{customer.isArchived ? "Archived service" : "Active subscription"}</h2></div><span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white ${customer.isArchived ? "bg-slate-500" : "bg-[var(--co-accent-fill)]"}`}>{customer.isArchived ? "Archived" : customer.status === "client" ? "Active plan" : "Customer plan"}</span></div>
+            <div className="mt-4 grid gap-3 md:grid-cols-3"><div><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Plan details</p><p className="mt-1 text-sm font-semibold">{plan}</p></div><div><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Next visit</p>{nextJob ? <Link href={`/jobs/${nextJob.id}`} className="mt-1 block text-sm font-semibold text-[var(--co-accent-text)] hover:underline">{formatDisplayDate(nextJob.scheduledDate)}<span className="mt-1 block font-normal text-[var(--co-muted)]">{nextJob.scheduledStartTime?.slice(0, 5) ?? "Time pending"}</span></Link> : <p className="mt-1 text-sm text-[var(--co-muted)]">No visit scheduled</p>}</div><div><p className="text-[10px] font-bold uppercase text-[var(--co-muted)]">Preferred cleaner</p><p className="mt-1 text-sm font-semibold">{customer.preferredCleanerId ? "Cleaner assigned" : "Any available cleaner"}</p><p className="mt-1 text-sm text-[var(--co-muted)]">{upcomingJobs.length ? `${upcomingJobs.length} upcoming visit${upcomingJobs.length === 1 ? "" : "s"}` : "No upcoming visits"}</p></div></div>
           </section>
           <section className="co-card overflow-hidden">
             <div className="flex items-center gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
-              <House className="h-5 w-5 text-[var(--co-evergreen)]" />
+              <House className="h-5 w-5 text-[var(--co-accent-text)]" />
               <div><h2 className="text-lg font-semibold tracking-[-0.02em]">House details</h2><p className="text-xs text-[var(--co-muted)]">At-a-glance service information</p></div>
             </div>
             <div className="flex flex-wrap items-center gap-2 p-5">
               {roomSummary.length ? (
                 roomSummary.map((room) => <div key={room.name} className="inline-flex h-9 items-center gap-2 rounded-lg bg-[var(--co-surface-muted)] px-2.5" title={room.name}><RoomIcon roomName={room.name} /><span className="sr-only">{room.name}</span><span className="text-sm font-semibold text-[var(--co-ink)]">{room.count}</span></div>)
               ) : <p className="text-sm text-[var(--co-muted)]">No room counts recorded yet.</p>}
-              {houseDetails.map((detail) => { const Icon = detail.icon; return <span key={detail.label} title={detail.label} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--co-surface-muted)] px-2.5 text-xs font-semibold text-[var(--co-ink)]"><Icon className="h-3.5 w-3.5 text-[var(--co-evergreen)]" aria-hidden /><span className="sr-only">{detail.label}: </span>{detail.value}</span>; })}
+              {houseDetails.map((detail) => { const Icon = detail.icon; return <span key={detail.label} title={detail.label} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--co-surface-muted)] px-2.5 text-xs font-semibold text-[var(--co-ink)]"><Icon className="h-3.5 w-3.5 text-[var(--co-accent-text)]" aria-hidden /><span className="sr-only">{detail.label}: </span>{detail.value}</span>; })}
             </div>
           </section>
           <section className="co-card overflow-hidden">
             <div className="flex items-center gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
-              <WashingMachine className="h-5 w-5 text-[var(--co-evergreen)]" aria-hidden />
+              <WashingMachine className="h-5 w-5 text-[var(--co-accent-text)]" aria-hidden />
               <div><h2 className="text-lg font-semibold tracking-[-0.02em]">Cleaning equipment</h2><p className="text-xs text-[var(--co-muted)]">What to bring for this home</p></div>
             </div>
             <div className="grid gap-3 p-5 sm:grid-cols-3">
-              <div className="flex items-center gap-2 rounded-lg bg-[var(--co-surface-muted)] p-3"><WashingMachine className="h-4 w-4 text-[var(--co-evergreen)]" aria-hidden /><div><p className="text-xs font-medium text-[var(--co-muted)]">Mop heads</p><p className="text-sm font-semibold">{customer.mopHeadCount ?? (estimatedMopHeads === null ? "Not set" : `~${estimatedMopHeads}`)}</p>{customer.mopHeadCount === null || customer.mopHeadCount === undefined ? estimatedMopHeads === null ? null : <p className="text-[10px] text-[var(--co-muted)]">Estimated</p> : null}</div></div>
-              <div className="flex items-center gap-2 rounded-lg bg-[var(--co-surface-muted)] p-3"><Shirt className="h-4 w-4 text-[var(--co-evergreen)]" aria-hidden /><div><p className="text-xs font-medium text-[var(--co-muted)]">Rags</p><p className="text-sm font-semibold">{customer.ragCount ?? "Not set"}</p></div></div>
-              <div className="flex items-center gap-2 rounded-lg bg-[var(--co-surface-muted)] p-3"><Wind className="h-4 w-4 text-[var(--co-evergreen)]" aria-hidden /><div><p className="text-xs font-medium text-[var(--co-muted)]">Vacuum</p><p className="text-sm font-semibold">{customer.vacuumCount ?? "Not set"}</p></div></div>
+              <div className="flex items-center gap-2 rounded-lg bg-[var(--co-surface-muted)] p-3"><WashingMachine className="h-4 w-4 text-[var(--co-accent-text)]" aria-hidden /><div><p className="text-xs font-medium text-[var(--co-muted)]">Mop heads</p><p className="text-sm font-semibold">{customer.mopHeadCount ?? (estimatedMopHeads === null ? "Not set" : `~${estimatedMopHeads}`)}</p>{customer.mopHeadCount === null || customer.mopHeadCount === undefined ? estimatedMopHeads === null ? null : <p className="text-[10px] text-[var(--co-muted)]">Estimated</p> : null}</div></div>
+              <div className="flex items-center gap-2 rounded-lg bg-[var(--co-surface-muted)] p-3"><Shirt className="h-4 w-4 text-[var(--co-accent-text)]" aria-hidden /><div><p className="text-xs font-medium text-[var(--co-muted)]">Rags</p><p className="text-sm font-semibold">{customer.ragCount ?? "Not set"}</p></div></div>
+              <div className="flex items-center gap-2 rounded-lg bg-[var(--co-surface-muted)] p-3"><Wind className="h-4 w-4 text-[var(--co-accent-text)]" aria-hidden /><div><p className="text-xs font-medium text-[var(--co-muted)]">Vacuum</p><p className="text-sm font-semibold">{customer.vacuumCount ?? "Not set"}</p></div></div>
             </div>
           </section>
           </div>
           <UpcomingVisits upcomingJobs={upcomingJobs} />
-          <Card title="Quote history" action={<Link href={`/quotes/new?customerId=${customer.id}`} className="text-sm font-semibold text-[var(--co-evergreen)] hover:underline">+ New quote</Link>}>
+          <Card title="Quote history" action={<Link href={`/quotes/new?customerId=${customer.id}`} className="text-sm font-semibold text-[var(--co-accent-text)] hover:underline">+ New quote</Link>}>
             {quotes.length ? (
               <div className="divide-y divide-[var(--co-line-soft)]">
                 {quotes.slice(0, 5).map((quote) => (
@@ -252,10 +252,10 @@ export function CustomerViewCards({
               <p className="p-6 text-sm text-[var(--co-muted)]">No quotes created yet.</p>
             )}
           </Card>
-          <Card title="Service history" action={<Link href="/jobs" className="text-sm font-semibold text-[var(--co-evergreen)] hover:underline">View all activity →</Link>}>
-            {recentJobs.length ? <div className="overflow-x-auto"><table className="w-full min-w-[700px] text-left text-sm"><thead className="bg-[var(--co-surface-muted)] text-[10px] font-bold uppercase tracking-wide text-[var(--co-muted)]"><tr><th className="px-6 py-3">Date</th><th className="px-4 py-3">Service type</th><th className="px-4 py-3">Duration</th><th className="px-4 py-3">Price</th><th className="px-6 py-3 text-right">Status</th></tr></thead><tbody>{recentJobs.slice(0, 5).map((job) => <tr key={job.id} className="border-t border-[var(--co-line-soft)]"><td className="px-6 py-4"><Link href={`/jobs/${job.id}`} className="font-medium hover:text-[var(--co-evergreen)] hover:underline">{formatDisplayDate(job.scheduledDate)}</Link></td><td className="px-4 py-4 font-medium">{TYPE_LABELS[job.type] ?? job.type}</td><td className="px-4 py-4">{formatEstimatedTime(job.estimatedDurationMinutes)}</td><td className="px-4 py-4">{money(job.priceCents)}</td><td className="px-6 py-4 text-right"><span className={`rounded px-2 py-1 text-[10px] font-bold uppercase ${job.status === "completed" ? "bg-emerald-50 text-emerald-800" : job.status === "cancelled" ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"}`}>{job.status.replaceAll("_", " ")}</span></td></tr>)}</tbody></table></div> : <p className="p-6 text-sm text-[var(--co-muted)]">No service history yet.</p>}
+          <Card title="Service history" action={<Link href="/jobs" className="text-sm font-semibold text-[var(--co-accent-text)] hover:underline">View all activity →</Link>}>
+            {recentJobs.length ? <div className="overflow-x-auto"><table className="w-full min-w-[700px] text-left text-sm"><thead className="bg-[var(--co-surface-muted)] text-[10px] font-bold uppercase tracking-wide text-[var(--co-muted)]"><tr><th className="px-6 py-3">Date</th><th className="px-4 py-3">Service type</th><th className="px-4 py-3">Duration</th><th className="px-4 py-3">Price</th><th className="px-6 py-3 text-right">Status</th></tr></thead><tbody>{recentJobs.slice(0, 5).map((job) => <tr key={job.id} className="border-t border-[var(--co-line-soft)]"><td className="px-6 py-4"><Link href={`/jobs/${job.id}`} className="font-medium hover:text-[var(--co-accent-text)] hover:underline">{formatDisplayDate(job.scheduledDate)}</Link></td><td className="px-4 py-4 font-medium">{TYPE_LABELS[job.type] ?? job.type}</td><td className="px-4 py-4">{formatEstimatedTime(job.estimatedDurationMinutes)}</td><td className="px-4 py-4">{money(job.priceCents)}</td><td className="px-6 py-4 text-right"><span className={`rounded px-2 py-1 text-[10px] font-bold uppercase ${job.status === "completed" ? "bg-emerald-50 text-emerald-800" : job.status === "cancelled" ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"}`}>{job.status.replaceAll("_", " ")}</span></td></tr>)}</tbody></table></div> : <p className="p-6 text-sm text-[var(--co-muted)]">No service history yet.</p>}
           </Card>
-          <Card title="Service notes & preferences" action={<button onClick={onEditFocus} className="text-sm font-semibold text-[var(--co-evergreen)] hover:underline">Edit</button>}>
+          <Card title="Service notes & preferences" action={<button onClick={onEditFocus} className="text-sm font-semibold text-[var(--co-accent-text)] hover:underline">Edit</button>}>
             {notes.length ? (
               <div className="grid items-start gap-4 p-5 md:grid-cols-2">
                 {notes.map((note) => (

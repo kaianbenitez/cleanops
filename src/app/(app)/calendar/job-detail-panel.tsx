@@ -137,7 +137,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
         <div className="flex items-start justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
           <div>
             <p className="eyebrow">Job details</p>
-            {job ? <Link href={`/customers/${job.customerId}`} className="mt-1 block text-lg font-semibold hover:text-[var(--co-evergreen)] hover:underline">{job.customerFirstName} {job.customerLastName}</Link> : <h2 className="mt-1 text-lg font-semibold">Loading...</h2>}
+            {job ? <Link href={`/customers/${job.customerId}`} className="mt-1 block text-lg font-semibold hover:text-[var(--co-accent-text)] hover:underline">{job.customerFirstName} {job.customerLastName}</Link> : <h2 className="mt-1 text-lg font-semibold">Loading...</h2>}
           </div>
           <button type="button" onClick={onClose} className="rounded-full p-1 text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]" aria-label="Close">
             ✕

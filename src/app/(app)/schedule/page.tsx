@@ -68,7 +68,7 @@ export default async function SchedulePage() {
     <div className="mx-auto max-w-[680px] space-y-4 pb-10">
       <section className="co-card overflow-hidden">
         <div className="flex items-start gap-3 px-4 py-4 sm:px-5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]">
             <CalendarDays className="h-5 w-5" aria-hidden />
           </div>
           <div>
@@ -105,7 +105,7 @@ export default async function SchedulePage() {
                 const duration = job.estimatedDurationMinutes ? `Est. ${formatEstimatedTime(job.estimatedDurationMinutes)}` : null;
                 return (
                   <Link key={job.jobId} href={`/my-day/${job.jobId}`} className="flex min-h-24 items-center gap-3 px-4 py-3 transition hover:bg-[var(--co-surface-muted)] sm:px-5">
-                    <div className="w-[62px] shrink-0 text-sm font-semibold tabular-nums text-[var(--co-evergreen)]">{timeLabel(job.scheduledStartTime)}</div>
+                    <div className="w-[62px] shrink-0 text-sm font-semibold tabular-nums text-[var(--co-accent-text)]">{timeLabel(job.scheduledStartTime)}</div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-[var(--co-ink)]">{job.customerFirstName} {job.customerLastName}</p>
                       <p className="mt-1 truncate text-xs text-[var(--co-muted)]">{jobTypeLabel(job.type)}{duration ? ` · ${duration}` : ""}</p>

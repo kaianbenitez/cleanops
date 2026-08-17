@@ -99,11 +99,11 @@ function SidebarLinks({ items, pathname, navCollapsed }: { items: readonly (read
             title={navCollapsed ? label : undefined}
             className={`group relative flex items-center rounded-[14px] py-[0.6875rem] text-[13px] transition ${navCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${
               active
-                ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)] font-medium"
+                ? "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)] font-medium"
                 : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
             }`}
           >
-            {active ? <span className="absolute inset-y-2 left-1 w-1 rounded-full bg-[var(--co-evergreen)]" /> : null}
+            {active ? <span className="absolute inset-y-2 left-1 w-1 rounded-full bg-[var(--co-accent-fill)]" /> : null}
             <span className={navCollapsed ? "" : "ml-1"}>
               <NavIcon href={href} />
             </span>
@@ -196,7 +196,7 @@ export default function AppNav({
 
           <Link href={logoHref} className="flex items-center gap-2">
             <img src="/brand/logo-mark.png" alt="" aria-hidden="true" className="h-7 w-7 object-contain" />
-            <span className="text-base font-bold text-[var(--co-evergreen)]">ServiceSpark</span>
+            <span className="text-base font-bold text-[var(--co-accent-text)]">ServiceSpark</span>
           </Link>
 
           <div className="flex items-center gap-1">
@@ -236,7 +236,7 @@ export default function AppNav({
         <div className="flex items-center justify-between gap-3 border-b border-[var(--co-line-soft)] px-4 py-4">
           <Link href={logoHref} onClick={() => setMenuOpen(false)} className="flex items-center gap-2">
             <img src="/brand/logo-mark.png" alt="" aria-hidden="true" className="h-8 w-8 object-contain" />
-            <span className="text-base font-bold text-[var(--co-evergreen)]">ServiceSpark</span>
+            <span className="text-base font-bold text-[var(--co-accent-text)]">ServiceSpark</span>
           </Link>
           <button
             type="button"
@@ -258,7 +258,7 @@ export default function AppNav({
                 onClick={() => setMenuOpen(false)}
                 className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
                   active
-                    ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
+                    ? "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]"
                     : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
                 }`}
               >
@@ -275,7 +275,7 @@ export default function AppNav({
                 onClick={() => setMenuOpen(false)}
                 className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
                   pathname.startsWith("/sync-issues")
-                    ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
+                    ? "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]"
                     : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
                 }`}
               >
@@ -287,7 +287,7 @@ export default function AppNav({
                 onClick={() => setMenuOpen(false)}
                 className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
                   pathname.startsWith("/leads")
-                    ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
+                    ? "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]"
                     : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
                 }`}
               >
@@ -299,7 +299,7 @@ export default function AppNav({
                 onClick={() => setMenuOpen(false)}
                 className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
                   pathname.startsWith("/settings")
-                    ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
+                    ? "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]"
                     : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
                 }`}
               >
@@ -314,7 +314,7 @@ export default function AppNav({
             onClick={() => setMenuOpen(false)}
             className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
               pathname.startsWith("/help-center")
-                ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
+                ? "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]"
                 : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
             }`}
           >
@@ -353,7 +353,7 @@ export default function AppNav({
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={`flex flex-1 flex-col items-center gap-1 py-1.5 text-[11px] font-medium transition-colors ${
-                  active ? "text-[var(--co-evergreen)]" : "text-[var(--co-muted)]"
+                  active ? "text-[var(--co-accent-text)]" : "text-[var(--co-muted)]"
                 }`}
               >
                 <NavIcon href={href} />
@@ -367,7 +367,7 @@ export default function AppNav({
             aria-haspopup="dialog"
             aria-expanded={meOpen}
             className={`flex flex-1 flex-col items-center gap-1 py-1.5 text-[11px] font-medium transition-colors ${
-              meOpen ? "text-[var(--co-evergreen)]" : "text-[var(--co-muted)]"
+              meOpen ? "text-[var(--co-accent-text)]" : "text-[var(--co-muted)]"
             }`}
           >
             <CircleUserRound aria-hidden="true" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0 opacity-90" />
@@ -393,7 +393,7 @@ export default function AppNav({
         >
           <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-4">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--co-accent-tint)] text-sm font-bold text-[var(--co-evergreen)]">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--co-accent-tint)] text-sm font-bold text-[var(--co-accent-text)]">
                 {userName.slice(0, 1).toUpperCase()}
               </span>
               <div className="min-w-0">
@@ -530,7 +530,7 @@ export default function AppNav({
                   title={navCollapsed ? "Sync issues" : undefined}
                   className={`flex items-center rounded-[14px] py-[0.6875rem] text-[13px] transition ${navCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${
                     pathname.startsWith("/sync-issues")
-                      ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)] font-medium"
+                      ? "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)] font-medium"
                       : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
                   }`}
                 >
@@ -546,7 +546,7 @@ export default function AppNav({
                   title={navCollapsed ? "Leads" : undefined}
                   className={`flex items-center rounded-[14px] py-[0.6875rem] text-[13px] transition ${navCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${
                     pathname.startsWith("/leads")
-                      ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)] font-medium"
+                      ? "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)] font-medium"
                       : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
                   }`}
                 >
@@ -562,7 +562,7 @@ export default function AppNav({
                   title={navCollapsed ? "Settings" : undefined}
                   className={`flex items-center rounded-[14px] py-[0.6875rem] text-[13px] transition ${navCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${
                     pathname.startsWith("/settings")
-                      ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)] font-medium"
+                      ? "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)] font-medium"
                       : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
                   }`}
                 >
@@ -580,7 +580,7 @@ export default function AppNav({
               title={navCollapsed ? "Support" : undefined}
               className={`flex items-center rounded-[14px] py-[0.6875rem] text-[13px] transition ${navCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${
                 pathname.startsWith("/help-center")
-                  ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)] font-medium"
+                  ? "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)] font-medium"
                   : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
               }`}
             >
@@ -622,7 +622,7 @@ export default function AppNav({
               title={navCollapsed ? "Account menu" : undefined}
               className={`flex items-center rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] py-2.5 text-left transition hover:border-[var(--co-line)] ${navCollapsed ? "w-12 justify-center px-0" : "w-full gap-3 px-3"}`}
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--co-accent-tint)] text-sm font-bold text-[var(--co-evergreen)]">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--co-accent-tint)] text-sm font-bold text-[var(--co-accent-text)]">
                 {userName.slice(0, 1).toUpperCase()}
               </span>
               {navCollapsed ? null : <span className="min-w-0 flex-1">

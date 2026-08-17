@@ -19,7 +19,7 @@ export function Donut({ value, total, centerLabel, centerCaption, title, descrip
       <p className="sr-only">{title}: {description}</p>
       <svg aria-hidden="true" width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="var(--co-surface-muted)" strokeWidth={thickness} />
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="var(--co-evergreen)" strokeWidth={thickness} strokeDasharray={circumference} strokeDashoffset={circumference * (1 - percent)} strokeLinecap="round" transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="var(--co-accent-text)" strokeWidth={thickness} strokeDasharray={circumference} strokeDashoffset={circumference * (1 - percent)} strokeLinecap="round" transform={`rotate(-90 ${size / 2} ${size / 2})`} />
         <text x="50%" y="48%" textAnchor="middle" fill="currentColor" fontSize="20" fontWeight="700">{centerLabel}</text>
         <text x="50%" y="62%" textAnchor="middle" fill="currentColor" fontSize="10">{centerCaption}</text>
       </svg>

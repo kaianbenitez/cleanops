@@ -36,7 +36,7 @@ function KpiCard({
   value,
   note,
   icon: Icon,
-  tone = "var(--co-evergreen)",
+  tone = "var(--co-accent-text)",
 }: {
   label: string;
   value: string;
@@ -141,7 +141,7 @@ export default async function OperationsOverview({
             <div>
               <div className="flex items-center gap-2">
                 <BarChart3
-                  className="h-5 w-5 text-[var(--co-evergreen)]"
+                  className="h-5 w-5 text-[var(--co-accent-text)]"
                   aria-hidden
                 />
                 <h2 id="weekly-revenue-title" className="text-lg font-semibold">
@@ -179,7 +179,7 @@ export default async function OperationsOverview({
                   {weekday(data.weeklyRevenue.dates[index]!)}: {money(amount)}
                 </span>
                 <div
-                  className="min-h-1 rounded-t-sm bg-[var(--co-evergreen)]"
+                  className="min-h-1 rounded-t-sm bg-[var(--co-accent-fill)]"
                   style={{
                     height: `${Math.max((amount / maxRevenue) * 100, amount > 0 ? 2 : 0)}%`,
                   }}
@@ -201,7 +201,7 @@ export default async function OperationsOverview({
         <article className="co-card p-5" aria-labelledby="sales-summary-title">
           <div className="flex items-center gap-2">
             <CircleDollarSign
-              className="h-5 w-5 text-[var(--co-evergreen)]"
+              className="h-5 w-5 text-[var(--co-accent-text)]"
               aria-hidden
             />
             <h2 id="sales-summary-title" className="text-lg font-semibold">
@@ -233,7 +233,7 @@ export default async function OperationsOverview({
         <article className="co-card p-5" aria-labelledby="attention-title">
           <div className="flex items-center gap-2">
             <ClipboardList
-              className="h-5 w-5 text-[var(--co-evergreen)]"
+              className="h-5 w-5 text-[var(--co-accent-text)]"
               aria-hidden
             />
             <h2 id="attention-title" className="text-lg font-semibold">

@@ -86,7 +86,7 @@ export default function ActionFeedbackProvider({ children }: { children: React.R
                 : "border-rose-200 bg-rose-50 text-rose-900"
             }`}
           >
-            {item.tone === "success" ? <CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-evergreen)]" /> : <CircleAlert aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-rose-700" />}
+            {item.tone === "success" ? <CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-accent-text)]" /> : <CircleAlert aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-rose-700" />}
             <p className="min-w-0 flex-1 font-medium">{item.message}</p>
             <button type="button" onClick={() => dismiss(item.id)} className="-mr-1 -mt-1 rounded p-1 text-[var(--co-muted)] hover:bg-black/5 hover:text-[var(--co-ink)]" aria-label="Dismiss notification">
               <X aria-hidden="true" className="h-4 w-4" />

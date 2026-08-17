@@ -56,7 +56,7 @@ export default function PayrollDefaultsSettingsPage() {
         <button onClick={save} className="co-button-primary mt-5">
           Save mileage rate
         </button>
-        {message ? <p className="mt-3 text-sm font-medium text-[var(--co-evergreen)]">{message}</p> : null}
+        {message ? <p className="mt-3 text-sm font-medium text-[var(--co-accent-text)]">{message}</p> : null}
       </section>
     </div>
   );

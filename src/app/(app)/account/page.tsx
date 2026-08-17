@@ -75,7 +75,7 @@ export default function AccountPage() {
         </label>
 
         {error ? <p className="text-sm font-medium text-rose-600">{error}</p> : null}
-        {message ? <p className="text-sm font-medium text-[var(--co-evergreen)]">{message}</p> : null}
+        {message ? <p className="text-sm font-medium text-[var(--co-accent-text)]">{message}</p> : null}
 
         <button type="submit" disabled={saving} className="co-button-primary w-full justify-center">
           {saving ? "Saving…" : "Update password"}

@@ -283,7 +283,7 @@ export default function JobExecutionClient({
                     : myPortionDone
                       ? "co-badge-warning"
                       : started
-                        ? "bg-[var(--co-evergreen)] text-white"
+                        ? "bg-[var(--co-accent-fill)] text-white"
                         : "bg-[var(--co-surface-muted)] text-[var(--co-muted)]"
                 }`}
               >
@@ -362,7 +362,7 @@ export default function JobExecutionClient({
               {job.customerPhone ? (
                 <div className="flex items-center justify-between py-2">
                   <span className="text-sm text-[var(--co-muted)]">Customer</span>
-                  <a href={`tel:${job.customerPhone}`} className="text-sm font-semibold text-[var(--co-evergreen)]">
+                  <a href={`tel:${job.customerPhone}`} className="text-sm font-semibold text-[var(--co-accent-text)]">
                     {job.customerFirstName} {job.customerLastName} · {job.customerPhone}
                   </a>
                 </div>
@@ -371,7 +371,7 @@ export default function JobExecutionClient({
 
             {clientNote ? (
               <div className="mt-4 rounded-lg bg-[var(--co-accent-tint)] p-4">
-                <p className="mb-1 text-xs font-bold uppercase tracking-tight text-[var(--co-evergreen)]">Client notes</p>
+                <p className="mb-1 text-xs font-bold uppercase tracking-tight text-[var(--co-accent-text)]">Client notes</p>
                 <p className="whitespace-pre-line text-sm text-[var(--co-ink)]">{clientNote}</p>
               </div>
             ) : null}
@@ -420,7 +420,7 @@ export default function JobExecutionClient({
                             type="button"
                             onClick={() => openUpload(slot)}
                             disabled={uploading}
-                            className="relative flex aspect-square items-center justify-center rounded-xl border-2 border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)] text-[var(--co-faint)] hover:border-[var(--co-evergreen)] hover:text-[var(--co-evergreen)] disabled:opacity-60"
+                            className="relative flex aspect-square items-center justify-center rounded-xl border-2 border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)] text-[var(--co-faint)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-accent-text)] disabled:opacity-60"
                           >
                             <span className="text-3xl">+</span>
                             <span className="absolute bottom-2 left-2 rounded bg-[var(--co-ink)]/70 px-2 py-0.5 text-[10px] font-bold uppercase text-white">Required</span>
@@ -442,7 +442,7 @@ export default function JobExecutionClient({
                     type="button"
                     onClick={() => openUpload("extra")}
                     disabled={uploading}
-                    className="flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-[var(--co-faint)] hover:text-[var(--co-evergreen)] disabled:opacity-60"
+                    className="flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-[var(--co-faint)] hover:text-[var(--co-accent-text)] disabled:opacity-60"
                   >
                     <span className="text-2xl">+</span>
                     <span className="px-4 text-center text-[10px] font-bold uppercase">Add more photos</span>
@@ -456,13 +456,13 @@ export default function JobExecutionClient({
                 <div className="space-y-4">
                   <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
                     <div className="flex items-start gap-3">
-                      <Send className="mt-0.5 h-5 w-5 shrink-0 text-[var(--co-evergreen)]" />
+                      <Send className="mt-0.5 h-5 w-5 shrink-0 text-[var(--co-accent-text)]" />
                       <div>
                         <p className="font-semibold text-[var(--co-ink)]">Customer feedback link</p>
                         <p className="mt-1 text-xs leading-5 text-[var(--co-muted)]">Send the customer a private link. They submit their own rating, feedback, tip, and payment.</p>
                       </div>
                     </div>
-                    {feedbackUrl ? <div className="mt-4 rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] p-3"><p className="text-xs font-semibold text-[var(--co-evergreen)]">Link ready — share it with the customer:</p><input readOnly value={feedbackUrl} className="co-input mt-2 w-full text-xs" onFocus={(event) => event.currentTarget.select()} /></div> : <button type="button" onClick={requestCustomerFeedback} disabled={sendingFeedback} className="co-button-secondary mt-4 w-full justify-center">{sendingFeedback ? "Creating link…" : "Create customer link"}</button>}
+                    {feedbackUrl ? <div className="mt-4 rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] p-3"><p className="text-xs font-semibold text-[var(--co-accent-text)]">Link ready — share it with the customer:</p><input readOnly value={feedbackUrl} className="co-input mt-2 w-full text-xs" onFocus={(event) => event.currentTarget.select()} /></div> : <button type="button" onClick={requestCustomerFeedback} disabled={sendingFeedback} className="co-button-secondary mt-4 w-full justify-center">{sendingFeedback ? "Creating link…" : "Create customer link"}</button>}
                   </div>
                   <label className="block">
                     <span className="mb-1 block text-sm text-[var(--co-muted)]">Payment collected on-site</span>
@@ -506,7 +506,7 @@ export default function JobExecutionClient({
             </>
           ) : jobFullyCompleted ? (
             <section className="co-card p-5 text-center">
-              <p className="text-lg font-semibold text-[var(--co-evergreen)]">Job completed</p>
+              <p className="text-lg font-semibold text-[var(--co-accent-text)]">Job completed</p>
               <p className="mt-1 text-sm text-[var(--co-muted)]">
                 Worked {elapsed} · finished {timeEntry?.clockOut ? timeLabel(new Date(timeEntry.clockOut).toISOString()) : timeLabel(new Date().toISOString())}
               </p>

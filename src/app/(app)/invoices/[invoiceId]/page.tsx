@@ -252,7 +252,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
     <div className="space-y-6 print:space-y-0">
       <header className="flex flex-wrap items-start justify-between gap-4 print:hidden">
         <div className="min-w-0">
-          <Link href="/invoices" className="text-sm font-medium text-[var(--co-evergreen)] hover:underline">
+          <Link href="/invoices" className="text-sm font-medium text-[var(--co-accent-text)] hover:underline">
             Back to invoices
           </Link>
           <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -293,7 +293,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
         </div>
         <div className="co-card p-5">
           <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Balance due</p>
-          <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--co-evergreen)]">{dollars(balance)}</p>
+          <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--co-accent-text)]">{dollars(balance)}</p>
         </div>
         <div className="co-card p-5">
           <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Payment method</p>
@@ -317,7 +317,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
               </div>
               <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.08em] text-[var(--co-muted)]">Open balance</p>
-                <p className="mt-2 font-semibold text-[var(--co-evergreen)]">{dollars(balance)}</p>
+                <p className="mt-2 font-semibold text-[var(--co-accent-text)]">{dollars(balance)}</p>
                 <p className="mt-1 text-sm text-[var(--co-muted)]">{invoice.status === "paid" ? "Paid in full" : "Waiting on customer"}</p>
               </div>
             </div>
@@ -328,7 +328,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
               <div className="flex flex-wrap items-start justify-between gap-5 border-b border-[var(--co-line-soft)] pb-5">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--co-surface-muted)] font-bold text-[var(--co-evergreen)]">CO</span>
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--co-surface-muted)] font-bold text-[var(--co-accent-text)]">CO</span>
                     <span className="text-lg font-semibold">ServiceSpark</span>
                   </div>
                   <p className="mt-4 text-xs uppercase tracking-[0.1em] text-[var(--co-muted)]">Bill to</p>
@@ -384,7 +384,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
                   <span>Amount paid</span>
                   <span>{dollars(invoice.amountPaidCents)}</span>
                 </div>
-                <div className="flex justify-between text-lg font-semibold text-[var(--co-evergreen)]">
+                <div className="flex justify-between text-lg font-semibold text-[var(--co-accent-text)]">
                   <span>Balance due</span>
                   <span>{dollars(balance)}</span>
                 </div>
@@ -395,7 +395,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
           <Panel eyebrow="Payment history" title="Activity" description="Keep an audit-friendly record of what happened and when.">
             <div className="space-y-4">
               <div className="flex gap-3 text-sm">
-                <span className="mt-1 h-3 w-3 rounded-full bg-[var(--co-evergreen)]" />
+                <span className="mt-1 h-3 w-3 rounded-full bg-[var(--co-accent-fill)]" />
                 <div>
                   <p className="font-medium">Invoice created</p>
                   <p className="text-xs text-[var(--co-muted)]">{formatDateTime(invoice.createdAt)}</p>
@@ -522,20 +522,20 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
           <Panel eyebrow="Customer contact" title="Reach them directly" description="These links use the stored customer details.">
             <div className="space-y-2 text-sm">
               {customerEmail ? (
-                <a className="block font-medium text-[var(--co-evergreen)] hover:underline" href={`mailto:${customerEmail}?subject=Invoice ${invoiceTitle}`}>
+                <a className="block font-medium text-[var(--co-accent-text)] hover:underline" href={`mailto:${customerEmail}?subject=Invoice ${invoiceTitle}`}>
                   Email {customerEmail}
                 </a>
               ) : (
                 <p className="text-[var(--co-muted)]">No email recorded</p>
               )}
               {customerPhone ? (
-                <a className="block font-medium text-[var(--co-evergreen)] hover:underline" href={`sms:${customerPhone}`}>
+                <a className="block font-medium text-[var(--co-accent-text)] hover:underline" href={`sms:${customerPhone}`}>
                   Text {customerPhone}
                 </a>
               ) : (
                 <p className="text-[var(--co-muted)]">No phone recorded</p>
               )}
-              <Link href={`/customers?search=${encodeURIComponent(customerName)}`} className="block text-[var(--co-evergreen)] hover:underline">
+              <Link href={`/customers?search=${encodeURIComponent(customerName)}`} className="block text-[var(--co-accent-text)] hover:underline">
                 Open customer profile
               </Link>
             </div>

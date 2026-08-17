@@ -219,7 +219,7 @@ export default function NewCustomerPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/customers" className="text-sm font-medium text-[var(--co-evergreen)] hover:underline">
+        <Link href="/customers" className="text-sm font-medium text-[var(--co-accent-text)] hover:underline">
           Back to customers
         </Link>
         <span className="rounded-full border border-[var(--co-line)] bg-[var(--co-surface)] px-3 py-1 text-xs text-[var(--co-muted)]">Manual customer record</span>
@@ -319,7 +319,7 @@ export default function NewCustomerPage() {
                           <Minus className="h-3.5 w-3.5" aria-hidden />
                         </button>
                         <span className="w-4 text-center text-sm font-semibold tabular-nums text-[var(--co-ink)]">{count}</span>
-                        <button type="button" onClick={() => setRoomCount(room.id, count + 1)} aria-label={`Increase ${room.name}`} className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--co-evergreen)] text-white hover:bg-[var(--co-evergreen-soft)]">
+                        <button type="button" onClick={() => setRoomCount(room.id, count + 1)} aria-label={`Increase ${room.name}`} className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--co-accent-fill)] text-white hover:bg-[var(--co-accent-fill-hover)]">
                           <Plus className="h-3.5 w-3.5" aria-hidden />
                         </button>
                       </div>

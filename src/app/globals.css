@@ -18,8 +18,6 @@
   --co-faint: #5c6580;
   --co-line: #c9d0e2;
   --co-line-soft: #e4e8f2;
-  --co-evergreen: #2457ff;
-  --co-evergreen-soft: #1737a8;
   --co-accent: #2457ff;
   --co-accent-soft: #1737a8;
   /* Brand: locked, do not retune. */
@@ -310,7 +308,7 @@ body {
 
 .co-date-input:active, .co-time-input:active {
   background-color: var(--co-surface);
-  border-color: var(--co-evergreen);
+  border-color: var(--co-accent-text);
   box-shadow: 0 0 0 3px var(--co-focus-ring);
 }
 
@@ -339,7 +337,7 @@ body {
 
 .co-date-input:active ~ .co-date-input-icon,
 .co-time-input:active ~ .co-time-input-icon {
-  color: var(--co-evergreen);
+  color: var(--co-accent-text);
 }
 
 /* Hide browser's native calendar picker indicator for cleaner UX. */
@@ -413,8 +411,6 @@ button:active { transform: translateY(1px); }
   --co-faint: #8f99b4;
   --co-line: #2f3743;
   --co-line-soft: #242b35;
-  --co-evergreen: #5b82ff;
-  --co-evergreen-soft: #3a5cd6;
   --co-accent: #5b82ff;
   --co-accent-soft: #3a5cd6;
   /* Accent, split by fill (solid, white text on it) vs text (on a surface/tint). */
@@ -472,58 +468,14 @@ button:active { transform: translateY(1px); }
   --sidebar-ring: oklch(0.56 0.021 213.5);
 }
 
-/* --co-button-primary and .co-date-day-selected now read --co-accent-fill /
-   --co-accent-fill-hover directly (see their base rules above), which already
-   carry correct dark-mode values (white on --co-accent-fill: 7.42:1). The
-   dark-mode override that used to redirect them to --co-evergreen-soft is
-   gone; the split token layer makes it unnecessary.
-
-   The remaining problem is every OTHER ad hoc `bg-[var(--co-evergreen)]
-   text-white` chip, pill, and table header throughout the app (customers,
-   calendar, jobs, payroll, quotes, employees, pagination, time-picker, …)
-   still reads --co-evergreen directly, and --co-evergreen itself is still
-   used both as small accent text (needs to be light enough to read against
-   the dark surface: 5.16:1) and, at those call sites, as a solid fill behind
-   white text (only 3.45:1 at that same value). No single value satisfies
-   both AA 4.5:1 requirements at once, so this rule remains until those call
-   sites are renamed onto --co-accent-fill directly (§3.3 rule 5, its own
-   commit — out of scope for the token-layer commit, since it touches
-   markup). Uses an attribute selector matching the literal space-separated class tokens in
-   the rendered className, rather than replicating Tailwind's escaped
-   selector output — that keeps this rule correct regardless of how the
-   Tailwind compiler escapes bracket/paren characters in its own generated
-   CSS, and it means no component files needed per-instance edits.
-
-   IMPORTANT — this rule is deliberately written OUTSIDE any @layer, while
-   every Tailwind utility (including hover:/focus:/focus-visible:/active:/
-   aria-* variants) is emitted inside `@layer utilities`. Per the CSS cascade,
-   an unlayered rule beats a layered one regardless of specificity or source
-   order. That's *why* three classes of specificity here reliably beat a
-   single-class Tailwind utility — but it also means this rule overrides
-   EVERY background utility on a matching element unconditionally, not just
-   the base (unhovered/unfocused) state. Any element that pairs
-   bg-[var(--co-evergreen)] + text-white with a hover:/focus:/active:/aria-*
-   background variant needs a matching pseudo-class override added here (see
-   the :hover rule below) or that variant is silently dead in dark mode. */
-.dark [class~="bg-[var(--co-evergreen)]"][class~="text-white"] { background-color: var(--co-evergreen-soft); }
-/* Restores hover feedback for the handful of call sites that pair the
-   combo above with a static (non-ternary) hover:bg-* utility on the same
-   element — e.g. the room-count "+" buttons in customers/new and
-   quotes/new. Same darken-on-hover treatment as .co-button-primary above.
-   Audited every bg-[var(--co-evergreen)]+text-white element in src/ for
-   hover:/focus:/focus-visible:/active:/aria-*:bg- or :border- variants
-   co-occurring on the same element (not just the same line/file — several
-   look like a conflict on a same-line grep but are actually mutually
-   exclusive ternary branches, e.g. the selected-view button in
-   calendar/date-picker.tsx and the selected pill in time-picker.tsx, whose
-   hover: classes only ever render on the *other*, non-evergreen branch and
-   were never reachable together with this rule's base override). This
-   :hover rule still applies uniformly to every match, including those
-   ternary cases — for them it adds a subtle hover affordance in dark mode
-   where none existed in either theme before, which is a harmless
-   enhancement, not a fix for a regression, since there was nothing to
-   regress on those elements. */
-.dark [class~="bg-[var(--co-evergreen)]"][class~="text-white"]:hover { background-color: color-mix(in srgb, var(--co-evergreen-soft) 85%, black); }
+/* --co-evergreen is retired (§3.3 rule 5 of the design refinement handoff).
+   Every ad hoc bg-[var(--co-evergreen)]/text-[var(--co-evergreen)]/etc. call
+   site across src/ has been renamed onto --co-accent-fill (solid fills,
+   white text on it: 7.42:1 in dark mode) or --co-accent-text (text/icons/
+   borders read against a surface: 8.09:1 in dark mode), so the dark-mode
+   attribute-selector hack that used to redirect --co-evergreen fills to
+   --co-evergreen-soft is no longer needed — --co-accent-fill already carries
+   the correct dark-mode value directly. */
 
 /* My Day route rail: draws the day's stops as one continuous route instead of
    a stack of cards — a 2px line down the row list with a node per stop. The

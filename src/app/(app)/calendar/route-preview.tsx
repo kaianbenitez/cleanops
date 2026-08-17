@@ -154,7 +154,7 @@ export default function RoutePreview({
             <h2 className="text-lg font-semibold text-[var(--co-ink)]">{title}</h2>
             <p className="mt-1 text-xs text-[var(--co-muted)]">Shows the exact stop order for the selected technician.</p>
           </div>
-          <div className="rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 px-3 py-1.5 text-xs font-medium text-[var(--co-evergreen)]">
+          <div className="rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 px-3 py-1.5 text-xs font-medium text-[var(--co-accent-text)]">
             {totalStops} stops
           </div>
         </div>
@@ -192,14 +192,14 @@ export default function RoutePreview({
                     href={`/jobs/${job.id}`}
                     className="flex w-full items-center gap-3 rounded-2xl border border-white/90 bg-[var(--co-surface)] px-3 py-2 text-xs shadow-[0_8px_22px_rgba(27,41,37,0.08)]"
                   >
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--co-evergreen)] text-[11px] font-semibold text-white">{index + 1}</span>
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--co-accent-fill)] text-[11px] font-semibold text-white">{index + 1}</span>
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="font-semibold text-[var(--co-ink)]">
                         {job.firstName} {job.lastName}
                       </span>
                       <span className="truncate text-[11px] text-[var(--co-muted)]">{job.address}</span>
                     </span>
-                    <span className="rounded-full bg-[var(--co-surface-muted)] px-2 py-1 text-[11px] font-medium text-[var(--co-evergreen)]">{job.time}</span>
+                    <span className="rounded-full bg-[var(--co-surface-muted)] px-2 py-1 text-[11px] font-medium text-[var(--co-accent-text)]">{job.time}</span>
                   </Link>
                 ))}
               </div>

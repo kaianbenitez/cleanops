@@ -75,11 +75,11 @@ export default function TeamSearchPicker({
         <div className="mb-2 flex flex-wrap gap-2">
           {selectedEmployees.map((employee, index) => (
             <span key={employee.id} className="flex items-center gap-1.5 rounded-full border border-[var(--co-line)] bg-[var(--co-surface-muted)] py-1 pl-3 pr-1.5 text-xs font-medium">
-              {index === 0 ? <span className="rounded-full bg-[var(--co-evergreen)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">Lead</span> : null}
+              {index === 0 ? <span className="rounded-full bg-[var(--co-accent-fill)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">Lead</span> : null}
               {employee.isActive === false ? <span className="rounded-full border border-slate-300 bg-white px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">Inactive</span> : null}
               {employee.firstName} {employee.lastName}
               {index !== 0 ? (
-                <button type="button" onClick={() => makeLead(employee.id)} className="rounded-full px-1.5 py-0.5 text-[10px] text-[var(--co-muted)] hover:text-[var(--co-evergreen)]">
+                <button type="button" onClick={() => makeLead(employee.id)} className="rounded-full px-1.5 py-0.5 text-[10px] text-[var(--co-muted)] hover:text-[var(--co-accent-text)]">
                   Make lead
                 </button>
               ) : null}
@@ -115,7 +115,7 @@ export default function TeamSearchPicker({
                 onClick={() => add(employee.id)}
                 className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-sm hover:bg-[var(--co-surface-muted)]"
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--co-surface-muted)] text-[10px] font-bold text-[var(--co-evergreen)]">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--co-surface-muted)] text-[10px] font-bold text-[var(--co-accent-text)]">
                   {employee.firstName[0]}
                   {employee.lastName[0]}
                 </span>

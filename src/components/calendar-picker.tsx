@@ -202,7 +202,7 @@ export function CalendarPicker({ value, onChange, onClose, anchorRef, min, max, 
                   : undefined
               }
               className={`co-date-day flex flex-col items-center justify-center gap-0 ${tint ? "min-h-11" : ""} ${tint ? TINT_CLASS[tint] : ""} ${isSelected ? "co-date-day-selected" : ""} ${
-                !isSelected && isToday ? "border border-[var(--co-evergreen)] font-semibold text-[var(--co-evergreen)]" : ""
+                !isSelected && isToday ? "border border-[var(--co-accent-text)] font-semibold text-[var(--co-accent-text)]" : ""
               } ${!isSelected && !isToday && !isCurrentMonth ? "text-[var(--co-faint)]" : ""} ${
                 isOutOfRange ? "opacity-30 cursor-not-allowed" : ""
               }`}

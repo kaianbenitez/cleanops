@@ -33,7 +33,7 @@ export default function CadenceSection({
           <label
             key={entry}
             className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm ${
-              frequency === entry ? "border-[var(--co-evergreen)] bg-[var(--co-surface-muted)]" : "border-[var(--co-line)]"
+              frequency === entry ? "border-[var(--co-accent-text)] bg-[var(--co-surface-muted)]" : "border-[var(--co-line)]"
             }`}
           >
             <input

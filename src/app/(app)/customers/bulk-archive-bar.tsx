@@ -69,7 +69,7 @@ export function BulkArchiveTable({ rows }: { rows: EligibleCustomerRow[] }) {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 px-5 py-3 text-sm">
         <label className="flex items-center gap-2 text-xs font-semibold text-[var(--co-muted)]">
-          <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-[var(--co-evergreen)]" />
+          <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-[var(--co-accent-fill)]" />
           Select all {rows.length} eligible
         </label>
         <div className="flex items-center gap-3">
@@ -94,7 +94,7 @@ export function BulkArchiveTable({ rows }: { rows: EligibleCustomerRow[] }) {
             {rows.map((row) => (
               <tr key={row.id} className="hover:bg-[var(--co-surface-muted)]/50">
                 <td className="px-5 py-4">
-                  <input type="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} className="accent-[var(--co-evergreen)]" />
+                  <input type="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} className="accent-[var(--co-accent-fill)]" />
                 </td>
                 <td className="px-5 py-4">
                   <p className="font-semibold text-[var(--co-ink)]">{row.name}</p>
@@ -105,7 +105,7 @@ export function BulkArchiveTable({ rows }: { rows: EligibleCustomerRow[] }) {
                 </td>
                 <td className="px-5 py-4 text-[var(--co-muted)]">{row.address}</td>
                 <td className="px-5 py-4 text-right">
-                  <Link href={`/customers/${row.id}`} className="font-medium text-[var(--co-evergreen)]">
+                  <Link href={`/customers/${row.id}`} className="font-medium text-[var(--co-accent-text)]">
                     Open
                   </Link>
                 </td>

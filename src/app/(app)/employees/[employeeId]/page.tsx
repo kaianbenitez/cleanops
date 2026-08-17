@@ -135,7 +135,7 @@ function WeekStrip({ days, pto = [] }: { days: WeekDay[]; pto?: EmployeePto[] })
                 : isOff
                 ? "border-[var(--co-danger)]/30 bg-[var(--co-danger)]/10"
                 : isToday
-                  ? "border-[var(--co-evergreen)] bg-[var(--co-evergreen)]/5"
+                  ? "border-[var(--co-accent-text)] bg-[var(--co-accent-text)]/5"
                   : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40"
             }`}
           >
@@ -148,7 +148,7 @@ function WeekStrip({ days, pto = [] }: { days: WeekDay[]; pto?: EmployeePto[] })
             ) : isOff ? (
               <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--co-danger)]">Off</p>
             ) : (
-              <p className="mt-1 text-[11px] font-semibold text-[var(--co-evergreen)]">
+              <p className="mt-1 text-[11px] font-semibold text-[var(--co-accent-text)]">
                 {day.jobCount} job{day.jobCount === 1 ? "" : "s"}
               </p>
             )}
@@ -345,7 +345,7 @@ function CompactProfile({
     <div className="mx-auto max-w-[1180px] space-y-5 pb-8">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <Link href="/employees" className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">← Team directory</Link>
+          <Link href="/employees" className="text-xs font-semibold text-[var(--co-accent-text)] hover:underline">← Team directory</Link>
           <p className="mt-2 text-xs text-[var(--co-muted)]">Cleaners <span className="mx-1">›</span> <span className="text-[var(--co-ink)]">{fullName}</span></p>
         </div>
         <button type="button" onClick={() => void save({ isActive: !employee.isActive })} className="co-button-secondary text-xs">
@@ -355,7 +355,7 @@ function CompactProfile({
 
       <section className="co-card flex flex-col gap-5 p-5 lg:flex-row lg:items-center lg:justify-between lg:px-6">
         <div className="flex min-w-0 items-center gap-4">
-          <div className="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-2xl border-2 border-[var(--co-evergreen)] bg-[var(--co-surface-muted)] text-2xl font-semibold text-[var(--co-evergreen)]">
+          <div className="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-2xl border-2 border-[var(--co-accent-text)] bg-[var(--co-surface-muted)] text-2xl font-semibold text-[var(--co-accent-text)]">
             {employee.profilePhotoUrl ? <img src={employee.profilePhotoUrl} alt={`${fullName} profile`} className="h-full w-full rounded-[14px] object-cover" /> : initials}
             <span className={`absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] ${employee.isActive ? "co-badge-success" : "co-badge-muted"}`}>{employee.isActive ? "Active" : "Inactive"}</span>
           </div>
@@ -380,8 +380,8 @@ function CompactProfile({
             <Link href={`/calendar?view=staff&employeeId=${employee.id}`} className="co-button-secondary">View schedule</Link>
           </div>
           <div className="flex gap-7">
-          <div><p className="eyebrow">Total jobs</p><p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--co-evergreen)]">{stats.jobsCompleted.toLocaleString()}</p></div>
-          <div><p className="eyebrow">Team rank</p><p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--co-evergreen)]">{stats.teamRank == null ? "—" : `#${stats.teamRank}`}</p>{stats.teamRank != null ? <p className="text-[11px] text-[var(--co-muted)]">of {stats.teamSize}</p> : null}</div>
+          <div><p className="eyebrow">Total jobs</p><p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--co-accent-text)]">{stats.jobsCompleted.toLocaleString()}</p></div>
+          <div><p className="eyebrow">Team rank</p><p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--co-accent-text)]">{stats.teamRank == null ? "—" : `#${stats.teamRank}`}</p>{stats.teamRank != null ? <p className="text-[11px] text-[var(--co-muted)]">of {stats.teamSize}</p> : null}</div>
           </div>
         </div>
       </section>
@@ -395,7 +395,7 @@ function CompactProfile({
       <div className="grid items-start gap-5 xl:grid-cols-[285px_minmax(0,1fr)]">
         <aside className="space-y-5">
           <section ref={employeeInfoRef} className="co-card scroll-mt-5 p-5">
-            <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><User className="h-4 w-4 text-[var(--co-evergreen)]" /><h2 className="text-sm font-semibold">Personnel details</h2></div>{editMode ? <button type="button" onClick={() => setEditMode(false)} className="text-xs font-semibold text-[var(--co-muted)] hover:text-[var(--co-ink)]">Done</button> : null}</div>
+            <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><User className="h-4 w-4 text-[var(--co-accent-text)]" /><h2 className="text-sm font-semibold">Personnel details</h2></div>{editMode ? <button type="button" onClick={() => setEditMode(false)} className="text-xs font-semibold text-[var(--co-muted)] hover:text-[var(--co-ink)]">Done</button> : null}</div>
             {editMode ? (
               <div className="mt-5 space-y-3">
                 <div className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-3">
@@ -427,15 +427,15 @@ function CompactProfile({
             )}
           </section>
 
-          <section className="co-card p-5"><div className="flex items-center justify-between"><h2 className="text-sm font-semibold">Service area</h2><span className="text-[var(--co-evergreen)]">Primary</span></div><p className="mt-4 rounded-xl bg-[var(--co-surface-muted)] px-3 py-3 text-xs font-medium text-[var(--co-ink)]">{employee.serviceLocationName ?? "No primary area assigned"}</p>{editMode ? <select defaultValue={employee.serviceLocationId ?? ""} onChange={(event) => void save({ serviceLocationId: event.target.value || null })} className="co-input mt-3 w-full text-xs"><option value="">No primary area</option>{serviceLocations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select> : null}</section>
+          <section className="co-card p-5"><div className="flex items-center justify-between"><h2 className="text-sm font-semibold">Service area</h2><span className="text-[var(--co-accent-text)]">Primary</span></div><p className="mt-4 rounded-xl bg-[var(--co-surface-muted)] px-3 py-3 text-xs font-medium text-[var(--co-ink)]">{employee.serviceLocationName ?? "No primary area assigned"}</p>{editMode ? <select defaultValue={employee.serviceLocationId ?? ""} onChange={(event) => void save({ serviceLocationId: event.target.value || null })} className="co-input mt-3 w-full text-xs"><option value="">No primary area</option>{serviceLocations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select> : null}</section>
 
           <EmployeeTags tags={employee.tags} onSave={(tags) => void save({ tags })} />
         </aside>
 
         <div className="space-y-5">
-          <section className="co-card overflow-hidden"><div className="flex items-center justify-between border-b border-[var(--co-line-soft)] px-5 py-4"><div className="flex items-center gap-2"><History className="h-4 w-4 text-[var(--co-evergreen)]" /><h2 className="text-sm font-semibold">Recent jobs</h2></div><Link href="/jobs" className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">View full history ↗</Link></div><div className="divide-y divide-[var(--co-line-soft)]">{recentJobs.length === 0 ? <div className="px-5 py-6"><EmptyState label="No recent jobs yet." detail="Completed work will appear here." /></div> : recentJobs.map((job) => <JobRow key={job.id} job={job} compact />)}</div></section>
+          <section className="co-card overflow-hidden"><div className="flex items-center justify-between border-b border-[var(--co-line-soft)] px-5 py-4"><div className="flex items-center gap-2"><History className="h-4 w-4 text-[var(--co-accent-text)]" /><h2 className="text-sm font-semibold">Recent jobs</h2></div><Link href="/jobs" className="text-xs font-semibold text-[var(--co-accent-text)] hover:underline">View full history ↗</Link></div><div className="divide-y divide-[var(--co-line-soft)]">{recentJobs.length === 0 ? <div className="px-5 py-6"><EmptyState label="No recent jobs yet." detail="Completed work will appear here." /></div> : recentJobs.map((job) => <JobRow key={job.id} job={job} compact />)}</div></section>
 
-          <section className="co-card p-5"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[var(--co-evergreen)]" /><h2 className="text-sm font-semibold">Weekly schedule preview</h2></div><Link href={`/calendar?view=staff_vertical&employeeId=${employee.id}`} className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline">View schedule</Link></div><p className="mt-1 text-xs text-[var(--co-muted)]">Assignments and planned time off for this week.</p><div className="mt-4"><WeekStrip days={weeklySchedule} pto={pto} /></div><PtoEditor employeeId={employee.id} onChange={setPto} /></section>
+          <section className="co-card p-5"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[var(--co-accent-text)]" /><h2 className="text-sm font-semibold">Weekly schedule preview</h2></div><Link href={`/calendar?view=staff_vertical&employeeId=${employee.id}`} className="text-xs font-semibold text-[var(--co-accent-text)] hover:underline">View schedule</Link></div><p className="mt-1 text-xs text-[var(--co-muted)]">Assignments and planned time off for this week.</p><div className="mt-4"><WeekStrip days={weeklySchedule} pto={pto} /></div><PtoEditor employeeId={employee.id} onChange={setPto} /></section>
           <PendingPtoRequests employeeId={employee.id} />
           <ReportNotes employeeId={employee.id} />
 
@@ -540,7 +540,7 @@ function EmployeeAccountManagement({
         </button>
       </form>
 
-      {message ? <p className="mt-3 text-xs font-semibold text-[var(--co-evergreen)]">{message}</p> : null}
+      {message ? <p className="mt-3 text-xs font-semibold text-[var(--co-accent-text)]">{message}</p> : null}
       {error ? <p className="mt-3 text-xs font-semibold text-[var(--co-danger)]">{error}</p> : null}
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--co-line-soft)] pt-5">
@@ -763,7 +763,7 @@ function TierRatesEditor({
         <button type="button" onClick={handleSave} className="co-button-primary">
           Save tier rates
         </button>
-        {saved && <span className="text-xs font-semibold text-[var(--co-evergreen)]">Saved</span>}
+        {saved && <span className="text-xs font-semibold text-[var(--co-accent-text)]">Saved</span>}
         {error && <span className="text-xs font-semibold text-[var(--co-danger)]">{error}</span>}
       </div>
     </div>

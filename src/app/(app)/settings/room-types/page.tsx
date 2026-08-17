@@ -142,7 +142,7 @@ export default function RoomTypesSettingsPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1180px] text-left text-sm">
-            <thead className="bg-[var(--co-evergreen)] text-xs uppercase tracking-[0.08em] text-white">
+            <thead className="bg-[var(--co-accent-fill)] text-xs uppercase tracking-[0.08em] text-white">
               <tr>
                 <th className="px-4 py-3">Room type</th>
                 {SERVICE_TYPES.map((service) => (
@@ -223,7 +223,7 @@ export default function RoomTypesSettingsPage() {
             Add room type
           </button>
         </div>
-        {message && <p className="mt-3 text-sm font-medium text-[var(--co-evergreen)]">{message}</p>}
+        {message && <p className="mt-3 text-sm font-medium text-[var(--co-accent-text)]">{message}</p>}
       </section>
     </div>
   );

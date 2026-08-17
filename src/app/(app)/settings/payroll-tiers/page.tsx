@@ -136,7 +136,7 @@ export default function PayrollTiersSettingsPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="bg-[var(--co-evergreen)] text-xs uppercase tracking-[0.08em] text-white">
+            <thead className="bg-[var(--co-accent-fill)] text-xs uppercase tracking-[0.08em] text-white">
               <tr>
                 <th className="px-4 py-3">Label</th>
                 <th className="px-3 py-3">Min hours</th>
@@ -254,7 +254,7 @@ export default function PayrollTiersSettingsPage() {
         {message && (
           <p
             className={`text-sm font-medium ${
-              message.tone === "success" ? "text-[var(--co-evergreen)]" : "text-rose-600"
+              message.tone === "success" ? "text-[var(--co-accent-text)]" : "text-rose-600"
             }`}
           >
             {message.text}

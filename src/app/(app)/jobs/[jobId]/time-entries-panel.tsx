@@ -185,7 +185,7 @@ export default function TimeEntriesPanel({
                 <td className="px-4 py-3 font-medium">
                   {entry.firstName} {entry.lastName}
                   {entry.recordedByAdmin ? (
-                    <span className="ml-2 rounded-full bg-[#e4eee2] px-2 py-0.5 text-[10px] font-semibold text-[var(--co-evergreen)]">Manual</span>
+                    <span className="ml-2 rounded-full bg-[#e4eee2] px-2 py-0.5 text-[10px] font-semibold text-[var(--co-accent-text)]">Manual</span>
                   ) : null}
                 </td>
                 <td className="px-4 py-3 text-[var(--co-muted)]">{formatTime(entry.clockIn)}</td>
@@ -195,7 +195,7 @@ export default function TimeEntriesPanel({
                   <button
                     type="button"
                     onClick={() => beginEdit(entry)}
-                    className="text-xs font-semibold text-[var(--co-evergreen)] hover:underline"
+                    className="text-xs font-semibold text-[var(--co-accent-text)] hover:underline"
                   >
                     Edit
                   </button>
@@ -230,7 +230,7 @@ export default function TimeEntriesPanel({
       ) : null}
 
       <details className="mt-4 rounded-xl border border-[#d5ded5] p-3">
-        <summary className="cursor-pointer text-sm font-semibold text-[var(--co-evergreen)]">Add time manually</summary>
+        <summary className="cursor-pointer text-sm font-semibold text-[var(--co-accent-text)]">Add time manually</summary>
         {assignedEmployees.length === 0 ? (
           <p className="mt-3 text-sm text-[var(--co-muted)]">Assign the crew first — manual time is recorded against an assigned technician.</p>
         ) : (
