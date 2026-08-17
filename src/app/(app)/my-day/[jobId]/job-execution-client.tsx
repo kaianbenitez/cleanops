@@ -267,7 +267,7 @@ export default function JobExecutionClient({
       <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChosen} />
 
       <div className="mb-4">
-        <Link href="/my-day" className="inline-flex items-center gap-1 text-sm font-medium text-[var(--co-muted)] hover:text-[var(--co-ink)]">
+        <Link href="/my-day" className="-ml-2 flex min-h-11 w-fit items-center gap-1 px-2 text-sm font-medium text-[var(--co-muted)] hover:text-[var(--co-ink)]">
           ← Back to My day
         </Link>
       </div>
@@ -277,7 +277,7 @@ export default function JobExecutionClient({
           <div className="min-w-0">
             <div className="mb-1 flex flex-wrap items-center gap-2">
               <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                className={`rounded-full px-2 py-0.5 type-field-micro font-bold uppercase tracking-wider ${
                   jobFullyCompleted
                     ? "co-badge-success"
                     : myPortionDone
@@ -289,7 +289,7 @@ export default function JobExecutionClient({
               >
                 {statusLabel}
               </span>
-              <span className="font-mono text-[10px] text-[var(--co-faint)]">ID: #{job.jobId.slice(0, 8).toUpperCase()}</span>
+              <span className="font-mono type-field-micro text-[var(--co-faint)]">ID: #{job.jobId.slice(0, 8).toUpperCase()}</span>
             </div>
             <h1 className="page-title !text-2xl">{address}</h1>
             <p className="mt-1 flex items-center gap-1 text-sm text-[var(--co-muted)]">
@@ -371,7 +371,7 @@ export default function JobExecutionClient({
 
             {clientNote ? (
               <div className="mt-4 rounded-lg bg-[var(--co-accent-tint)] p-4">
-                <p className="mb-1 text-xs font-bold uppercase tracking-tight text-[var(--co-accent-text)]">Client notes</p>
+                <p className="mb-1 type-field-meta font-bold uppercase tracking-tight text-[var(--co-accent-text)]">Client notes</p>
                 <p className="whitespace-pre-line text-sm text-[var(--co-ink)]">{clientNote}</p>
               </div>
             ) : null}
@@ -380,7 +380,7 @@ export default function JobExecutionClient({
               <div className="mt-4 grid gap-2 sm:grid-cols-3">
                 {instructions.map((instruction) => {
                   const Icon = instruction.icon;
-                  return <section key={instruction.label} className={`rounded-lg p-3 ${instruction.tone}`}><div className="flex items-center gap-2 text-xs font-bold"><Icon className="h-4 w-4" />{instruction.label}</div><p className="mt-2 whitespace-pre-line text-sm leading-5">{instruction.value}</p></section>;
+                  return <section key={instruction.label} className={`rounded-lg p-3 ${instruction.tone}`}><div className="flex items-center gap-2 type-field-meta font-bold"><Icon className="h-4 w-4" />{instruction.label}</div><p className="mt-2 whitespace-pre-line text-sm leading-5">{instruction.value}</p></section>;
                 })}
               </div>
             ) : null}
@@ -388,7 +388,7 @@ export default function JobExecutionClient({
             {notes.length > 0 ? (
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {notes.map((note) => (
-                  <div key={note} className="whitespace-pre-line rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-3 py-2 text-xs leading-5 text-[var(--co-ink)]">
+                  <div key={note} className="whitespace-pre-line rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-3 py-2 type-field-meta leading-5 text-[var(--co-ink)]">
                     {note}
                   </div>
                 ))}
@@ -401,7 +401,7 @@ export default function JobExecutionClient({
               <section className="co-card p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <h2 className="text-base font-semibold text-[var(--co-ink)]">Photo evidence</h2>
-                  <button type="button" onClick={() => openUpload("extra")} disabled={uploading} className="co-button-primary px-4 py-2 text-xs">
+                  <button type="button" onClick={() => openUpload("extra")} disabled={uploading} className="co-button-primary px-4 py-2 type-field-meta">
                     {uploading ? "Uploading…" : "Upload photo"}
                   </button>
                 </div>
@@ -423,10 +423,10 @@ export default function JobExecutionClient({
                             className="relative flex aspect-square items-center justify-center rounded-xl border-2 border-dashed border-[var(--co-line)] bg-[var(--co-surface-muted)] text-[var(--co-faint)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-accent-text)] disabled:opacity-60"
                           >
                             <span className="text-3xl">+</span>
-                            <span className="absolute bottom-2 left-2 rounded bg-[var(--co-ink)]/70 px-2 py-0.5 text-[10px] font-bold uppercase text-white">Required</span>
+                            <span className="absolute bottom-2 left-2 rounded bg-[var(--co-ink)]/70 px-2 py-0.5 type-field-micro font-bold uppercase text-white">Required</span>
                           </button>
                         )}
-                        <span className="text-center text-xs font-medium text-[var(--co-muted)]">{slot === "before" ? "Before" : "After"}</span>
+                        <span className="text-center type-field-meta font-medium text-[var(--co-muted)]">{slot === "before" ? "Before" : "After"}</span>
                       </div>
                     );
                   })}
@@ -435,7 +435,7 @@ export default function JobExecutionClient({
                       <div className="relative aspect-square overflow-hidden rounded-xl border border-[var(--co-line-soft)]">
                         {photo.url ? <img src={photo.url} alt="Additional evidence" className="h-full w-full object-cover" /> : null}
                       </div>
-                      <span className="text-center text-xs font-medium text-[var(--co-muted)]">Additional</span>
+                      <span className="text-center type-field-meta font-medium text-[var(--co-muted)]">Additional</span>
                     </div>
                   ))}
                   <button
@@ -445,10 +445,10 @@ export default function JobExecutionClient({
                     className="flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-[var(--co-faint)] hover:text-[var(--co-accent-text)] disabled:opacity-60"
                   >
                     <span className="text-2xl">+</span>
-                    <span className="px-4 text-center text-[10px] font-bold uppercase">Add more photos</span>
+                    <span className="px-4 text-center type-field-micro font-bold uppercase">Add more photos</span>
                   </button>
                 </div>
-                <p className="mt-3 text-xs text-[var(--co-faint)]">Photos are securely saved to this job for office review.</p>
+                <p className="mt-3 type-field-meta text-[var(--co-faint)]">Photos are securely saved to this job for office review.</p>
               </section>
 
               <section className="co-card p-5">
@@ -459,10 +459,10 @@ export default function JobExecutionClient({
                       <Send className="mt-0.5 h-5 w-5 shrink-0 text-[var(--co-accent-text)]" />
                       <div>
                         <p className="font-semibold text-[var(--co-ink)]">Customer feedback link</p>
-                        <p className="mt-1 text-xs leading-5 text-[var(--co-muted)]">Send the customer a private link. They submit their own rating, feedback, tip, and payment.</p>
+                        <p className="mt-1 type-field-meta leading-5 text-[var(--co-muted)]">Send the customer a private link. They submit their own rating, feedback, tip, and payment.</p>
                       </div>
                     </div>
-                    {feedbackUrl ? <div className="mt-4 rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] p-3"><p className="text-xs font-semibold text-[var(--co-accent-text)]">Link ready — share it with the customer:</p><input readOnly value={feedbackUrl} className="co-input mt-2 w-full text-xs" onFocus={(event) => event.currentTarget.select()} /></div> : <button type="button" onClick={requestCustomerFeedback} disabled={sendingFeedback} className="co-button-secondary mt-4 w-full justify-center">{sendingFeedback ? "Creating link…" : "Create customer link"}</button>}
+                    {feedbackUrl ? <div className="mt-4 rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] p-3"><p className="type-field-meta font-semibold text-[var(--co-accent-text)]">Link ready — share it with the customer:</p><input readOnly value={feedbackUrl} className="co-input mt-2 w-full type-field-meta" onFocus={(event) => event.currentTarget.select()} /></div> : <button type="button" onClick={requestCustomerFeedback} disabled={sendingFeedback} className="co-button-secondary mt-4 w-full justify-center">{sendingFeedback ? "Creating link…" : "Create customer link"}</button>}
                   </div>
                   <label className="block">
                     <span className="mb-1 block text-sm text-[var(--co-muted)]">Payment collected on-site</span>
@@ -522,7 +522,7 @@ export default function JobExecutionClient({
               </p>
               <div className="co-badge-warning mx-auto mt-4 max-w-sm rounded-xl px-4 py-3 text-left">
                 <p className="text-sm font-semibold">Waiting on {waitingOnLabel}</p>
-                <p className="mt-1 text-xs">This job finishes once everyone assigned has clocked out.</p>
+                <p className="mt-1 type-field-meta">This job finishes once everyone assigned has clocked out.</p>
               </div>
               <Link href="/my-day" className="co-button-primary mt-4 inline-flex">
                 Back to My day

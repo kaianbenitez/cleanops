@@ -77,18 +77,18 @@ export default function PtoRequests() {
       <form onSubmit={submit} className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">
         <DateInput label="Start date" required value={startDate} onChange={setStartDate} />
         <DateInput label="End date" value={endDate} min={startDate} onChange={setEndDate} />
-        <label className="text-xs font-semibold text-[var(--co-muted)]">Start period<select value={startPeriod} onChange={(event) => setStartPeriod(event.target.value as PtoRequest["startPeriod"])} className="co-input mt-1 w-full text-sm">{Object.entries(periodLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-        <label className="text-xs font-semibold text-[var(--co-muted)]">End period<select value={endPeriod} onChange={(event) => setEndPeriod(event.target.value as PtoRequest["endPeriod"])} className="co-input mt-1 w-full text-sm">{Object.entries(periodLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-        <label className="text-xs font-semibold text-[var(--co-muted)] sm:col-span-2">Note (optional)<textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={240} rows={2} className="co-input mt-1 w-full resize-none text-sm" placeholder="Vacation, appointment, or other reason" /></label>
-        <div className="flex items-center justify-between gap-3 sm:col-span-2"><p aria-live="polite" className="text-xs text-[var(--co-accent-text)]">{message}</p><button type="submit" disabled={saving || !startDate} className="co-button-primary shrink-0">{saving ? "Sending…" : "Send request"}</button></div>
+        <label className="type-field-meta font-semibold text-[var(--co-muted)]">Start period<select value={startPeriod} onChange={(event) => setStartPeriod(event.target.value as PtoRequest["startPeriod"])} className="co-input mt-1 w-full text-sm">{Object.entries(periodLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        <label className="type-field-meta font-semibold text-[var(--co-muted)]">End period<select value={endPeriod} onChange={(event) => setEndPeriod(event.target.value as PtoRequest["endPeriod"])} className="co-input mt-1 w-full text-sm">{Object.entries(periodLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        <label className="type-field-meta font-semibold text-[var(--co-muted)] sm:col-span-2">Note (optional)<textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={240} rows={2} className="co-input mt-1 w-full resize-none text-sm" placeholder="Vacation, appointment, or other reason" /></label>
+        <div className="flex items-center justify-between gap-3 sm:col-span-2"><p aria-live="polite" className="type-field-meta text-[var(--co-accent-text)]">{message}</p><button type="submit" disabled={saving || !startDate} className="co-button-primary shrink-0">{saving ? "Sending…" : "Send request"}</button></div>
       </form>
       <div className="border-t border-[var(--co-line-soft)] px-4 py-4 sm:px-5">
         <h3 className="text-sm font-semibold">Your requests</h3>
         <div className="mt-3 divide-y divide-[var(--co-line-soft)]">
           {requests.length === 0 ? <p className="py-3 text-sm text-[var(--co-muted)]">No time-off requests yet.</p> : requests.map((request) => (
             <div key={request.id} className="flex items-start justify-between gap-3 py-3 text-sm">
-              <div><p className="font-medium text-[var(--co-ink)]">{requestLabel(request)}</p>{request.note ? <p className="mt-1 text-xs text-[var(--co-muted)]">{request.note}</p> : null}</div>
-              <div className="flex shrink-0 flex-col items-end gap-1.5"><span className={`rounded-md border px-2 py-1 text-xs font-semibold uppercase tracking-[0.08em] ${statusClasses[request.status]}`}>{request.status}</span>{request.status === "pending" ? <button type="button" onClick={() => void cancel(request.id)} className="min-h-8 text-xs font-semibold text-[var(--co-danger)] underline underline-offset-2">Cancel</button> : null}</div>
+              <div><p className="font-medium text-[var(--co-ink)]">{requestLabel(request)}</p>{request.note ? <p className="mt-1 type-field-meta text-[var(--co-muted)]">{request.note}</p> : null}</div>
+              <div className="flex shrink-0 flex-col items-end gap-1.5"><span className={`rounded-md border px-2 py-1 type-field-meta font-semibold uppercase tracking-[0.08em] ${statusClasses[request.status]}`}>{request.status}</span>{request.status === "pending" ? <button type="button" onClick={() => void cancel(request.id)} className="flex min-h-11 items-center px-2 type-field-meta font-semibold text-[var(--co-danger)] underline underline-offset-2">Cancel</button> : null}</div>
             </div>
           ))}
         </div>
