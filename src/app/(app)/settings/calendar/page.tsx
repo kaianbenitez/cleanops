@@ -15,9 +15,11 @@ const DAYS: Array<[number, string]> = [
 export default function CalendarSettingsPage() {
   const [holidays, setHolidays] = useState("");
   const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [workdayHours, setWorkdayHours] = useState("8");
   const [loading, setLoading] = useState(true);
   const [holidaysMessage, setHolidaysMessage] = useState("");
   const [workingDaysMessage, setWorkingDaysMessage] = useState("");
+  const [workdayHoursMessage, setWorkdayHoursMessage] = useState("");
 
   useEffect(() => {
     fetch("/api/settings")
@@ -28,6 +30,7 @@ export default function CalendarSettingsPage() {
         setWorkingDays(
           Array.isArray(data.company.settings?.workingDays) ? data.company.settings.workingDays : [1, 2, 3, 4, 5],
         );
+        setWorkdayHours(String(data.company.settings?.workdayHoursPerCleaner ?? 8));
       })
       .finally(() => setLoading(false));
   }, []);
@@ -64,6 +67,20 @@ export default function CalendarSettingsPage() {
       body: JSON.stringify({ workingDays }),
     });
     setWorkingDaysMessage(response.ok ? "Calendar working days saved." : "Could not save calendar working days.");
+  }
+
+  async function saveWorkdayHours() {
+    const hours = Number(workdayHours);
+    if (!Number.isFinite(hours) || hours <= 0 || hours > 24) {
+      setWorkdayHoursMessage("Enter a number of hours between 0 and 24.");
+      return;
+    }
+    const response = await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workdayHoursPerCleaner: hours }),
+    });
+    setWorkdayHoursMessage(response.ok ? "Hours per cleaner saved." : "Could not save hours per cleaner.");
   }
 
   if (loading) {
@@ -134,6 +151,37 @@ export default function CalendarSettingsPage() {
           </button>
           {workingDaysMessage ? (
             <p className="mt-3 text-sm font-medium text-[var(--co-evergreen)]">{workingDaysMessage}</p>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="co-card overflow-hidden">
+        <div className="border-b border-[var(--co-line-soft)] px-5 py-4">
+          <p className="eyebrow">Dispatch capacity</p>
+          <h2 className="mt-1 text-lg font-semibold">Hours per cleaner</h2>
+        </div>
+        <div className="p-5">
+          <label className="block max-w-xs text-sm">
+            <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Hours per working day, per cleaner</span>
+            <input
+              type="number"
+              step="0.5"
+              min="0"
+              max="24"
+              className="co-input w-full"
+              value={workdayHours}
+              onChange={(event) => setWorkdayHours(event.target.value)}
+            />
+            <span className="mt-2 block text-xs leading-5 text-[var(--co-muted)]">
+              Used on the scheduling calendar to show how many hours are free on a given day. Time off reduces this
+              per cleaner, including half-days.
+            </span>
+          </label>
+          <button onClick={saveWorkdayHours} className="co-button-primary mt-5">
+            Save hours per cleaner
+          </button>
+          {workdayHoursMessage ? (
+            <p className="mt-3 text-sm font-medium text-[var(--co-evergreen)]">{workdayHoursMessage}</p>
           ) : null}
         </div>
       </section>
