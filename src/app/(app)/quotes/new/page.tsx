@@ -28,6 +28,7 @@ import {
 import { ADD_ONS, detectRequestedAddOns, type AddOnKey } from "@/lib/pricing/add-ons";
 import { resolveServiceAreaNameForZip } from "@/lib/pricing/service-area-zips";
 import AddressAutocomplete from "../../customers/address-autocomplete";
+import { DateInput } from "@/components/date-input";
 
 type Customer = {
   id: string;
@@ -823,15 +824,7 @@ export default function NewQuotePage() {
                 placeholder="Add a personal note for the proposal..."
               />
             </label>
-            <label className="mt-3 block text-sm">
-              <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Valid until</span>
-              <input
-                type="date"
-                className="co-input w-full"
-                value={validUntil}
-                onChange={(event) => setValidUntil(event.target.value)}
-              />
-            </label>
+            <DateInput label="Valid until" className="mt-3" value={validUntil} onChange={setValidUntil} />
           </section>
         </div>
 

@@ -12,10 +12,13 @@ interface DateInputProps {
   required?: boolean;
   disabled?: boolean;
   className?: string;
+  name?: string;
+  min?: string;
+  max?: string;
 }
 
 export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
-  ({ value, defaultValue, onChange, onBlur, label, required, disabled, className = "" }, ref) => {
+  ({ value, defaultValue, onChange, onBlur, label, required, disabled, className = "", name, min, max }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
     const [displayValue, setDisplayValue] = useState(value ?? defaultValue ?? "");
 
@@ -67,6 +70,9 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
           <input
             ref={ref}
             type="date"
+            name={name}
+            min={min}
+            max={max}
             value={displayValue}
             onChange={(e) => handleChange(e.target.value)}
             onBlur={onBlur}
@@ -76,7 +82,13 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
             aria-hidden="true"
           />
           {isOpen && (
-            <CalendarPicker value={displayValue} onChange={handleChange} onClose={() => setIsOpen(false)} />
+            <CalendarPicker
+              value={displayValue}
+              onChange={handleChange}
+              onClose={() => setIsOpen(false)}
+              min={min}
+              max={max}
+            />
           )}
         </div>
       </label>

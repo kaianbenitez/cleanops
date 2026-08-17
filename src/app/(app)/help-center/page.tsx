@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.51",
+    date: "August 17, 2026",
+    title: "Date fields you can click instead of type",
+    changes: [
+      "Quote dates (\"Valid until\" and the \"Start date\" when converting a quote into work) now open a real calendar you click, instead of a plain box where you had to type the date yourself.",
+      "The same click-to-pick calendar was added to scheduling a new job, setting up a recurring series, adding a new employee's hired date, and requesting time off.",
+      "Time-off requests still won't let you pick an end date before the start date — the calendar just greys those days out instead of letting you tap them and then rejecting it.",
+    ],
+  },
+  {
     version: "v0.2.50",
     date: "August 17, 2026",
     title: "Archived employees no longer clutter the team directory",

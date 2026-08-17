@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { DateInput } from "@/components/date-input";
 
 /** The API returns either a plain string or a zod `.flatten()` shape
  * ({formErrors, fieldErrors}) for validation failures. Turn either into a
@@ -243,14 +244,7 @@ export default function NewEmployeePage() {
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Hired date">
-                <input
-                  type="date"
-                  value={hiredDate}
-                  onChange={(e) => setHiredDate(e.target.value)}
-                  className="co-input w-full"
-                />
-              </Field>
+              <DateInput label="Hired date" value={hiredDate} onChange={setHiredDate} />
             </div>
 
             {(role === "employee" || isFieldStaff) && (

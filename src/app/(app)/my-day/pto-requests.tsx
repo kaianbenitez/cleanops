@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { DateInput } from "@/components/date-input";
 
 type PtoRequest = {
   id: string;
@@ -74,8 +75,8 @@ export default function PtoRequests() {
         <h2 className="mt-1 text-lg font-semibold">Request time off</h2>
       </div>
       <form onSubmit={submit} className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">
-        <label className="text-xs font-semibold text-[var(--co-muted)]">Start date<input required type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="co-input mt-1 w-full text-sm" /></label>
-        <label className="text-xs font-semibold text-[var(--co-muted)]">End date<input type="date" value={endDate} min={startDate} onChange={(event) => setEndDate(event.target.value)} className="co-input mt-1 w-full text-sm" /></label>
+        <DateInput label="Start date" required value={startDate} onChange={setStartDate} />
+        <DateInput label="End date" value={endDate} min={startDate} onChange={setEndDate} />
         <label className="text-xs font-semibold text-[var(--co-muted)]">Start period<select value={startPeriod} onChange={(event) => setStartPeriod(event.target.value as PtoRequest["startPeriod"])} className="co-input mt-1 w-full text-sm">{Object.entries(periodLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label className="text-xs font-semibold text-[var(--co-muted)]">End period<select value={endPeriod} onChange={(event) => setEndPeriod(event.target.value as PtoRequest["endPeriod"])} className="co-input mt-1 w-full text-sm">{Object.entries(periodLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label className="text-xs font-semibold text-[var(--co-muted)] sm:col-span-2">Note (optional)<textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={240} rows={2} className="co-input mt-1 w-full resize-none text-sm" placeholder="Vacation, appointment, or other reason" /></label>

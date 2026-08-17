@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import CustomerSearchPicker from "@/components/customer-search-picker";
 import TeamSearchPicker from "@/components/team-search-picker";
+import { DateInput } from "@/components/date-input";
 import type { NewJobOptions } from "@/lib/jobs/new-job-data";
 
 const JOB_TYPES = ["first_clean", "one_time", "deep_clean", "move_out"] as const;
@@ -207,10 +208,7 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
           <p className="eyebrow">Schedule</p>
           <h2 className="mt-1 text-lg font-semibold">Place it on the calendar</h2>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <label className="block text-sm">
-              <span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Date</span>
-              <input required type="date" value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} className="co-input w-full" />
-            </label>
+            <DateInput label="Date" required value={scheduledDate} onChange={setScheduledDate} />
             <label className="block text-sm">
               <span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Start time</span>
               <input required type="time" value={scheduledStartTime} onChange={(event) => setScheduledStartTime(event.target.value)} className="co-input w-full" />

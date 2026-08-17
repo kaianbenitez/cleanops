@@ -1,6 +1,7 @@
 "use client";
 
 import { DAYS, FREQUENCIES, FREQUENCY_LABELS, type SeriesFrequency } from "./constants";
+import { DateInput } from "@/components/date-input";
 
 /** Repeat pattern: how often, on which weekday, starting when.
  *
@@ -60,16 +61,7 @@ export default function CadenceSection({
         </label>
       ) : null}
 
-      <label className="mt-4 block text-sm">
-        <span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">First visit</span>
-        <input
-          required
-          type="date"
-          className="co-input w-full"
-          value={startDate}
-          onChange={(event) => onStartDateChange(event.target.value)}
-        />
-      </label>
+      <DateInput label="First visit" className="mt-4" required value={startDate} onChange={onStartDateChange} />
     </section>
   );
 }
