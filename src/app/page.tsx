@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   },
 };
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://cleanops-orcin.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://getshimmer.app";
 
 // Plain-text mirror of marketing-faq.tsx's questions, for FAQPage JSON-LD
 // only. Kept separate because that array's answers are JSX (one links to
@@ -86,7 +86,7 @@ function MarketingJsonLd() {
       "@type": "Organization",
       name: "ServiceSpark",
       url: SITE_URL,
-      email: "kbenitez1118@gmail.com",
+      email: "hello@getshimmer.app",
       address: { "@type": "PostalAddress", addressLocality: "Manila", addressCountry: "PH" },
     },
     {

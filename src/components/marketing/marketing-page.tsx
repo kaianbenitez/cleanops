@@ -231,8 +231,8 @@ export default function MarketingPage() {
             <Link href="/terms" className="hover:text-[var(--co-ink)]">
               Terms
             </Link>
-            <a href="mailto:kbenitez1118@gmail.com" className="hover:text-[var(--co-ink)]">
-              kbenitez1118@gmail.com
+            <a href="mailto:hello@getshimmer.app" className="hover:text-[var(--co-ink)]">
+              hello@getshimmer.app
             </a>
           </div>
         </div>
