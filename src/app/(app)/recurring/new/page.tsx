@@ -20,7 +20,7 @@ export default async function NewRecurringSeriesPage() {
         <div>
           <p className="eyebrow">Operations / Schedule</p>
           <h1 className="page-title mt-2">New recurring series</h1>
-          <p className="page-subtitle">Set the repeat pattern once, then let ServiceSpark generate the upcoming visits.</p>
+          <p className="page-subtitle">Set the repeat pattern once, then let Shimmer generate the upcoming visits.</p>
         </div>
         <Link href="/calendar" className="co-button-secondary">
           ← Back to calendar

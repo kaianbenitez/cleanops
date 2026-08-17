@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 
-const FROM_ADDRESS = "ServiceSpark <hello@getshimmer.app>";
+const FROM_ADDRESS = "Shimmer <hello@getshimmer.app>";
 
 /** Sends a plain-text email via Resend. Throws if RESEND_API_KEY is unset or the send fails. */
 export async function sendEmail(params: { to: string; subject: string; text: string }) {

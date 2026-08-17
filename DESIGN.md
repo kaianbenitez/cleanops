@@ -1,4 +1,4 @@
-# ServiceSpark design system
+# Shimmer design system
 
 This describes the design system as it actually exists in `src/` as of
 branch `design/wp3-evergreen-retirement`, which finished several mechanical

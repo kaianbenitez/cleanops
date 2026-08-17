@@ -196,7 +196,7 @@ export default function AppNav({
 
           <Link href={logoHref} className="flex items-center gap-2">
             <img src="/brand/logo-mark.png" alt="" aria-hidden="true" className="h-7 w-7 object-contain" />
-            <span className="text-base font-bold text-[var(--co-accent-text)]">ServiceSpark</span>
+            <span className="text-base font-bold text-[var(--co-accent-text)]">Shimmer</span>
           </Link>
 
           <div className="flex items-center gap-1">
@@ -236,7 +236,7 @@ export default function AppNav({
         <div className="flex items-center justify-between gap-3 border-b border-[var(--co-line-soft)] px-4 py-4">
           <Link href={logoHref} onClick={() => setMenuOpen(false)} className="flex items-center gap-2">
             <img src="/brand/logo-mark.png" alt="" aria-hidden="true" className="h-8 w-8 object-contain" />
-            <span className="text-base font-bold text-[var(--co-accent-text)]">ServiceSpark</span>
+            <span className="text-base font-bold text-[var(--co-accent-text)]">Shimmer</span>
           </Link>
           <button
             type="button"
@@ -470,13 +470,13 @@ export default function AppNav({
         <div className={`mb-8 flex items-center ${navCollapsed ? "justify-center" : "gap-2"}`}>
           <Link
             href={logoHref}
-            aria-label="ServiceSpark home"
-            title={navCollapsed ? "ServiceSpark home" : undefined}
+            aria-label="Shimmer home"
+            title={navCollapsed ? "Shimmer home" : undefined}
             className={`flex items-center rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] ${navCollapsed ? "h-12 w-12 justify-center" : "flex-1 gap-3 px-3 py-3"}`}
           >
           <img src="/brand/logo-mark.png" alt="" aria-hidden="true" className="h-10 w-10 object-contain" />
           {navCollapsed ? null : <span>
-            <span className="block text-[15px] font-semibold tracking-tight">ServiceSpark</span>
+            <span className="block text-[15px] font-semibold tracking-tight">Shimmer</span>
             <span className="block text-[11px] text-[var(--co-faint)]">operations desk</span>
           </span>}
           </Link>

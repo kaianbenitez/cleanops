@@ -91,9 +91,9 @@ const RELEASES = [
   {
     version: "v0.2.47",
     date: "August 16, 2026",
-    title: "ServiceSpark can now be installed to your home screen",
+    title: "Shimmer can now be installed to your home screen",
     changes: [
-      "On an iPhone or iPad, open ServiceSpark in Safari, tap Share, then Add to Home Screen — it launches full-screen with no browser bar and its own icon, just like a regular app.",
+      "On an iPhone or iPad, open Shimmer in Safari, tap Share, then Add to Home Screen — it launches full-screen with no browser bar and its own icon, just like a regular app.",
       "If you haven't installed it yet, a one-time banner at the top now walks you through the steps. Dismiss it and it won't come back.",
     ],
   },
@@ -220,7 +220,7 @@ const RELEASES = [
     date: "August 10, 2026",
     title: "Fixed the crew-app phone mockup alignment",
     changes: [
-      "The phone mockup's notch no longer covers the ServiceSpark logo, and the small supporting screenshot beside it no longer overlaps or hides buttons on the main screen.",
+      "The phone mockup's notch no longer covers the Shimmer logo, and the small supporting screenshot beside it no longer overlaps or hides buttons on the main screen.",
     ],
   },
   {
@@ -234,7 +234,7 @@ const RELEASES = [
   {
     version: "v0.2.31",
     date: "August 10, 2026",
-    title: "Fresh crew-app screenshots on the ServiceSpark page",
+    title: "Fresh crew-app screenshots on the Shimmer page",
     changes: [
       "The crew-app screenshots on the homepage now show the current My Day screen, including the tidier mileage entry.",
       "The 'Built for the field' section now shows a job details screen instead of repeating the same jobs list twice.",
@@ -251,7 +251,7 @@ const RELEASES = [
   {
     version: "v0.2.29",
     date: "August 10, 2026",
-    title: "A stronger opening image for the ServiceSpark page",
+    title: "A stronger opening image for the Shimmer page",
     changes: [
       "The homepage now leads with the dashboard screenshot instead of the calendar, and the calendar moved down to the 'one operating rhythm' section with its own caption.",
       "Removed a leftover caption line under the homepage's main screenshot.",
@@ -272,7 +272,7 @@ const RELEASES = [
   {
     version: "v0.2.27",
     date: "August 10, 2026",
-    title: "A shorter, tighter ServiceSpark landing page",
+    title: "A shorter, tighter Shimmer landing page",
     changes: [
       "The feature list is now a click-through set of tabs instead of one long scrolling list, so the page reads in far less scrolling.",
       "The 'More than the basics' section now highlights instant global search and time-off/PTO tracking in place of supplies and recurring service plans, which aren't ready to show yet.",
@@ -281,9 +281,9 @@ const RELEASES = [
   {
     version: "v0.2.26",
     date: "August 10, 2026",
-    title: "A livelier ServiceSpark landing page",
+    title: "A livelier Shimmer landing page",
     changes: [
-      "The public ServiceSpark page now has a dedicated 'Built for the field' showcase for the My Day crew app, with a phone-in-hand view of a real workday.",
+      "The public Shimmer page now has a dedicated 'Built for the field' showcase for the My Day crew app, with a phone-in-hand view of a real workday.",
       "A new 'More than the basics' section highlights quality and feedback reports, reporting and CSV export, GoHighLevel automation, recurring service plans, supplies, and the team directory.",
       "Scrolling through the page now feels smoother and more polished, with motion that eases in as you scroll and turns off automatically if you've asked your device to reduce motion.",
     ],
@@ -393,7 +393,7 @@ const RELEASES = [
   {
     version: "v0.2.13",
     date: "August 7, 2026",
-    title: "Clearer product examples on the ServiceSpark page",
+    title: "Clearer product examples on the Shimmer page",
     changes: [
       "Feature screenshots are now much bigger and easier to read, and each feature has its own icon.",
       "The crew app now uses the real device photo provided by the founder.",
@@ -406,17 +406,17 @@ const RELEASES = [
     date: "August 7, 2026",
     title: "A clearer beta sign-up page",
     changes: [
-      "The ServiceSpark feature list is now easier to scan without side-scrolling.",
+      "The Shimmer feature list is now easier to scan without side-scrolling.",
       "The FAQ now answers more of the practical questions people ask before switching.",
-      "Every sign-up button now clearly says ServiceSpark is in beta and free to join, rather than implying a paid product.",
+      "Every sign-up button now clearly says Shimmer is in beta and free to join, rather than implying a paid product.",
     ],
   },
   {
     version: "v0.2.11",
     date: "August 7, 2026",
-    title: "A clearer, more complete ServiceSpark landing page",
+    title: "A clearer, more complete Shimmer landing page",
     changes: [
-      "The public ServiceSpark page now focuses on the product itself, with the previous comparison table removed.",
+      "The public Shimmer page now focuses on the product itself, with the previous comparison table removed.",
       "Product examples are easier to read, and the crew app is now shown in a real phone frame.",
       "The page has more visual variety from section to section, and its examples now show a fuller cleaning business with more customers, paid invoices, and team members.",
     ],
@@ -424,19 +424,19 @@ const RELEASES = [
   {
     version: "v0.2.10",
     date: "August 7, 2026",
-    title: "A more complete ServiceSpark landing page",
+    title: "A more complete Shimmer landing page",
     changes: [
-      "The ServiceSpark page now shows how it compares with pen and paper, spreadsheets, calendars, and generic scheduling software.",
+      "The Shimmer page now shows how it compares with pen and paper, spreadsheets, calendars, and generic scheduling software.",
       "You can browse the full lineup of scheduling, field work, customer, quote, invoicing, and payroll features in one place.",
-      "The page now explains the real cleaning-business experience behind ServiceSpark and answers common early-access questions.",
+      "The page now explains the real cleaning-business experience behind Shimmer and answers common early-access questions.",
     ],
   },
   {
     version: "v0.2.9",
     date: "August 7, 2026",
-    title: "A clearer ServiceSpark early-access page",
+    title: "A clearer Shimmer early-access page",
     changes: [
-      "The public ServiceSpark page now shows real examples of scheduling, field work, customer records, quotes, invoicing, payroll-related team tracking, and the dashboard.",
+      "The public Shimmer page now shows real examples of scheduling, field work, customer records, quotes, invoicing, payroll-related team tracking, and the dashboard.",
       "Early-access requests now only require a business name and email address.",
     ],
   },
@@ -528,25 +528,25 @@ const RELEASES = [
     date: "August 6, 2026",
     title: "Early access requests are ready",
     changes: [
-      "The public ServiceSpark page is now available to visitors who are not signed in.",
-      "Early-access requests now reach the ServiceSpark team without sending visitors to the login screen.",
+      "The public Shimmer page is now available to visitors who are not signed in.",
+      "Early-access requests now reach the Shimmer team without sending visitors to the login screen.",
     ],
   },
   {
     version: "v0.1.8",
     date: "August 6, 2026",
-    title: "ServiceSpark early access is open",
+    title: "Shimmer early access is open",
     changes: [
-      "Cleaning-business owners can now learn about ServiceSpark's scheduling, field, customer, quoting, invoicing, payroll, and visibility tools on a new public page.",
+      "Cleaning-business owners can now learn about Shimmer's scheduling, field, customer, quoting, invoicing, payroll, and visibility tools on a new public page.",
       "Interested owners can request early access with a simple form, without needing to create an account first.",
     ],
   },
   {
     version: "v0.1.7",
     date: "August 6, 2026",
-    title: "A refreshed ServiceSpark look",
+    title: "A refreshed Shimmer look",
     changes: [
-      "The login screen now has a cleaner, centered layout with a fresh ServiceSpark sparkle mark.",
+      "The login screen now has a cleaner, centered layout with a fresh Shimmer sparkle mark.",
       "The same updated mark now appears in the app navigation and browser tab for a more consistent look.",
     ],
   },
@@ -589,9 +589,9 @@ const RELEASES = [
   {
     version: "v0.1.2",
     date: "August 4, 2026",
-    title: "CleanOps is now ServiceSpark",
+    title: "CleanOps is now Shimmer",
     changes: [
-      "CleanOps has a new name: ServiceSpark. It's the same product and team, with the new branding now throughout the app, including navigation and the login screen.",
+      "CleanOps has a new name: Shimmer. It's the same product and team, with the new branding now throughout the app, including navigation and the login screen.",
       "A complete Privacy Policy is now available in the Legal section, explaining what information we collect, how we use it, and how we protect it.",
     ],
   },
@@ -665,7 +665,7 @@ const RELEASES = [
     date: "July 19-23, 2026",
     title: "Core operations foundation",
     changes: [
-      "Introduced the ServiceSpark design system and refreshed the dashboard, quoting, My Day, and public proposal experiences.",
+      "Introduced the Shimmer design system and refreshed the dashboard, quoting, My Day, and public proposal experiences.",
       "Added employee accounts, self-service password changes, configurable payroll brackets, and multi-cleaner job assignment.",
       "Added TheCustomerFactor customer import and recurring-service backfill support.",
       "Improved navigation speed, search, route previews, customer filters, and date handling.",
@@ -675,9 +675,9 @@ const RELEASES = [
   {
     version: "v0.0.1",
     date: "July 18, 2026",
-    title: "Initial ServiceSpark build",
+    title: "Initial Shimmer build",
     changes: [
-      "Launched the first ServiceSpark operations workspace for customers, jobs, quotes, scheduling, payroll, and field work.",
+      "Launched the first Shimmer operations workspace for customers, jobs, quotes, scheduling, payroll, and field work.",
     ],
   },
 ];
@@ -704,7 +704,7 @@ export default async function HelpCenterPage() {
         <h1 className="page-title mt-2">Help Center</h1>
         <p className="page-subtitle">
           Find help, contact the office, and see what&apos;s new in
-          ServiceSpark.
+          Shimmer.
         </p>
       </div>
 

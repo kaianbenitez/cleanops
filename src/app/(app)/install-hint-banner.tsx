@@ -40,7 +40,7 @@ export default function InstallHintBanner() {
     <div className="flex items-center gap-2 bg-[var(--co-accent)] px-3 py-2 text-[13px] text-white">
       <Share aria-hidden="true" strokeWidth={1.75} className="h-4 w-4 shrink-0" />
       <p className="min-w-0 flex-1 truncate">
-        Install ServiceSpark: tap <span className="font-medium">Share</span> then{" "}
+        Install Shimmer: tap <span className="font-medium">Share</span> then{" "}
         <span className="font-medium">Add to Home Screen</span>.
       </p>
       <button

@@ -330,7 +330,7 @@ export default function SuppliesPage() {
             </div>
           </Panel>
 
-          <Panel eyebrow="Quick actions" title="Inventory workflow" description="Use the same clean office flow as the rest of ServiceSpark.">
+          <Panel eyebrow="Quick actions" title="Inventory workflow" description="Use the same clean office flow as the rest of Shimmer.">
             <div className="space-y-2">
               <button type="button" className="co-button-primary w-full" onClick={() => save(items)} disabled={saving}>
                 {saving ? "Saving..." : "Save inventory"}

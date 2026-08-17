@@ -6,7 +6,7 @@
 
 :root {
   --app-nav-width: 260px;
-  /* ServiceSpark: cobalt navigation, bright semantic scheduling cues, calm surfaces. */
+  /* Shimmer: cobalt navigation, bright semantic scheduling cues, calm surfaces. */
   --co-bg: #f4f6fb;
   --co-surface: #ffffff;
   --co-surface-muted: #edf0f8;
@@ -394,7 +394,7 @@ button:active { transform: translateY(1px); }
 }
 
 .dark {
-  /* ServiceSpark's actual UI is built on the --co-* tokens above (not the
+  /* Shimmer's actual UI is built on the --co-* tokens above (not the
      generic shadcn tokens below), so those need their own dark values. */
   --co-bg: #0b1020;
   --co-surface: #141a2c;

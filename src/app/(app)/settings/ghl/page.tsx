@@ -206,7 +206,7 @@ export default function GhlSettingsPage() {
       <div>
         <p className="eyebrow">Integrations</p>
         <h1 className="page-title mt-2">GoHighLevel</h1>
-        <p className="page-subtitle">Keep ServiceSpark status changes aligned with the tags and workflows your GoHighLevel account uses.</p>
+        <p className="page-subtitle">Keep Shimmer status changes aligned with the tags and workflows your GoHighLevel account uses.</p>
       </div>
 
       <section className="co-card grid gap-3 p-5 sm:grid-cols-3">
@@ -231,7 +231,7 @@ export default function GhlSettingsPage() {
         <div>
           <p className="font-semibold">Connection boundary is ready</p>
           <p className="mt-1 text-sm leading-6 text-[var(--co-muted)]">
-            The tag names and workflow IDs below are saved in ServiceSpark so your test subaccount can route leads, quote events, and completed jobs to the right automations.
+            The tag names and workflow IDs below are saved in Shimmer so your test subaccount can route leads, quote events, and completed jobs to the right automations.
           </p>
         </div>
       </section>
@@ -280,7 +280,7 @@ export default function GhlSettingsPage() {
             <p className="eyebrow">GHL smoke test</p>
             <h2 className="mt-1 text-lg font-semibold">Verify the test subaccount</h2>
             <p className="mt-1 text-sm text-[var(--co-muted)]">
-              Confirms ServiceSpark can reach GHL with the configured API key and location ID — run
+              Confirms Shimmer can reach GHL with the configured API key and location ID — run
               it here after editing tags or workflows above.
             </p>
           </div>

@@ -35,7 +35,7 @@ export const companies = pgTable("companies", {
 });
 
 // ---------- product leads ----------
-// These leads concern ServiceSpark itself, so they intentionally have no
+// These leads concern Shimmer itself, so they intentionally have no
 // company_id or relationship to a customer's operational data.
 export const productLeads = pgTable("product_leads", {
   id: uuid("id").primaryKey().defaultRandom(),

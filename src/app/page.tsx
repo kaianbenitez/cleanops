@@ -2,22 +2,22 @@ import type { Metadata } from "next";
 import MarketingPage from "@/components/marketing/marketing-page";
 
 export const metadata: Metadata = {
-  title: "ServiceSpark | Maid Service & Cleaning Business Software",
+  title: "Shimmer | Maid Service & Cleaning Business Software",
   description:
-    "ServiceSpark is maid service and cleaning business software for scheduling, crew management, customer records, quotes, invoicing, and payroll, all in one place.",
+    "Shimmer is maid service and cleaning business software for scheduling, crew management, customer records, quotes, invoicing, and payroll, all in one place.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "ServiceSpark | Maid Service & Cleaning Business Software",
+    title: "Shimmer | Maid Service & Cleaning Business Software",
     description:
-      "ServiceSpark is maid service and cleaning business software for scheduling, crew management, customer records, quotes, invoicing, and payroll, all in one place.",
+      "Shimmer is maid service and cleaning business software for scheduling, crew management, customer records, quotes, invoicing, and payroll, all in one place.",
     type: "website",
-    images: [{ url: "/marketing/dashboard.jpg", width: 1489, height: 812, alt: "ServiceSpark dashboard for a cleaning business" }],
+    images: [{ url: "/marketing/dashboard.jpg", width: 1489, height: 812, alt: "Shimmer dashboard for a cleaning business" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ServiceSpark | Maid Service & Cleaning Business Software",
+    title: "Shimmer | Maid Service & Cleaning Business Software",
     description:
-      "ServiceSpark is maid service and cleaning business software for scheduling, crew management, customer records, quotes, invoicing, and payroll, all in one place.",
+      "Shimmer is maid service and cleaning business software for scheduling, crew management, customer records, quotes, invoicing, and payroll, all in one place.",
     images: ["/marketing/dashboard.jpg"],
   },
 };
@@ -29,7 +29,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://getshimmer.app";
 // /privacy-policy), not serializable strings. Update both together.
 const FAQ_JSON_LD_ITEMS = [
   {
-    q: "What is ServiceSpark?",
+    q: "What is Shimmer?",
     a: "Operations software built specifically for residential and commercial cleaning businesses: scheduling, a crew app, customer records, online quotes, invoicing, and payroll, all in one place.",
   },
   {
@@ -63,18 +63,18 @@ function MarketingJsonLd() {
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
-      name: "ServiceSpark",
+      name: "Shimmer",
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
       description:
-        "ServiceSpark is maid service and cleaning business software for scheduling, crew management, customer records, quotes, invoicing, and payroll, all in one place.",
+        "Shimmer is maid service and cleaning business software for scheduling, crew management, customer records, quotes, invoicing, and payroll, all in one place.",
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free during beta" },
       url: SITE_URL,
     },
     {
       "@context": "https://schema.org",
       "@type": "Organization",
-      name: "ServiceSpark",
+      name: "Shimmer",
       url: SITE_URL,
       email: "hello@getshimmer.app",
       address: { "@type": "PostalAddress", addressLocality: "Manila", addressCountry: "PH" },

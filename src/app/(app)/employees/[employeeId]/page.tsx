@@ -565,7 +565,7 @@ function EmployeeAccountManagement({
 
       {linkedRecords ? (
         <div className="co-badge-warning mt-4 rounded-xl p-4">
-          <p className="text-sm font-semibold">{employeeName} has history in ServiceSpark</p>
+          <p className="text-sm font-semibold">{employeeName} has history in Shimmer</p>
           <p className="mt-1 text-xs leading-5">
             {describeLinkedRecords(linkedRecords)}. They can&apos;t be permanently removed without losing that history — archive
             them instead (button above), or force-delete: their profile is marked inactive and their login is revoked so they

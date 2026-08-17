@@ -49,7 +49,7 @@ export function MobileShowcase() {
           </ol>
         </div>
         <div ref={phone} className="relative w-full overflow-hidden rounded-2xl border border-[var(--co-line)] shadow-[0_30px_60px_-25px_rgba(15,23,42,0.35)]">
-          <Image src="/marketing/crew-app.jpg" alt="ServiceSpark My Day app: today's route, a job's entry codes, and closing out a visit" width={1448} height={1086} sizes="(min-width: 1024px) 660px, 100vw" className="h-auto w-full" />
+          <Image src="/marketing/crew-app.jpg" alt="Shimmer My Day app: today's route, a job's entry codes, and closing out a visit" width={1448} height={1086} sizes="(min-width: 1024px) 660px, 100vw" className="h-auto w-full" />
         </div>
       </div>
     </section>

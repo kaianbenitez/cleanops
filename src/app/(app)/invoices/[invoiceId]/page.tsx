@@ -329,7 +329,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--co-surface-muted)] font-bold text-[var(--co-accent-text)]">CO</span>
-                    <span className="text-lg font-semibold">ServiceSpark</span>
+                    <span className="text-lg font-semibold">Shimmer</span>
                   </div>
                   <p className="mt-4 text-xs uppercase tracking-[0.1em] text-[var(--co-muted)]">Bill to</p>
                   <p className="mt-1 text-lg font-semibold">{customerName}</p>
@@ -357,7 +357,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
                 <div className="flex items-center justify-between py-4 text-sm">
                   <div>
                     <p className="font-medium">{jobType.replaceAll("_", " ") || "Cleaning service"}</p>
-                    <p className="text-xs text-[var(--co-muted)]">ServiceSpark service visit{jobDate ? ` on ${jobDate}` : ""}</p>
+                    <p className="text-xs text-[var(--co-muted)]">Shimmer service visit{jobDate ? ` on ${jobDate}` : ""}</p>
                   </div>
                   <span>{dollars(subtotal)}</span>
                 </div>

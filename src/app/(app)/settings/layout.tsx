@@ -9,7 +9,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
           <p className="eyebrow">Control room</p>
           <h1 className="page-title mt-2">Settings</h1>
           <p className="page-subtitle">
-            Configure how ServiceSpark represents your company and runs daily operations.
+            Configure how Shimmer represents your company and runs daily operations.
           </p>
         </div>
         <Link href="/dashboard" className="co-button-secondary">

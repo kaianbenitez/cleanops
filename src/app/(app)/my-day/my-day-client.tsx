@@ -761,7 +761,7 @@ export default function MyDayClient({
             </form>
           ) : null}
         </nav>
-        <p className="mt-3 type-field-micro text-[var(--co-faint)]">© {currentYear} ServiceSpark Professional Services</p>
+        <p className="mt-3 type-field-micro text-[var(--co-faint)]">© {currentYear} Shimmer Professional Services</p>
       </footer>
 
       {undoAction ? (

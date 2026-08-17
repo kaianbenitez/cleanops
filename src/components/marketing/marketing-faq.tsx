@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 const questions = [
-  ["What is ServiceSpark?", <>Operations software built specifically for residential and commercial cleaning businesses: scheduling, a crew app, customer records, online quotes, invoicing, and payroll, all in one place, so you&apos;re not stitching together five different tools to run your day.</>],
+  ["What is Shimmer?", <>Operations software built specifically for residential and commercial cleaning businesses: scheduling, a crew app, customer records, online quotes, invoicing, and payroll, all in one place, so you&apos;re not stitching together five different tools to run your day.</>],
   ["What happens to pricing after the beta?", <>Free while we&apos;re in beta. When we do start charging we&apos;ll give you at least 30 days&apos; notice, and you&apos;ll never be billed by surprise. We haven&apos;t set a price yet; the beta group will help us work out what&apos;s fair.</>],
   ["I don't have time to enter all my clients, can you help?", <>Yes, send us your customer list however you have it (a spreadsheet, an export from your old system, even handwritten) and we&apos;ll get it set up in your account for you.</>],
   ["What happens to my information? Do I still own it?", <>Yes, it&apos;s yours. We only use your data to run your account; see our <Link href="/privacy-policy" className="font-semibold text-[var(--co-accent)] underline underline-offset-4">Privacy Policy</Link> for the details.</>],

@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "ServiceSpark",
-    short_name: "ServiceSpark",
+    name: "Shimmer",
+    short_name: "Shimmer",
     start_url: "/my-day",
     display: "standalone",
     background_color: "#f4f6fb",

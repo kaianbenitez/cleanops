@@ -425,7 +425,7 @@ export default function QuoteTemplateSettingsPage() {
           </div>
 
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-[var(--co-muted)]">Blank fields use the built-in ServiceSpark defaults.</p>
+            <p className="text-xs text-[var(--co-muted)]">Blank fields use the built-in Shimmer defaults.</p>
             <button onClick={save} disabled={saving} className="co-button-primary">
               {saving ? "Saving…" : "Save quote content"}
             </button>

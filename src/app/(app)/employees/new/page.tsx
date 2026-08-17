@@ -125,7 +125,7 @@ export default function NewEmployeePage() {
             </div>
           </div>
           <p className="text-xs text-[var(--co-warning)]">
-            This one-time password only works for their first login — they&apos;ll be required to set their own before they can use the rest of ServiceSpark.
+            This one-time password only works for their first login — they&apos;ll be required to set their own before they can use the rest of Shimmer.
           </p>
           <button
             onClick={() => router.push(role === "admin" ? "/settings" : "/employees")}

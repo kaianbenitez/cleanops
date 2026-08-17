@@ -14,7 +14,7 @@ Last updated: 2026-08-13 (job PATCH scheduling warnings surfaced in the UI — s
   Verified: `npm run lint` and `npm run typecheck` both clean (0 errors; the lint warnings present are pre-existing and unrelated to these files). Did not run `npm run build`/smoke tests or click-through test in a browser — this Mac clone still has no `.env.local` (same longstanding `BROWSER_ADMIN_PASSWORD` gap as most other entries in this doc).
   PTO conflicts are a separate, harder block (409 on save, not part of `warnings`) and were already surfaced via each caller's existing `onError` handling — untouched here.
 
-- **Rebuilt the public ServiceSpark landing page around real product screens and made early-access requests lower-friction (2026-08-07).** The original public page described the shipped operations features only as six text cards, making it harder for a prospective cleaning-business owner to assess whether the product is real and relevant. Replaced that grid with an alternating, responsive text-and-screenshot sequence for Scheduling, My Day, Customers, Quotes, Invoicing, and payroll-related team tracking, plus the real dashboard screen immediately below the hero. Added the approved trust line: “Not a concept — this is the same system a real cleaning business runs its day-to-day operations on.” All seven images are from the safe fictional Demo Cleaning Co. account; the payroll image deliberately uses the team directory rather than the known-broken demo Payroll screen. Each Next Image now uses the source file's real dimensions, including the taller 1568×778 invoicing screen, so screenshots retain their native aspect ratios.
+- **Rebuilt the public Shimmer landing page around real product screens and made early-access requests lower-friction (2026-08-07).** The original public page described the shipped operations features only as six text cards, making it harder for a prospective cleaning-business owner to assess whether the product is real and relevant. Replaced that grid with an alternating, responsive text-and-screenshot sequence for Scheduling, My Day, Customers, Quotes, Invoicing, and payroll-related team tracking, plus the real dashboard screen immediately below the hero. Added the approved trust line: “Not a concept — this is the same system a real cleaning business runs its day-to-day operations on.” All seven images are from the safe fictional Demo Cleaning Co. account; the payroll image deliberately uses the team directory rather than the known-broken demo Payroll screen. Each Next Image now uses the source file's real dimensions, including the taller 1568×778 invoicing screen, so screenshots retain their native aspect ratios.
   The early-access form now requires only business name and email; name, phone, crew size, and message remain available but optional. Updated client normalization, API validation, and the Drizzle schema together, and added `drizzle/0029_product_leads_optional_contact.sql` to drop the live table's `contact_name` and `phone` NOT NULL constraints. Help Center v0.2.9 records the public-facing change.
   Verified in this worktree: `npm run check:env`, `npm run check:drift`, and `npm run verify` all passed (the existing lint warnings remain warnings only); a built production server returned 200 for anonymous `/`, `smoke:routes` passed 6/6, and `smoke:auth` passed 22/22. Confirmed the output contains the dashboard, feature screenshots, and trust copy. **Hosted migration and acceptance test completed:** after explicit approval, applied `drizzle/0029_product_leads_optional_contact.sql` directly to the hosted database in one transaction, then re-ran `check:drift` clean. A real `POST /api/leads` body containing only business name and email returned 201; its single inserted row had null `contact_name` and `phone`. That exact disposable row was deleted immediately and a follow-up query confirmed zero rows remain, so no test lead data was left behind.
 
@@ -539,9 +539,9 @@ Last updated: 2026-08-13 (job PATCH scheduling warnings surfaced in the UI — s
   proposal page checked) — worth a specific look at those two links, plus the invoice and
   Payroll screens, next time someone's in there.
 
-- **Public ServiceSpark landing page and early-access lead capture shipped, merged to `main`
+- **Public Shimmer landing page and early-access lead capture shipped, merged to `main`
   at `d9637a9` then corrected before push at `a94d6a3` (2026-08-06).** Built by Codex across
-  two passes: logged-out visitors to `/` now see a public marketing page pitching ServiceSpark
+  two passes: logged-out visitors to `/` now see a public marketing page pitching Shimmer
   to cleaning-business owners as operations software, with a “Request early access” form.
   The page deliberately showcases only real, already-shipped product features; it includes no
   invented capabilities, pricing, or fake testimonials. Logged-in routing remains exactly as
@@ -590,13 +590,13 @@ Last updated: 2026-08-13 (job PATCH scheduling warnings surfaced in the UI — s
   favicon (`src/app/icon.svg`, new Next.js 16 file-convention icon) now uses the same mark
   on a small cream rounded-square backing so it stays visible regardless of browser theme.
   **Deliberately excluded, on purpose — these still show the customer's own company
-  identity, not ServiceSpark's**: the invoice preview's "CO" badge
+  identity, not Shimmer's**: the invoice preview's "CO" badge
   (`invoices/[invoiceId]/page.tsx`), the branding settings "Proposal preview" badge
   (`settings/branding/page.tsx`), the public quote/proposal page
   (`quote/[token]/page.tsx`), and the employee-browser's `(company?.name ?? "CO")` avatar
-  fallback (a generic two-letter company-initials avatar, unrelated to ServiceSpark's own
+  fallback (a generic two-letter company-initials avatar, unrelated to Shimmer's own
   logo) — none of these were touched.
-  Built by Codex on `codex/servicespark-logo-mark` off a structured contract with the exact
+  Built by Codex on `codex/shimmer-logo-mark` off a structured contract with the exact
   approved SVG markup and hex values specified up front (no design decisions left to
   Codex). Independently reviewed line-by-line before integration, not just Codex's
   summary: caught and reverted one out-of-scope edit Codex made to an unrelated My Day
@@ -719,7 +719,7 @@ Last updated: 2026-08-13 (job PATCH scheduling warnings surfaced in the UI — s
   pass next time someone's logged in: open Settings → Square & Google Maps, save a
   throwaway value, confirm it shows "Configured" and the field stays blank on reload.
 
-- **CleanOps renamed to ServiceSpark (user-facing branding only) + real Privacy Policy
+- **CleanOps renamed to Shimmer (user-facing branding only) + real Privacy Policy
   published (2026-08-04).** User's call: rename the product, but scope deliberately limited
   to what a logged-in admin/employee sees — nav, page titles, Help Center, footer, user-facing
   error messages (28 spots across 17 files, delegated to Codex, each one individually
@@ -728,7 +728,7 @@ Last updated: 2026-08-13 (job PATCH scheduling warnings surfaced in the UI — s
   (`cleanops-v1`/`cleanops-claude`/`cleanops-codex`), the Supabase project name, or any
   project docs (`AGENTS.md`/`HANDOFF.md`/`CLAUDE.md`/`DECISIONS.md`/`TESTING.md`,
   `package.json`) — those still say CleanOps on purpose, see
-  [[project_servicespark_rename]] memory. Also left alone: code comments (grepped and
+  [[project_shimmer_rename]] memory. Also left alone: code comments (grepped and
   confirmed after the fact — every remaining "CleanOps" hit in `src/` is a comment or the
   seed script's console output), the `@cleanops.local` synthetic auth email domain (backend
   identifier, not user-visible, renaming it is a separate decision), and the "CO" two-letter
@@ -760,7 +760,7 @@ Last updated: 2026-08-13 (job PATCH scheduling warnings surfaced in the UI — s
   `6b3c4c8`/`19f280a`/`9170842`/`3970494`.
   **Not click-through-tested in a real browser** — build/type/grep-verified only. Worth a
   visual pass next time someone's logged in: confirm the new privacy policy page reads well
-  and the ServiceSpark branding shows correctly on the login screen and nav.
+  and the Shimmer branding shows correctly on the login screen and nav.
 
 - **Hosted DB was openly readable by anyone with the public anon key — found and fixed
   2026-08-04.** A prior side-finding (2026-07-28, see the old Blocked entry this replaces)

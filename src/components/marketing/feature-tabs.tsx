@@ -37,7 +37,7 @@ export function FeatureTabs({ features }: { features: readonly Feature[] }) {
 
   return (
     <div ref={scope} className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center lg:gap-12">
-      <div data-reveal-item role="tablist" aria-label="ServiceSpark features" className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:gap-1.5 lg:overflow-visible lg:pb-0">
+      <div data-reveal-item role="tablist" aria-label="Shimmer features" className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:gap-1.5 lg:overflow-visible lg:pb-0">
         {features.map(([featureTitle], index) => {
           const isActive = index === active;
           return (
@@ -61,7 +61,7 @@ export function FeatureTabs({ features }: { features: readonly Feature[] }) {
       <div data-reveal-item>
         <div ref={panel} className="overflow-hidden rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)]">
           <div className="relative h-[380px] bg-[var(--co-surface)] p-6 sm:h-[440px] sm:p-8">
-            <Image src={screenshot} alt={`${title} in the ServiceSpark app`} fill sizes="(min-width: 1024px) 800px, 100vw" className="object-contain" />
+            <Image src={screenshot} alt={`${title} in the Shimmer app`} fill sizes="(min-width: 1024px) 800px, 100vw" className="object-contain" />
           </div>
         </div>
         <p className="mt-4 max-w-xl text-base leading-7 text-[var(--co-muted)]">{description}</p>

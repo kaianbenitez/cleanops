@@ -23,14 +23,14 @@ const displayFont = Archivo({
 
 export const metadata: Metadata = {
   title: {
-    default: "ServiceSpark | Maid Service & Cleaning Business Software",
-    template: "%s | ServiceSpark",
+    default: "Shimmer | Maid Service & Cleaning Business Software",
+    template: "%s | Shimmer",
   },
   description: "Maid service and cleaning business software: scheduling, crew work, customers, quotes, invoicing, and payroll.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "ServiceSpark",
+    title: "Shimmer",
   },
   icons: {
     apple: "/apple-touch-icon.png",

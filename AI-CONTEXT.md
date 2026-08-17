@@ -1,8 +1,8 @@
-# ServiceSpark — compact project context
+# Shimmer — compact project context
 
 ## Product and stack
 
-ServiceSpark is a multi-tenant operations platform for cleaning businesses. It uses Next.js 16, TypeScript, Drizzle, Supabase Postgres, Tailwind, and Vercel. The repository/folder name remains `cleanops` deliberately; user-facing branding is ServiceSpark.
+Shimmer is a multi-tenant operations platform for cleaning businesses. It uses Next.js 16, TypeScript, Drizzle, Supabase Postgres, Tailwind, and Vercel. The repository/folder name remains `cleanops` deliberately; user-facing branding is Shimmer.
 
 ## Load order
 
@@ -29,7 +29,7 @@ invariants live in `AGENTS.md` instead.
 - Every data query and mutation must preserve company-scoped authorization.
 - Never expose, print, commit, or paste secrets. Never apply a production migration or mutate production data without explicit approval.
 - Drizzle migrations are applied manually to hosted DB; a committed migration is not proof it is live. Run `npm run check:drift` for schema-dependent work.
-- Keep customer-facing product identity as ServiceSpark; do not rename technical identifiers unless a task explicitly says so.
+- Keep customer-facing product identity as Shimmer; do not rename technical identifiers unless a task explicitly says so.
 
 ## Collaboration
 

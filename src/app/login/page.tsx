@@ -48,12 +48,12 @@ export default function LoginPage() {
     <main className="flex min-h-[100dvh] items-center justify-center bg-[var(--co-bg)] bg-[image:radial-gradient(circle_at_top,color-mix(in_srgb,var(--co-accent)_14%,transparent),transparent_52%),radial-gradient(circle_at_bottom_right,color-mix(in_srgb,var(--co-accent-fill)_8%,transparent),transparent_45%)] px-4 py-6 text-[var(--co-ink)] sm:px-6">
       <section className="w-full max-w-md rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] p-6 shadow-sm sm:p-8">
         <Link href="/" className="mb-4 inline-flex items-center gap-1 text-sm text-[var(--co-muted)] hover:text-[var(--co-ink)]">
-          ← Back to ServiceSpark
+          ← Back to Shimmer
         </Link>
 
         <div className="flex items-center gap-3">
           <img src="/brand/logo-mark.png" alt="" aria-hidden="true" className="h-10 w-10 object-contain" />
-          <span className="text-lg font-semibold tracking-tight text-[var(--co-ink)]">ServiceSpark</span>
+          <span className="text-lg font-semibold tracking-tight text-[var(--co-ink)]">Shimmer</span>
         </div>
 
         <h1 className="mt-8 text-2xl font-semibold tracking-[-0.02em] text-[var(--co-ink)]">Welcome back</h1>

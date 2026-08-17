@@ -24,7 +24,7 @@ export function HeroProductVisual() {
     <div className="relative mx-auto w-full max-w-[560px] pb-10 pt-4 sm:max-w-[620px] sm:pb-12 lg:max-w-none lg:pb-14">
       <Image
         src="/marketing/hero-composite.jpg"
-        alt="ServiceSpark scheduling calendar and the My Day crew app showing a cleaner's next stop"
+        alt="Shimmer scheduling calendar and the My Day crew app showing a cleaner's next stop"
         width={1448}
         height={1086}
         priority

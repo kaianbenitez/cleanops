@@ -20,7 +20,7 @@ const features = [
 const steps = [
   "Tell us how your business works today. We reply within one business day, and it's a conversation, not a sales call.",
   "We help bring over your team, customers, and schedule.",
-  "Try ServiceSpark with your crew in the day-to-day work.",
+  "Try Shimmer with your crew in the day-to-day work.",
   "Tell us what would make it more useful as we build.",
 ] as const;
 
@@ -32,9 +32,9 @@ export default function MarketingPage() {
   const year = new Date().getFullYear();
   return <main className="min-h-[100dvh] bg-[var(--co-bg)] text-[var(--co-ink)]">
     <nav className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6 lg:px-8" aria-label="Main navigation">
-      <Link href="/" className="flex items-center gap-2.5" aria-label="ServiceSpark home">
+      <Link href="/" className="flex items-center gap-2.5" aria-label="Shimmer home">
         <SparkMark />
-        <span className="text-lg font-semibold tracking-tight">ServiceSpark</span>
+        <span className="text-lg font-semibold tracking-tight">Shimmer</span>
       </Link>
       <div className="flex items-center gap-3 sm:gap-5">
         <Link href="/login" className="text-sm font-semibold text-[var(--co-muted)] hover:text-[var(--co-ink)]">
@@ -104,7 +104,7 @@ export default function MarketingPage() {
         <figure>
           <Image
             src="/marketing/product-composite.jpg"
-            alt="A ServiceSpark customer profile, the My Day crew app, and a recorded invoice payment"
+            alt="A Shimmer customer profile, the My Day crew app, and a recorded invoice payment"
             width={1448}
             height={1086}
             sizes="(min-width: 1024px) 800px, 100vw"
@@ -144,7 +144,7 @@ export default function MarketingPage() {
     <section className="border-y border-[var(--co-line)] bg-[var(--co-surface-muted)]">
       <div className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6 lg:px-8">
         <h2 className="text-3xl font-semibold tracking-[-0.025em]">Questions, answered.</h2>
-        <p className="mt-3 leading-7 text-[var(--co-muted)]">A few practical details about using ServiceSpark and joining the beta.</p>
+        <p className="mt-3 leading-7 text-[var(--co-muted)]">A few practical details about using Shimmer and joining the beta.</p>
         <div className="mt-8">
           <a href="#join-beta" className="co-button-primary">
             Try it with your crew
@@ -163,7 +163,7 @@ export default function MarketingPage() {
             <p className="eyebrow text-[var(--co-accent)]">Founding cohort, free during beta</p>
             <h2 className="mt-2 text-3xl font-semibold tracking-[-0.025em] text-[var(--co-ink)]">Join the beta.</h2>
             <p className="mt-3 leading-7 text-[var(--co-muted)]">
-              Tell us a little about your cleaning business, then try ServiceSpark with your real team and day-to-day work while we keep building it.
+              Tell us a little about your cleaning business, then try Shimmer with your real team and day-to-day work while we keep building it.
             </p>
             <ol className="mt-10 divide-y divide-[var(--co-line-soft)] border-y border-[var(--co-line-soft)]">
               {steps.map((step, index) => (
@@ -185,13 +185,13 @@ export default function MarketingPage() {
               <div>
                 <p className="text-sm font-semibold text-[var(--co-accent)]">How early this actually is</p>
                 <p className="mt-2 leading-7 text-[var(--co-muted)]">
-                  ServiceSpark already runs full time on a real cleaning business: scheduling, customers, quotes, invoicing, payroll, all of it. What&apos;s brand new is opening it up to other businesses. You&apos;d be among the very first outside crews on it, early enough that what you ask for gets built, and early enough to hit the occasional rough edge. We&apos;d rather tell you that now than have you find out in week two.
+                  Shimmer already runs full time on a real cleaning business: scheduling, customers, quotes, invoicing, payroll, all of it. What&apos;s brand new is opening it up to other businesses. You&apos;d be among the very first outside crews on it, early enough that what you ask for gets built, and early enough to hit the occasional rough edge. We&apos;d rather tell you that now than have you find out in week two.
                 </p>
               </div>
               <div className="border-t border-[var(--co-line-soft)] pt-6">
                 <p className="text-sm font-semibold text-[var(--co-accent)]">Who&apos;s building this</p>
                 <p className="mt-2 leading-7 text-[var(--co-muted)]">
-                  I&apos;m Kaian. I handle day-to-day operations for a real U.S. cleaning business, and I built ServiceSpark on the side because the scheduling and invoicing tools we were using never quite fit how a maid service actually runs. I work on it from Manila.
+                  I&apos;m Kaian. I handle day-to-day operations for a real U.S. cleaning business, and I built Shimmer on the side because the scheduling and invoicing tools we were using never quite fit how a maid service actually runs. I work on it from Manila.
                 </p>
               </div>
               <div className="border-t border-[var(--co-line-soft)] pt-6">
@@ -222,7 +222,7 @@ export default function MarketingPage() {
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <SparkMark />
-            <span className="font-semibold text-[var(--co-ink)]">ServiceSpark</span>
+            <span className="font-semibold text-[var(--co-ink)]">Shimmer</span>
           </div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <Link href="/privacy-policy" className="hover:text-[var(--co-ink)]">
@@ -238,7 +238,7 @@ export default function MarketingPage() {
         </div>
         <div className="flex flex-col gap-1 border-t border-[var(--co-line-soft)] pt-6 sm:flex-row sm:items-center sm:justify-between">
           <span>Manila, Philippines</span>
-          <span>&copy; {year} ServiceSpark</span>
+          <span>&copy; {year} Shimmer</span>
         </div>
       </div>
     </footer>
