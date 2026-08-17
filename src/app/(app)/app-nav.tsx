@@ -17,6 +17,7 @@ import {
   Boxes,
   Clock,
   RefreshCw,
+  Inbox,
   Settings,
   HelpCircle,
   Menu,
@@ -70,6 +71,7 @@ const iconByHref: Record<string, LucideIcon> = {
   "/schedule": CalendarDays,
   "/scores": Star,
   "/sync-issues": RefreshCw,
+  "/leads": Inbox,
   "/settings": Settings,
   "/help-center": HelpCircle,
 };
@@ -279,6 +281,18 @@ export default function AppNav({
               >
                 <NavIcon href="/sync-issues" />
                 Sync issues
+              </Link>
+              <Link
+                href="/leads"
+                onClick={() => setMenuOpen(false)}
+                className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
+                  pathname.startsWith("/leads")
+                    ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)]"
+                    : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+                }`}
+              >
+                <NavIcon href="/leads" />
+                Leads
               </Link>
               <Link
                 href="/settings"
@@ -524,6 +538,22 @@ export default function AppNav({
                     <NavIcon href="/sync-issues" />
                   </span>
                   {navCollapsed ? null : <span>Sync issues</span>}
+                </Link>
+                <Link
+                  href="/leads"
+                  aria-current={pathname.startsWith("/leads") ? "page" : undefined}
+                  aria-label={navCollapsed ? "Leads" : undefined}
+                  title={navCollapsed ? "Leads" : undefined}
+                  className={`flex items-center rounded-[14px] py-[0.6875rem] text-[13px] transition ${navCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${
+                    pathname.startsWith("/leads")
+                      ? "bg-[var(--co-accent-tint)] text-[var(--co-evergreen)] font-medium"
+                      : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"
+                  }`}
+                >
+                  <span className={navCollapsed ? "" : "ml-1"}>
+                    <NavIcon href="/leads" />
+                  </span>
+                  {navCollapsed ? null : <span>Leads</span>}
                 </Link>
                 <Link
                   href="/settings"
