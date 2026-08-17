@@ -171,8 +171,8 @@ export default function ListBoard({ employees, jobs: initialJobs }: { employees:
         <p className="eyebrow">List view</p>
         <h2 className="mt-1 text-lg font-semibold">All scheduled jobs</h2>
         <p className="mt-1 text-xs text-[var(--co-muted)]">Edit any cell directly — changes save as soon as you leave the field.</p>
-        {error ? <p className="mt-2 text-xs font-medium text-rose-600">{error}</p> : null}
-        {warning ? <p role="status" className="mt-2 border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">Scheduling warning: {warning}</p> : null}
+        {error ? <p className="mt-2 text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
+        {warning ? <p role="status" className="mt-2 co-badge-warning px-3 py-2 text-xs font-medium">Scheduling warning: {warning}</p> : null}
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[960px] text-left text-sm">

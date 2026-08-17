@@ -87,7 +87,7 @@ export default function LoginPage() {
           </label>
 
           {error ? (
-            <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            <p role="alert" className="co-badge-danger rounded-xl px-3 py-2 text-sm">
               {error}
             </p>
           ) : null}

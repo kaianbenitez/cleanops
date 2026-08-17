@@ -218,7 +218,7 @@ export default function GhlSettingsPage() {
           <div key={item.label} className="flex items-center justify-between rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 px-4 py-3">
             <p className="text-sm font-semibold">{item.label}</p>
             <span
-              className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.ok ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}
+              className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.ok ? "co-badge-success" : "co-badge-warning"}`}
             >
               {item.ok ? "Configured" : "Needs setup"}
             </span>
@@ -252,11 +252,11 @@ export default function GhlSettingsPage() {
                 </span>
                 <span>
                   <input
-                    className={`co-input w-full font-mono text-sm ${conflict ? "border-rose-300 bg-rose-50 dark:border-[color-mix(in_srgb,var(--co-danger)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-danger)_10%,var(--co-surface))]" : ""}`}
+                    className={`co-input w-full font-mono text-sm ${conflict ? "border-[var(--co-danger)]/30 bg-[var(--co-danger)]/10" : ""}`}
                     value={tagMap[key]}
                     onChange={(event) => setTagMap((current) => ({ ...current, [key]: event.target.value }))}
                   />
-                  {conflict ? <span className="mt-1 block text-xs text-rose-700">{conflict}</span> : null}
+                  {conflict ? <span className="mt-1 block text-xs text-[var(--co-danger)]">{conflict}</span> : null}
                 </span>
               </label>
             );
@@ -291,7 +291,7 @@ export default function GhlSettingsPage() {
         <div className="px-5 py-5 text-sm">
           {ghlTest ? (
             <div
-              className={`rounded-2xl border px-4 py-3 ${ghlTest.ok ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-700"}`}
+              className={`rounded-2xl px-4 py-3 ${ghlTest.ok ? "co-badge-success" : "co-badge-danger"}`}
             >
               <p className="font-semibold">
                 {ghlTest.ok ? "GHL connection looks good." : "GHL connection needs attention."}
@@ -343,7 +343,7 @@ export default function GhlSettingsPage() {
       </section>
 
       {message ? (
-        <p className={`text-sm font-medium ${messageIsError ? "text-rose-700" : "text-[var(--co-accent-text)]"}`}>
+        <p className={`text-sm font-medium ${messageIsError ? "text-[var(--co-danger)]" : "text-[var(--co-accent-text)]"}`}>
           {message}
         </p>
       ) : null}

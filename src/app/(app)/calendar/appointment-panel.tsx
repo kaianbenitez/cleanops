@@ -174,9 +174,9 @@ export default function AppointmentPanel({
           <div className="p-5 text-sm text-[var(--co-muted)]">Loading...</div>
         ) : (
           <div className="flex-1 space-y-5 px-5 py-5">
-            {error ? <p className="text-xs font-medium text-rose-600">{error}</p> : null}
+            {error ? <p className="text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
             {status === "cancelled" ? (
-              <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Cancelled</p>
+              <p className="co-badge-neutral rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em]">Cancelled</p>
             ) : null}
 
             <label className="block text-xs font-semibold text-[var(--co-muted)]">
@@ -243,14 +243,14 @@ export default function AppointmentPanel({
               </button>
               {mode === "edit" && status !== "cancelled" ? (
                 confirmingCancel ? (
-                  <div className="w-full space-y-2 rounded-lg border border-rose-200 bg-rose-50 p-3">
-                    <label className="block text-xs font-semibold text-rose-800">
+                  <div className="w-full space-y-2 co-badge-danger rounded-lg p-3">
+                    <label className="block text-xs font-semibold text-[var(--co-danger)]">
                       Cancellation reason
                       <textarea value={cancellationReason} onChange={(event) => setCancellationReason(event.target.value)} rows={2} placeholder="Why is this appointment being cancelled?" className="co-input mt-1 w-full resize-none" />
                     </label>
                     <div className="flex gap-2">
                       <button type="button" disabled={saving} onClick={() => { setConfirmingCancel(false); setCancellationReason(""); }} className="co-button-secondary py-1 text-xs disabled:opacity-50">Keep appointment</button>
-                      <button type="button" disabled={saving || !cancellationReason.trim()} onClick={confirmCancel} className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50">Confirm cancel</button>
+                      <button type="button" disabled={saving || !cancellationReason.trim()} onClick={confirmCancel} className="rounded-lg border border-[var(--co-danger)]/30 bg-[var(--co-danger)]/10 px-3 py-1 text-xs font-semibold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/20 disabled:opacity-50">Confirm cancel</button>
                     </div>
                   </div>
                 ) : (

@@ -165,7 +165,7 @@ export default function TimeEntriesPanel({
       </div>
 
       {notice ? (
-        <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">{notice}</p>
+        <p className="co-badge-success mt-4 rounded-xl px-4 py-3 text-sm font-medium">{notice}</p>
       ) : null}
 
       <div className="mt-4 overflow-x-auto rounded-xl border border-[#d5ded5]">

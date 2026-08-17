@@ -253,14 +253,14 @@ export default function NewCustomerPage() {
                   />
                 ) : (
                   <input
-                    className={`co-input w-full ${fieldErrors[key] ? "border-rose-400 focus:border-rose-400" : ""}`}
+                    className={`co-input w-full ${fieldErrors[key] ? "border-[var(--co-danger)] focus:border-[var(--co-danger)]" : ""}`}
                     value={form[key]}
                     onChange={(e) => update(key, e.target.value)}
                     placeholder={placeholder}
                     aria-invalid={fieldErrors[key] ? true : undefined}
                   />
                 )}
-                {fieldErrors[key] ? <p className="mt-1 text-xs text-rose-600">{fieldErrors[key]}</p> : null}
+                {fieldErrors[key] ? <p className="mt-1 text-xs text-[var(--co-danger)]">{fieldErrors[key]}</p> : null}
               </label>
             ))}
           </div>
@@ -272,31 +272,31 @@ export default function NewCustomerPage() {
                 <option value="residential">Residential</option>
                 <option value="commercial">Commercial</option>
               </select>
-              {fieldErrors.clientType ? <p className="mt-1 text-xs text-rose-600">{fieldErrors.clientType}</p> : null}
+              {fieldErrors.clientType ? <p className="mt-1 text-xs text-[var(--co-danger)]">{fieldErrors.clientType}</p> : null}
             </label>
             {form.clientType === "commercial" ? (
               <label>
                 <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Company name</span>
                 <input
-                  className={`co-input w-full ${fieldErrors.companyName ? "border-rose-400 focus:border-rose-400" : ""}`}
+                  className={`co-input w-full ${fieldErrors.companyName ? "border-[var(--co-danger)] focus:border-[var(--co-danger)]" : ""}`}
                   value={form.companyName}
                   onChange={(event) => update("companyName", event.target.value)}
                   placeholder="e.g. State Farm"
                   aria-invalid={fieldErrors.companyName ? true : undefined}
                 />
-                {fieldErrors.companyName ? <p className="mt-1 text-xs text-rose-600">{fieldErrors.companyName}</p> : null}
+                {fieldErrors.companyName ? <p className="mt-1 text-xs text-[var(--co-danger)]">{fieldErrors.companyName}</p> : null}
               </label>
             ) : null}
             <label>
               <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">GHL contact ID</span>
               <input
-                className={`co-input w-full ${fieldErrors.ghlContactId ? "border-rose-400 focus:border-rose-400" : ""}`}
+                className={`co-input w-full ${fieldErrors.ghlContactId ? "border-[var(--co-danger)] focus:border-[var(--co-danger)]" : ""}`}
                 value={form.ghlContactId}
                 onChange={(event) => update("ghlContactId", event.target.value)}
                 placeholder="Optional if manually linking a contact"
                 aria-invalid={fieldErrors.ghlContactId ? true : undefined}
               />
-              {fieldErrors.ghlContactId ? <p className="mt-1 text-xs text-rose-600">{fieldErrors.ghlContactId}</p> : null}
+              {fieldErrors.ghlContactId ? <p className="mt-1 text-xs text-[var(--co-danger)]">{fieldErrors.ghlContactId}</p> : null}
             </label>
             <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4 text-sm text-[var(--co-muted)] sm:col-span-2">
               Keep this minimal if you’re creating the record by hand. Home notes, room counts, and access details are optional here and can also be filled in on the customer profile later.
@@ -328,7 +328,7 @@ export default function NewCustomerPage() {
                 })}
                 {roomTypes.length === 0 ? <p className="text-sm text-[var(--co-muted)]">No room types configured yet.</p> : null}
               </div>
-              {fieldErrors.roomCounts ? <p className="mt-1 text-xs text-rose-600">{fieldErrors.roomCounts}</p> : null}
+              {fieldErrors.roomCounts ? <p className="mt-1 text-xs text-[var(--co-danger)]">{fieldErrors.roomCounts}</p> : null}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -336,7 +336,7 @@ export default function NewCustomerPage() {
                 <label key={key}>
                   <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">{FIELD_LABELS[key]}</span>
                   <textarea className="co-input w-full resize-none" rows={3} value={form[key]} onChange={(event) => update(key, event.target.value)} />
-                  {fieldErrors[key] ? <p className="mt-1 text-xs text-rose-600">{fieldErrors[key]}</p> : null}
+                  {fieldErrors[key] ? <p className="mt-1 text-xs text-[var(--co-danger)]">{fieldErrors[key]}</p> : null}
                 </label>
               ))}
             </div>
@@ -349,7 +349,7 @@ export default function NewCustomerPage() {
                     <label key={key}>
                       <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">{FIELD_LABELS[key]}</span>
                       <input type={key === "entryCode" ? "password" : "text"} className="co-input w-full" value={form[key]} onChange={(event) => update(key, event.target.value)} />
-                      {fieldErrors[key] ? <p className="mt-1 text-xs text-rose-600">{fieldErrors[key]}</p> : null}
+                      {fieldErrors[key] ? <p className="mt-1 text-xs text-[var(--co-danger)]">{fieldErrors[key]}</p> : null}
                     </label>
                   ))}
                 </div>
@@ -387,7 +387,7 @@ export default function NewCustomerPage() {
 
       <section className="co-card flex flex-wrap items-center justify-between gap-3 px-6 py-4">
         <div className="text-sm text-[var(--co-muted)]">
-          {error ? <span className="text-rose-600">{error}</span> : "The customer will appear in ServiceSpark immediately after saving."}
+          {error ? <span className="text-[var(--co-danger)]">{error}</span> : "The customer will appear in ServiceSpark immediately after saving."}
         </div>
         <div className="flex gap-2">
           <button onClick={() => router.push("/customers")} className="co-button-secondary">

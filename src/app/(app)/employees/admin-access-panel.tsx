@@ -129,7 +129,7 @@ function AdminRowItem({ admin }: { admin: AdminRow }) {
         </div>
         <div className="flex items-center gap-2">
           <span
-            className={`rounded-full px-2.5 py-1 text-xs font-medium ${admin.isActive ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}
+            className={`rounded-full px-2.5 py-1 text-xs font-medium ${admin.isActive ? "bg-[var(--co-success)]/10 text-[var(--co-success)]" : "bg-[var(--co-surface-muted)] text-[var(--co-muted)]"}`}
           >
             {admin.isActive ? "Active" : "Inactive"}
           </span>
@@ -164,7 +164,7 @@ function AdminRowItem({ admin }: { admin: AdminRow }) {
           </Link>
         ) : null}
       </div>
-      {fieldStaffError ? <p className="mt-1 text-xs font-semibold text-rose-600">{fieldStaffError}</p> : null}
+      {fieldStaffError ? <p className="mt-1 text-xs font-semibold text-[var(--co-danger)]">{fieldStaffError}</p> : null}
       {isFieldStaff && !admin.payType ? (
         <p className="mt-1 text-xs text-[var(--co-warning)]">
           No pay type set yet — payroll will skip {admin.firstName} until one is set.
@@ -206,7 +206,7 @@ function AdminRowItem({ admin }: { admin: AdminRow }) {
       ) : null}
 
       {message ? <p className="mt-2 text-xs font-semibold text-[var(--co-accent-text)]">{message}</p> : null}
-      {error ? <p className="mt-2 text-xs font-semibold text-rose-600">{error}</p> : null}
+      {error ? <p className="mt-2 text-xs font-semibold text-[var(--co-danger)]">{error}</p> : null}
     </div>
   );
 }

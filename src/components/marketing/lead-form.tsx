@@ -89,7 +89,7 @@ export default function LeadForm() {
     );
   }
 
-  const inputClass = (name: FieldName) => `co-input mt-1 w-full bg-white ${errors[name] ? "border-rose-500" : ""}`;
+  const inputClass = (name: FieldName) => `co-input mt-1 w-full bg-white ${errors[name] ? "border-[var(--co-danger)]" : ""}`;
 
   return (
     <form noValidate onSubmit={handleSubmit} className="co-card grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
@@ -129,7 +129,7 @@ export default function LeadForm() {
         <div className="min-h-16">
           {LEADS_TURNSTILE_SITE_KEY ? <Turnstile ref={turnstileRef} siteKey={LEADS_TURNSTILE_SITE_KEY} onSuccess={setCaptchaToken} onExpire={() => setCaptchaToken(null)} onError={() => setCaptchaToken(null)} options={{ size: "flexible" }} /> : null}
         </div>
-        {serverError ? <p role="alert" className="mb-3 text-sm text-rose-700">{serverError}</p> : null}
+        {serverError ? <p role="alert" className="mb-3 text-sm text-[var(--co-danger)]">{serverError}</p> : null}
         <button type="submit" disabled={submitting} className="co-button-primary w-full sm:w-auto">
           {submitting ? "Sending…" : "Send my request"}
         </button>
@@ -143,7 +143,7 @@ function Field({ children, error, label, name, required = false }: { children: R
     <label className="block text-sm font-medium text-[var(--co-ink)]" htmlFor={name}>
       {label}{required ? " *" : ""}
       {children}
-      {error ? <span id={`${name}-error`} role="alert" className="mt-1 block text-xs font-normal text-rose-700">{error}</span> : null}
+      {error ? <span id={`${name}-error`} role="alert" className="mt-1 block text-xs font-normal text-[var(--co-danger)]">{error}</span> : null}
     </label>
   );
 }

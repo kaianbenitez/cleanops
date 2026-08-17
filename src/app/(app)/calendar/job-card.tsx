@@ -36,17 +36,20 @@ export type CardJob = {
 };
 
 // The card's own text (customer name, time, crew) uses --co-ink / --co-muted
-// / --co-accent-text, which flip to near-white in dark mode. These tints did
-// not flip, so a dark-mode card kept its pale light-blue/amber/emerald/rose
-// background under near-white text — effectively unreadable (~1:1 contrast).
-// The dark: variants mix each status color into --co-surface instead,
-// matching the same tint recipe as .co-badge-* in globals.css.
+// / --co-accent-text, which flip to near-white in dark mode. A pale hardcoded
+// light-blue/amber/emerald/rose background wouldn't flip with it, so a
+// dark-mode card would keep a near-white background under near-white text —
+// effectively unreadable (~1:1 contrast). Mixing each status color into
+// --co-surface instead (matching the same tint recipe as .co-badge-* in
+// globals.css) makes the tone theme-aware automatically, since --co-surface
+// and each --co-* status color are themselves redefined under .dark — no
+// separate dark: variant needed.
 const STATUS_TONES: Record<string, string> = {
-  scheduled: "border-blue-200 bg-blue-50 dark:border-[color-mix(in_srgb,var(--co-accent)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-accent)_10%,var(--co-surface))]",
-  in_progress: "border-amber-300 bg-amber-50 dark:border-[color-mix(in_srgb,var(--co-warning)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-warning)_10%,var(--co-surface))]",
-  completed: "border-emerald-300 bg-emerald-50 dark:border-[color-mix(in_srgb,var(--co-success)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-success)_10%,var(--co-surface))]",
+  scheduled: "border-[color-mix(in_srgb,var(--co-accent)_24%,var(--co-surface))] bg-[color-mix(in_srgb,var(--co-accent)_10%,var(--co-surface))]",
+  in_progress: "border-[color-mix(in_srgb,var(--co-warning)_24%,var(--co-surface))] bg-[color-mix(in_srgb,var(--co-warning)_10%,var(--co-surface))]",
+  completed: "border-[color-mix(in_srgb,var(--co-success)_24%,var(--co-surface))] bg-[color-mix(in_srgb,var(--co-success)_10%,var(--co-surface))]",
   cancelled: "border-[var(--co-line)] bg-[var(--co-surface-muted)] opacity-60",
-  no_show: "border-rose-300 bg-rose-50 dark:border-[color-mix(in_srgb,var(--co-danger)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-danger)_10%,var(--co-surface))]",
+  no_show: "border-[color-mix(in_srgb,var(--co-danger)_24%,var(--co-surface))] bg-[color-mix(in_srgb,var(--co-danger)_10%,var(--co-surface))]",
 };
 
 export default function JobCard({ job, employees, draggable = false, onDragStart, onOpen }: { job: CardJob; employees: Employee[]; draggable?: boolean; onDragStart?: (event: React.DragEvent<HTMLAnchorElement>) => void; onOpen?: (jobId: string) => void }) {
@@ -71,7 +74,7 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
           onOpen(job.id);
         }}
         style={employeeCardStyle(leadColor)}
-        className={`group block h-full overflow-hidden rounded-lg border px-2.5 py-2 text-left transition hover:-translate-y-px hover:border-[var(--co-accent-text)] hover:shadow-[0_4px_12px_rgba(0,108,73,0.1)] ${STATUS_TONES[job.status] ?? STATUS_TONES.scheduled}`}
+        className={`group block h-full overflow-hidden rounded-lg border px-2.5 py-2 text-left transition hover:-translate-y-px hover:border-[var(--co-accent-text)] hover:shadow-[0_4px_12px_rgba(15,23,42,0.1)] ${STATUS_TONES[job.status] ?? STATUS_TONES.scheduled}`}
       >
         <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-[var(--co-muted)]"><span>{formatClockLabel(job.scheduledStartTime)}</span><span className="flex items-center gap-1.5"><ClientHomeSymbols roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} /><span className="rounded bg-[var(--co-surface)]/60 px-1.5 py-0.5 text-[10px]">{job.clientType === "commercial" ? "Commercial" : "Residential"}</span></span></div>
         <p className="mt-1 truncate text-[13px] font-semibold text-[var(--co-ink)]">{label}</p>
@@ -92,7 +95,7 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
         {job.customerNotes ? <p className="mt-1 truncate text-[10px] leading-4 text-[var(--co-muted)]" title={cleanNoteText(job.customerNotes)}>Note: {cleanNoteText(job.customerNotes)}</p> : null}
         {job.recurringSeriesId ? <p className="mt-1 text-[10px] font-medium text-[var(--co-faint)]">↻ {recurrenceLabel(job.recurrenceFrequency)}</p> : null}
         {job.rotationalTaskReminder ? (
-          <p className="mt-2 rounded-md border border-violet-200 bg-violet-50/80 px-2 py-1.5 text-[10px] font-semibold text-violet-950">
+          <p className="co-badge-spark mt-2 rounded-md px-2 py-1.5 text-[10px] font-semibold">
             All-day rotation · Week {job.rotationalTaskReminder.currentWeek}
           </p>
         ) : null}

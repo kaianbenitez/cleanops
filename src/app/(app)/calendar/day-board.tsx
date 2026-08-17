@@ -173,13 +173,13 @@ export default function DayBoard({ dayLabel, employees, jobs: initialJobs }: { d
         <p className="eyebrow">Day view</p>
         <h2 className="mt-1 text-lg font-semibold">{dayLabel}</h2>
         <p className="mt-1 text-xs text-[var(--co-muted)]">Drag a job onto the time rail to reschedule it, or reassign it with the dropdown.</p>
-        {error ? <p className="mt-2 text-xs font-medium text-rose-600">{error}</p> : null}
-        {warning ? <p role="status" className="mt-2 border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">Scheduling warning: {warning}</p> : null}
+        {error ? <p className="mt-2 text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
+        {warning ? <p role="status" className="mt-2 co-badge-warning px-3 py-2 text-xs font-medium">Scheduling warning: {warning}</p> : null}
       </div>
 
       <div className="flex gap-4 p-4">
         <div
-          className={`relative w-16 shrink-0 rounded-xl border border-[var(--co-line-soft)] transition-colors ${dragOverRail ? "bg-emerald-50" : "bg-[var(--co-surface-muted)]/30"}`}
+          className={`relative w-16 shrink-0 rounded-xl border border-[var(--co-line-soft)] transition-colors ${dragOverRail ? "bg-[var(--co-success)]/10" : "bg-[var(--co-surface-muted)]/30"}`}
           style={{ height: TOTAL_HEIGHT }}
           onDragOver={(event) => {
             event.preventDefault();

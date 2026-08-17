@@ -33,7 +33,7 @@ export default function TeamPanel({
     <section id="assignment" className={CARD_CLASS}>
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-semibold">Assigned team</h2>
-        <span className="rounded bg-[#eef1f5] px-2 py-1 text-xs font-bold text-slate-600">
+        <span className="rounded bg-[#eef1f5] px-2 py-1 text-xs font-bold text-[var(--co-muted)]">
           {assignedEmployees.length ? `${assignedEmployees.length} assigned` : "Unassigned"}
         </span>
       </div>
@@ -50,7 +50,7 @@ export default function TeamPanel({
                 <p className="flex items-center gap-1.5 font-semibold">
                   {employee.firstName} {employee.lastName}
                   {employee.isActive === false ? (
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-slate-500">
+                    <span className="co-badge-neutral rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]">
                       Inactive
                     </span>
                   ) : null}

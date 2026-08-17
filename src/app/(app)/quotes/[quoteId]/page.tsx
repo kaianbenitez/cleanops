@@ -193,7 +193,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
     return (
       <div className="co-card p-8 text-center">
         <p className="font-medium">Unable to load this quote.</p>
-        <p className="mt-2 text-sm text-rose-600">{error}</p>
+        <p className="mt-2 text-sm text-[var(--co-danger)]">{error}</p>
       </div>
     );
   }
@@ -217,7 +217,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <p className="eyebrow">Sales / Quote detail</p>
             <span className="rounded-full border border-[var(--co-line)] bg-[var(--co-surface-muted)] px-2.5 py-1 text-xs font-medium">{quote.status}</span>
-            {bookingOverride ? <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-900">Staff override — customer did not sign</span> : null}
+            {bookingOverride ? <span className="co-badge-warning rounded-full px-2.5 py-1 text-xs font-medium">Staff override — customer did not sign</span> : null}
           </div>
           <h1 className="page-title mt-2">{customerName}</h1>
           <p className="page-subtitle">
@@ -242,7 +242,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
       </header>
 
       {error ? (
-        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div role="alert" className="co-badge-danger rounded-xl px-4 py-3 text-sm">
           {error}
         </div>
       ) : null}
@@ -265,7 +265,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
               {tiers.map(([type, tier]) => {
                 const estimatedHours = hourlyRateCents ? tier.finalCents / hourlyRateCents : null;
                 return (
-                  <div key={type} className={`rounded-2xl border p-4 ${type === quote.acceptedServiceType ? "border-emerald-300 bg-emerald-50 dark:border-[color-mix(in_srgb,var(--co-success)_24%,var(--co-surface))] dark:bg-[color-mix(in_srgb,var(--co-success)_10%,var(--co-surface))]" : "border-[var(--co-line)] bg-white dark:bg-[var(--co-surface)]"}`}>
+                  <div key={type} className={`rounded-2xl border p-4 ${type === quote.acceptedServiceType ? "border-[var(--co-success)]/30 bg-[var(--co-success)]/10" : "border-[var(--co-line)] bg-white dark:bg-[var(--co-surface)]"}`}>
                     <p className="font-semibold">{LABELS[type] ?? type}</p>
                     <p className="mt-4 text-2xl font-semibold">{dollars(tier.finalCents)}</p>
                     <p className="mt-1 text-xs text-[var(--co-muted)]">
@@ -299,7 +299,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
                           {addOn?.quantified ? ` × ${qty}` : ""}
                         </span>
                         {needsPricing ? (
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Call to price — {addOn?.priceLabel}</span>
+                          <span className="co-badge-warning rounded-full px-2 py-0.5 text-xs font-medium">Call to price — {addOn?.priceLabel}</span>
                         ) : (
                           <span className="font-medium">{addOn ? dollars(addOn.priceCents! * (addOn.quantified ? qty : 1)) : ""}</span>
                         )}
@@ -393,10 +393,10 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
 
           <PageCard eyebrow="Payment status" title="Quote state" description="This helps the office know what happened without opening the public page.">
             {bookingOverride ? (
-              <div className="mb-3 border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              <div className="co-badge-warning mb-3 px-4 py-3 text-sm">
                 <p className="font-semibold">Accepted by staff — no customer signature</p>
                 <p className="mt-1">{bookingOverride.reason}</p>
-                <p className="mt-1 text-xs text-amber-900">Scheduled <LocalDateTime value={bookingOverride.bookedAt} />{bookingOverride.staffName ? ` by ${bookingOverride.staffName}` : ""}.</p>
+                <p className="mt-1 text-xs">Scheduled <LocalDateTime value={bookingOverride.bookedAt} />{bookingOverride.staffName ? ` by ${bookingOverride.staffName}` : ""}.</p>
               </div>
             ) : null}
             <div className="grid gap-3 sm:grid-cols-2">

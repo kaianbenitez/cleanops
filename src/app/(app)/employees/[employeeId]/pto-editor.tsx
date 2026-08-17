@@ -97,7 +97,7 @@ export default function PtoEditor({ employeeId, onChange }: { employeeId: string
                 <span className="ml-2 text-[var(--co-muted)]">{entry.startDate === entry.endDate ? periodLabels[entry.startPeriod] : `${periodLabels[entry.startPeriod]} → ${periodLabels[entry.endPeriod]}`}</span>
                 {entry.note ? <span className="ml-2 text-[var(--co-muted)]">· {entry.note}</span> : null}
               </div>
-              <button type="button" onClick={() => void removePto(entry.id)} className="font-semibold text-rose-600 hover:underline">Remove</button>
+              <button type="button" onClick={() => void removePto(entry.id)} className="font-semibold text-[var(--co-danger)] hover:underline">Remove</button>
             </div>
           ))}
         </div>
@@ -110,7 +110,7 @@ export default function PtoEditor({ employeeId, onChange }: { employeeId: string
           <label className="text-xs font-semibold text-[var(--co-muted)]">Start period<select value={startPeriod} onChange={(event) => setStartPeriod(event.target.value as EmployeePto["startPeriod"])} className="co-input mt-1 w-full text-sm">{Object.entries(periodLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label className="text-xs font-semibold text-[var(--co-muted)]">End period<select value={endPeriod} onChange={(event) => setEndPeriod(event.target.value as EmployeePto["endPeriod"])} className="co-input mt-1 w-full text-sm">{Object.entries(periodLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label className="text-xs font-semibold text-[var(--co-muted)] sm:col-span-2">Note (optional)<input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Vacation, appointment, training…" className="co-input mt-1 w-full text-sm" /></label>
-          <div className="flex items-center justify-between gap-3 sm:col-span-2"><span className="text-xs text-rose-600">{message}</span><button disabled={saving || !startDate} type="submit" className="co-button-primary px-4 py-2 text-xs">{saving ? "Saving…" : "Save time off"}</button></div>
+          <div className="flex items-center justify-between gap-3 sm:col-span-2"><span className="text-xs text-[var(--co-danger)]">{message}</span><button disabled={saving || !startDate} type="submit" className="co-button-primary px-4 py-2 text-xs">{saving ? "Saving…" : "Save time off"}</button></div>
         </form>
       ) : null}
       {!open && message ? <p className="mt-2 text-xs text-[var(--co-accent-text)]">{message}</p> : null}

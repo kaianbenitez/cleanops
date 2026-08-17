@@ -15,10 +15,10 @@ type PtoRequest = {
 
 const periodLabels = { full: "Full day", morning: "Morning", afternoon: "Afternoon" } as const;
 const statusClasses = {
-  pending: "border-amber-200 bg-amber-50 text-amber-800",
-  approved: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  denied: "border-rose-200 bg-rose-50 text-rose-700",
-  cancelled: "border-slate-200 bg-slate-50 text-slate-600",
+  pending: "co-badge-warning",
+  approved: "co-badge-success",
+  denied: "co-badge-danger",
+  cancelled: "co-badge-neutral",
 } as const;
 
 function requestLabel(request: PtoRequest) {
@@ -88,7 +88,7 @@ export default function PtoRequests() {
           {requests.length === 0 ? <p className="py-3 text-sm text-[var(--co-muted)]">No time-off requests yet.</p> : requests.map((request) => (
             <div key={request.id} className="flex items-start justify-between gap-3 py-3 text-sm">
               <div><p className="font-medium text-[var(--co-ink)]">{requestLabel(request)}</p>{request.note ? <p className="mt-1 text-xs text-[var(--co-muted)]">{request.note}</p> : null}</div>
-              <div className="flex shrink-0 flex-col items-end gap-1.5"><span className={`rounded-md border px-2 py-1 text-xs font-semibold uppercase tracking-[0.08em] ${statusClasses[request.status]}`}>{request.status}</span>{request.status === "pending" ? <button type="button" onClick={() => void cancel(request.id)} className="min-h-8 text-xs font-semibold text-rose-600 underline underline-offset-2">Cancel</button> : null}</div>
+              <div className="flex shrink-0 flex-col items-end gap-1.5"><span className={`rounded-md border px-2 py-1 text-xs font-semibold uppercase tracking-[0.08em] ${statusClasses[request.status]}`}>{request.status}</span>{request.status === "pending" ? <button type="button" onClick={() => void cancel(request.id)} className="min-h-8 text-xs font-semibold text-[var(--co-danger)] underline underline-offset-2">Cancel</button> : null}</div>
             </div>
           ))}
         </div>

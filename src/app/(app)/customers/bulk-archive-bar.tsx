@@ -73,7 +73,7 @@ export function BulkArchiveTable({ rows }: { rows: EligibleCustomerRow[] }) {
           Select all {rows.length} eligible
         </label>
         <div className="flex items-center gap-3">
-          {error ? <span className="text-xs text-rose-600">{error}</span> : null}
+          {error ? <span className="text-xs text-[var(--co-danger)]">{error}</span> : null}
           <button type="button" className="co-button-primary" disabled={selected.size === 0 || submitting} onClick={archiveSelected}>
             {submitting ? "Archiving..." : `Archive ${selected.size} selected`}
           </button>

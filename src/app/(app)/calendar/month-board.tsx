@@ -101,7 +101,7 @@ export default function MonthBoard({
                 </span>
               </div>
               {appointmentCountByDate[iso] ? (
-                <span className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-violet-300 bg-violet-50 px-1.5 py-0.5 text-[10px] font-semibold text-violet-800">
+                <span className="co-badge-spark mt-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold">
                   📅 {appointmentCountByDate[iso]} {appointmentCountByDate[iso] === 1 ? "meeting" : "meetings"}
                 </span>
               ) : null}
@@ -117,7 +117,7 @@ export default function MonthBoard({
                   <span
                     className={
                       summary.unassigned
-                        ? "font-semibold text-amber-700"
+                        ? "font-semibold text-[var(--co-warning)]"
                         : "text-[var(--co-ink)]"
                     }
                   >
@@ -125,12 +125,12 @@ export default function MonthBoard({
                   </span>
                 </div>
                 {isHoliday ? (
-                  <div className="font-medium text-amber-800">
+                  <div className="font-medium text-[var(--co-warning)]">
                     Holiday — capacity closed
                   </div>
                 ) : null}
                 {summary.needsReview ? (
-                  <div className="font-semibold text-rose-700">
+                  <div className="font-semibold text-[var(--co-danger)]">
                     {summary.needsReview} needs review
                   </div>
                 ) : null}

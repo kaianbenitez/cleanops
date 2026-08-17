@@ -82,11 +82,11 @@ export default function ActionFeedbackProvider({ children }: { children: React.R
             role={item.tone === "error" ? "alert" : "status"}
             className={`pointer-events-auto flex items-start gap-3 rounded-lg border px-3 py-3 text-sm shadow-[0_2px_8px_rgba(15,23,20,0.12)] ${
               item.tone === "success"
-                ? "border-emerald-200 bg-[var(--co-surface)] text-[var(--co-ink)]"
-                : "border-rose-200 bg-rose-50 text-rose-900"
+                ? "border-[var(--co-success)]/30 bg-[var(--co-surface)] text-[var(--co-ink)]"
+                : "co-badge-danger"
             }`}
           >
-            {item.tone === "success" ? <CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-accent-text)]" /> : <CircleAlert aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-rose-700" />}
+            {item.tone === "success" ? <CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-accent-text)]" /> : <CircleAlert aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-danger)]" />}
             <p className="min-w-0 flex-1 font-medium">{item.message}</p>
             <button type="button" onClick={() => dismiss(item.id)} className="-mr-1 -mt-1 rounded p-1 text-[var(--co-muted)] hover:bg-black/5 hover:text-[var(--co-ink)]" aria-label="Dismiss notification">
               <X aria-hidden="true" className="h-4 w-4" />

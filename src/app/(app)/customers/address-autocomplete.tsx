@@ -44,6 +44,6 @@ export default function AddressAutocomplete({ value, onChange, onAddressSelected
   return <>
     {apiKey && <Script id="google-maps-places" src={`https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`} strategy="afterInteractive" onLoad={() => setGoogleReady(true)} />}
     <input ref={inputRef} className="co-input w-full" value={value} onChange={(event) => onChange(event.target.value)} placeholder={apiKey ? "Start typing an address..." : "Street address"} />
-    {apiKey ? <p className="mt-1 text-xs text-[var(--co-muted)]">Choose a suggestion to fill city, state, ZIP, and county.</p> : <p className="mt-1 text-xs text-amber-600">Ask an administrator to configure Google Maps to enable suggestions.</p>}
+    {apiKey ? <p className="mt-1 text-xs text-[var(--co-muted)]">Choose a suggestion to fill city, state, ZIP, and county.</p> : <p className="mt-1 text-xs text-[var(--co-warning)]">Ask an administrator to configure Google Maps to enable suggestions.</p>}
   </>;
 }

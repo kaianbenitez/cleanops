@@ -13,7 +13,7 @@ type StatTileProps = {
 };
 
 export function StatTile({ label, value, note, trend, tone = "neutral", href, sparkline, className, compact = false }: StatTileProps) {
-  const accent = tone === "good" ? "text-emerald-700" : tone === "warn" ? "text-amber-700" : tone === "danger" ? "text-[var(--co-danger)]" : "text-[var(--co-ink)]";
+  const accent = tone === "good" ? "text-[var(--co-success)]" : tone === "warn" ? "text-[var(--co-warning)]" : tone === "danger" ? "text-[var(--co-danger)]" : "text-[var(--co-ink)]";
   const content = (
     <>
       <p className={`text-[11px] font-semibold uppercase text-[var(--co-muted)] ${compact ? "tracking-[0.1em]" : "tracking-[0.14em]"}`}>{label}</p>

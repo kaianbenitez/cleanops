@@ -30,10 +30,10 @@ function dollars(cents: number) {
 
 function stockTone(item: InventoryItem) {
   return item.onHand <= item.reorderAt
-    ? "border-amber-200 bg-amber-50 text-amber-700"
+    ? "co-badge-warning"
     : item.onHand <= item.reorderAt * 1.5
-      ? "border-sky-200 bg-sky-50 text-sky-700"
-      : "border-emerald-200 bg-emerald-50 text-emerald-700";
+      ? "co-badge-info"
+      : "co-badge-success";
 }
 
 function stockLabel(item: InventoryItem) {
@@ -237,7 +237,7 @@ export default function SuppliesPage() {
                     filtered.map((item) => {
                       const low = item.onHand <= item.reorderAt;
                       return (
-                        <tr key={item.id} className={low ? "bg-amber-50/35" : ""}>
+                        <tr key={item.id} className={low ? "bg-[var(--co-warning)]/10" : ""}>
                           <td className="px-4 py-3">
                             <input className="co-input w-48" value={item.name} onChange={(event) => update(item.id, "name", event.target.value)} />
                           </td>
@@ -312,11 +312,11 @@ export default function SuppliesPage() {
                           {item.onHand} on hand · reorder at {item.reorderAt}
                         </p>
                       </div>
-                      <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">Reorder</span>
+                      <span className="co-badge-warning rounded-full px-2.5 py-1 text-xs font-medium">Reorder</span>
                     </div>
                     <div className="mt-3 h-2 rounded-full bg-[var(--co-surface-muted)]">
                       <div
-                        className="h-2 rounded-full bg-gradient-to-r from-amber-400 to-rose-500"
+                        className="h-2 rounded-full bg-gradient-to-r from-[var(--co-warning)] to-[var(--co-danger)]"
                         style={{ width: `${Math.max(Math.min((item.onHand / Math.max(item.reorderAt, 1)) * 100, 100), 6)}%` }}
                       />
                     </div>

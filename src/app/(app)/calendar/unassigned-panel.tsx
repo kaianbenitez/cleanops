@@ -152,8 +152,8 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
 
         {job ? (
           <div className="flex-1 space-y-5 px-5 py-5">
-            {error ? <p className="text-xs font-medium text-rose-600">{error}</p> : null}
-            {warning ? <p role="status" className="border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">Scheduling warning: {warning}</p> : null}
+            {error ? <p className="text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
+            {warning ? <p role="status" className="co-badge-warning px-3 py-2 text-xs font-medium">Scheduling warning: {warning}</p> : null}
             {assigned ? <p className="rounded-xl bg-[var(--co-accent-tint)] px-3 py-2 text-xs font-medium text-[var(--co-accent-text)]">Assigned. This card will drop out of the unassigned queue on refresh.</p> : null}
 
             {history?.preferredCleaner ? (
@@ -265,7 +265,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
                 <StatusPill domain="job" status="cancelled" />
               ) : confirmingCancel ? (
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-rose-700">Cancel this appointment?</p>
+                  <p className="text-xs font-medium text-[var(--co-danger)]">Cancel this appointment?</p>
                   <textarea value={cancellationReason} onChange={(event) => setCancellationReason(event.target.value)} rows={2} placeholder="Why is this job being cancelled?" className="co-input w-full resize-none text-xs" />
                   <div className="flex gap-2">
                   <button type="button" disabled={saving} onClick={() => { setConfirmingCancel(false); setCancellationReason(""); }} className="co-button-secondary py-1 text-xs disabled:opacity-50">
@@ -278,14 +278,14 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
                       setConfirmingCancel(false);
                       patch({ status: "cancelled", cancellationReason: cancellationReason.trim() });
                     }}
-                    className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                    className="rounded-lg border border-[var(--co-danger)]/30 bg-[var(--co-danger)]/10 px-3 py-1 text-xs font-semibold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/20 disabled:opacity-50"
                   >
                     Confirm cancel
                   </button>
                   </div>
                 </div>
               ) : (
-                <button type="button" disabled={saving} onClick={() => setConfirmingCancel(true)} className="text-xs font-semibold text-rose-700 hover:underline disabled:opacity-50">
+                <button type="button" disabled={saving} onClick={() => setConfirmingCancel(true)} className="text-xs font-semibold text-[var(--co-danger)] hover:underline disabled:opacity-50">
                   Cancel this job / appointment
                 </button>
               )}

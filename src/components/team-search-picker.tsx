@@ -76,14 +76,14 @@ export default function TeamSearchPicker({
           {selectedEmployees.map((employee, index) => (
             <span key={employee.id} className="flex items-center gap-1.5 rounded-full border border-[var(--co-line)] bg-[var(--co-surface-muted)] py-1 pl-3 pr-1.5 text-xs font-medium">
               {index === 0 ? <span className="rounded-full bg-[var(--co-accent-fill)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">Lead</span> : null}
-              {employee.isActive === false ? <span className="rounded-full border border-slate-300 bg-white px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">Inactive</span> : null}
+              {employee.isActive === false ? <span className="co-badge-neutral rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide">Inactive</span> : null}
               {employee.firstName} {employee.lastName}
               {index !== 0 ? (
                 <button type="button" onClick={() => makeLead(employee.id)} className="rounded-full px-1.5 py-0.5 text-[10px] text-[var(--co-muted)] hover:text-[var(--co-accent-text)]">
                   Make lead
                 </button>
               ) : null}
-              <button type="button" onClick={() => remove(employee.id)} aria-label={`Remove ${employee.firstName} ${employee.lastName}`} className="rounded-full p-1 text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-rose-600">
+              <button type="button" onClick={() => remove(employee.id)} aria-label={`Remove ${employee.firstName} ${employee.lastName}`} className="rounded-full p-1 text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-danger)]">
                 ✕
               </button>
             </span>

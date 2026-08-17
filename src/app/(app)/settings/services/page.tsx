@@ -196,7 +196,7 @@ function AddOnSection({
             Add extra
           </button>
         </div>
-        {error && <p className="mt-3 text-sm font-medium text-amber-600">{error}</p>}
+        {error && <p className="mt-3 text-sm font-medium text-[var(--co-warning)]">{error}</p>}
       </div>
     </section>
   );
@@ -401,9 +401,9 @@ function MainJobSection({
           </button>
         </div>
         {duplicateWarning && (
-          <p className="mt-3 text-sm font-medium text-amber-600">
+          <p className="mt-3 text-sm font-medium text-[var(--co-warning)]">
             {duplicateWarning}{" "}
-            <button onClick={() => setDuplicateWarning("")} className="underline hover:text-amber-800">
+            <button onClick={() => setDuplicateWarning("")} className="underline hover:opacity-80">
               Cancel
             </button>
           </p>

@@ -7,7 +7,7 @@ import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { PaginationControls } from "@/components/ui/pagination";
 
 const PAGE_SIZE = 25;
-const STATUS_COLORS: Record<string, string> = { retrying: "bg-amber-100 text-amber-800", failed: "bg-rose-100 text-rose-800" };
+const STATUS_COLORS: Record<string, string> = { retrying: "bg-[var(--co-warning)]/10 text-[var(--co-warning)]", failed: "bg-[var(--co-danger)]/10 text-[var(--co-danger)]" };
 
 export default async function SyncIssuesPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const admin = await getCurrentUser();
@@ -105,11 +105,11 @@ export default async function SyncIssuesPage({ searchParams }: { searchParams: P
                       </td>
                       <td className="px-5 py-4 text-[var(--co-muted)]">{row.eventType}</td>
                       <td className="px-5 py-4">
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[row.status] ?? "bg-slate-100 text-slate-700"}`}>{row.status}</span>
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[row.status] ?? "bg-[var(--co-surface-muted)] text-[var(--co-muted)]"}`}>{row.status}</span>
                       </td>
                       <td className="px-5 py-4">{row.attempts}</td>
                       <td className="px-5 py-4 text-xs text-[var(--co-muted)]">{row.lastAttemptAt ? new Date(row.lastAttemptAt).toLocaleString() : "—"}</td>
-                      <td className="max-w-[340px] truncate px-5 py-4 text-xs text-rose-700" title={response?.error ?? ""}>
+                      <td className="max-w-[340px] truncate px-5 py-4 text-xs text-[var(--co-danger)]" title={response?.error ?? ""}>
                         {response?.error ?? "No response details"}
                       </td>
                     </tr>
@@ -131,4 +131,4 @@ export default async function SyncIssuesPage({ searchParams }: { searchParams: P
   );
 }
 
-function Metric({ label, value, tone }: { label: string; value: string; tone: "good" | "warn" | "bad" }) { const color = tone === "bad" ? "text-rose-600" : tone === "warn" ? "text-amber-600" : "text-[var(--co-accent-text)]"; return <div className="co-card p-5"><p className="text-xs text-[var(--co-muted)]">{label}</p><p className={`mt-2 text-2xl font-semibold ${color}`}>{value}</p></div>; }
+function Metric({ label, value, tone }: { label: string; value: string; tone: "good" | "warn" | "bad" }) { const color = tone === "bad" ? "text-[var(--co-danger)]" : tone === "warn" ? "text-[var(--co-warning)]" : "text-[var(--co-accent-text)]"; return <div className="co-card p-5"><p className="text-xs text-[var(--co-muted)]">{label}</p><p className={`mt-2 text-2xl font-semibold ${color}`}>{value}</p></div>; }

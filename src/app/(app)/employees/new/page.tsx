@@ -286,7 +286,7 @@ export default function NewEmployeePage() {
 
         <section className="co-card mt-6 flex flex-wrap items-center justify-between gap-3 px-6 py-4">
           <div className="text-sm text-[var(--co-muted)]">
-            {error ? <span className="text-rose-600">{error}</span> : "Login details are generated automatically after saving."}
+            {error ? <span className="text-[var(--co-danger)]">{error}</span> : "Login details are generated automatically after saving."}
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={() => router.push("/employees")} className="co-button-secondary">

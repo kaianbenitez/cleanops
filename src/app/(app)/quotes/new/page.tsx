@@ -606,7 +606,7 @@ export default function NewQuotePage() {
                       <label key={key} className={key === "addressLine1" ? "sm:col-span-2" : ""}>
                         <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">{label}</span>
                         {key === "addressLine1" ? (
-                          <div className={fieldError ? "rounded-xl ring-1 ring-rose-500" : ""}>
+                          <div className={fieldError ? "rounded-xl ring-1 ring-[var(--co-danger)]" : ""}>
                             <AddressAutocomplete
                               value={newCustomerForm.addressLine1}
                               onChange={(value) => updateNewCustomerField("addressLine1", value)}
@@ -621,13 +621,13 @@ export default function NewQuotePage() {
                           </div>
                         ) : (
                           <input
-                            className={`co-input w-full ${fieldError ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500" : ""}`}
+                            className={`co-input w-full ${fieldError ? "border-[var(--co-danger)] focus:border-[var(--co-danger)] focus:ring-[var(--co-danger)]" : ""}`}
                             value={newCustomerForm[key]}
                             onChange={(event) => updateNewCustomerField(key, event.target.value)}
                             placeholder={placeholder}
                           />
                         )}
-                        {fieldError ? <p className="mt-1 text-xs text-rose-600">{fieldError}</p> : null}
+                        {fieldError ? <p className="mt-1 text-xs text-[var(--co-danger)]">{fieldError}</p> : null}
                       </label>
                     );
                   })}
@@ -641,8 +641,8 @@ export default function NewQuotePage() {
                   {newCustomerForm.clientType === "commercial" ? (
                     <label>
                       <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Company name</span>
-                      <input className={`co-input w-full ${newCustomerFieldErrors.companyName ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500" : ""}`} value={newCustomerForm.companyName} onChange={(event) => updateNewCustomerField("companyName", event.target.value)} placeholder="e.g. State Farm" />
-                      {newCustomerFieldErrors.companyName ? <p className="mt-1 text-xs text-rose-600">{newCustomerFieldErrors.companyName}</p> : null}
+                      <input className={`co-input w-full ${newCustomerFieldErrors.companyName ? "border-[var(--co-danger)] focus:border-[var(--co-danger)] focus:ring-[var(--co-danger)]" : ""}`} value={newCustomerForm.companyName} onChange={(event) => updateNewCustomerField("companyName", event.target.value)} placeholder="e.g. State Farm" />
+                      {newCustomerFieldErrors.companyName ? <p className="mt-1 text-xs text-[var(--co-danger)]">{newCustomerFieldErrors.companyName}</p> : null}
                     </label>
                   ) : null}
                 </div>
@@ -654,7 +654,7 @@ export default function NewQuotePage() {
                   Pricing zone
                 </span>
                 {locations.length === 0 ? (
-                  <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  <p className="co-badge-warning rounded-xl px-3 py-2 text-xs">
                     No pricing zones configured yet. Add one in{" "}
                     <a href="/settings/pricing" className="font-semibold underline">
                       Settings → Pricing
@@ -1010,7 +1010,7 @@ export default function NewQuotePage() {
             </div>
           )}
 
-          {error ? <p className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
+          {error ? <p className="co-badge-danger mt-4 rounded-xl px-3 py-2 text-sm">{error}</p> : null}
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--co-line-soft)] pt-4 text-sm">
             <div className="text-[var(--co-muted)]">

@@ -62,8 +62,8 @@ function formatEstimatedTime(minutes: number | null) {
 }
 
 function metricTone(status: "warning" | "neutral" | "good") {
-  if (status === "warning") return "bg-amber-50 text-amber-700 border-amber-100";
-  if (status === "good") return "bg-emerald-50 text-emerald-700 border-emerald-100";
+  if (status === "warning") return "co-badge-warning";
+  if (status === "good") return "co-badge-success";
   return "bg-[var(--co-surface-muted)]/50 text-[var(--co-ink)] border-[var(--co-line-soft)]";
 }
 
@@ -370,7 +370,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                               ))}
                             </div>
                           ) : (
-                            <span className="font-medium text-amber-700">Unassigned</span>
+                            <span className="font-medium text-[var(--co-warning)]">Unassigned</span>
                           )}
                         </td>
                         <td className="px-5 py-4"><span className="block font-semibold text-[var(--co-ink)]">{row.scheduledDate === todayText ? "Today" : formatDisplayDate(row.scheduledDate)}</span><span className="block text-xs text-[var(--co-muted)]">{row.scheduledStartTime?.slice(0, 5) ?? "No time"}{row.estimatedDurationMinutes ? ` · Est. ${formatEstimatedTime(row.estimatedDurationMinutes)}` : ""}</span></td>

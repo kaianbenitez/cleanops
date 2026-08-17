@@ -238,7 +238,7 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
             <Summary label="Team" value={selectedEmployeeIds.length ? `${selectedEmployeeIds.length} assigned` : "Assign later"} />
             <Summary label="Price" value={`$${(totalCents / 100).toFixed(2)}`} />
           </div>
-          {error ? <p className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
+          {error ? <p className="co-badge-danger mt-4 rounded-xl px-3 py-2 text-sm">{error}</p> : null}
           <button type="submit" disabled={submitting} className="co-button-primary mt-5 w-full py-3">
             {submitting ? "Creating job…" : "Create job →"}
           </button>

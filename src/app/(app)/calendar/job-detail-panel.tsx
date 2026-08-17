@@ -148,8 +148,8 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
 
         {job ? (
           <div className="flex-1 space-y-5 px-5 py-5">
-            {error ? <p className="text-xs font-medium text-rose-600">{error}</p> : null}
-            {warning ? <p role="status" className="border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">Scheduling warning: {warning}</p> : null}
+            {error ? <p className="text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
+            {warning ? <p role="status" className="co-badge-warning px-3 py-2 text-xs font-medium">Scheduling warning: {warning}</p> : null}
 
             <div className="flex flex-wrap items-center gap-2">
               <StatusPill domain="job" status={job.status} />
@@ -232,14 +232,14 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
 
             <div className="flex flex-wrap gap-2 border-t border-[var(--co-line-soft)] pt-4">
               {job.status !== "cancelled" ? confirmingCancel ? (
-                <div className="w-full space-y-2 rounded-lg border border-rose-200 bg-rose-50 p-3">
-                  <label className="block text-xs font-semibold text-rose-800">
+                <div className="w-full space-y-2 co-badge-danger rounded-lg p-3">
+                  <label className="block text-xs font-semibold text-[var(--co-danger)]">
                     Cancellation reason
                     <textarea value={cancellationReason} onChange={(event) => setCancellationReason(event.target.value)} rows={2} placeholder="Why is this job being cancelled?" className="co-input mt-1 w-full resize-none" />
                   </label>
                   <div className="flex gap-2">
                     <button type="button" disabled={saving} onClick={() => { setConfirmingCancel(false); setCancellationReason(""); }} className="co-button-secondary py-1 text-xs disabled:opacity-50">Keep job</button>
-                    <button type="button" disabled={saving || !cancellationReason.trim()} onClick={confirmCancelJob} className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50">Confirm cancel</button>
+                    <button type="button" disabled={saving || !cancellationReason.trim()} onClick={confirmCancelJob} className="rounded-lg border border-[var(--co-danger)]/30 bg-[var(--co-danger)]/10 px-3 py-1 text-xs font-semibold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/20 disabled:opacity-50">Confirm cancel</button>
                   </div>
                 </div>
               ) : (

@@ -187,7 +187,7 @@ export default function RoomTypesSettingsPage() {
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={() => deleteRoomType(room.id)}
-                      className="text-xs font-medium text-rose-600 hover:text-rose-800"
+                      className="text-xs font-medium text-[var(--co-danger)] hover:opacity-80"
                     >
                       Remove
                     </button>

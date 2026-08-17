@@ -453,7 +453,7 @@ export default function StaffBoard({
             {job.clientType === "commercial" ? "Commercial" : "Residential"}
           </span>
           <span
-            className={retained ? "text-[var(--co-muted)]" : "text-amber-700"}
+            className={retained ? "text-[var(--co-muted)]" : "text-[var(--co-warning)]"}
           >
             {statusLabel(job.status)}
           </span>
@@ -543,7 +543,7 @@ export default function StaffBoard({
               <h2 className="text-sm font-semibold">Unassigned jobs</h2>
               <span className="text-xs font-medium text-[var(--co-muted)]">{dayLabel}</span>
             </div>
-            {activeUnassignedJobs.length ? <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700">Needs assignment</p> : null}
+            {activeUnassignedJobs.length ? <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--co-warning)]">Needs assignment</p> : null}
             <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {activeUnassignedJobs.map((job) => queueCard(job))}
             </div>
@@ -551,8 +551,8 @@ export default function StaffBoard({
           </section>
         ) : null}
         {unscheduledJobs.length ? (
-          <div className="border-b border-amber-200 bg-amber-50 px-4 py-3">
-            <p className="text-xs font-semibold text-amber-900">
+          <div className="border-b border-[var(--co-warning)]/30 bg-[var(--co-warning)]/10 px-4 py-3">
+            <p className="text-xs font-semibold text-[var(--co-warning)]">
               No time scheduled ({unscheduledJobs.length})
             </p>
             <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
@@ -575,7 +575,7 @@ export default function StaffBoard({
         {error ? (
           <p
             role="alert"
-            className="border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs font-medium text-rose-700"
+            className="border-b border-[var(--co-danger)]/30 bg-[var(--co-danger)]/10 px-4 py-2 text-xs font-medium text-[var(--co-danger)]"
           >
             {error}
           </p>
@@ -583,7 +583,7 @@ export default function StaffBoard({
         {warning ? (
           <p
             role="status"
-            className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-900"
+            className="border-b border-[var(--co-warning)]/30 bg-[var(--co-warning)]/10 px-4 py-2 text-xs font-medium text-[var(--co-warning)]"
           >
             Scheduling warning: {warning}
           </p>
@@ -706,7 +706,7 @@ export default function StaffBoard({
                     ))}
                     {ptoPeriod ? (
                       <div
-                        className="pointer-events-none absolute inset-x-0 z-20 border-y border-amber-300 bg-amber-100/70 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-900"
+                        className="pointer-events-none absolute inset-x-0 z-20 border-y border-[var(--co-warning)]/40 bg-[var(--co-warning)]/15 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--co-warning)]"
                         style={ptoStyle(ptoPeriod)}
                       >
                         PTO{ptoPeriod === "full" ? "" : ` - ${ptoPeriod}`}

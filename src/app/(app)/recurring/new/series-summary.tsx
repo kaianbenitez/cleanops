@@ -45,7 +45,7 @@ export default function SeriesSummary({
         </div>
 
         {submission.state === "error" ? (
-          <p className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{submission.message}</p>
+          <p className="co-badge-danger mt-4 rounded-xl px-3 py-2 text-sm">{submission.message}</p>
         ) : null}
 
         {submission.state === "done" ? (

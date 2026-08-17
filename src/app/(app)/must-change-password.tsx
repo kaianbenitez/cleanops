@@ -80,7 +80,7 @@ export default function MustChangePassword() {
             />
           </label>
 
-          {error ? <p className="text-sm font-medium text-rose-600">{error}</p> : null}
+          {error ? <p className="text-sm font-medium text-[var(--co-danger)]">{error}</p> : null}
 
           <button type="submit" disabled={saving} className="co-button-primary w-full justify-center">
             {saving ? "Saving…" : "Set password"}

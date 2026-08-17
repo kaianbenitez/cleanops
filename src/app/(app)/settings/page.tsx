@@ -92,7 +92,7 @@ export default function SettingsOverviewPage() {
 
   return (
     <div className="space-y-6">
-      {message ? <p className="text-sm font-medium text-rose-600">{message}</p> : null}
+      {message ? <p className="text-sm font-medium text-[var(--co-danger)]">{message}</p> : null}
 
       <section>
         <p className="eyebrow">At a glance</p>

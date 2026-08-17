@@ -183,7 +183,7 @@ export default function PayrollTiersSettingsPage() {
                       <span className="inline-flex items-center gap-3">
                         <button
                           onClick={() => removeBracket(i)}
-                          className="text-xs font-semibold text-rose-600 hover:text-rose-800"
+                          className="text-xs font-semibold text-[var(--co-danger)] hover:opacity-80"
                         >
                           Confirm remove
                         </button>
@@ -198,7 +198,7 @@ export default function PayrollTiersSettingsPage() {
                       <button
                         onClick={() => setConfirmingRemoval(i)}
                         disabled={brackets.length <= 1}
-                        className="text-xs font-medium text-rose-600 hover:text-rose-800 disabled:cursor-not-allowed disabled:text-[var(--co-faint)]"
+                        className="text-xs font-medium text-[var(--co-danger)] hover:opacity-80 disabled:cursor-not-allowed disabled:text-[var(--co-faint)]"
                       >
                         Remove
                       </button>
@@ -212,7 +212,7 @@ export default function PayrollTiersSettingsPage() {
       </section>
 
       {errors.length > 0 && (
-        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div role="alert" className="co-badge-danger rounded-xl px-4 py-3 text-sm">
           <p className="font-semibold">Fix these before saving</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {errors.map((error) => (
@@ -223,7 +223,7 @@ export default function PayrollTiersSettingsPage() {
       )}
 
       {(warnings.length > 0 || countChanged) && (
-        <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+        <div role="status" className="co-badge-warning rounded-xl px-4 py-3 text-sm">
           <p className="font-semibold">Worth checking</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {countChanged && (
@@ -254,7 +254,7 @@ export default function PayrollTiersSettingsPage() {
         {message && (
           <p
             className={`text-sm font-medium ${
-              message.tone === "success" ? "text-[var(--co-accent-text)]" : "text-rose-600"
+              message.tone === "success" ? "text-[var(--co-accent-text)]" : "text-[var(--co-danger)]"
             }`}
           >
             {message.text}

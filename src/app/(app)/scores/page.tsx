@@ -25,7 +25,7 @@ function feedbackLabel(status: string) {
 
 function statusClass(status: string) {
   if (status === "responded") return "bg-[#e4f1e7] text-[var(--co-accent-text)]";
-  if (status === "expired") return "bg-amber-50 text-amber-800";
+  if (status === "expired") return "co-badge-warning";
   return "bg-[var(--co-surface-muted)] text-[var(--co-muted)]";
 }
 
@@ -72,7 +72,7 @@ export default async function MyScoresPage({ searchParams }: { searchParams: Sea
                 <td className="whitespace-nowrap px-5 py-4">{dateLabel(entry.serviceDate)}</td>
                 <td className="px-5 py-4 font-semibold">{entry.customerName}</td>
                 <td className="whitespace-nowrap px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(entry.feedbackStatus)}`}>{feedbackLabel(entry.feedbackStatus)}</span></td>
-                <td className="whitespace-nowrap px-5 py-4">{entry.rating ? <span className="font-semibold text-amber-700">{"★".repeat(entry.rating)}<span className="text-[var(--co-faint)]">{"★".repeat(5 - entry.rating)}</span></span> : "—"}</td>
+                <td className="whitespace-nowrap px-5 py-4">{entry.rating ? <span className="font-semibold text-[var(--co-warning)]">{"★".repeat(entry.rating)}<span className="text-[var(--co-faint)]">{"★".repeat(5 - entry.rating)}</span></span> : "—"}</td>
                 <td className="min-w-64 max-w-md px-5 py-4 text-[var(--co-muted)]">{entry.comment ? `“${entry.comment}”` : "—"}</td>
               </tr>
             ))}

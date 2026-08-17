@@ -147,7 +147,7 @@ export default function PricingSettingsPage() {
       </section>
 
       {locations.length === 0 && !loading && (
-        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        <section className="co-badge-warning rounded-2xl p-4 text-sm">
           <p className="font-semibold">No service areas yet — quotes can&apos;t be created until you add one.</p>
           <p className="mt-1">A service area sets the hourly rate and travel fees for a city or branch. Add your first one below.</p>
         </section>
@@ -185,7 +185,7 @@ export default function PricingSettingsPage() {
             {creating ? "Adding..." : "Add service area"}
           </button>
         </div>
-        {createError && <p className="text-sm text-rose-600">{createError}</p>}
+        {createError && <p className="text-sm text-[var(--co-danger)]">{createError}</p>}
       </section>
 
       {locations.map((loc) => (
@@ -228,7 +228,7 @@ function LocationCard({
           <p className="eyebrow">Pricing zone</p>
           <h2 className="mt-1 text-xl font-semibold text-[var(--co-ink)]">
           {location.name}
-          {!location.isActive && <span className="ml-2 rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-500">Inactive</span>}
+          {!location.isActive && <span className="co-badge-neutral ml-2 rounded-full px-2 py-1 text-xs font-medium">Inactive</span>}
           </h2>
         </div>
         <div className="flex items-center gap-2">
@@ -328,7 +328,7 @@ function LocationCard({
                 aria-label={`${zone.name} travel fee`}
                 className="co-input w-24 py-2 text-sm"
               />
-              <button type="button" onClick={() => onDeleteZone(zone.id)} className="text-xs font-semibold text-rose-600 hover:underline">
+              <button type="button" onClick={() => onDeleteZone(zone.id)} className="text-xs font-semibold text-[var(--co-danger)] hover:underline">
                 Remove
               </button>
             </div>

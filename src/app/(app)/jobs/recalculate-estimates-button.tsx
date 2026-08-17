@@ -22,5 +22,5 @@ export function RecalculateEstimatesButton() {
     router.refresh();
   }
 
-  return <div className="flex items-center gap-2"><button type="button" onClick={recalculate} disabled={state === "working"} className="co-button-secondary">{state === "working" ? "Recalculating…" : "Recalculate est. hours"}</button>{message ? <span className={`text-xs ${state === "error" ? "text-rose-700" : "text-[var(--co-muted)]"}`}>{message}</span> : null}</div>;
+  return <div className="flex items-center gap-2"><button type="button" onClick={recalculate} disabled={state === "working"} className="co-button-secondary">{state === "working" ? "Recalculating…" : "Recalculate est. hours"}</button>{message ? <span className={`text-xs ${state === "error" ? "text-[var(--co-danger)]" : "text-[var(--co-muted)]"}`}>{message}</span> : null}</div>;
 }

@@ -24,10 +24,10 @@ export default function StaffVerticalBoard({ employees, jobs: initialJobs, queue
   }));
   return <>
     {queueOpen && unassignedJobs.length ? (
-      <section className="mb-3 border border-amber-200 bg-amber-50 px-4 py-3">
+      <section className="co-badge-warning mb-3 px-4 py-3">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-amber-950">Unassigned jobs</h2>
-          <span className="text-xs font-medium text-amber-800">Needs assignment</span>
+          <h2 className="text-sm font-semibold">Unassigned jobs</h2>
+          <span className="text-xs font-medium">Needs assignment</span>
         </div>
         <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {unassignedJobs.map((job) => (

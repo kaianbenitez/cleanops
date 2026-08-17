@@ -100,9 +100,9 @@ export default function WeekBoard({
               : Math.round((scheduledMinutes / availableMinutes) * 100);
             const tone =
               capacity > 100
-                ? "bg-rose-50 text-rose-700"
+                ? "co-badge-danger"
                 : capacity >= 90
-                  ? "bg-amber-50 text-amber-700"
+                  ? "co-badge-warning"
                   : "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]";
             const grouped = new Map<string, CalendarJob[]>();
             dayJobs.forEach((job) => {
@@ -140,13 +140,13 @@ export default function WeekBoard({
                     </span>
                   </div>
                   {day.isHoliday ? (
-                    <p className="mt-3 text-xs font-medium text-amber-800">
+                    <p className="mt-3 text-xs font-medium text-[var(--co-warning)]">
                       Holiday — no dispatch capacity
                     </p>
                   ) : (
                     <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--co-line-soft)]">
                       <div
-                        className={`h-full ${capacity > 100 ? "bg-rose-600" : capacity >= 90 ? "bg-amber-500" : "bg-[var(--co-accent-fill)]"}`}
+                        className={`h-full ${capacity > 100 ? "bg-[var(--co-danger)]" : capacity >= 90 ? "bg-[var(--co-warning)]" : "bg-[var(--co-accent-fill)]"}`}
                         style={{ width: `${Math.min(capacity, 100)}%` }}
                       />
                     </div>

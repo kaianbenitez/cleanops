@@ -44,7 +44,7 @@ export default function EmployeeTags({ tags, onSave }: { tags: string[]; onSave:
           {tags.map((tag) => (
             <span key={tag} className="flex items-center gap-1.5 rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2.5 py-1 text-[11px] font-semibold text-[var(--co-ink)]">
               {tag}
-              <button type="button" onClick={() => removeTag(tag)} aria-label={`Remove ${tag}`} className="text-[var(--co-muted)] hover:text-rose-600">
+              <button type="button" onClick={() => removeTag(tag)} aria-label={`Remove ${tag}`} className="text-[var(--co-muted)] hover:text-[var(--co-danger)]">
                 ✕
               </button>
             </span>
