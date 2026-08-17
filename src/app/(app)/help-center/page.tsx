@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.54",
+    date: "August 17, 2026",
+    title: "Pets now track hair rating, dog/cat counts, and names",
+    changes: [
+      "The Pets field from last update is now more specific: a pet hair rating (1-5, how much shedding to expect), how many dogs and cats, and their names — all optional.",
+      "There's still a free-text \"Other pet notes\" box underneath for anything that doesn't fit those fields, like \"do not give her treats.\"",
+      "The customer profile page has the same fields now, and the Pets card there shows a quick summary (e.g. \"Pet hair rating: 4/5 · 2 dogs (Rex, Fido)\") instead of just a paragraph of text.",
+    ],
+  },
+  {
     version: "v0.2.53",
     date: "August 17, 2026",
     title: "Pets now show up when you're building a proposal",
