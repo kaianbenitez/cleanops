@@ -39,9 +39,6 @@ export default function LeadForm() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    // crewSize is optional at the API layer (existing product decision, not
-    // touched here), but the landing page's required set is business name,
-    // email, and crew size, so enforce that client-side.
     if (!form.crewSize) {
       setErrors((current) => ({ ...current, crewSize: "Select a crew size." }));
       return;
@@ -64,16 +61,18 @@ export default function LeadForm() {
     }).catch(() => null);
 
     if (response?.ok) {
+      setSubmitting(false);
       setSubmitted(true);
       return;
     }
 
     const result = await response?.json().catch(() => null);
     const fieldErrors = result?.fieldErrors as Partial<Record<FieldName, string[]>> | undefined;
-    if (fieldErrors) {
+    if (fieldErrors && Object.keys(fieldErrors).length > 0) {
       setErrors(Object.fromEntries(Object.entries(fieldErrors).map(([key, messages]) => [key, messages?.[0]])));
     } else {
-      setServerError("We couldn't send your request right now. Please try again.");
+      setErrors({});
+      setServerError(result?.error ?? "We couldn't send your request right now. Please try again.");
     }
     setSubmitting(false);
     turnstileRef.current?.reset();
@@ -123,7 +122,7 @@ export default function LeadForm() {
       <div className="sm:col-span-2">
         <ul className="mb-4 space-y-1.5 text-sm leading-6 text-[var(--co-muted)]">
           <li>No credit card, and no charge during beta.</li>
-          <li>We won&apos;t call unless you tick the box below.</li>
+          <li>We won&apos;t call unless you leave a phone number.</li>
           <li>Your data is yours: full CSV export any time, no lock-in.</li>
         </ul>
         <div className="min-h-16">
