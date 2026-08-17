@@ -1,8 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+/** Creates a request-scoped Supabase client and resolves the auth user,
+ * returning the response that carries any refreshed session cookies.
+ * Shared by `updateSession` (all other routes) and the `/`-specific
+ * redirect resolution in `root-redirect.ts`, so both stay on one Supabase
+ * round trip instead of drifting into duplicate client setup. */
+export async function getSessionUser(request: NextRequest) {
+  let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,9 +19,9 @@ export async function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({ request });
+          response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            response.cookies.set(name, value, options)
           );
         },
       },
@@ -26,6 +31,12 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  return { user, response };
+}
+
+export async function updateSession(request: NextRequest) {
+  const { user, response: supabaseResponse } = await getSessionUser(request);
 
   const isRootRoute = request.nextUrl.pathname === "/";
   const isAuthRoute = request.nextUrl.pathname.startsWith("/login");
