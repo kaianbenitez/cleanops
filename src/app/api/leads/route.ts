@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  const turnstileSecret = process.env.LEADS_TURNSTILE_SECRET_KEY;
+  const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
   if (turnstileSecret) {
     if (!parsed.data.turnstileToken) {
       return NextResponse.json({ error: "Complete the verification challenge and try again." }, { status: 400 });
