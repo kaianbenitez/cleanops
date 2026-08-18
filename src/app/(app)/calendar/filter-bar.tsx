@@ -9,12 +9,10 @@ type Employee = { id: string; firstName: string; lastName: string; isActive?: bo
 
 export default function FilterBar({
   employees,
-  totalJobs,
-  unassignedJobs,
+  attentionCount,
 }: {
   employees: Employee[];
-  totalJobs: number;
-  unassignedJobs: number;
+  attentionCount: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -50,51 +48,44 @@ export default function FilterBar({
   }
 
   return (
-    <section aria-busy={isPending} className="bg-[var(--co-surface)] px-3 py-3 sm:px-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p aria-live="polite" className="text-xs font-medium text-[var(--co-muted)]">
-          {totalJobs} {totalJobs === 1 ? "job" : "jobs"}
-        </p>
+    <div aria-busy={isPending} className="flex shrink-0 items-center gap-2">
+      {attentionCount ? (
+        <button
+          type="button"
+          onClick={toggleQueue}
+          aria-controls="unassigned-queue-list"
+          aria-expanded={queueOpen}
+          aria-label={`Needs attention · ${attentionCount}`}
+          className={`co-button-secondary flex h-9 items-center gap-1 px-2.5 text-xs font-semibold ${queueOpen ? "border-[var(--co-warning)] !text-[var(--co-warning)]" : "!text-[var(--co-warning)]"}`}
+        >
+          <AlertCircle className="h-3.5 w-3.5" aria-hidden />
+          {attentionCount}
+        </button>
+      ) : null}
 
-        <div className="flex flex-wrap items-center gap-2">
-          {unassignedJobs ? (
-            <button
-              type="button"
-              onClick={toggleQueue}
-              aria-controls="unassigned-queue-list"
-              aria-expanded={queueOpen}
-              className={`co-button-secondary gap-2 py-2 text-xs ${queueOpen ? "border-[var(--co-warning)] !text-[var(--co-warning)]" : "!text-[var(--co-warning)]"}`}
-            >
-              <AlertCircle className="h-3.5 w-3.5" aria-hidden />
-              Needs attention · {unassignedJobs}
-            </button>
-          ) : null}
-
-          <div className="relative">
-            <button
-              ref={filtersTriggerRef}
-              type="button"
-              onClick={() => setFiltersOpen((current) => !current)}
-              aria-expanded={filtersOpen}
-              aria-haspopup="dialog"
-              className={`co-button-secondary gap-2 py-2 text-xs ${hasFilters ? "border-[var(--co-accent-text)] text-[var(--co-accent-text)]" : ""}`}
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
-              Filters{hasFilters ? ` · ${activeFilterCount}` : ""}
-            </button>
-            <CalendarFiltersPanel
-              employees={employees}
-              open={filtersOpen}
-              onClose={() => setFiltersOpen(false)}
-              triggerRef={filtersTriggerRef}
-            />
-          </div>
-
-          {hasFilters ? <button type="button" onClick={clearAll} className="text-xs font-semibold text-[var(--co-accent-text)] hover:underline">Clear filters</button> : null}
-        </div>
+      <div className="relative">
+        <button
+          ref={filtersTriggerRef}
+          type="button"
+          onClick={() => setFiltersOpen((current) => !current)}
+          aria-expanded={filtersOpen}
+          aria-haspopup="dialog"
+          aria-label={hasFilters ? `Filters · ${activeFilterCount} active` : "Filters"}
+          className={`co-button-secondary relative flex h-9 w-9 items-center justify-center !p-0 ${hasFilters ? "border-[var(--co-accent-text)] text-[var(--co-accent-text)]" : ""}`}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
+          {hasFilters ? <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[var(--co-accent-fill)]" aria-hidden /> : null}
+        </button>
+        <CalendarFiltersPanel
+          employees={employees}
+          open={filtersOpen}
+          onClose={() => setFiltersOpen(false)}
+          triggerRef={filtersTriggerRef}
+        />
       </div>
 
-      {isPending ? <p role="status" className="mt-2 text-xs text-[var(--co-muted)]">Updating calendar…</p> : null}
-    </section>
+      {hasFilters ? <button type="button" onClick={clearAll} className="whitespace-nowrap text-xs font-semibold text-[var(--co-accent-text)] hover:underline">Clear filters</button> : null}
+      {isPending ? <span role="status" className="text-xs text-[var(--co-muted)]">Updating…</span> : null}
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarClock } from "lucide-react";
 import { displayCustomer, employeeCardStyle, employeeColor, formatClockLabel, formatEstimatedTime, isPlainClick, recurrenceLabel, TYPE_LABELS } from "./shared";
 import { statusLabel } from "@/components/ui/status-pill";
 import { cleanNoteText } from "@/lib/format";
@@ -53,7 +52,7 @@ const STATUS_TONES: Record<string, string> = {
   no_show: "border-[color-mix(in_srgb,var(--co-danger)_24%,var(--co-surface))] bg-[color-mix(in_srgb,var(--co-danger)_10%,var(--co-surface))]",
 };
 
-export default function JobCard({ job, employees, draggable = false, onDragStart, onOpen, onMoveAssign, variant = "timeline" }: { job: CardJob; employees: Employee[]; draggable?: boolean; onDragStart?: (event: React.DragEvent<HTMLAnchorElement>) => void; onOpen?: (jobId: string) => void; onMoveAssign?: (jobId: string) => void; variant?: "timeline" | "list" }) {
+export default function JobCard({ job, employees, draggable = false, onDragStart, onOpen, variant = "timeline", ordinalLabel }: { job: CardJob; employees: Employee[]; draggable?: boolean; onDragStart?: (event: React.DragEvent<HTMLAnchorElement>) => void; onOpen?: (jobId: string) => void; variant?: "timeline" | "list"; ordinalLabel?: string }) {
   const crewIds = job.assignedUserIds;
   const crew = crewIds
     .map((id) => employees.find((employee) => employee.id === id))
@@ -65,7 +64,7 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
   const isList = variant === "list";
 
   return (
-    <div className="relative h-full">
+    <>
       <Link
         href={`/jobs/${job.id}`}
         draggable={draggable && !isLocked}
@@ -78,8 +77,8 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
         style={employeeCardStyle(leadColor)}
         className={`block h-full overflow-hidden rounded-lg border text-left transition hover:-translate-y-px hover:border-[var(--co-accent-text)] hover:shadow-[0_4px_12px_rgba(15,23,42,0.1)] ${isList ? "px-3 py-2.5" : "px-2.5 py-2"} ${STATUS_TONES[job.status] ?? STATUS_TONES.scheduled}`}
       >
-        <div className={`flex items-center justify-between gap-2 font-semibold text-[var(--co-muted)] ${isList ? "text-xs" : "text-[11px]"}`}><span>{formatClockLabel(job.scheduledStartTime)}</span><span className="flex items-center gap-1.5"><ClientHomeSymbols roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} /><span className="rounded bg-[var(--co-surface)]/60 px-1.5 py-0.5 text-[10px]">{job.clientType === "commercial" ? "Commercial" : "Residential"}</span></span></div>
-        <p className={`mt-1 truncate font-semibold text-[var(--co-ink)] ${isList ? "text-sm" : "text-[13px]"} ${onMoveAssign && !isLocked ? "pr-7" : ""}`}>{label}</p>
+        <div className={`flex items-center justify-between gap-2 font-semibold text-[var(--co-muted)] ${isList ? "text-xs" : "text-[11px]"}`}><span className="flex items-center gap-1">{formatClockLabel(job.scheduledStartTime)}{ordinalLabel ? <span className="rounded bg-[var(--co-accent-tint)] px-1 py-0.5 text-[10px] font-semibold text-[var(--co-accent-text)]">{ordinalLabel}</span> : null}</span><span className="flex items-center gap-1.5"><ClientHomeSymbols roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} /><span className="rounded bg-[var(--co-surface)]/60 px-1.5 py-0.5 text-[10px]">{job.clientType === "commercial" ? "Commercial" : "Residential"}</span></span></div>
+        <p className={`mt-1 truncate font-semibold text-[var(--co-ink)] ${isList ? "text-sm" : "text-[13px]"}`}>{label}</p>
         <p className={`mt-0.5 truncate text-[var(--co-muted)] ${isList ? "text-xs" : "text-[11px]"}`}>{TYPE_LABELS[job.type] ?? job.type} · {job.customerZip ?? "No ZIP"} · {formatEstimatedTime(job.estimatedDurationMinutes)}</p>
         <div className={`mt-1.5 flex items-center justify-between gap-2 ${isList ? "text-xs" : "text-[11px]"}`}>
           <span className="flex min-w-0 items-center gap-1 truncate text-[var(--co-muted)]">
@@ -102,20 +101,6 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
           </p>
         ) : null}
       </Link>
-      {onMoveAssign && !isLocked ? (
-        <button
-          type="button"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onMoveAssign(job.id);
-          }}
-          aria-label={`Move or assign — ${label}`}
-          className={`absolute right-1 top-1 flex items-center justify-center rounded-full bg-[var(--co-surface)]/85 text-[var(--co-muted)] shadow-sm transition hover:text-[var(--co-accent-text)] ${isList ? "h-11 w-11" : "h-8 w-8"}`}
-        >
-          <CalendarClock className="h-3.5 w-3.5" aria-hidden />
-        </button>
-      ) : null}
-    </div>
+    </>
   );
 }

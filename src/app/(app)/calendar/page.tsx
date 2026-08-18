@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import {
   and,
+  desc,
   eq,
   gte,
   ilike,
@@ -14,6 +15,7 @@ import {
 } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  appNotifications,
   calendarEventAssignments,
   calendarEvents,
   companies,
@@ -39,9 +41,8 @@ import {
 } from "@/lib/scheduling/dates";
 import { todayInTimeZone } from "@/lib/dashboard/range";
 import { listEmployeePto } from "@/lib/scheduling/pto";
-import FilterBar from "./filter-bar";
-import DispatchBoard from "./dispatch-board";
-import StaffVerticalBoard from "./staff-vertical-board";
+import VerticalBoard from "./vertical-board";
+import HorizontalBoard from "./horizontal-board";
 import WeekBoard from "./week-board";
 import MonthBoard from "./month-board";
 import TodayListBoard from "./today-list-board";
@@ -492,6 +493,16 @@ export default async function CalendarPage({
     .where(and(eq(users.companyId, admin.companyId), eq(users.isActive, true)))
     .orderBy(users.firstName, users.lastName);
 
+  // Calendar's toolbar absorbs NotificationsMenu (the app-wide top bar is
+  // hidden here, see calendar-toolbar.tsx), so it needs its own seed —
+  // same query and limit as layout.tsx's.
+  const notificationsQuery = db
+    .select({ id: appNotifications.id, title: appNotifications.title, body: appNotifications.body, href: appNotifications.href, readAt: appNotifications.readAt, createdAt: appNotifications.createdAt })
+    .from(appNotifications)
+    .where(eq(appNotifications.companyId, admin.companyId))
+    .orderBy(desc(appNotifications.createdAt))
+    .limit(20);
+
   const [
     employees,
     rows,
@@ -501,6 +512,7 @@ export default async function CalendarPage({
     monthRows,
     appointmentEvents,
     staffRoster,
+    notifications,
   ] = (await Promise.all([
     employeesQuery,
     rowsQuery,
@@ -510,6 +522,7 @@ export default async function CalendarPage({
     monthRowsQuery,
     appointmentEventsQuery,
     staffRosterQuery,
+    notificationsQuery,
   ])) as [
     CalendarEmployee[],
     Omit<CalendarJob, "assignedUserIds">[],
@@ -519,6 +532,7 @@ export default async function CalendarPage({
     CalendarDaySummary[],
     (typeof calendarEvents.$inferSelect)[],
     StaffRosterMember[],
+    Awaited<typeof notificationsQuery>,
   ];
 
   const appointmentEventIds = appointmentEvents.map((event) => event.id);
@@ -754,18 +768,8 @@ export default async function CalendarPage({
       : view === "staff" || view === "staff_vertical" || view === "list"
         ? toISODate(dayAnchor)
         : toISODate(weekStart);
-  const totalJobs =
-    view === "month"
-      ? monthRows
-          .filter((summary) =>
-            workingDays.includes(
-              new Date(`${summary.scheduledDate}T00:00:00.000Z`).getUTCDay(),
-            ),
-          )
-          .reduce((total, summary) => total + Number(summary.jobs), 0)
-      : displayedJobs.length;
-  // Same categorization dispatch-board.tsx uses for the Needs-attention
-  // strip, so the toolbar's count and the strip's contents never drift.
+  // Same categorization the Vertical/Horizontal boards use for their
+  // Needs-attention badge, so the toolbar's count never drifts from theirs.
   // Only computed for the views that fetch ptoRows for this date range.
   const attentionCount =
     view === "staff" || view === "staff_vertical"
@@ -775,7 +779,7 @@ export default async function CalendarPage({
     <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
       <CalendarStateSync view={view} anchor={stateAnchor} />
       <section className="co-card mx-3 mt-3 overflow-hidden sm:mx-4 lg:mx-5">
-      <header className="overflow-x-auto border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-3 lg:px-5">
+      <header className="border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-3 lg:px-5">
         <CalendarToolbar
           view={view}
           currentDate={currentDate}
@@ -786,14 +790,11 @@ export default async function CalendarPage({
           todayHref={`/calendar${todayQuery}`}
           staffRoster={staffRoster}
           appointmentDefaultDate={stateAnchor.length === 10 ? stateAnchor : toISODate(dayAnchor)}
+          employees={employees}
+          attentionCount={attentionCount}
+          initialNotifications={notifications}
         />
       </header>
-
-      <FilterBar
-        employees={employees}
-        totalJobs={totalJobs}
-        unassignedJobs={attentionCount}
-      />
       </section>
 
       <main className="p-3 sm:p-4 lg:p-5">
@@ -819,9 +820,10 @@ export default async function CalendarPage({
           />
         ) : null}
         {view === "staff" ? (
-          <DispatchBoard
+          <VerticalBoard
             dayIso={toISODate(dayAnchor)}
             todayIso={todayIso}
+            dayLabel={formatDayLabel(dayAnchor)}
             employees={employees}
             savedColumnOrder={Array.isArray(
               (company.settings as { staffColumnOrder?: unknown } | null)
@@ -833,14 +835,16 @@ export default async function CalendarPage({
                   ))
               : []}
             laneEmployeeId={sp.employeeId}
+            queueOpen={sp.queue === "unassigned" || sp.assignment === "unassigned"}
             jobs={displayedJobs}
+            unassignedJobs={unassignedRows.map((row) => ({ ...row, assignedUserIds: [] }))}
             ptoRecords={ptoRows}
             appointments={appointments}
             staffRoster={staffRoster}
           />
         ) : null}
         {view === "staff_vertical" ? (
-          <StaffVerticalBoard
+          <HorizontalBoard
             dayIso={toISODate(dayAnchor)}
             todayIso={todayIso}
             employees={employees}

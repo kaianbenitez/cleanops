@@ -17,14 +17,57 @@ function job(overrides: Partial<{ id: string; status: string; assignedUserIds: s
   };
 }
 
-test("arrivalWindowFor groups pre-noon as morning and noon-or-later as afternoon", async () => {
-  const { arrivalWindowFor } = await sharedModule();
-  assert.equal(arrivalWindowFor(null), null);
-  assert.equal(arrivalWindowFor(undefined), null);
-  assert.equal(arrivalWindowFor("09:00:00"), "morning");
-  assert.equal(arrivalWindowFor("11:59:00"), "morning");
-  assert.equal(arrivalWindowFor("12:00:00"), "afternoon");
-  assert.equal(arrivalWindowFor("13:30:00"), "afternoon");
+test("stopOrdinals numbers a single crew's jobs in start-time order", async () => {
+  const { stopOrdinals } = await sharedModule();
+  const jobs = [
+    job({ id: "a", assignedUserIds: ["u1"], scheduledStartTime: "13:00" }),
+    job({ id: "b", assignedUserIds: ["u1"], scheduledStartTime: "09:00" }),
+    job({ id: "c", assignedUserIds: ["u1"], scheduledStartTime: "11:00" }),
+  ];
+  const result = stopOrdinals(jobs);
+  assert.equal(result.get("b"), 1);
+  assert.equal(result.get("c"), 2);
+  assert.equal(result.get("a"), 3);
+});
+
+test("stopOrdinals numbers distinct crews independently, each starting at 1", async () => {
+  const { stopOrdinals } = await sharedModule();
+  const jobs = [
+    job({ id: "a", assignedUserIds: ["u1"], scheduledStartTime: "10:00" }),
+    job({ id: "b", assignedUserIds: ["u2"], scheduledStartTime: "09:00" }),
+    job({ id: "c", assignedUserIds: ["u1"], scheduledStartTime: "14:00" }),
+    job({ id: "d", assignedUserIds: ["u2"], scheduledStartTime: "13:00" }),
+  ];
+  const result = stopOrdinals(jobs);
+  assert.equal(result.get("a"), 1);
+  assert.equal(result.get("c"), 2);
+  assert.equal(result.get("b"), 1);
+  assert.equal(result.get("d"), 2);
+});
+
+test("stopOrdinals omits jobs with no crew or no start time", async () => {
+  const { stopOrdinals } = await sharedModule();
+  const jobs = [
+    job({ id: "a", assignedUserIds: [], scheduledStartTime: "09:00" }),
+    job({ id: "b", assignedUserIds: ["u1"], scheduledStartTime: null }),
+    job({ id: "c", assignedUserIds: ["u1"], scheduledStartTime: "09:00" }),
+  ];
+  const result = stopOrdinals(jobs);
+  assert.equal(result.has("a"), false);
+  assert.equal(result.has("b"), false);
+  assert.equal(result.get("c"), 1);
+});
+
+test("ordinalLabel formats standard and 11-13 exception cases", async () => {
+  const { ordinalLabel } = await sharedModule();
+  assert.equal(ordinalLabel(1), "1st");
+  assert.equal(ordinalLabel(2), "2nd");
+  assert.equal(ordinalLabel(3), "3rd");
+  assert.equal(ordinalLabel(4), "4th");
+  assert.equal(ordinalLabel(11), "11th");
+  assert.equal(ordinalLabel(12), "12th");
+  assert.equal(ordinalLabel(13), "13th");
+  assert.equal(ordinalLabel(21), "21st");
 });
 
 test("clockLabelFromMinutes formats standard clock boundaries", async () => {

@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { APPOINTMENT_COLOR, APPOINTMENT_COLOR_CANCELLED, displayCustomer, formatAppointmentTime, formatClockLabel, formatEstimatedTime, TYPE_LABELS } from "./shared";
+import { APPOINTMENT_COLOR, APPOINTMENT_COLOR_CANCELLED, displayCustomer, formatAppointmentTime, formatClockLabel, formatEstimatedTime, ordinalLabel, stopOrdinals, TYPE_LABELS } from "./shared";
 import { commitJobPatch } from "./drag-commit";
 import { useUndoToast, UndoToast } from "./undo-toast";
 import AssigneePicker from "./assignee-picker";
@@ -101,6 +101,7 @@ export default function TodayListBoard({
   const [now, setNow] = useState(0);
   const sortedAppointments = [...appointments].sort((a, b) => (a.startTime ?? "99").localeCompare(b.startTime ?? "99"));
   const { toast, showUndo, dismiss } = useUndoToast();
+  const ordinalByJobId = stopOrdinals(jobs);
 
   if (initialJobs !== syncedJobs) {
     setSyncedJobs(initialJobs);
@@ -324,6 +325,11 @@ export default function TodayListBoard({
                     >
                       {displayCustomer(job)}
                     </button>
+                    {ordinalByJobId.get(job.id) ? (
+                      <span className="ml-2 rounded bg-[var(--co-accent-tint)] px-1.5 py-0.5 text-xs font-semibold text-[var(--co-accent-text)]">
+                        {ordinalLabel(ordinalByJobId.get(job.id)!)}
+                      </span>
+                    ) : null}
                     <ClientHomeSymbols className="mt-1" roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} />
                     <p className="mt-1 text-sm text-[var(--co-muted)]">
                       {job.customerAddress ?? "No address"}

@@ -22,19 +22,49 @@ export function clockLabelFromMinutes(totalMinutes: number) {
   return `${hour12}:${String(minute).padStart(2, "0")} ${suffix}`;
 }
 
-export type ArrivalWindow = "morning" | "afternoon";
+function crewKey(assignedUserIds: string[]) {
+  return [...assignedUserIds].sort().join(",");
+}
 
-// The confirmed operating model from the Calendar Dispatch Redesign
-// Architecture doc. Presentation-only grouping derived from the stored start
-// time — formalizing arrival windows in domain logic is WP-4 scope.
-export const ARRIVAL_WINDOW_START_MINUTES: Record<ArrivalWindow, number> = { morning: 9 * 60, afternoon: 13 * 60 };
-export const ARRIVAL_WINDOW_DEFAULT_TIME: Record<ArrivalWindow, string> = { morning: "09:00:00", afternoon: "13:00:00" };
+/** "1st", "2nd", "3rd", "4th", ... "11th", "21st" — standard English ordinal
+ * suffix rules (11-13 are "th" even though they end in 1/2/3). */
+export function ordinalLabel(n: number): string {
+  const remainder100 = n % 100;
+  if (remainder100 >= 11 && remainder100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1:
+      return `${n}st`;
+    case 2:
+      return `${n}nd`;
+    case 3:
+      return `${n}rd`;
+    default:
+      return `${n}th`;
+  }
+}
 
-/** before 12:00 → Morning, 12:00 or later → Afternoon, no time → null
- * (Needs attention, not a window). */
-export function arrivalWindowFor(time: string | null | undefined): ArrivalWindow | null {
-  if (!time) return null;
-  return time.slice(0, 5) < "12:00" ? "morning" : "afternoon";
+/** Stop order within a crew's day: "Team 3's second house." Groups jobs by
+ * exact crew signature (same set of assigned employees), sorts each group by
+ * start time, and numbers from 1. Jobs with no crew or no start time get no
+ * ordinal — they're already surfaced by categorizeForAttention. Presentation
+ * only, derived from stored data — no stop-order field in the DB. */
+export function stopOrdinals<T extends { id: string; assignedUserIds: string[]; scheduledStartTime: string | null }>(
+  jobs: T[],
+): Map<string, number> {
+  const groups = new Map<string, T[]>();
+  for (const job of jobs) {
+    if (!job.assignedUserIds.length || !job.scheduledStartTime) continue;
+    const key = crewKey(job.assignedUserIds);
+    const group = groups.get(key);
+    if (group) group.push(job);
+    else groups.set(key, [job]);
+  }
+  const result = new Map<string, number>();
+  for (const group of groups.values()) {
+    const sorted = [...group].sort((a, b) => (a.scheduledStartTime ?? "").localeCompare(b.scheduledStartTime ?? ""));
+    sorted.forEach((job, index) => result.set(job.id, index + 1));
+  }
+  return result;
 }
 
 export type AttentionCategory = "unassigned" | "no-time" | "conflict";

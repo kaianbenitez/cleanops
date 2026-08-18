@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
@@ -50,6 +51,7 @@ export default function CalendarFiltersPanel({
   const searchParams = useSearchParams();
   const panelRef = useRef<HTMLDivElement>(null);
   const zip = searchParams.get("zip") ?? "";
+  const [dialogPosition, setDialogPosition] = useState({ top: 0, right: 0 });
 
   useEffect(() => {
     if (!open) return;
@@ -71,6 +73,26 @@ export default function CalendarFiltersPanel({
     };
   }, [open, onClose, triggerRef]);
 
+  // Same createPortal + getBoundingClientRect + fixed pattern date-picker.tsx
+  // uses, so the popover escapes page.tsx's overflow-hidden co-card section
+  // instead of being clipped by it. Anchored on the trigger's right edge
+  // (via a CSS `right` offset) rather than `left`, matching the panel's
+  // original right-aligned position relative to the Filters button.
+  useEffect(() => {
+    if (!open) return;
+    function updateDialogPosition() {
+      const bounds = triggerRef.current?.getBoundingClientRect();
+      if (bounds) setDialogPosition({ top: bounds.bottom + 8, right: window.innerWidth - bounds.right });
+    }
+    updateDialogPosition();
+    window.addEventListener("resize", updateDialogPosition);
+    window.addEventListener("scroll", updateDialogPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateDialogPosition);
+      window.removeEventListener("scroll", updateDialogPosition, true);
+    };
+  }, [open, triggerRef]);
+
   if (!open) return null;
 
   function setParam(key: string, value: string) {
@@ -86,68 +108,54 @@ export default function CalendarFiltersPanel({
   const status = searchParams.get("status") ?? "";
   const assignment = searchParams.get("assignment") ?? "";
 
-  return (
+  const panel = (
     <div
       ref={panelRef}
       role="dialog"
       aria-label="Calendar filters"
-      className="co-date-popover co-date-popover-responsive absolute right-0 top-full z-50 mt-1 w-[min(22rem,calc(100vw-2rem))] space-y-3 p-4"
+      style={dialogPosition}
+      className="co-date-popover fixed z-[60] w-[min(22rem,calc(100vw-2rem))] space-y-3 p-4"
     >
-      <label className="block text-xs font-semibold text-[var(--co-muted)]">
-        Technician
-        <select value={employeeId} onChange={(event) => setParam("employeeId", event.target.value)} className="co-input mt-1 w-full py-2 text-sm">
-          <option value="">All technicians</option>
-          {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}{employee.isActive === false ? " (Inactive)" : ""}</option>)}
-        </select>
-      </label>
+      <select aria-label="Technician" value={employeeId} onChange={(event) => setParam("employeeId", event.target.value)} className="co-input w-full py-2 text-sm">
+        <option value="">All technicians</option>
+        {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}{employee.isActive === false ? " (Inactive)" : ""}</option>)}
+      </select>
 
-      <label className="block text-xs font-semibold text-[var(--co-muted)]">
-        Status
-        <select value={status} onChange={(event) => setParam("status", event.target.value)} className="co-input mt-1 w-full py-2 text-sm">
-          <option value="">All statuses</option>
-          {STATUSES.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}
-        </select>
-      </label>
+      <select aria-label="Status" value={status} onChange={(event) => setParam("status", event.target.value)} className="co-input w-full py-2 text-sm">
+        <option value="">All statuses</option>
+        {STATUSES.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}
+      </select>
 
-      <label className="block text-xs font-semibold text-[var(--co-muted)]">
-        Assignment
-        <select value={assignment} onChange={(event) => setParam("assignment", event.target.value)} className="co-input mt-1 w-full py-2 text-sm">
-          <option value="">All jobs</option>
-          <option value="unassigned">Unassigned only</option>
-        </select>
-      </label>
+      <select aria-label="Assignment" value={assignment} onChange={(event) => setParam("assignment", event.target.value)} className="co-input w-full py-2 text-sm">
+        <option value="">All jobs</option>
+        <option value="unassigned">Unassigned only</option>
+      </select>
 
-      <label className="block text-xs font-semibold text-[var(--co-muted)]">
-        Recurrence
-        <select value={recurrence} onChange={(event) => setParam("recurrence", event.target.value)} className="co-input mt-1 w-full py-2 text-sm">
-          <option value="">All recurrence</option>
-          {RECURRENCES.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}
-        </select>
-      </label>
+      <select aria-label="Recurrence" value={recurrence} onChange={(event) => setParam("recurrence", event.target.value)} className="co-input w-full py-2 text-sm">
+        <option value="">All recurrence</option>
+        {RECURRENCES.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}
+      </select>
 
-      <label className="block text-xs font-semibold text-[var(--co-muted)]">
-        Service type
-        <select value={type} onChange={(event) => setParam("type", event.target.value)} className="co-input mt-1 w-full py-2 text-sm">
-          <option value="">All service types</option>
-          {TYPES.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}
-        </select>
-      </label>
+      <select aria-label="Service type" value={type} onChange={(event) => setParam("type", event.target.value)} className="co-input w-full py-2 text-sm">
+        <option value="">All service types</option>
+        {TYPES.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}
+      </select>
 
-      <label className="block text-xs font-semibold text-[var(--co-muted)]">
-        ZIP code
-        <input
-          key={`zip-${zip}`}
-          defaultValue={zip}
-          onBlur={(event) => setParam("zip", event.target.value.trim())}
-          onKeyDown={(event) => event.key === "Enter" && setParam("zip", event.currentTarget.value.trim())}
-          placeholder="ZIP code"
-          className="co-input mt-1 w-full py-2 text-sm"
-        />
-      </label>
+      <input
+        key={`zip-${zip}`}
+        aria-label="ZIP code"
+        defaultValue={zip}
+        onBlur={(event) => setParam("zip", event.target.value.trim())}
+        onKeyDown={(event) => event.key === "Enter" && setParam("zip", event.currentTarget.value.trim())}
+        placeholder="ZIP code"
+        className="co-input w-full py-2 text-sm"
+      />
 
       <button type="button" onClick={onClose} className="co-button-secondary w-full">
         Done
       </button>
     </div>
   );
+
+  return createPortal(panel, document.body);
 }
