@@ -44,7 +44,7 @@ const STATUS_OPTIONS = [
   { value: "no_show", label: "No show" },
 ] as const;
 
-export default function JobDetailPanel({ jobId, employees, onClose, onMoveAssign }: { jobId: string | null; employees: Employee[]; onClose: () => void; onMoveAssign?: (jobId: string) => void }) {
+export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: string | null; employees: Employee[]; onClose: () => void }) {
   const router = useRouter();
   const [job, setJob] = useState<JobDetail | null>(null);
   const [assignedUserIds, setAssignedUserIds] = useState<string[]>([]);
@@ -156,19 +156,6 @@ export default function JobDetailPanel({ jobId, employees, onClose, onMoveAssign
               <span className="text-xs text-[var(--co-muted)]">{TYPE_LABELS[job.type] ?? job.type}</span>
               {saving ? <span className="text-xs text-[var(--co-muted)]">Saving...</span> : null}
             </div>
-
-            {onMoveAssign && !["completed", "cancelled", "no_show"].includes(job.status) ? (
-              <button
-                type="button"
-                onClick={() => {
-                  onMoveAssign(job.id);
-                  onClose();
-                }}
-                className="co-button-primary w-full"
-              >
-                Move or assign
-              </button>
-            ) : null}
 
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Location</p>
