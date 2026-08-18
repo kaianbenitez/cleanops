@@ -182,7 +182,7 @@ export default function AppNav({
     <>
       {isAdmin ? (
       <>
-      <div className="sticky top-0 z-40 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] text-[var(--co-ink)] backdrop-blur xl:hidden">
+      <div data-app-nav="mobile" className="sticky top-0 z-40 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] text-[var(--co-ink)] backdrop-blur xl:hidden">
         <div className="flex h-16 items-center justify-between px-4">
           <button
             type="button"
@@ -464,7 +464,7 @@ export default function AppNav({
       </>
       )}
 
-      <aside className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] py-5 text-[var(--co-ink)] transition-[width,padding] duration-200 xl:flex ${
+      <aside data-app-nav="desktop" className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] py-5 text-[var(--co-ink)] transition-[width,padding] duration-200 xl:flex ${
         navCollapsed ? "w-[76px] px-3" : "w-[260px] px-4"
       }`}>
         <div className={`mb-8 flex items-center ${navCollapsed ? "justify-center" : "gap-2"}`}>

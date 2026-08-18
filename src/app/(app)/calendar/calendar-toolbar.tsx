@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import DatePicker, { CalendarViewSelector } from "./date-picker";
 import NewAppointmentButton from "./new-appointment-button";
+import CalendarFocusMode from "./calendar-focus-mode";
 
 type StaffMember = { id: string; firstName: string; lastName: string };
 
@@ -34,6 +35,7 @@ export default function CalendarToolbar({
   return (
     <div className="flex w-full min-w-max items-center justify-between gap-3">
       <div className="flex items-center gap-2">
+        <CalendarFocusMode />
         <Link
           href={prevHref}
           aria-label="Previous period"
