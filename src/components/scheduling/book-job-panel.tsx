@@ -14,7 +14,22 @@ function duration(minutes: number) { const hours = Math.floor(minutes / 60); ret
  * embedded in quote detail or quote creation without teaching Calendar first. */
 export function BookJobPanel(props: Props) {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]); const [employees, setEmployees] = useState<Employee[]>([]); const [loading, setLoading] = useState(false); const [error, setError] = useState(""); const [selected, setSelected] = useState<Recommendation | null>(null); const [manual, setManual] = useState(false); const [date, setDate] = useState(""); const [windowKey, setWindowKey] = useState<"morning" | "afternoon">("morning"); const [crew, setCrew] = useState<string[]>([]); const [agreedByPhone, setAgreedByPhone] = useState(props.quoteStatus !== "accepted"); const [agreementNote, setAgreementNote] = useState("");
-  async function checkAvailability() { setLoading(true); setError(""); const response = await fetch("/api/scheduling/recommendations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ quoteId: props.quoteId, serviceType: props.serviceType }) }); const body = await response.json().catch(() => ({})); setLoading(false); if (!response.ok) return setError(body.error ?? "Availability could not be checked."); setRecommendations(body.recommendations ?? []); setEmployees(body.eligibleEmployees ?? []); }
+  async function checkAvailability() {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/scheduling/recommendations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ quoteId: props.quoteId, serviceType: props.serviceType }) });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) return setError(body.error ?? "Availability could not be checked.");
+      setRecommendations(body.recommendations ?? []);
+      setEmployees(body.eligibleEmployees ?? []);
+    } catch (cause) {
+      console.error("Guided booking availability check failed", cause);
+      setError("Availability could not be checked. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
   const manualStart = windowKey === "morning" ? "09:00:00" : "13:00:00"; const manualEnd = windowKey === "morning" ? "09:30:00" : "13:30:00";
   async function confirm() { const selection = selected ?? (manual && date ? { date, arrivalWindowStartTime: manualStart, arrivalWindowEndTime: manualEnd, employeeIds: crew } : null); if (!selection) return setError("Choose a recommendation or complete the manual schedule."); setLoading(true); setError(""); const response = await fetch(`/api/quotes/${props.quoteId}/convert`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ startDate: selection.date, arrivalWindowStartTime: selection.arrivalWindowStartTime, arrivalWindowEndTime: selection.arrivalWindowEndTime, employeeIds: selection.employeeIds, serviceType: props.serviceType, customerAgreedByPhone: agreedByPhone || undefined, agreementNote: agreedByPhone ? agreementNote : undefined }) }); const body = await response.json().catch(() => ({})); setLoading(false); if (!response.ok) return setError(body.error ?? "Booking could not be confirmed."); props.onBooked(body.redirectTo); }
   const review = selected ?? (manual && date ? { date, arrivalWindowStartTime: manualStart, arrivalWindowEndTime: manualEnd, employeeIds: crew, employeeNames: crew.map((id) => employees.find((employee) => employee.id === id)).filter(Boolean).map((employee) => `${employee!.firstName} ${employee!.lastName}`), expectedWallClockMinutes: props.totalJthMinutes ? Math.ceil(props.totalJthMinutes / Math.max(crew.length, 1)) : 0 } : null);
