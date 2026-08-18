@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
@@ -50,6 +51,7 @@ export default function CalendarFiltersPanel({
   const searchParams = useSearchParams();
   const panelRef = useRef<HTMLDivElement>(null);
   const zip = searchParams.get("zip") ?? "";
+  const [dialogPosition, setDialogPosition] = useState({ top: 0, right: 0 });
 
   useEffect(() => {
     if (!open) return;
@@ -71,6 +73,26 @@ export default function CalendarFiltersPanel({
     };
   }, [open, onClose, triggerRef]);
 
+  // Same createPortal + getBoundingClientRect + fixed pattern date-picker.tsx
+  // uses, so the popover escapes page.tsx's overflow-hidden co-card section
+  // instead of being clipped by it. Anchored on the trigger's right edge
+  // (via a CSS `right` offset) rather than `left`, matching the panel's
+  // original right-aligned position relative to the Filters button.
+  useEffect(() => {
+    if (!open) return;
+    function updateDialogPosition() {
+      const bounds = triggerRef.current?.getBoundingClientRect();
+      if (bounds) setDialogPosition({ top: bounds.bottom + 8, right: window.innerWidth - bounds.right });
+    }
+    updateDialogPosition();
+    window.addEventListener("resize", updateDialogPosition);
+    window.addEventListener("scroll", updateDialogPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateDialogPosition);
+      window.removeEventListener("scroll", updateDialogPosition, true);
+    };
+  }, [open, triggerRef]);
+
   if (!open) return null;
 
   function setParam(key: string, value: string) {
@@ -86,12 +108,13 @@ export default function CalendarFiltersPanel({
   const status = searchParams.get("status") ?? "";
   const assignment = searchParams.get("assignment") ?? "";
 
-  return (
+  const panel = (
     <div
       ref={panelRef}
       role="dialog"
       aria-label="Calendar filters"
-      className="co-date-popover co-date-popover-responsive absolute right-0 top-full z-50 mt-1 w-[min(22rem,calc(100vw-2rem))] space-y-3 p-4"
+      style={dialogPosition}
+      className="co-date-popover fixed z-[60] w-[min(22rem,calc(100vw-2rem))] space-y-3 p-4"
     >
       <select aria-label="Technician" value={employeeId} onChange={(event) => setParam("employeeId", event.target.value)} className="co-input w-full py-2 text-sm">
         <option value="">All technicians</option>
@@ -133,4 +156,6 @@ export default function CalendarFiltersPanel({
       </button>
     </div>
   );
+
+  return createPortal(panel, document.body);
 }
