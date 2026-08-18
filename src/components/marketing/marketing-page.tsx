@@ -203,7 +203,7 @@ export default function MarketingPage() {
                   </li>
                   <li className="flex gap-2">
                     <Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-accent)]" strokeWidth={3} />
-                    We won&apos;t call unless you tick the box.
+                    We won&apos;t call unless you leave a phone number.
                   </li>
                   <li className="flex gap-2">
                     <Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-accent)]" strokeWidth={3} />

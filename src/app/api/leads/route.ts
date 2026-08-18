@@ -14,7 +14,7 @@ const leadSchema = z.object({
   contactName: z.string().trim().max(200).nullish().transform((value) => value || null),
   email: z.string().trim().email("Enter a valid email address.").max(320),
   phone: z.string().trim().max(50).nullish().transform((value) => value || null),
-  crewSize: z.enum(["1-5", "6-15", "16+"]).nullish().transform((value) => value || null),
+  crewSize: z.enum(["1-5", "6-15", "16+"]),
   message: z.string().trim().max(2_000).nullish().transform((value) => value || null),
   companyWebsite: z.string().optional(),
   turnstileToken: z.string().nullish(),
@@ -34,10 +34,6 @@ function isRateLimited(ip: string) {
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  if (isRateLimited(ip)) {
-    return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429, headers: { "Retry-After": "600" } });
-  }
-
   const body = await request.json().catch(() => null);
   const parsed = leadSchema.safeParse(body);
 
@@ -46,6 +42,10 @@ export async function POST(request: Request) {
       { fieldErrors: parsed.error.flatten().fieldErrors },
       { status: 400 },
     );
+  }
+
+  if (isRateLimited(ip)) {
+    return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429, headers: { "Retry-After": "600" } });
   }
 
   if (parsed.data.companyWebsite) {
