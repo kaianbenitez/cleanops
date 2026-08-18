@@ -39,7 +39,6 @@ import {
 } from "@/lib/scheduling/dates";
 import { todayInTimeZone } from "@/lib/dashboard/range";
 import { listEmployeePto } from "@/lib/scheduling/pto";
-import FilterBar from "./filter-bar";
 import VerticalBoard from "./vertical-board";
 import HorizontalBoard from "./horizontal-board";
 import WeekBoard from "./week-board";
@@ -754,16 +753,6 @@ export default async function CalendarPage({
       : view === "staff" || view === "staff_vertical" || view === "list"
         ? toISODate(dayAnchor)
         : toISODate(weekStart);
-  const totalJobs =
-    view === "month"
-      ? monthRows
-          .filter((summary) =>
-            workingDays.includes(
-              new Date(`${summary.scheduledDate}T00:00:00.000Z`).getUTCDay(),
-            ),
-          )
-          .reduce((total, summary) => total + Number(summary.jobs), 0)
-      : displayedJobs.length;
   // Same categorization the Vertical/Horizontal boards use for their
   // Needs-attention badge, so the toolbar's count never drifts from theirs.
   // Only computed for the views that fetch ptoRows for this date range.
@@ -786,14 +775,10 @@ export default async function CalendarPage({
           todayHref={`/calendar${todayQuery}`}
           staffRoster={staffRoster}
           appointmentDefaultDate={stateAnchor.length === 10 ? stateAnchor : toISODate(dayAnchor)}
+          employees={employees}
+          attentionCount={attentionCount}
         />
       </header>
-
-      <FilterBar
-        employees={employees}
-        totalJobs={totalJobs}
-        unassignedJobs={attentionCount}
-      />
       </section>
 
       <main className="p-3 sm:p-4 lg:p-5">

@@ -3,12 +3,15 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import DatePicker, { CalendarViewSelector } from "./date-picker";
 import NewAppointmentButton from "./new-appointment-button";
 import CalendarFocusMode from "./calendar-focus-mode";
+import FilterBar from "./filter-bar";
 
 type StaffMember = { id: string; firstName: string; lastName: string };
+type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
-/** Row-1 layout only. Date/view routing stays in date-picker.tsx; the
- * prev/next/today hrefs are computed by page.tsx from the current search
- * params and just rendered here. */
+/** The whole calendar toolbar, one row: nav toggle, date nav, view pills,
+ * attention/filters (filter-bar.tsx), then Schedule job. Date/view routing
+ * stays in date-picker.tsx; the prev/next/today hrefs are computed by
+ * page.tsx from the current search params and just rendered here. */
 export default function CalendarToolbar({
   view,
   currentDate,
@@ -19,6 +22,8 @@ export default function CalendarToolbar({
   todayHref,
   staffRoster,
   appointmentDefaultDate,
+  employees,
+  attentionCount,
 }: {
   view: string;
   currentDate: Date;
@@ -31,6 +36,8 @@ export default function CalendarToolbar({
   todayHref: string;
   staffRoster: StaffMember[];
   appointmentDefaultDate: string;
+  employees: Employee[];
+  attentionCount: number;
 }) {
   return (
     <div className="flex w-full min-w-max items-center justify-between gap-3">
@@ -54,9 +61,10 @@ export default function CalendarToolbar({
         <Link href={todayHref} className="co-button-secondary">
           Today
         </Link>
+        <CalendarViewSelector view={view} focusDayIso={focusDayIso} />
+        <FilterBar employees={employees} attentionCount={attentionCount} />
       </div>
       <div className="flex items-center gap-2">
-        <CalendarViewSelector view={view} focusDayIso={focusDayIso} />
         <NewAppointmentButton staffRoster={staffRoster} defaultDate={appointmentDefaultDate} />
         <Link href="/jobs/new" className="co-button-primary">
           Schedule job
