@@ -40,8 +40,8 @@ import {
 import { todayInTimeZone } from "@/lib/dashboard/range";
 import { listEmployeePto } from "@/lib/scheduling/pto";
 import FilterBar from "./filter-bar";
-import DispatchBoard from "./dispatch-board";
-import StaffVerticalBoard from "./staff-vertical-board";
+import VerticalBoard from "./vertical-board";
+import HorizontalBoard from "./horizontal-board";
 import WeekBoard from "./week-board";
 import MonthBoard from "./month-board";
 import TodayListBoard from "./today-list-board";
@@ -764,8 +764,8 @@ export default async function CalendarPage({
           )
           .reduce((total, summary) => total + Number(summary.jobs), 0)
       : displayedJobs.length;
-  // Same categorization dispatch-board.tsx uses for the Needs-attention
-  // strip, so the toolbar's count and the strip's contents never drift.
+  // Same categorization the Vertical/Horizontal boards use for their
+  // Needs-attention badge, so the toolbar's count never drifts from theirs.
   // Only computed for the views that fetch ptoRows for this date range.
   const attentionCount =
     view === "staff" || view === "staff_vertical"
@@ -819,9 +819,9 @@ export default async function CalendarPage({
           />
         ) : null}
         {view === "staff" ? (
-          <DispatchBoard
+          <VerticalBoard
             dayIso={toISODate(dayAnchor)}
-            todayIso={todayIso}
+            dayLabel={formatDayLabel(dayAnchor)}
             employees={employees}
             savedColumnOrder={Array.isArray(
               (company.settings as { staffColumnOrder?: unknown } | null)
@@ -833,14 +833,16 @@ export default async function CalendarPage({
                   ))
               : []}
             laneEmployeeId={sp.employeeId}
+            queueOpen={sp.queue === "unassigned" || sp.assignment === "unassigned"}
             jobs={displayedJobs}
+            unassignedJobs={unassignedRows.map((row) => ({ ...row, assignedUserIds: [] }))}
             ptoRecords={ptoRows}
             appointments={appointments}
             staffRoster={staffRoster}
           />
         ) : null}
         {view === "staff_vertical" ? (
-          <StaffVerticalBoard
+          <HorizontalBoard
             dayIso={toISODate(dayAnchor)}
             todayIso={todayIso}
             employees={employees}

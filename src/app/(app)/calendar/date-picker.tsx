@@ -3,27 +3,23 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 
 function iso(date: Date) { return date.toISOString().slice(0, 10); }
 function mondayIndex(date: Date) { return (date.getUTCDay() + 6) % 7; }
 
-// Visible labels describe the scheduler's task, not the underlying grid
-// geometry — "Horizontal"/"Vertical" told a first-time user nothing about
-// what each view was for. Internal query values are unchanged so existing
-// links, the state cookie, and bookmarks keep working.
-const PRIMARY_VIEWS = [
-  { value: "staff", label: "Dispatch" },
-  { value: "week", label: "Capacity" },
+// Five flat pills, no "More views" menu. Internal query values are
+// unchanged so existing links, the state cookie, and bookmarks keep
+// working — only the labels and the layout (nested vs. flat) changed.
+const VIEWS = [
+  { value: "list", label: "Day" },
+  { value: "week", label: "Week" },
   { value: "month", label: "Month" },
+  { value: "staff", label: "Vertical" },
+  { value: "staff_vertical", label: "Horizontal" },
 ] as const;
 
-const MORE_VIEWS = [
-  { value: "list", label: "Day list" },
-  { value: "staff_vertical", label: "Vertical timeline" },
-] as const;
-
-type ViewValue = (typeof PRIMARY_VIEWS)[number]["value"] | (typeof MORE_VIEWS)[number]["value"];
+type ViewValue = (typeof VIEWS)[number]["value"];
 
 export default function DatePicker({ view, value, label }: { view: string; value: Date; label: string }) {
   const router = useRouter();
@@ -114,24 +110,6 @@ export function CalendarViewSelector({ view, focusDayIso }: { view: string; focu
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [moreOpen, setMoreOpen] = useState(false);
-  const moreRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!moreOpen) return;
-    function onMouseDown(event: MouseEvent) {
-      if (!moreRef.current?.contains(event.target as Node)) setMoreOpen(false);
-    }
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setMoreOpen(false);
-    }
-    document.addEventListener("mousedown", onMouseDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onMouseDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [moreOpen]);
 
   function selectView(nextView: ViewValue) {
     const params = new URLSearchParams(searchParams.toString());
@@ -140,7 +118,7 @@ export function CalendarViewSelector({ view, focusDayIso }: { view: string; focu
     // Anchored on focusDayIso (the last specific day the user actually
     // looked at, tracked independently of the current view) rather than
     // `value` — `value` collapses to the month/week anchor while on Month
-    // or Capacity, which silently dropped the real day on every switch back
+    // or Week, which silently dropped the real day on every switch back
     // to a day-based view.
     if (nextView === "month") params.set("month", focusDayIso.slice(0, 7));
     else if (nextView === "staff" || nextView === "staff_vertical" || nextView === "list") params.set("day", focusDayIso);
@@ -150,54 +128,21 @@ export function CalendarViewSelector({ view, focusDayIso }: { view: string; focu
       params.set("week", iso(monday));
     }
     router.push(`${pathname}?${params.toString()}`);
-    setMoreOpen(false);
   }
 
-  const activeMoreView = MORE_VIEWS.find((entry) => entry.value === view);
-
   return (
-    <div className="flex items-center gap-1.5">
-      <div role="group" aria-label="Calendar view" className="flex overflow-hidden rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-0.5">
-        {PRIMARY_VIEWS.map((entry) => (
-          <button
-            key={entry.value}
-            type="button"
-            aria-pressed={view === entry.value}
-            onClick={() => selectView(entry.value)}
-            className={`min-h-9 whitespace-nowrap px-3 py-1.5 text-xs font-semibold ${view === entry.value ? "bg-[var(--co-accent-fill)] text-white" : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"}`}
-          >
-            {entry.label}
-          </button>
-        ))}
-      </div>
-      <div ref={moreRef} className="relative">
+    <div role="group" aria-label="Calendar view" className="flex overflow-hidden rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-0.5">
+      {VIEWS.map((entry) => (
         <button
+          key={entry.value}
           type="button"
-          onClick={() => setMoreOpen((current) => !current)}
-          aria-expanded={moreOpen}
-          aria-haspopup="menu"
-          className={`co-button-secondary min-h-9 gap-1 py-1.5 text-xs ${activeMoreView ? "border-[var(--co-accent-text)] text-[var(--co-accent-text)]" : ""}`}
+          aria-pressed={view === entry.value}
+          onClick={() => selectView(entry.value)}
+          className={`min-h-9 whitespace-nowrap px-3 py-1.5 text-xs font-semibold ${view === entry.value ? "bg-[var(--co-accent-fill)] text-white" : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"}`}
         >
-          {activeMoreView ? activeMoreView.label : "More views"}
-          <ChevronDown className="h-3.5 w-3.5" aria-hidden />
+          {entry.label}
         </button>
-        {moreOpen ? (
-          <div role="menu" aria-label="More calendar views" className="co-date-popover co-date-popover-responsive absolute right-0 top-full z-50 mt-1 w-48 p-1.5">
-            {MORE_VIEWS.map((entry) => (
-              <button
-                key={entry.value}
-                type="button"
-                role="menuitemradio"
-                aria-checked={view === entry.value}
-                onClick={() => selectView(entry.value)}
-                className={`block w-full rounded-md px-2.5 py-2 text-left text-xs font-semibold ${view === entry.value ? "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]" : "text-[var(--co-ink)] hover:bg-[var(--co-surface-muted)]"}`}
-              >
-                {entry.label}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
+      ))}
     </div>
   );
 }
