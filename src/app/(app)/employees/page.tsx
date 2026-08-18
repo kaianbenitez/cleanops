@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { customers, jobAssignments, jobs, payrollLines, payrollPeriods, timeEntries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { isFieldEligible } from "@/lib/auth/field-staff";
+import { createAdminClient } from "@/lib/supabase/admin";
 import EmployeeDirectory, { type EmployeeDirectoryRow } from "./directory-client";
 import AdminAccessPanel from "./admin-access-panel";
 
@@ -52,6 +53,7 @@ export default async function EmployeesPage() {
         title: users.title,
         isActive: users.isActive,
         payType: users.payType,
+        profilePhotoUrl: users.profilePhotoUrl,
       })
       .from(users)
       .where(and(eq(users.companyId, admin.companyId), isFieldEligible))
@@ -98,6 +100,15 @@ export default async function EmployeesPage() {
   const timeByEmployee = new Map(weeklyTime.map((row) => [row.userId, Number(row.minutes ?? 0) / 60]));
   const payrollByEmployee = new Map(weeklyPayroll.map((row) => [row.userId, row]));
 
+  const photoPaths = employeeRows.filter((employee) => employee.profilePhotoUrl).map((employee) => employee.profilePhotoUrl as string);
+  const photoUrlByPath = new Map<string, string>();
+  if (photoPaths.length > 0) {
+    const { data: signedUrls } = await createAdminClient().storage.from("employee-photos").createSignedUrls(photoPaths, 60 * 60);
+    for (const signed of signedUrls ?? []) {
+      if (signed.signedUrl) photoUrlByPath.set(signed.path ?? "", signed.signedUrl);
+    }
+  }
+
   const rows: EmployeeDirectoryRow[] = employeeRows.map((employee) => {
     const schedule = jobsByEmployee.get(employee.id) ?? [];
     const payroll = payrollByEmployee.get(employee.id);
@@ -106,6 +117,7 @@ export default async function EmployeesPage() {
       id: employee.id,
       name: `${employee.firstName} ${employee.lastName}`,
       initials: `${employee.firstName[0] ?? ""}${employee.lastName[0] ?? ""}`.toUpperCase(),
+      photoUrl: employee.profilePhotoUrl ? (photoUrlByPath.get(employee.profilePhotoUrl) ?? null) : null,
       title: employee.title ?? (employee.payType === "commission_jth" ? "Cleaning technician" : "Team member"),
       isActive: employee.isActive,
       status: schedule.length > 0 ? "Scheduled" : "Available",

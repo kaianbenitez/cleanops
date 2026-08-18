@@ -8,6 +8,7 @@ export type EmployeeDirectoryRow = {
   id: string;
   name: string;
   initials: string;
+  photoUrl: string | null;
   title: string;
   isActive: boolean;
   status: "Scheduled" | "Available";
@@ -24,7 +25,11 @@ function roleLabel(title: string) { return title.toLowerCase().includes("clean")
 function statusTone(row: EmployeeDirectoryRow) { if (!row.isActive) return "text-[var(--co-faint)]"; return row.status === "Scheduled" ? "text-[var(--co-warning)]" : "text-[var(--co-accent-text)]"; }
 
 function Avatar({ row, large = false }: { row: EmployeeDirectoryRow; large?: boolean }) {
-  return <span className={`inline-flex shrink-0 items-center justify-center rounded-full border border-white bg-[var(--co-surface-muted-strong)] font-semibold text-[var(--co-accent-text)] shadow-sm ${large ? "h-11 w-11 text-xs" : "h-9 w-9 text-[10px]"}`}>{row.initials}</span>;
+  const sizeClass = large ? "h-11 w-11 text-xs" : "h-9 w-9 text-[10px]";
+  if (row.photoUrl) {
+    return <img src={row.photoUrl} alt={row.name} className={`inline-flex shrink-0 rounded-full border border-white object-cover shadow-sm ${sizeClass}`} />;
+  }
+  return <span className={`inline-flex shrink-0 items-center justify-center rounded-full border border-white bg-[var(--co-surface-muted-strong)] font-semibold text-[var(--co-accent-text)] shadow-sm ${sizeClass}`}>{row.initials}</span>;
 }
 function FilterChip({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
   return <button type="button" onClick={onClick} className={`rounded-md px-3 py-1.5 text-[11px] font-semibold transition ${active ? "bg-[var(--co-accent-fill)] text-white" : "bg-[var(--co-surface-muted)] text-[var(--co-muted)] hover:bg-[var(--co-surface-muted-strong)]"}`}>{children}</button>;
