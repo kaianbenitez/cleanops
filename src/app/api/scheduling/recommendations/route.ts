@@ -15,10 +15,11 @@ function plusDays(date: string, days: number) { const value = new Date(`${date}T
 /** Admin-only and quote-scoped: the browser supplies no price, branch,
  * customer, or employee availability data. */
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin();
-  const parsed = requestSchema.safeParse(await req.json());
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  const input = parsed.data;
+  try {
+    const admin = await requireAdmin();
+    const parsed = requestSchema.safeParse(await req.json());
+    if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    const input = parsed.data;
   const [quoteRows, companyRows] = await Promise.all([
     db.select({ quote: quotes, hourlyRateCents: serviceLocations.hourlyRateCents }).from(quotes).innerJoin(serviceLocations, and(eq(quotes.serviceLocationId, serviceLocations.id), eq(serviceLocations.companyId, admin.companyId))).where(and(eq(quotes.id, input.quoteId), eq(quotes.companyId, admin.companyId))).limit(1),
     db.select({ settings: companies.settings }).from(companies).where(eq(companies.id, admin.companyId)).limit(1),
@@ -45,5 +46,9 @@ export async function POST(req: NextRequest) {
   const assignmentsByEvent = new Map<string, string[]>(); eventAssignmentRows.forEach((row) => assignmentsByEvent.set(row.eventId, [...(assignmentsByEvent.get(row.eventId) ?? []), row.userId]));
   const totalJthMinutes = estimateDurationMinutesFromPrice(pricing.finalCents, quoteRow.hourlyRateCents);
   const recommendations = getSchedulingRecommendations({ startDate, endDate, serviceLocationId: quoteRow.quote.serviceLocationId!, serviceType, totalJthMinutes, preferredWindow: input.preferredWindow, employees: staff.map((employee) => ({ ...employee, serviceLocationIds: idsByUser.get(employee.id) ?? [] })), pto, jobs: jobRows.map((job) => ({ ...job, assignedUserIds: assignmentsByJob.get(job.id) ?? [] })), calendarEvents: eventRows.map((event) => ({ ...event, attendeeUserIds: assignmentsByEvent.get(event.id) ?? [] })), settings: parseSchedulingSettings((company?.settings as Record<string, unknown> | null) ?? {}) });
-  return NextResponse.json({ quoteId: quoteRow.quote.id, serviceType, serviceLocationId: quoteRow.quote.serviceLocationId, totalJthMinutes, eligibleEmployees: staff.filter((employee) => (idsByUser.get(employee.id) ?? []).includes(quoteRow.quote.serviceLocationId!)).map(({ id, firstName, lastName }) => ({ id, firstName, lastName })), recommendations });
+    return NextResponse.json({ quoteId: quoteRow.quote.id, serviceType, serviceLocationId: quoteRow.quote.serviceLocationId, totalJthMinutes, eligibleEmployees: staff.filter((employee) => (idsByUser.get(employee.id) ?? []).includes(quoteRow.quote.serviceLocationId!)).map(({ id, firstName, lastName }) => ({ id, firstName, lastName })), recommendations });
+  } catch (cause) {
+    console.error("Guided booking recommendations failed", cause);
+    return NextResponse.json({ error: "Availability is temporarily unavailable. The guided-booking database migration may still need to be applied." }, { status: 500 });
+  }
 }
