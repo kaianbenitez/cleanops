@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CalendarClock } from "lucide-react";
 import { displayCustomer, employeeCardStyle, employeeColor, formatClockLabel, formatEstimatedTime, isPlainClick, recurrenceLabel, TYPE_LABELS } from "./shared";
 import { statusLabel } from "@/components/ui/status-pill";
 import { cleanNoteText } from "@/lib/format";
@@ -52,7 +53,7 @@ const STATUS_TONES: Record<string, string> = {
   no_show: "border-[color-mix(in_srgb,var(--co-danger)_24%,var(--co-surface))] bg-[color-mix(in_srgb,var(--co-danger)_10%,var(--co-surface))]",
 };
 
-export default function JobCard({ job, employees, draggable = false, onDragStart, onOpen }: { job: CardJob; employees: Employee[]; draggable?: boolean; onDragStart?: (event: React.DragEvent<HTMLAnchorElement>) => void; onOpen?: (jobId: string) => void }) {
+export default function JobCard({ job, employees, draggable = false, onDragStart, onOpen, onMoveAssign }: { job: CardJob; employees: Employee[]; draggable?: boolean; onDragStart?: (event: React.DragEvent<HTMLAnchorElement>) => void; onOpen?: (jobId: string) => void; onMoveAssign?: (jobId: string) => void }) {
   const crewIds = job.assignedUserIds;
   const crew = crewIds
     .map((id) => employees.find((employee) => employee.id === id))
@@ -63,7 +64,7 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
   const leadColor = employees.find((employee) => employee.id === crewIds[0])?.calendarColor ?? crewIds[0];
 
   return (
-    <>
+    <div className="relative h-full">
       <Link
         href={`/jobs/${job.id}`}
         draggable={draggable && !isLocked}
@@ -74,10 +75,10 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
           onOpen(job.id);
         }}
         style={employeeCardStyle(leadColor)}
-        className={`group block h-full overflow-hidden rounded-lg border px-2.5 py-2 text-left transition hover:-translate-y-px hover:border-[var(--co-accent-text)] hover:shadow-[0_4px_12px_rgba(15,23,42,0.1)] ${STATUS_TONES[job.status] ?? STATUS_TONES.scheduled}`}
+        className={`block h-full overflow-hidden rounded-lg border px-2.5 py-2 text-left transition hover:-translate-y-px hover:border-[var(--co-accent-text)] hover:shadow-[0_4px_12px_rgba(15,23,42,0.1)] ${STATUS_TONES[job.status] ?? STATUS_TONES.scheduled}`}
       >
         <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-[var(--co-muted)]"><span>{formatClockLabel(job.scheduledStartTime)}</span><span className="flex items-center gap-1.5"><ClientHomeSymbols roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} /><span className="rounded bg-[var(--co-surface)]/60 px-1.5 py-0.5 text-[10px]">{job.clientType === "commercial" ? "Commercial" : "Residential"}</span></span></div>
-        <p className="mt-1 truncate text-[13px] font-semibold text-[var(--co-ink)]">{label}</p>
+        <p className={`mt-1 truncate text-[13px] font-semibold text-[var(--co-ink)] ${onMoveAssign && !isLocked ? "pr-7" : ""}`}>{label}</p>
         <p className="mt-0.5 truncate text-[11px] text-[var(--co-muted)]">{TYPE_LABELS[job.type] ?? job.type} · {job.customerZip ?? "No ZIP"} · {formatEstimatedTime(job.estimatedDurationMinutes)}</p>
         <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px]">
           <span className="flex min-w-0 items-center gap-1 truncate text-[var(--co-muted)]">
@@ -100,6 +101,20 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
           </p>
         ) : null}
       </Link>
-    </>
+      {onMoveAssign && !isLocked ? (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onMoveAssign(job.id);
+          }}
+          aria-label={`Move or assign — ${label}`}
+          className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--co-surface)]/85 text-[var(--co-muted)] shadow-sm transition hover:text-[var(--co-accent-text)]"
+        >
+          <CalendarClock className="h-3.5 w-3.5" aria-hidden />
+        </button>
+      ) : null}
+    </div>
   );
 }

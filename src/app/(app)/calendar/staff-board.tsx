@@ -3,13 +3,14 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CalendarAppointment, CalendarEmployee, CalendarJob, StaffRosterMember } from "./page";
-import { commitJobPatch } from "./drag-commit";
+import { commitJobPatch, type JobPatch } from "./drag-commit";
 import { UndoToast, useUndoToast } from "./undo-toast";
 import JobCard from "./job-card";
 import { APPOINTMENT_COLOR, APPOINTMENT_COLOR_CANCELLED, assignDayLanes, employeeColor, formatAppointmentTime, formatEstimatedTime, minutesFromTime } from "./shared";
 import UnassignedPanel from "./unassigned-panel";
 import JobDetailPanel from "./job-detail-panel";
 import AppointmentPanel from "./appointment-panel";
+import MoveAssignPanel from "./move-assign-panel";
 import type { EmployeePtoRecord, PtoPeriod } from "@/lib/scheduling/pto";
 import { wallClockMinutes } from "@/lib/scheduling/wall-clock";
 
@@ -65,6 +66,7 @@ function clockLabelFromMinutes(totalMinutes: number) {
 export default function StaffBoard({
   dayIso,
   dayLabel,
+  todayIso,
   employees,
   savedColumnOrder,
   laneEmployeeId,
@@ -77,6 +79,7 @@ export default function StaffBoard({
 }: {
   dayIso: string;
   dayLabel: string;
+  todayIso: string;
   employees: CalendarEmployee[];
   savedColumnOrder: string[];
   laneEmployeeId?: string;
@@ -102,6 +105,7 @@ export default function StaffBoard({
   const [warning, setWarning] = useState<string | null>(null);
   const [openJobId, setOpenJobId] = useState<string | null>(null);
   const [detailJobId, setDetailJobId] = useState<string | null>(null);
+  const [moveAssignState, setMoveAssignState] = useState<{ jobId: string; targetEmployeeId?: string } | null>(null);
   const [resizing, setResizing] = useState<{
     jobId: string;
     startY: number;
@@ -191,6 +195,10 @@ export default function StaffBoard({
     setJobs(initialJobs);
   }
 
+  /** Dropping onto a lane the job is already in only ever moves its time —
+   * it can never silently add a cleaner. Dropping onto a *different*
+   * cleaner's lane is ambiguous (move vs. add), so it performs zero writes
+   * and opens Move or assign with that cleaner preselected instead. */
   function dropOnEmployee(
     event: React.DragEvent<HTMLDivElement>,
     employeeId: string,
@@ -202,66 +210,45 @@ export default function StaffBoard({
     if (!job || ["completed", "cancelled", "no_show"].includes(job.status))
       return;
 
-    const previousEmployees = job.assignedUserIds;
-    const nextEmployees = Array.from(
-      new Set([...previousEmployees, employeeId]),
-    );
-    const isExistingLane = previousEmployees.includes(employeeId);
+    if (!job.assignedUserIds.includes(employeeId)) {
+      setMoveAssignState({ jobId: job.id, targetEmployeeId: employeeId });
+      return;
+    }
+
     const previousTime = job.scheduledStartTime;
     const clampedMinutes = minutesFromDragEvent(event);
     const nextTime = `${String(Math.floor(clampedMinutes / 60)).padStart(2, "0")}:${String(clampedMinutes % 60).padStart(2, "0")}`;
+    if (previousTime === nextTime) return;
 
-    if (
-      JSON.stringify(previousEmployees) === JSON.stringify(nextEmployees) &&
-      previousTime === nextTime
-    )
-      return;
     setJobs((current) =>
       current.map((entry) =>
-        entry.id === job.id
-          ? {
-              ...entry,
-              assignedUserIds: nextEmployees,
-              scheduledStartTime: nextTime,
-            }
-          : entry,
+        entry.id === job.id ? { ...entry, scheduledStartTime: nextTime } : entry,
       ),
     );
     commitJobPatch(
       job.id,
-      { employeeIds: nextEmployees, scheduledStartTime: nextTime ?? null },
+      { scheduledStartTime: nextTime },
       {
         onOptimistic: () => undefined,
         onSuccess: () => {
           router.refresh();
-          showUndo(
-            isExistingLane
-              ? "Job time updated"
-              : "Technician added to the crew",
-            () =>
-              commitJobPatch(
-                job.id,
-                {
-                  employeeIds: previousEmployees,
-                  scheduledStartTime: previousTime ?? null,
-                },
-                {
-                  onOptimistic: () =>
-                    setJobs((current) =>
-                      current.map((entry) =>
-                        entry.id === job.id
-                          ? {
-                              ...entry,
-                              assignedUserIds: previousEmployees,
-                              scheduledStartTime: previousTime,
-                            }
-                          : entry,
-                      ),
+          showUndo("Job time updated", () =>
+            commitJobPatch(
+              job.id,
+              { scheduledStartTime: previousTime ?? null },
+              {
+                onOptimistic: () =>
+                  setJobs((current) =>
+                    current.map((entry) =>
+                      entry.id === job.id
+                        ? { ...entry, scheduledStartTime: previousTime }
+                        : entry,
                     ),
-                  onSuccess: () => router.refresh(),
-                  onError: setError,
-                },
-              ),
+                  ),
+                onSuccess: () => router.refresh(),
+                onError: setError,
+              },
+            ),
           );
         },
         onWarning: setWarning,
@@ -270,16 +257,38 @@ export default function StaffBoard({
           setJobs((current) =>
             current.map((entry) =>
               entry.id === job.id
-                ? {
-                    ...entry,
-                    assignedUserIds: previousEmployees,
-                    scheduledStartTime: previousTime,
-                  }
+                ? { ...entry, scheduledStartTime: previousTime }
                 : entry,
             ),
           );
         },
       },
+    );
+  }
+
+  function handleMoveAssignSaved(jobId: string, patch: JobPatch, previous: JobPatch) {
+    function apply(fields: JobPatch) {
+      setJobs((current) =>
+        current.map((entry) =>
+          entry.id === jobId
+            ? {
+                ...entry,
+                ...(fields.scheduledDate !== undefined ? { scheduledDate: fields.scheduledDate } : {}),
+                ...(fields.scheduledStartTime !== undefined ? { scheduledStartTime: fields.scheduledStartTime } : {}),
+                ...(fields.employeeIds !== undefined ? { assignedUserIds: fields.employeeIds } : {}),
+              }
+            : entry,
+        ),
+      );
+    }
+    apply(patch);
+    router.refresh();
+    showUndo("Schedule updated", () =>
+      commitJobPatch(jobId, previous, {
+        onOptimistic: () => apply(previous),
+        onSuccess: () => router.refresh(),
+        onError: setError,
+      }),
     );
   }
 
@@ -568,6 +577,7 @@ export default function StaffBoard({
           event.dataTransfer.effectAllowed = "move";
         }}
                   onOpen={setDetailJobId}
+                  onMoveAssign={(id) => setMoveAssignState({ jobId: id })}
                 />
               ))}
             </div>
@@ -756,6 +766,7 @@ export default function StaffBoard({
           event.dataTransfer.effectAllowed = "move";
         }}
                             onOpen={setDetailJobId}
+                            onMoveAssign={(id) => setMoveAssignState({ jobId: id })}
                           />
                           {placement.overflowCount > 0 ? (
                             <span className="absolute bottom-1 right-1 rounded bg-[var(--co-ink)] px-1.5 py-0.5 text-[10px] font-semibold text-white">
@@ -814,7 +825,25 @@ export default function StaffBoard({
         jobId={detailJobId}
         employees={employees}
         onClose={() => setDetailJobId(null)}
+        onMoveAssign={(id) => setMoveAssignState({ jobId: id })}
       />
+      {moveAssignState ? (() => {
+        const job = jobs.find((entry) => entry.id === moveAssignState.jobId);
+        if (!job) return null;
+        return (
+          <MoveAssignPanel
+            job={job}
+            employees={employees}
+            dayJobs={jobs}
+            ptoRecords={ptoRecords}
+            ptoDayIso={dayIso}
+            todayIso={todayIso}
+            targetEmployeeId={moveAssignState.targetEmployeeId}
+            onClose={() => setMoveAssignState(null)}
+            onSaved={(patch, previous) => handleMoveAssignSaved(job.id, patch, previous)}
+          />
+        );
+      })() : null}
       {editingAppointmentId ? (
         <AppointmentPanel
           mode="edit"

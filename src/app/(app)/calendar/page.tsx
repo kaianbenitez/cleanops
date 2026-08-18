@@ -842,6 +842,7 @@ export default async function CalendarPage({
           <StaffBoard
             dayIso={toISODate(dayAnchor)}
             dayLabel={formatDayLabel(dayAnchor)}
+            todayIso={todayIso}
             employees={employees}
             savedColumnOrder={Array.isArray(
               (company.settings as { staffColumnOrder?: unknown } | null)
@@ -864,7 +865,19 @@ export default async function CalendarPage({
             staffRoster={staffRoster}
           />
         ) : null}
-        {view === "staff_vertical" ? <StaffVerticalBoard employees={employees} jobs={displayedJobs} queueOpen={sp.queue === "unassigned" || sp.assignment === "unassigned"} unassignedJobs={unassignedRows.map((row) => ({ ...row, assignedUserIds: [] }))} appointments={appointments} staffRoster={staffRoster} /> : null}
+        {view === "staff_vertical" ? (
+          <StaffVerticalBoard
+            dayIso={toISODate(dayAnchor)}
+            todayIso={todayIso}
+            employees={employees}
+            jobs={displayedJobs}
+            queueOpen={sp.queue === "unassigned" || sp.assignment === "unassigned"}
+            unassignedJobs={unassignedRows.map((row) => ({ ...row, assignedUserIds: [] }))}
+            ptoRecords={ptoRows}
+            appointments={appointments}
+            staffRoster={staffRoster}
+          />
+        ) : null}
         {view === "month" ? (
           <MonthBoard
             month={monthAnchor}

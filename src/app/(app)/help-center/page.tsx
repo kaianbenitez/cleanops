@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.60",
+    date: "August 19, 2026",
+    title: "A safe way to schedule without dragging",
+    changes: [
+      "Every job card and Job Detail now has a Move or assign button that opens a guided panel: pick the date, morning or afternoon arrival, and the crew, then review a plain-language summary before confirming.",
+      "Dragging a job onto a different cleaner no longer reassigns it right away — it opens the same panel with that cleaner already selected, and asks whether to move the job to them or add them to the existing crew, so nothing changes until you confirm.",
+      "Dragging within a cleaner's own column still works exactly as before, for a quick time change.",
+    ],
+  },
+  {
     version: "v0.2.59",
     date: "August 19, 2026",
     title: "Calendar navigation is easier to scan",
