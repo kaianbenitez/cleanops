@@ -8,6 +8,7 @@ import { syncToGhl } from "@/lib/ghl/sync";
 import { loadJobDetail } from "@/lib/jobs/job-detail";
 import { findPtoConflicts, ptoConflictMessage } from "@/lib/scheduling/pto";
 import { ensureFeedbackRequest } from "@/lib/feedback/ensure-feedback-request";
+import { wallClockMinutes } from "@/lib/scheduling/wall-clock";
 
 const updateJobSchema = z.object({
   scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -171,6 +172,7 @@ export async function PATCH(
   if (effectiveEmployeeIds.length > 0 && (employeeIds || jobFields.scheduledDate || jobFields.scheduledStartTime || jobFields.estimatedDurationMinutes)) {
     const overlappingJobs = await db
       .select({
+        jobId: jobs.id,
         userId: jobAssignments.userId,
         firstName: users.firstName,
         lastName: users.lastName,
@@ -187,12 +189,14 @@ export async function PATCH(
         inArray(jobs.status, ["scheduled", "in_progress"]),
         ne(jobs.id, jobId),
       ));
-    const duration = jobFields.estimatedDurationMinutes ?? existing.estimatedDurationMinutes ?? 75;
+    const duration = wallClockMinutes(jobFields.estimatedDurationMinutes ?? existing.estimatedDurationMinutes ?? 75, Math.max(1, effectiveEmployeeIds.length));
+    const otherCrewCounts = new Map<string, number>();
+    for (const other of overlappingJobs) otherCrewCounts.set(other.jobId, (otherCrewCounts.get(other.jobId) ?? 0) + 1);
     const overlappingEmployees = new Set<string>();
     for (const other of overlappingJobs) {
       const targetStart = scheduledStartTime ? Number(scheduledStartTime.slice(0, 2)) * 60 + Number(scheduledStartTime.slice(3, 5)) : 9 * 60;
       const otherStart = other.scheduledStartTime ? Number(other.scheduledStartTime.slice(0, 2)) * 60 + Number(other.scheduledStartTime.slice(3, 5)) : 9 * 60;
-      const otherDuration = other.estimatedDurationMinutes ?? 75;
+      const otherDuration = wallClockMinutes(other.estimatedDurationMinutes ?? 75, otherCrewCounts.get(other.jobId) ?? 1);
       if (targetStart < otherStart + otherDuration && otherStart < targetStart + duration) {
         overlappingEmployees.add(`${other.firstName} ${other.lastName}`);
       }
