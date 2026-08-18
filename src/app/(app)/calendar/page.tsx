@@ -494,7 +494,7 @@ export default async function CalendarPage({
     .orderBy(users.firstName, users.lastName);
 
   // Calendar's toolbar absorbs NotificationsMenu (the app-wide top bar is
-  // hidden here, see calendar-focus-mode.tsx), so it needs its own seed —
+  // hidden here, see calendar-toolbar.tsx), so it needs its own seed —
   // same query and limit as layout.tsx's.
   const notificationsQuery = db
     .select({ id: appNotifications.id, title: appNotifications.title, body: appNotifications.body, href: appNotifications.href, readAt: appNotifications.readAt, createdAt: appNotifications.createdAt })

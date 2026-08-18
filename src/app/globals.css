@@ -508,9 +508,9 @@ button:active { transform: translateY(1px); }
 
 /* Calendar focus mode: hides the app nav (desktop aside + mobile top bar)
    and the sticky top bar, and zeroes the content frame's nav gutter, so the
-   calendar grid gets the full viewport. Toggled by calendar-focus-mode.tsx,
-   which stamps data-focus-mode="calendar" on <html>. Scoped to that one
-   attribute value so every other page is untouched. */
+   calendar grid gets the full viewport. Toggled by calendar-toolbar.tsx's
+   nav button, which stamps data-focus-mode="calendar" on <html>. Scoped to
+   that one attribute value so every other page is untouched. */
 html[data-focus-mode="calendar"] [data-app-nav],
 html[data-focus-mode="calendar"] [data-app-topbar] { display: none; }
 html[data-focus-mode="calendar"] [data-app-frame] { padding-left: 0; }
