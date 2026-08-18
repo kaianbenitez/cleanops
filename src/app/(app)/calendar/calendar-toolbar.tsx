@@ -73,9 +73,10 @@ export default function CalendarToolbar({
       <div className="flex items-center gap-2">
         <div className="mx-1 h-6 w-px bg-[var(--co-line-soft)]" aria-hidden />
         <GlobalSearch variant="icon" />
-        <NotificationsMenu initialNotifications={initialNotifications} />
+        <NotificationsMenu initialNotifications={initialNotifications} portal />
         <CreateMenu
           compact
+          portal
           leadingItem={{ href: "/jobs/new", label: "Schedule a job" }}
           appointments={{ staffRoster, defaultDate: appointmentDefaultDate }}
         />
