@@ -99,6 +99,18 @@ export function jobTypeLabel(type: string) {
   return type.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+const RECURRING_FREQUENCY_LABELS: Record<string, string> = {
+  weekly: "Weekly",
+  biweekly: "Bi-weekly",
+  every4weeks: "Every 4 weeks",
+  monthly: "Monthly",
+};
+
+/** The cadence saved on a recurring-service subscription, if this job has one. */
+export function recurringFrequencyLabel(frequency: string | null | undefined) {
+  return frequency ? RECURRING_FREQUENCY_LABELS[frequency] ?? null : null;
+}
+
 /** Matches `jobPaymentMethodEnum` in src/db/schema.ts — kept as a labeled list
  * (not just title-cased) so the "nothing collected on-site" option can read
  * as a real sentence instead of "Not Collected". */

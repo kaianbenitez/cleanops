@@ -17,6 +17,7 @@ type JobCard = {
   scheduledDate: string;
   scheduledStartTime: string | null;
   type: string;
+  recurrenceFrequency: string | null;
   estimatedDurationMinutes: number | null;
   addressLine1: string | null;
   city: string | null;
@@ -136,6 +137,7 @@ export default async function MyDayPage() {
       status: jobs.status,
       scheduledDate: jobs.scheduledDate,
       recurrenceStartDate: recurringSeries.startDate,
+      recurrenceFrequency: recurringSeries.frequency,
       scheduledStartTime: jobs.scheduledStartTime,
       type: jobs.type,
       estimatedDurationMinutes: jobs.estimatedDurationMinutes,
@@ -186,6 +188,7 @@ export default async function MyDayPage() {
       status: jobs.status,
       scheduledDate: jobs.scheduledDate,
       recurrenceStartDate: recurringSeries.startDate,
+      recurrenceFrequency: recurringSeries.frequency,
       scheduledStartTime: jobs.scheduledStartTime,
       type: jobs.type,
       estimatedDurationMinutes: jobs.estimatedDurationMinutes,
@@ -229,6 +232,7 @@ export default async function MyDayPage() {
       status: jobs.status,
       scheduledDate: jobs.scheduledDate,
       recurrenceStartDate: recurringSeries.startDate,
+      recurrenceFrequency: recurringSeries.frequency,
       scheduledStartTime: jobs.scheduledStartTime,
       type: jobs.type,
       estimatedDurationMinutes: jobs.estimatedDurationMinutes,
@@ -280,6 +284,7 @@ export default async function MyDayPage() {
       scheduledDate: jobs.scheduledDate,
       scheduledStartTime: jobs.scheduledStartTime,
       type: jobs.type,
+      recurrenceFrequency: recurringSeries.frequency,
       estimatedDurationMinutes: jobs.estimatedDurationMinutes,
       status: jobs.status,
       customerId: customers.id,
@@ -309,6 +314,7 @@ export default async function MyDayPage() {
     .innerJoin(jobs, eq(timeEntries.jobId, jobs.id))
     .innerJoin(jobAssignments, and(eq(jobAssignments.jobId, jobs.id), eq(jobAssignments.userId, user.id)))
     .innerJoin(customers, eq(jobs.customerId, customers.id))
+    .leftJoin(recurringSeries, eq(jobs.recurringSeriesId, recurringSeries.id))
     .leftJoin(customerLocations, and(eq(customerLocations.customerId, customers.id), eq(customerLocations.isPrimary, true), eq(customerLocations.isActive, true)))
     .where(and(eq(timeEntries.userId, user.id), isNull(timeEntries.clockOut)))
     .orderBy(desc(timeEntries.clockIn))
@@ -388,6 +394,7 @@ export default async function MyDayPage() {
         scheduledDate: openEntry.scheduledDate,
         scheduledStartTime: openEntry.scheduledStartTime,
         type: openEntry.type,
+        recurrenceFrequency: openEntry.recurrenceFrequency,
         estimatedDurationMinutes: openEntry.estimatedDurationMinutes,
         addressLine1: openEntry.addressLine1,
         city: openEntry.city,
@@ -421,6 +428,7 @@ export default async function MyDayPage() {
           scheduledDate: currentJob.scheduledDate,
           scheduledStartTime: currentJob.scheduledStartTime,
           type: currentJob.type,
+          recurrenceFrequency: currentJob.recurrenceFrequency,
           estimatedDurationMinutes: currentJob.estimatedDurationMinutes,
           addressLine1: currentJob.addressLine1,
           city: currentJob.city,

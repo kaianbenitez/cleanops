@@ -21,7 +21,7 @@ import {
   Star,
   Package,
 } from "lucide-react";
-import { timeLabel, jobAddress, formatElapsed, jobTypeLabel } from "@/lib/my-day/job-format";
+import { timeLabel, jobAddress, formatElapsed, jobTypeLabel, recurringFrequencyLabel } from "@/lib/my-day/job-format";
 import { MaskedCode } from "@/components/ui/masked-code";
 
 type JobCard = {
@@ -33,6 +33,7 @@ type JobCard = {
   scheduledDate: string;
   scheduledStartTime: string | null;
   type: string;
+  recurrenceFrequency?: string | null;
   estimatedDurationMinutes: number | null;
   addressLine1: string | null;
   city: string | null;
@@ -107,6 +108,10 @@ function relativeTime(scheduledStartTime: string | null, now: number) {
 
 function roleLabel(role: JobCard["role"]) {
   return role === "lead" ? "You're driving" : role === "trainer" ? "Training" : "Helping";
+}
+
+function serviceLabel(job: JobCard) {
+  return job.type === "recurring" ? recurringFrequencyLabel(job.recurrenceFrequency) ?? jobTypeLabel(job.type) : jobTypeLabel(job.type);
 }
 
 /** Current week's rotation only — folded into the job card it belongs to. Full history stays on the job-detail page. */
@@ -533,7 +538,7 @@ export default function MyDayClient({
 
           <p className="mt-2.5 flex items-center gap-1.5 type-field-meta text-[var(--co-muted)]">
             <ServiceTypeIcon type={activeJob.type} className="h-[17px] w-[17px] shrink-0 text-[var(--co-ink)]" />
-            {jobTypeLabel(activeJob.type)} · {shortDuration(activeJob.estimatedDurationMinutes) ?? "Est. pending"} · {roleLabel(activeJob.role)}
+            {serviceLabel(activeJob)} · {shortDuration(activeJob.estimatedDurationMinutes) ?? "Est. pending"} · {roleLabel(activeJob.role)}
           </p>
 
           {activeJob.petNotes || activeJob.doNotClean ? (
@@ -676,7 +681,7 @@ export default function MyDayClient({
                     ) : (
                       <>
                         <ServiceTypeIcon type={job.type} className="h-[15px] w-[15px] shrink-0" />
-                        {jobTypeLabel(job.type)} · {job.city ?? "No city"} · {shortDuration(job.estimatedDurationMinutes) ?? "Est. pending"}
+                        {serviceLabel(job)} · {job.city ?? "No city"} · {shortDuration(job.estimatedDurationMinutes) ?? "Est. pending"}
                       </>
                     )
                   }
@@ -701,7 +706,7 @@ export default function MyDayClient({
                 meta={
                   <>
                     <ServiceTypeIcon type={job.type} className="h-[15px] w-[15px] shrink-0" />
-                    {jobTypeLabel(job.type)} · Completed
+                    {serviceLabel(job)} · Completed
                   </>
                 }
               />
@@ -724,7 +729,7 @@ export default function MyDayClient({
                     ) : (
                       <>
                         <ServiceTypeIcon type={job.type} className="h-[15px] w-[15px] shrink-0" />
-                        {jobTypeLabel(job.type)} · {job.city ?? "No city"} · {timeLabel(job.scheduledStartTime)}
+                        {serviceLabel(job)} · {job.city ?? "No city"} · {timeLabel(job.scheduledStartTime)}
                       </>
                     )
                   }

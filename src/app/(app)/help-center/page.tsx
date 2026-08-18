@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.56",
+    date: "August 18, 2026",
+    title: "My Day now shows each customer's actual service schedule",
+    changes: [
+      "Instead of the generic “Recurring” label, a cleaner now sees the customer's actual schedule — Weekly, Bi-weekly, Every 4 weeks, or Monthly — on My Day.",
+    ],
+  },
+  {
     version: "v0.2.55",
     date: "August 17, 2026",
     title: "The scheduling calendar now shows how many hours are free",
