@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import DatePicker, { CalendarViewSelector } from "./date-picker";
 import NewAppointmentButton from "./new-appointment-button";
@@ -76,7 +76,7 @@ export default function CalendarToolbar({
         <div className="mx-1 h-6 w-px bg-[var(--co-line-soft)]" aria-hidden />
         <GlobalSearch variant="icon" />
         <NotificationsMenu initialNotifications={initialNotifications} />
-        <CreateMenu compact leadingItem={{ href: "/jobs/new", label: "Schedule job", icon: ClipboardList }} />
+        <CreateMenu compact leadingItem={{ href: "/jobs/new", label: "Schedule job" }} />
       </div>
     </div>
   );

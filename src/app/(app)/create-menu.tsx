@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Plus, ChevronDown, FileText, ClipboardList, UserPlus } from "lucide-react";
+import { Plus, ChevronDown, CalendarClock, FileText, ClipboardList, UserPlus } from "lucide-react";
 
 export default function CreateMenu({
   compact = false,
@@ -11,8 +11,10 @@ export default function CreateMenu({
   compact?: boolean;
   /** An extra menu item rendered above Customer/Quote/Job — e.g. Calendar's
    * own "Schedule job" shortcut. Additive only; omitting it (every existing
-   * call site) renders the original 3-item menu unchanged. */
-  leadingItem?: { href: string; label: string; icon: React.ComponentType<{ className?: string }> };
+   * call site) renders the original 3-item menu unchanged. Icon is fixed
+   * (not a prop) — a component reference can't cross the server/client
+   * boundary from a server-rendered caller like calendar-toolbar.tsx. */
+  leadingItem?: { href: string; label: string };
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -59,7 +61,7 @@ export default function CreateMenu({
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-[var(--co-ink)] transition hover:bg-[var(--co-surface-muted)]"
             >
-              <leadingItem.icon className="h-4 w-4 text-[var(--co-muted)]" aria-hidden />
+              <CalendarClock className="h-4 w-4 text-[var(--co-muted)]" aria-hidden />
               {leadingItem.label}
             </Link>
           ) : null}
