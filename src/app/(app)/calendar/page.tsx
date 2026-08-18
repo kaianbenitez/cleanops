@@ -822,6 +822,7 @@ export default async function CalendarPage({
         {view === "staff" ? (
           <VerticalBoard
             dayIso={toISODate(dayAnchor)}
+            todayIso={todayIso}
             dayLabel={formatDayLabel(dayAnchor)}
             employees={employees}
             savedColumnOrder={Array.isArray(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CalendarAppointment, CalendarEmployee, CalendarJob, StaffRosterMember } from "./page";
 import { commitJobPatch } from "./drag-commit";
@@ -64,6 +64,7 @@ function clockLabelFromMinutes(totalMinutes: number) {
 
 export default function VerticalBoard({
   dayIso,
+  todayIso,
   dayLabel,
   employees,
   savedColumnOrder,
@@ -76,6 +77,7 @@ export default function VerticalBoard({
   staffRoster = [],
 }: {
   dayIso: string;
+  todayIso: string;
   dayLabel: string;
   employees: CalendarEmployee[];
   savedColumnOrder: string[];
@@ -191,6 +193,19 @@ export default function VerticalBoard({
     setSyncedJobs(initialJobs);
     setJobs(initialJobs);
   }
+
+  const [nowMinutes, setNowMinutes] = useState<number | null>(null);
+  useEffect(() => {
+    function update() {
+      const now = new Date();
+      setNowMinutes(now.getHours() * 60 + now.getMinutes());
+    }
+    update();
+    const interval = setInterval(update, 60000);
+    return () => clearInterval(interval);
+  }, []);
+  const showNowLine = dayIso === todayIso && nowMinutes !== null && nowMinutes >= START && nowMinutes <= START + TOTAL;
+  const nowTopPercent = nowMinutes !== null ? Math.max(0, Math.min(((nowMinutes - START) / TOTAL) * 100, 100)) : 0;
 
   function dropOnEmployee(
     event: React.DragEvent<HTMLDivElement>,
@@ -718,6 +733,9 @@ export default function VerticalBoard({
                         style={{ top: `${index * HOUR_HEIGHT}px` }}
                       />
                     ))}
+                    {showNowLine ? (
+                      <div className="pointer-events-none absolute inset-x-0 z-20 h-px bg-[var(--co-danger)]" style={{ top: `${nowTopPercent}%` }} />
+                    ) : null}
                     {ptoPeriod ? (
                       <div
                         className="pointer-events-none absolute inset-x-0 z-20 border-y border-[var(--co-warning)]/40 bg-[var(--co-warning)]/15 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--co-warning)]"
