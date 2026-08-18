@@ -94,7 +94,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     type: "quote.accepted",
     title: "Proposal accepted",
     body: "A customer accepted a proposal and is ready for scheduling.",
-    href: `/quotes/${quote.id}`,
+    href: `/quotes/${quote.id}?booking=1`,
     quoteId: quote.id,
     customerId: quote.customerId,
   }).onConflictDoNothing();

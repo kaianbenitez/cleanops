@@ -30,6 +30,8 @@ type Employee = {
   isActive: boolean;
   serviceLocationId: string | null;
   serviceLocationName: string | null;
+  serviceLocationIds: string[];
+  serviceLocationNames: string[];
   profilePhotoUrl: string | null;
   tags: string[];
 };
@@ -427,7 +429,7 @@ function CompactProfile({
             )}
           </section>
 
-          <section className="co-card p-5"><div className="flex items-center justify-between"><h2 className="text-sm font-semibold">Service area</h2><span className="text-[var(--co-accent-text)]">Primary</span></div><p className="mt-4 rounded-xl bg-[var(--co-surface-muted)] px-3 py-3 text-xs font-medium text-[var(--co-ink)]">{employee.serviceLocationName ?? "No primary area assigned"}</p>{editMode ? <select defaultValue={employee.serviceLocationId ?? ""} onChange={(event) => void save({ serviceLocationId: event.target.value || null })} className="co-input mt-3 w-full text-xs"><option value="">No primary area</option>{serviceLocations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select> : null}</section>
+          <section className="co-card p-5"><div className="flex items-center justify-between"><h2 className="text-sm font-semibold">Works in</h2><span className="text-[var(--co-accent-text)]">Booking eligibility</span></div><p className="mt-4 rounded-xl bg-[var(--co-surface-muted)] px-3 py-3 text-xs font-medium text-[var(--co-ink)]">{employee.serviceLocationNames?.join(" · ") || employee.serviceLocationName || "No branch eligibility assigned"}</p>{editMode ? <><select defaultValue={employee.serviceLocationId ?? ""} onChange={(event) => void save({ serviceLocationId: event.target.value || null })} className="co-input mt-3 w-full text-xs"><option value="">No primary area</option>{serviceLocations.map((location) => <option key={location.id} value={location.id}>{location.name} (primary)</option>)}</select><div className="mt-3 grid gap-2 text-xs">{serviceLocations.map((location) => <label key={location.id} className="flex items-center gap-2"><input type="checkbox" defaultChecked={employee.serviceLocationIds?.includes(location.id)} onChange={(event) => { const ids = new Set(employee.serviceLocationIds ?? []); if (event.target.checked) ids.add(location.id); else ids.delete(location.id); if (ids.size) void save({ serviceLocationIds: [...ids] }); }} />{location.name}</label>)}</div></> : null}</section>
 
           <EmployeeTags tags={employee.tags} onSave={(tags) => void save({ tags })} />
         </aside>

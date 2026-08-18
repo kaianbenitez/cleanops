@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { customers, quotes, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -44,7 +44,9 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
   }
 
   const conditions = [...baseConditions];
-  if (sp.status && sp.status !== "all") {
+  if (sp.status === "accepted_needs_scheduling") {
+    conditions.push(eq(quotes.status, "accepted"), isNull(quotes.bookedAt));
+  } else if (sp.status && sp.status !== "all") {
     conditions.push(eq(quotes.status, sp.status as typeof quotes.status.enumValues[number]));
   }
 
@@ -62,6 +64,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
         sentAt: quotes.sentAt,
         viewedAt: quotes.viewedAt,
         acceptedAt: quotes.acceptedAt,
+        bookedAt: quotes.bookedAt,
         publicToken: quotes.publicToken,
         createdByFirstName: users.firstName,
         createdByLastName: users.lastName,
@@ -76,7 +79,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
         all: sql<number>`count(*)`,
         draft: sql<number>`count(*) filter (where ${quotes.status} = 'draft')`,
         sent: sql<number>`count(*) filter (where ${quotes.status} in ('sent', 'viewed'))`,
-        accepted: sql<number>`count(*) filter (where ${quotes.status} = 'accepted')`,
+        accepted: sql<number>`count(*) filter (where ${quotes.status} = 'accepted' and ${quotes.bookedAt} is null)`,
       })
       .from(quotes)
       .innerJoin(customers, eq(quotes.customerId, customers.id))
@@ -108,7 +111,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
           ["All quotes", counts.all, "all", "All records"],
           ["Drafts", counts.draft, "draft", "Needs sending"],
           ["Sent / viewed", counts.sent, "sent", "Waiting on customer"],
-          ["Accepted", counts.accepted, "accepted", "Ready to convert"],
+          ["Accepted — needs scheduling", counts.accepted, "accepted_needs_scheduling", "Call and schedule"],
         ].map(([label, value, status, detail]) => (
           <Link key={String(label)} href={hrefWith(sp, "status", String(status))} className="co-card flex items-center justify-between p-5">
             <div>
@@ -126,6 +129,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
           <input name="q" defaultValue={sp.q} placeholder="Search customer or quote" className="co-input min-w-[240px] flex-1" />
           <select name="status" defaultValue={sp.status ?? "all"} className="co-input w-full sm:w-auto">
             <option value="all">All statuses</option>
+            <option value="accepted_needs_scheduling">Accepted — needs scheduling</option>
             {statusOptions("quote").map(({ value, label }) => (
               <option key={value} value={value}>
                 {label}
@@ -186,7 +190,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
                     <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <Link href={`/quotes/${quote.id}`} className="rounded-lg border border-[var(--co-line)] px-3 py-2 text-xs font-medium text-[var(--co-accent-text)]">
-                          Open
+                          {quote.status === "accepted" && !quote.bookedAt ? "Call and schedule" : "Open"}
                         </Link>
                         <Link href={`/quote/${quote.publicToken}`} target="_blank" className="rounded-lg border border-[var(--co-line)] px-3 py-2 text-xs font-medium text-[var(--co-ink)]">
                           Proposal

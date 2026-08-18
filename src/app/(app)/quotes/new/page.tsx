@@ -26,7 +26,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ADD_ONS, detectRequestedAddOns, type AddOnKey } from "@/lib/pricing/add-ons";
-import { resolveServiceAreaNameForZip } from "@/lib/pricing/service-area-zips";
+import { resolvePermittedServiceAreaNames } from "@/lib/pricing/service-area-zips";
 import AddressAutocomplete from "../../customers/address-autocomplete";
 import { DateInput } from "@/components/date-input";
 
@@ -160,15 +160,15 @@ function normalizeAddressToken(value: string | null | undefined) {
 function matchingPricingArea(address: CustomerAddress, locations: ServiceLocation[]) {
   // Branch selection is ZIP-driven. Travel zones are only for a local travel
   // fee, and can be incomplete or overlap a neighboring branch.
-  const branchName = resolveServiceAreaNameForZip(address.zip);
-  if (branchName) {
-    const branch = locations.find((location) => normalizeAddressToken(location.name) === normalizeAddressToken(branchName));
+  const branchNames = resolvePermittedServiceAreaNames({ city: address.city, zip: address.zip });
+  if (branchNames.length === 1) {
+    const branch = locations.find((location) => normalizeAddressToken(location.name) === normalizeAddressToken(branchNames[0]));
     if (branch) {
       const tokens = new Set([address.city, address.zip, address.zip?.replace(/\D/g, "").slice(0, 5), address.subdivision].map(normalizeAddressToken).filter(Boolean));
       const zone = branch.travelZones.find((candidate) => candidate.name.split(/[,&/|;]+/g).flatMap((part) => part.split(/\s+-\s+/g)).map(normalizeAddressToken).some((token) => tokens.has(token)));
       return { serviceLocationId: branch.id, travelZoneId: zone?.id ?? "" };
     }
-  }
+  } else if (branchNames.length > 1 || address.zip?.match(/\d{5}/)) return null;
   const tokens = new Set([address.city, address.zip, address.zip?.replace(/\D/g, "").slice(0, 5), address.subdivision].map(normalizeAddressToken).filter(Boolean));
   for (const location of locations) {
     const zone = location.travelZones.find((candidate) => candidate.name.split(/[,&/|;]+/g).flatMap((part) => part.split(/\s+-\s+/g)).map(normalizeAddressToken).some((token) => tokens.has(token)));
@@ -353,7 +353,10 @@ export default function NewQuotePage() {
     const address = customerAddresses.find((entry) => entry.id === selectedAddressId);
     if (!address || locations.length === 0) return;
     const match = matchingPricingArea(address, locations);
-    if (!match) return;
+    if (!match) {
+      const reset = window.setTimeout(() => { setServiceLocationId(""); setTravelZoneId(""); }, 0);
+      return () => window.clearTimeout(reset);
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronize pricing inputs with the explicitly selected service address.
     setServiceLocationId(match.serviceLocationId);
     setTravelZoneId(match.travelZoneId);
@@ -362,7 +365,10 @@ export default function NewQuotePage() {
   useEffect(() => {
     if (customerMode !== "new" || locations.length === 0) return;
     const match = matchingPricingArea({ id: "", label: "", addressLine1: newCustomerForm.addressLine1, city: newCustomerForm.city, state: newCustomerForm.state, zip: newCustomerForm.zip }, locations);
-    if (!match) return;
+    if (!match) {
+      const reset = window.setTimeout(() => { setServiceLocationId(""); setTravelZoneId(""); }, 0);
+      return () => window.clearTimeout(reset);
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronize pricing inputs with the inline service address.
     setServiceLocationId(match.serviceLocationId);
     setTravelZoneId(match.travelZoneId);

@@ -339,6 +339,21 @@ export const serviceLocations = pgTable("service_locations", {
   ...timestamps,
 });
 
+/** Branches an employee may be assigned work in. `users.serviceLocationId`
+ * remains their primary/home branch for compatibility; this table represents
+ * the operational "Works in" eligibility used by guided booking. */
+export const employeeServiceLocations = pgTable("employee_service_locations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull().references(() => companies.id),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  serviceLocationId: uuid("service_location_id").notNull().references(() => serviceLocations.id),
+  ...timestamps,
+}, (t) => ({
+  companyUserLocationIdx: uniqueIndex("employee_service_locations_company_user_location_idx").on(t.companyId, t.userId, t.serviceLocationId),
+  companyLocationIdx: index("employee_service_locations_company_location_idx").on(t.companyId, t.serviceLocationId),
+  userIdx: index("employee_service_locations_user_idx").on(t.userId),
+}));
+
 export const travelZones = pgTable("travel_zones", {
   id: uuid("id").primaryKey().defaultRandom(),
   serviceLocationId: uuid("service_location_id").notNull().references(() => serviceLocations.id),
@@ -411,12 +426,16 @@ export const quotes = pgTable("quotes", {
   sentAt: timestamp("sent_at", { withTimezone: true }),
   viewedAt: timestamp("viewed_at", { withTimezone: true }),
   acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  // Acceptance means the customer approved the service and price. This is set
+  // only after a complete operational booking (date, arrival window, crew).
+  bookedAt: timestamp("booked_at", { withTimezone: true }),
   ...timestamps,
 }, (t) => ({
   publicTokenIdx: uniqueIndex("quotes_public_token_idx").on(t.publicToken),
   companyIdx: index("quotes_company_idx").on(t.companyId),
   // Matches the quotes-list sort order (GET /api/quotes orderBy desc(createdAt)).
   companyCreatedIdx: index("quotes_company_created_idx").on(t.companyId, t.createdAt),
+  acceptedNeedsSchedulingIdx: index("quotes_company_accepted_unbooked_idx").on(t.companyId, t.status, t.bookedAt),
 }));
 
 // ---------- recurring series ----------
@@ -436,6 +455,10 @@ export const recurringSeries = pgTable("recurring_series", {
   // Kept on the series so every generated visit retains the quote-derived
   // schedule budget instead of falling back to a generic duration.
   estimatedDurationMinutes: integer("estimated_duration_minutes"),
+  sourceQuoteId: uuid("source_quote_id").references(() => quotes.id),
+  serviceLocationId: uuid("service_location_id").references(() => serviceLocations.id),
+  defaultScheduledStartTime: time("default_scheduled_start_time"),
+  defaultArrivalWindowEndTime: time("default_arrival_window_end_time"),
   defaultEmployeeIds: jsonb("default_employee_ids").notNull().default([]),
   isActive: boolean("is_active").notNull().default(true),
   ...timestamps,
@@ -524,6 +547,7 @@ export const jobs = pgTable("jobs", {
   status: text("status", { enum: jobStatusEnum }).notNull().default("scheduled"),
   scheduledDate: date("scheduled_date").notNull(),
   scheduledStartTime: time("scheduled_start_time"),
+  arrivalWindowEndTime: time("arrival_window_end_time"),
   estimatedDurationMinutes: integer("estimated_duration_minutes"),
   // A per-occurrence JTH edit must survive payroll refreshes and price edits.
   jthManualOverride: boolean("jth_manual_override").notNull().default(false),

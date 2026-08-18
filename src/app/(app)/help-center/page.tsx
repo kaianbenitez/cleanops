@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.57",
+    date: "August 18, 2026",
+    title: "Quotes can now be booked with a real schedule",
+    changes: [
+      "When a customer accepts a quote, it now appears in “Accepted — needs scheduling” until someone confirms the date, morning or afternoon arrival window, and cleaners.",
+      "The new guided booking panel offers three clear choices that account for branch coverage, time off, existing jobs, internal meetings, travel/food time, and the 5:00 PM finish time. You can still choose a date and crew manually when needed.",
+      "A quote is now marked booked only after the complete schedule is confirmed. One-time jobs receive their crew assignments immediately, and recurring visits keep the selected branch, crew, arrival window, and estimate.",
+    ],
+  },
+  {
     version: "v0.2.56",
     date: "August 18, 2026",
     title: "My Day now shows each customer's actual service schedule",

@@ -105,6 +105,12 @@ export function jobDuration(job: { estimatedDurationMinutes: number | null }) {
   return Math.max(job.estimatedDurationMinutes ?? 75, 45);
 }
 
+/** Calendar geometry is elapsed time, not payroll JTH per cleaner. */
+export function jobWallClockDuration(job: { estimatedDurationMinutes: number | null; assignedUserIds?: string[] }) {
+  const crewSize = Math.max(1, job.assignedUserIds?.length ?? 1);
+  return Math.max(Math.ceil((job.estimatedDurationMinutes ?? 75) / crewSize), 45);
+}
+
 /** hh:mm, matching the Jobs list and Job Detail convention (`formatEstimatedTime`). */
 export function formatEstimatedTime(minutes: number | null | undefined) {
   if (!minutes) return "Est. pending";

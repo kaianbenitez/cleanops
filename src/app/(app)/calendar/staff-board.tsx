@@ -11,6 +11,7 @@ import UnassignedPanel from "./unassigned-panel";
 import JobDetailPanel from "./job-detail-panel";
 import AppointmentPanel from "./appointment-panel";
 import type { EmployeePtoRecord, PtoPeriod } from "@/lib/scheduling/pto";
+import { wallClockMinutes } from "@/lib/scheduling/wall-clock";
 
 const START = 9 * 60;
 const HOURS = 10;
@@ -313,7 +314,7 @@ export default function StaffBoard({
       Math.min(((startMinutesOf(job) - START) / TOTAL) * 100, 94),
     );
     const height = Math.max(
-      ((durationOverride ?? job.estimatedDurationMinutes ?? 75) / TOTAL) * 100,
+      (wallClockMinutes(durationOverride ?? job.estimatedDurationMinutes ?? 75, Math.max(1, job.assignedUserIds.length)) / TOTAL) * 100,
       8,
     );
     const width = 100 / laneCount;

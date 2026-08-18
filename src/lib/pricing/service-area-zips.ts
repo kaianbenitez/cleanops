@@ -52,10 +52,39 @@ export const ZIP_TO_SERVICE_AREA_NAME: Record<string, string> = {
   "74042": "Bartlesville", // Lenapah
 };
 
+const SERVICE_AREA_RULES: Array<{ city: string; zip: string; branches: string[] }> = [
+  ...Object.entries(ZIP_TO_SERVICE_AREA_NAME).map(([zip, branch]) => ({ city: "", zip, branches: [branch] })),
+  { city: "wann", zip: "74083", branches: ["Tulsa", "Bartlesville"] },
+  { city: "talala", zip: "74080", branches: ["Tulsa", "Bartlesville"] },
+  { city: "pawhuska", zip: "74056", branches: ["Tulsa"] },
+  { city: "bowring", zip: "74056", branches: ["Bartlesville"] },
+];
+
+function normalizedCity(value: string | null | undefined) {
+  return (value ?? "").toLowerCase().replace(/[^a-z]/g, "");
+}
+
+function fiveDigitZip(value: string | null | undefined) {
+  return value?.match(/\d{5}/)?.[0] ?? null;
+}
+
+/** City + ZIP resolver used by quote creation. A shared address deliberately
+ * returns both choices, while an unknown address returns none so a coordinator
+ * must make an explicit branch choice rather than inheriting a ZIP guess. */
+export function resolvePermittedServiceAreaNames({ city, zip }: { city?: string | null; zip?: string | null }): string[] {
+  const code = fiveDigitZip(zip);
+  if (!code) return [];
+  const cityToken = normalizedCity(city);
+  const cityRules = SERVICE_AREA_RULES.filter((rule) => rule.zip === code && rule.city);
+  const exact = cityRules.find((rule) => rule.city === cityToken);
+  if (exact) return exact.branches;
+  if (cityRules.length) return []; // 74056 is city-sensitive; ZIP-only is unsafe.
+  const generic = SERVICE_AREA_RULES.find((rule) => rule.zip === code && !rule.city);
+  return generic?.branches ?? [];
+}
+
 /** Extracts a 5-digit zip from a possibly-messy stored value ("74006", "74006-1234", " 74006 ") and resolves its branch name. */
 export function resolveServiceAreaNameForZip(zip: string | null | undefined): string | null {
-  if (!zip) return null;
-  const match = zip.match(/\d{5}/);
-  if (!match) return null;
-  return ZIP_TO_SERVICE_AREA_NAME[match[0]] ?? null;
+  const names = resolvePermittedServiceAreaNames({ zip });
+  return names.length === 1 ? names[0] : null;
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { auditLog, customers, users, jobs, jobAssignments, timeEntries, payrollLines, payrollPeriods, serviceLocations } from "@/db/schema";
+import { auditLog, customers, users, jobs, jobAssignments, timeEntries, payrollLines, payrollPeriods, serviceLocations, employeeServiceLocations } from "@/db/schema";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildPayTiers, getPayTierBrackets } from "@/lib/payroll/calculate";
@@ -25,6 +25,7 @@ const updateEmployeeSchema = z.object({
   gustoEmployeeId: z.string().trim().optional(),
   isActive: z.boolean().optional(),
   serviceLocationId: z.string().uuid().optional().nullable(),
+  serviceLocationIds: z.array(z.string().uuid()).min(1).max(20).optional(),
   tags: z.array(z.string().trim().min(1).max(40)).max(12).optional(),
 });
 
@@ -56,7 +57,8 @@ export async function GET(
     return NextResponse.json({ error: "Employee not found" }, { status: 404 });
   }
 
-  const employee = { ...employeeRow.employee, serviceLocationName: employeeRow.serviceLocationName };
+  const eligibilityRows = await db.select({ serviceLocationId: employeeServiceLocations.serviceLocationId, name: serviceLocations.name }).from(employeeServiceLocations).innerJoin(serviceLocations, eq(employeeServiceLocations.serviceLocationId, serviceLocations.id)).where(and(eq(employeeServiceLocations.companyId, admin.companyId), eq(employeeServiceLocations.userId, employeeId)));
+  const employee = { ...employeeRow.employee, serviceLocationName: employeeRow.serviceLocationName, serviceLocationIds: eligibilityRows.map((row) => row.serviceLocationId), serviceLocationNames: eligibilityRows.map((row) => row.name) };
   if (employee.profilePhotoUrl) {
     const { data } = await createAdminClient().storage.from("employee-photos").createSignedUrl(employee.profilePhotoUrl, 60 * 60);
     employee.profilePhotoUrl = data?.signedUrl ?? null;
@@ -252,7 +254,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Employee not found" }, { status: 404 });
   }
 
-  const { tierRatesCents, ...rest } = parsed.data;
+  const { tierRatesCents, serviceLocationIds, ...rest } = parsed.data;
   const fields: Record<string, unknown> = { ...rest };
 
   if (fields.serviceLocationId) {
@@ -264,6 +266,10 @@ export async function PATCH(
     if (!location) {
       return NextResponse.json({ error: "That service location was not found for this company." }, { status: 400 });
     }
+  }
+  if (serviceLocationIds) {
+    const locations = await db.select({ id: serviceLocations.id }).from(serviceLocations).where(and(eq(serviceLocations.companyId, admin.companyId), inArray(serviceLocations.id, serviceLocationIds)));
+    if (locations.length !== serviceLocationIds.length) return NextResponse.json({ error: "One or more service locations were not found for this company." }, { status: 400 });
   }
 
   if (tierRatesCents) {
@@ -295,6 +301,13 @@ export async function PATCH(
       entityId: employeeId,
       before: JSON.parse(JSON.stringify(existing)),
       after: JSON.parse(JSON.stringify({ ...existing, ...fields })),
+    });
+  }
+  if (serviceLocationIds) {
+    await db.transaction(async (tx) => {
+      await tx.delete(employeeServiceLocations).where(and(eq(employeeServiceLocations.companyId, admin.companyId), eq(employeeServiceLocations.userId, employeeId)));
+      await tx.insert(employeeServiceLocations).values(serviceLocationIds.map((serviceLocationId) => ({ companyId: admin.companyId, userId: employeeId, serviceLocationId })));
+      await tx.insert(auditLog).values({ companyId: admin.companyId, userId: admin.id, action: "employee.service_location_eligibility_updated", entityType: "employee", entityId: employeeId, before: null, after: { serviceLocationIds } });
     });
   }
 

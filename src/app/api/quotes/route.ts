@@ -7,7 +7,7 @@ import { quotes, customers, customerLocations, serviceLocations, travelZones } f
 import { and, eq, desc } from "drizzle-orm";
 import { calculateAllTierPrices, SERVICE_TYPES } from "@/lib/pricing/calculate";
 import { resolveAddressServiceArea, resolveCustomerServiceArea } from "@/lib/service-area";
-import { resolveServiceAreaNameForZip } from "@/lib/pricing/service-area-zips";
+import { resolvePermittedServiceAreaNames } from "@/lib/pricing/service-area-zips";
 
 const createQuoteSchema = z.object({
   customerId: z.string().uuid(),
@@ -83,9 +83,11 @@ export async function POST(req: NextRequest) {
     ? await db.select({ addressLine1: customerLocations.addressLine1, city: customerLocations.city, state: customerLocations.state, zip: customerLocations.zip, subdivision: customerLocations.subdivision, label: customerLocations.label }).from(customerLocations).where(and(eq(customerLocations.id, data.serviceAddressLocationId), eq(customerLocations.customerId, data.customerId), eq(customerLocations.companyId, admin.companyId))).limit(1)
     : [];
   if (data.serviceAddressLocationId && !selectedAddress) return NextResponse.json({ error: "Selected service address was not found for this customer." }, { status: 400 });
-  const mappedBranchName = resolveServiceAreaNameForZip(selectedAddress?.zip ?? customer.zip);
-  if (mappedBranchName && location.name.toLowerCase() !== mappedBranchName.toLowerCase()) {
-    return NextResponse.json({ error: `ZIP code belongs to the ${mappedBranchName} branch.` }, { status: 400 });
+  const addressCity = selectedAddress?.city ?? null;
+  const addressZip = selectedAddress?.zip ?? customer.zip;
+  const permittedBranchNames = resolvePermittedServiceAreaNames({ city: addressCity, zip: addressZip });
+  if (permittedBranchNames.length && !permittedBranchNames.some((branch) => branch.toLowerCase() === location.name.toLowerCase())) {
+    return NextResponse.json({ error: `This city and ZIP are served by ${permittedBranchNames.join(" or ")}. Choose one of those branches.` }, { status: 400 });
   }
   const serviceArea = selectedAddress
     ? await resolveAddressServiceArea({ companyId: admin.companyId, serviceLocationId: data.serviceLocationId, address: { ...selectedAddress, addressLabel: selectedAddress.label } })
@@ -95,8 +97,10 @@ export async function POST(req: NextRequest) {
   }
   // The branch ZIP list is authoritative; travel zones only provide an optional
   // local fee and are not a complete branch-boundary dataset.
-  if (!mappedBranchName && (serviceArea.status === "outside_area" || serviceArea.status === "no_service_zones")) {
-    return NextResponse.json({ error: "This customer is outside the selected service area." }, { status: 400 });
+  if (!permittedBranchNames.length && (serviceArea.status === "outside_area" || serviceArea.status === "no_service_zones")) {
+    // Unknown areas are never silently routed. An explicit branch selection is
+    // already required by the form; this message makes the decision visible.
+    return NextResponse.json({ error: "This address is not in a mapped service area. Confirm the selected branch deliberately before quoting." }, { status: 400 });
   }
 
   const allTierPricing = await calculateAllTierPrices({
