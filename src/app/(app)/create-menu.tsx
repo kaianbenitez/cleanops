@@ -3,20 +3,30 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Plus, ChevronDown, CalendarClock, FileText, ClipboardList, UserPlus } from "lucide-react";
+import AppointmentPanel from "./calendar/appointment-panel";
+
+type StaffMember = { id: string; firstName: string; lastName: string };
 
 export default function CreateMenu({
   compact = false,
   leadingItem,
+  appointments,
 }: {
   compact?: boolean;
-  /** An extra menu item rendered above Customer/Quote/Job — e.g. Calendar's
-   * own "Schedule job" shortcut. Additive only; omitting it (every existing
-   * call site) renders the original 3-item menu unchanged. Icon is fixed
-   * (not a prop) — a component reference can't cross the server/client
-   * boundary from a server-rendered caller like calendar-toolbar.tsx. */
+  /** An extra menu item rendered above Customer/Quote — e.g. Calendar's own
+   * "Schedule job" shortcut, which replaces the generic "Job" item below it.
+   * Additive only; omitting it (every existing call site) renders the
+   * original 3-item menu unchanged. Icon is fixed (not a prop) — a component
+   * reference can't cross the server/client boundary from a server-rendered
+   * caller like calendar-toolbar.tsx. */
   leadingItem?: { href: string; label: string };
+  /** When set, adds an "Internal meeting" item below a divider that opens
+   * the same AppointmentPanel create flow new-appointment-button.tsx used to
+   * render as its own standalone toolbar button. Additive only. */
+  appointments?: { staffRoster: StaffMember[]; defaultDate: string };
 }) {
   const [open, setOpen] = useState(false);
+  const [appointmentOpen, setAppointmentOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -83,16 +93,38 @@ export default function CreateMenu({
             <FileText className="h-4 w-4 text-[var(--co-muted)]" aria-hidden />
             Quote
           </Link>
-          <Link
-            href="/jobs/new"
-            role="menuitem"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-[var(--co-ink)] transition hover:bg-[var(--co-surface-muted)]"
-          >
-            <ClipboardList className="h-4 w-4 text-[var(--co-muted)]" aria-hidden />
-            Job
-          </Link>
+          {!leadingItem ? (
+            <Link
+              href="/jobs/new"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-[var(--co-ink)] transition hover:bg-[var(--co-surface-muted)]"
+            >
+              <ClipboardList className="h-4 w-4 text-[var(--co-muted)]" aria-hidden />
+              Job
+            </Link>
+          ) : null}
+          {appointments ? (
+            <>
+              <div role="separator" className="my-1 border-t border-[var(--co-line-soft)]" />
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setAppointmentOpen(true);
+                  setOpen(false);
+                }}
+                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-[var(--co-ink)] transition hover:bg-[var(--co-surface-muted)]"
+              >
+                <CalendarClock className="h-4 w-4 text-[var(--co-muted)]" aria-hidden />
+                Internal meeting
+              </button>
+            </>
+          ) : null}
         </div>
+      ) : null}
+      {appointments && appointmentOpen ? (
+        <AppointmentPanel mode="create" staffRoster={appointments.staffRoster} defaultDate={appointments.defaultDate} onClose={() => setAppointmentOpen(false)} />
       ) : null}
     </div>
   );

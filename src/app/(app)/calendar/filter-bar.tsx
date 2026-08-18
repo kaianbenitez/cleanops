@@ -71,7 +71,7 @@ export default function FilterBar({
           aria-expanded={filtersOpen}
           aria-haspopup="dialog"
           aria-label={hasFilters ? `Filters · ${activeFilterCount} active` : "Filters"}
-          className={`co-button-secondary relative flex h-9 w-9 items-center justify-center p-0 ${hasFilters ? "border-[var(--co-accent-text)] text-[var(--co-accent-text)]" : ""}`}
+          className={`co-button-secondary relative flex h-9 w-9 items-center justify-center !p-0 ${hasFilters ? "border-[var(--co-accent-text)] text-[var(--co-accent-text)]" : ""}`}
         >
           <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
           {hasFilters ? <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[var(--co-accent-fill)]" aria-hidden /> : null}

@@ -41,7 +41,7 @@ export default function CalendarFocusMode() {
       onClick={toggle}
       aria-pressed={!focused}
       aria-label={focused ? "Show navigation" : "Hide navigation"}
-      className="co-button-secondary flex h-9 w-9 shrink-0 items-center justify-center p-0"
+      className="co-button-secondary flex h-9 w-9 shrink-0 items-center justify-center !p-0"
     >
       <PanelLeft className="h-4 w-4" aria-hidden />
     </button>

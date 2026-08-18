@@ -1,7 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import DatePicker, { CalendarViewSelector } from "./date-picker";
-import NewAppointmentButton from "./new-appointment-button";
 import CalendarFocusMode from "./calendar-focus-mode";
 import FilterBar from "./filter-bar";
 import GlobalSearch from "../global-search";
@@ -72,11 +71,14 @@ export default function CalendarToolbar({
         <FilterBar employees={employees} attentionCount={attentionCount} />
       </div>
       <div className="flex items-center gap-2">
-        <NewAppointmentButton staffRoster={staffRoster} defaultDate={appointmentDefaultDate} />
         <div className="mx-1 h-6 w-px bg-[var(--co-line-soft)]" aria-hidden />
         <GlobalSearch variant="icon" />
         <NotificationsMenu initialNotifications={initialNotifications} />
-        <CreateMenu compact leadingItem={{ href: "/jobs/new", label: "Schedule job" }} />
+        <CreateMenu
+          compact
+          leadingItem={{ href: "/jobs/new", label: "Schedule a job" }}
+          appointments={{ staffRoster, defaultDate: appointmentDefaultDate }}
+        />
       </div>
     </div>
   );

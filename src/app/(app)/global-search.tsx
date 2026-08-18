@@ -146,7 +146,7 @@ export default function GlobalSearch({ variant = "desktop" }: { variant?: "deskt
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Search (⌘K)"
-          className="co-button-secondary flex h-9 w-9 shrink-0 items-center justify-center p-0"
+          className="co-button-secondary flex h-9 w-9 shrink-0 items-center justify-center !p-0"
         >
           <Search className="h-4 w-4" aria-hidden />
         </button>
