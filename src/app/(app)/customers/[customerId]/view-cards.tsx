@@ -210,7 +210,7 @@ export function CustomerViewCards({
           <section className="co-card overflow-hidden">
             <div className="flex items-center gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
               <House className="h-5 w-5 text-[var(--co-accent-text)]" />
-              <div><h2 className="text-lg font-semibold tracking-[-0.02em]">House details</h2><p className="text-xs text-[var(--co-muted)]">At-a-glance service information</p></div>
+              <h2 className="text-lg font-semibold tracking-[-0.02em]">House details</h2>
             </div>
             <div className="flex flex-wrap items-center gap-2 p-5">
               {roomSummary.length ? (
@@ -222,7 +222,7 @@ export function CustomerViewCards({
           <section className="co-card overflow-hidden">
             <div className="flex items-center gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
               <WashingMachine className="h-5 w-5 text-[var(--co-accent-text)]" aria-hidden />
-              <div><h2 className="text-lg font-semibold tracking-[-0.02em]">Cleaning equipment</h2><p className="text-xs text-[var(--co-muted)]">What to bring for this home</p></div>
+              <h2 className="text-lg font-semibold tracking-[-0.02em]">Cleaning equipment</h2>
             </div>
             <div className="grid gap-3 p-5 sm:grid-cols-3">
               <div className="flex items-center gap-2 rounded-lg bg-[var(--co-surface-muted)] p-3"><WashingMachine className="h-4 w-4 text-[var(--co-accent-text)]" aria-hidden /><div><p className="text-xs font-medium text-[var(--co-muted)]">Mop heads</p><p className="text-sm font-semibold">{customer.mopHeadCount ?? (estimatedMopHeads === null ? "Not set" : `~${estimatedMopHeads}`)}</p>{customer.mopHeadCount === null || customer.mopHeadCount === undefined ? estimatedMopHeads === null ? null : <p className="text-[10px] text-[var(--co-muted)]">Estimated</p> : null}</div></div>

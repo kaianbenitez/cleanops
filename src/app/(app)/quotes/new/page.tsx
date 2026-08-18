@@ -528,16 +528,13 @@ export default function NewQuotePage() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="eyebrow">Sales / New proposal</p>
-        <h1 className="page-title mt-2">Build thoughtful proposal</h1>
-        <p className="page-subtitle">Define customer details and property characteristics to generate an accurate estimate.</p>
+        <h1 className="page-title">New quote</h1>
       </header>
 
       <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-5">
           <section className="co-card p-5">
-            <p className="eyebrow">Customer and location</p>
-            <h2 className="mt-1 text-lg font-semibold">Who is this for?</h2>
+            <h2 className="text-lg font-semibold">Customer</h2>
             <div className="mt-4 space-y-3">
               <div className="flex rounded-xl border border-[var(--co-line)] bg-[var(--co-surface-muted)]/35 p-1 text-sm">
                 {(["existing", "new"] as const).map((mode) => (
@@ -680,32 +677,13 @@ export default function NewQuotePage() {
               </label>
             </div>
 
-            {selectedCustomer ? (
-              <div className="mt-4 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4 text-sm text-[var(--co-muted)]">
-                <span className="block text-xs font-semibold uppercase tracking-[0.1em]">Selected customer</span>
-                <span className="mt-1 block font-medium text-[var(--co-ink)]">
-                  {selectedCustomer.firstName} {selectedCustomer.lastName}
-                </span>
-                <span className="block">
-                  {selectedCustomer.city || selectedCustomer.zip ? [selectedCustomer.city, selectedCustomer.zip].filter(Boolean).join(" · ") : "Address not yet shown here"}
-                </span>
-              </div>
-            ) : null}
           </section>
 
           <section className="co-card p-5">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="eyebrow">Home profile</p>
-                <h2 className="mt-1 text-lg font-semibold">Rooms and conditions</h2>
-              </div>
+              <h2 className="text-lg font-semibold">Rooms</h2>
               <span className="text-xs text-[var(--co-muted)]">{totalRoomCount} rooms</span>
             </div>
-            {customerId && (
-              <p className="mt-2 text-xs text-[var(--co-muted)]">
-                Bedroom and full bathroom counts auto-populate from this customer&apos;s saved home profile — adjust any count if this visit skips a room.
-              </p>
-            )}
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               {roomTypes.map((room) => {
                 const Icon = roomTypeIcon(room.name);
@@ -748,10 +726,7 @@ export default function NewQuotePage() {
           {customerId ? (
             <section className="co-card p-5">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="eyebrow">Add-on requests</p>
-                  <h2 className="mt-1 text-lg font-semibold">Anything requested via their form?</h2>
-                </div>
+                <h2 className="text-lg font-semibold">Add-ons</h2>
                 {detectedAddOns.length > 0 ? (
                   <span className="flex items-center gap-1 rounded-full bg-[var(--co-accent-tint)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-accent-text)]">
                     <Sparkles className="h-3 w-3" aria-hidden />
@@ -765,9 +740,7 @@ export default function NewQuotePage() {
                   <MessageSquareText className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-accent-text)]" aria-hidden />
                   <p className="italic">&ldquo;{customerNotes}&rdquo;</p>
                 </div>
-              ) : (
-                <p className="mt-3 text-xs text-[var(--co-muted)]">No notes on file for this customer — nothing to flag automatically, but you can still check off add-ons below.</p>
-              )}
+              ) : null}
 
               <div className="mt-4 flex flex-wrap gap-2">
                 {ADD_ONS.map((addOn) => {
@@ -792,7 +765,7 @@ export default function NewQuotePage() {
 
               <div className="mt-4 flex items-center justify-between gap-3">
                 <p className="text-xs text-[var(--co-muted)]">
-                  Add-ons aren&apos;t priced into this quote yet — the customer confirms and prices them when they accept. This just makes sure their request isn&apos;t missed.
+                  Selected add-ons are added to the proposal notes for confirmation.
                 </p>
                 <button
                   type="button"
@@ -800,15 +773,14 @@ export default function NewQuotePage() {
                   disabled={selectedAddOns.length === 0}
                   className="co-button-secondary shrink-0 px-3 py-2 text-xs disabled:opacity-50"
                 >
-                  {addOnsAddedToNotes ? "Added to notes ✓" : "Add to proposal notes"}
+                  {addOnsAddedToNotes ? "Added" : "Add selected"}
                 </button>
               </div>
             </section>
           ) : null}
 
           <section className="co-card p-5">
-            <p className="eyebrow">Pricing context</p>
-            <h2 className="mt-1 text-lg font-semibold">Home condition and travel</h2>
+            <h2 className="text-lg font-semibold">Pricing</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
                 <span className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-[var(--co-muted)]">
@@ -945,11 +917,7 @@ export default function NewQuotePage() {
 
         <div className="co-card p-5 xl:sticky xl:top-5 xl:self-start">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="eyebrow">Live calculation</p>
-              <h2 className="mt-1 text-xl font-semibold">Compare service tiers</h2>
-              <p className="mt-1 text-sm text-[var(--co-muted)]">Every tier is priced and sent — the customer picks which one to accept.</p>
-            </div>
+            <h2 className="text-xl font-semibold">Quote preview</h2>
             <span className="rounded-full bg-[var(--co-surface-muted)] px-3 py-1 text-xs font-medium text-[var(--co-accent-text)]">
               {calculating ? "Calculating..." : allTiers ? `${Object.keys(allTiers).length} tiers priced` : "Waiting for rooms"}
             </span>
@@ -957,7 +925,7 @@ export default function NewQuotePage() {
 
           {!allTiers ? (
             <div className="flex min-h-64 items-center justify-center text-center text-sm text-[var(--co-muted)]">
-              Enter at least one room to see all customer options.
+              Add a room to calculate pricing.
             </div>
           ) : (
             <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -997,7 +965,7 @@ export default function NewQuotePage() {
               disabled={submitting || !allTiers}
               className="co-button-primary py-3"
             >
-              {submitting ? "Saving quote..." : "Save quote →"}
+              {submitting ? "Saving quote..." : "Save quote"}
             </button>
           </div>
         </div>

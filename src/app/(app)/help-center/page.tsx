@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.58",
+    date: "August 18, 2026",
+    title: "Key pages are cleaner and more direct",
+    changes: [
+      "Quote, customer, invoice, and supplies pages now use shorter headings and remove guide text that repeated what the controls already showed.",
+      "The add-customer page no longer includes the beta workflow guide, and optional home details stay collapsed until they are needed.",
+      "Customer proposals now show compact service and extras choices, with the longer booking terms available only when opened.",
+    ],
+  },
+  {
     version: "v0.2.57",
     date: "August 18, 2026",
     title: "Quotes can now be booked with a real schedule",

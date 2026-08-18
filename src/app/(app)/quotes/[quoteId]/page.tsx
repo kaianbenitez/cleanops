@@ -57,22 +57,16 @@ function dollars(cents: number) {
 }
 
 function PageCard({
-  eyebrow,
   title,
-  description,
   children,
 }: {
-  eyebrow: string;
   title: string;
-  description?: string;
   children: React.ReactNode;
 }) {
   return (
     <section className="co-card overflow-hidden">
       <div className="border-b border-[var(--co-line-soft)] px-5 py-4">
-        <p className="eyebrow">{eyebrow}</p>
-        <h2 className="mt-1 text-lg font-semibold">{title}</h2>
-        {description ? <p className="mt-1 text-sm text-[var(--co-muted)]">{description}</p> : null}
+        <h2 className="text-lg font-semibold">{title}</h2>
       </div>
       <div className="px-5 py-5">{children}</div>
     </section>
@@ -183,7 +177,6 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
             Back to quotes
           </Link>
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <p className="eyebrow">Sales / Quote detail</p>
             <span className="rounded-full border border-[var(--co-line)] bg-[var(--co-surface-muted)] px-2.5 py-1 text-xs font-medium">{quote.status}</span>
             {bookingOverride ? <span className="co-badge-warning rounded-full px-2.5 py-1 text-xs font-medium">Staff override — customer did not sign</span> : null}
           </div>
@@ -217,7 +210,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
 
       <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
         <section className="space-y-5">
-          <PageCard eyebrow="Proposal options" title="Customer can choose one service" description="Every tier is priced and sent — the customer picks which one to accept.">
+          <PageCard title="Services">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm text-[var(--co-muted)]">{quote.acceptedServiceType ? "Accepted total" : "Priced range"}</p>
               <span className="text-2xl font-semibold">
@@ -276,7 +269,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
             ) : null}
           </PageCard>
 
-          <PageCard eyebrow="What this quote will become" title="Conversion context" description="Accepted quotes can turn into scheduled work.">
+          <PageCard title="Service status">
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Requested service</p>
@@ -291,31 +284,30 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
         </section>
 
         <aside className="space-y-5">
-          <PageCard eyebrow="Public proposal link" title="Share with customer" description="Send the quote to generate the customer-facing link.">
-            {publicUrl ? (
-              <div className="flex gap-2">
-                <input readOnly value={publicUrl} className="co-input min-w-0 flex-1 text-xs" />
-                <button className="co-button-secondary" onClick={copy}>
-                  {copied ? "Copied" : "Copy"}
+          {quote.status !== "draft" || publicUrl ? (
+            <PageCard title="Share quote">
+              {publicUrl ? (
+                <div className="flex gap-2">
+                  <input readOnly value={publicUrl} className="co-input min-w-0 flex-1 text-xs" />
+                  <button className="co-button-secondary" onClick={copy}>
+                    {copied ? "Copied" : "Copy"}
+                  </button>
+                </div>
+              ) : (
+                <button className="co-button-secondary w-full" onClick={send} disabled={sending}>
+                  {sending ? "Loading link..." : "Regenerate link"}
                 </button>
-              </div>
-            ) : (
-              <p className="text-sm text-[var(--co-muted)]">Send the quote to generate the customer-facing link.</p>
-            )}
-            {quote.status !== "draft" && !publicUrl ? (
-              <button className="co-button-secondary mt-4 w-full" onClick={send} disabled={sending}>
-                {sending ? "Loading link..." : "Regenerate link"}
-              </button>
-            ) : null}
-          </PageCard>
+              )}
+            </PageCard>
+          ) : null}
 
           {quote.bookedAt ? (
-            <PageCard eyebrow="Scheduled" title="This quote is booked" description="The quote remains accepted; the job now has a confirmed date, arrival window, and crew."><p className="text-sm text-[var(--co-muted)]">Open Calendar to view the confirmed dispatch plan.</p></PageCard>
+            <PageCard title="Booked"><Link href="/calendar" className="co-button-secondary w-full justify-center">Open calendar</Link></PageCard>
           ) : (
             <BookJobPanel quoteId={quoteId} quoteStatus={quote.status} serviceType={selectedServiceType} customerName={customerName} address={customerAddress} serviceLabel={LABELS[selectedServiceType] ?? selectedServiceType} priceLabel={dollars(tiers.find(([type]) => type === selectedServiceType)?.[1].finalCents ?? quote.totalCents)} branchName={locationName} totalJthMinutes={(() => { const tier = tiers.find(([type]) => type === selectedServiceType)?.[1]; return tier && hourlyRateCents ? Math.round((tier.finalCents / hourlyRateCents) * 60) : null; })()} onBooked={(redirectTo) => router.push(redirectTo)} />
           )}
 
-          <PageCard eyebrow="Payment status" title="Quote state" description="This helps the office know what happened without opening the public page.">
+          <PageCard title="Quote activity">
             {bookingOverride ? (
               <div className="co-badge-warning mb-3 px-4 py-3 text-sm">
                 <p className="font-semibold">Accepted by staff — no customer signature</p>
@@ -347,9 +339,10 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
             </div>
           </PageCard>
 
-          <PageCard eyebrow="Location" title="Where this job is" description={customerAddress || undefined}>
+          <PageCard title="Location">
             {customerAddress ? (
               <>
+                <p className="mb-3 text-sm text-[var(--co-muted)]">{customerAddress}</p>
                 <div className="overflow-hidden rounded-2xl border border-[var(--co-line-soft)]">
                   <iframe
                     title="Customer location map"

@@ -68,16 +68,6 @@ const SERVICE_LABELS: Record<string, string> = {
   move_in_out: "Move In / Out",
 };
 
-const SERVICE_DESCRIPTIONS: Record<string, string> = {
-  supreme_deep: "Our most detailed clean, top to bottom.",
-  deep: "A thorough clean with extra attention to detail.",
-  first_time: "The right starting point before recurring service.",
-  weekly: "Maintenance clean.",
-  biweekly: "Every 2 weeks.",
-  four_weeks: "Every 4 weeks.",
-  move_in_out: "A full deep clean for move-in or move-out day.",
-};
-
 const SERVICE_ICONS: Record<string, typeof Sparkles> = {
   supreme_deep: Sparkles,
   deep: Droplet,
@@ -144,32 +134,17 @@ const ESTIMATE_DISCLAIMER =
   "The visit time shown is an estimate based on the condition discussed during the proposal process. We will confirm your final cleaning team before booking. If we arrive and the home's condition differs from the original description or more time is needed, we will ask for your approval before extending the visit. You may also keep the original visit time, with the understanding that some tasks may remain incomplete. Should the home not be ready for cleaning, we reserve the right to refuse service. Thank you for your understanding and cooperation.";
 
 function Section({
-  eyebrow,
   title,
   children,
 }: {
-  eyebrow: string;
   title: string;
   children: React.ReactNode;
 }) {
   return (
     <section className="rounded-[28px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-6 shadow-[0_12px_40px_rgba(15,23,42,0.05)] sm:p-8">
-      <p className="eyebrow">{eyebrow}</p>
-      <h2 className="mt-2 text-2xl font-semibold text-[var(--co-ink)]">{title}</h2>
+      <h2 className="text-2xl font-semibold text-[var(--co-ink)]">{title}</h2>
       <div className="mt-5">{children}</div>
     </section>
-  );
-}
-
-function Stat({ label, value, suffix }: { label: string; value: string | number; suffix?: string }) {
-  return (
-    <div className="min-w-0 rounded-2xl bg-[var(--co-surface-muted)] p-4">
-      <p className="eyebrow">{label}</p>
-      <p className="mt-2 break-words font-medium text-[var(--co-ink)]">
-        {value}
-        {suffix ?? ""}
-      </p>
-    </div>
   );
 }
 
@@ -400,7 +375,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
 
         <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
           <main className="space-y-6">
-            <Section eyebrow="Your cleaning proposal" title="Choose the service that fits your home">
+            <Section title="Your quote">
               <p className="max-w-2xl whitespace-pre-line text-base leading-7 text-[var(--co-muted)]">{intro}</p>
               {data.quoteTemplate?.preferredDatePrompt ? (
                 <div className="mt-5 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-accent-tint)] p-4">
@@ -409,14 +384,9 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                 </div>
               ) : null}
 
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
-                <Stat label="Service area" value={data.customerCity || data.locationName || "Your home"} />
-                <Stat label="Options" value={mainTiers.length + recurringTiers.length} suffix=" service tiers" />
-                <Stat label="Your choice" value="Updates in real time" />
-              </div>
             </Section>
 
-            <Section eyebrow="Compare your options" title="One simple choice, one clear total">
+            <Section title="Choose a service">
               <div className="grid gap-3 md:grid-cols-2">
                 {mainTiers.map(([type, tier], index) => {
                   const selected = selectedType === type;
@@ -449,7 +419,6 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                       </span>
                       <div className="mt-3 min-w-0 pr-8">
                         <p className="font-semibold text-[var(--co-ink)]">{SERVICE_LABELS[type] ?? type}</p>
-                        <p className="mt-1 text-xs leading-5 text-[var(--co-muted)]">{SERVICE_DESCRIPTIONS[type]}</p>
                       </div>
 
                       <ul className="mt-4 space-y-1.5">
@@ -462,10 +431,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                       </ul>
 
                       <p className="mt-5 text-2xl font-semibold text-[var(--co-ink)]">{dollars(tier.finalCents)}</p>
-                      <p className="mt-1 text-xs text-[var(--co-muted)]">
-                        Per scheduled visit
-                        {" · Your team and visit time will be confirmed before booking"}
-                      </p>
+                      <p className="mt-1 text-xs text-[var(--co-muted)]">Per visit</p>
                     </button>
                   );
                 })}
@@ -524,17 +490,13 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
               ) : null}
             </Section>
 
-            <section className="min-w-0 rounded-[28px] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-6">
-              <p className="eyebrow">Please read before booking</p>
+            <details className="min-w-0 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-5 py-4">
+              <summary className="cursor-pointer text-sm font-semibold text-[var(--co-ink)]">Estimate and booking terms</summary>
               <p className="mt-3 text-sm leading-6 text-[var(--co-muted)]">{ESTIMATE_DISCLAIMER}</p>
-            </section>
+            </details>
 
             <section className="min-w-0 rounded-[28px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-6 shadow-[0_12px_40px_rgba(15,23,42,0.05)]">
-              <p className="eyebrow">Add-on services</p>
-              <h3 className="mt-2 text-2xl font-semibold text-[var(--co-ink)]">Add extras without reopening the whole quote</h3>
-              <p className="mt-3 max-w-2xl text-base leading-7 text-[var(--co-muted)]">
-                Choose any extras below and the total updates right away. Selected items will stay on the accepted quote.
-              </p>
+              <h3 className="text-2xl font-semibold text-[var(--co-ink)]">Extras</h3>
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {ADD_ONS.map((item) => {
                   const checked = selectedAddOns.includes(item.key);
@@ -549,55 +511,30 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                       onClick={() =>
                         setSelectedAddOns((current) => (checked ? current.filter((key) => key !== item.key) : [...current, item.key]))
                       }
-                      className={`flex h-full min-w-0 flex-col gap-3 rounded-2xl border px-4 py-4 text-left transition ${
+                      className={`flex min-w-0 items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
                         checked ? "border-[var(--co-accent-text)] bg-[var(--co-accent-tint)]" : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]"
                       } ${locked ? "cursor-default opacity-75" : ""}`}
                     >
-                      <div className="flex w-full min-w-0 items-start gap-3">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: style.color }}>
-                          <Icon className="h-4 w-4" aria-hidden />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="min-w-0 text-sm font-medium leading-6 text-[var(--co-ink)]">{item.label}</p>
-                            <span
-                              className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border text-[11px] ${
-                                checked ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-fill)] text-white" : "border-[var(--co-line)] text-transparent"
-                              }`}
-                            >
-                              ✓
-                            </span>
-                          </div>
-                          <p className="mt-1 text-xs leading-5 text-[var(--co-muted)]">
-                            {includedByDefault ? "Included with Move In/Out by default — tap to remove." : (item.description ?? "Tap to add or remove this extra.")}
-                          </p>
-                        </div>
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: style.color }}>
+                        <Icon className="h-4 w-4" aria-hidden />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-[var(--co-ink)]">{item.label}</p>
+                        <p className="mt-0.5 text-xs text-[var(--co-muted)]">{includedByDefault ? "Included" : addOnPriceLabel(item)}</p>
                       </div>
-                      <div className="flex flex-col items-start gap-2 border-t border-[var(--co-line-soft)] pt-3">
-                        <span className="eyebrow">{item.priceCents != null ? "Add-on price" : "Estimated range"}</span>
-                        <span className="co-badge-success max-w-full rounded-full px-3 py-1 text-sm font-semibold">{addOnPriceLabel(item)}</span>
-                      </div>
+                      <span
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-[11px] ${
+                          checked ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-fill)] text-white" : "border-[var(--co-line)] text-transparent"
+                        }`}
+                      >
+                        ✓
+                      </span>
                     </button>
                   );
                 })}
               </div>
-              {selectedAddOns.length > 0 ? (
-                <div className="mt-5 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-accent-tint)] p-4">
-                  <p className="eyebrow">Add-ons selected</p>
-                  <div className="mt-3 space-y-2 text-sm text-[var(--co-muted)]">
-                    {ADD_ONS.filter((item) => selectedAddOns.includes(item.key)).map((item) => (
-                      <div key={item.key} className="flex min-w-0 items-center justify-between gap-3">
-                        <span className="min-w-0">{item.label}</span>
-                        <span className="shrink-0 font-medium text-[var(--co-ink)]">{addOnPriceLabel(item)}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {selectedAddOns.some((key) => ADD_ONS.find((item) => item.key === key)?.priceCents == null) ? (
-                    <p className="mt-3 text-xs text-[var(--co-muted)]">
-                      Items without a fixed price aren&apos;t added to your total yet — we&apos;ll follow up to confirm those before your appointment.
-                    </p>
-                  ) : null}
-                </div>
+              {selectedAddOns.some((key) => ADD_ONS.find((item) => item.key === key)?.priceCents == null) ? (
+                <p className="mt-4 text-xs text-[var(--co-muted)]">Custom-priced extras will be confirmed before the appointment.</p>
               ) : null}
               {contactPhone ? (
                 <div className="mt-6 flex flex-wrap gap-2">
@@ -679,8 +616,6 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
               <p className="eyebrow">Your total</p>
               <p className="mt-2 text-4xl font-semibold text-[var(--co-ink)]">{dollars(quotedTotalCents)}</p>
               <p className="mt-1 break-words text-sm text-[var(--co-muted)]">{selectedType ? SERVICE_LABELS[selectedType] : "Select an option"}</p>
-              <p className="mt-2 break-words text-sm font-medium text-[var(--co-accent-text)]">{data.customerCity || data.locationName || "Your service area"}</p>
-              <p className="mt-1 text-xs text-[var(--co-muted)]">This proposal is tailored to the home and location on file.</p>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 <div className="min-w-0 rounded-2xl bg-[var(--co-surface-muted)] p-4">
@@ -692,19 +627,6 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                   <p className="mt-2 break-words text-sm font-medium text-[var(--co-ink)]">{data.travelZoneName || "Included"}</p>
                 </div>
               </div>
-
-              {selectedBreakdown ? (
-                <div className="mt-6 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
-                  <div className="flex min-w-0 items-center justify-between gap-3">
-                    <p className="eyebrow">Selected option</p>
-                    <span className="shrink-0 text-xs text-[var(--co-muted)]">{dollars(quotedTotalCents)} final</span>
-                  </div>
-                  <p className="mt-2 break-words text-sm font-medium text-[var(--co-ink)]">{SERVICE_LABELS[selectedType ?? ""] ?? "Service option"}</p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--co-muted)]">
-                    Total includes the service scope, travel where applicable, and any selected add-ons.
-                  </p>
-                </div>
-              ) : null}
 
               {requiresDeposit ? (
                 <div className="mt-4 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-accent-tint)] p-4">

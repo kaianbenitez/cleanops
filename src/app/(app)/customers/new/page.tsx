@@ -86,22 +86,16 @@ function parseApiError(error: unknown) {
 }
 
 function Panel({
-  eyebrow,
   title,
-  description,
   children,
 }: {
-  eyebrow: string;
   title: string;
-  description?: string;
   children: React.ReactNode;
 }) {
   return (
     <section className="co-card overflow-hidden">
       <div className="border-b border-[var(--co-line-soft)] p-6">
-        <p className="eyebrow">{eyebrow}</p>
-        <h2 className="mt-2 text-lg font-semibold">{title}</h2>
-        {description ? <p className="mt-1 text-sm text-[var(--co-muted)]">{description}</p> : null}
+        <h2 className="text-lg font-semibold">{title}</h2>
       </div>
       <div className="p-6">{children}</div>
     </section>
@@ -218,23 +212,18 @@ export default function NewCustomerPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div>
         <Link href="/customers" className="text-sm font-medium text-[var(--co-accent-text)] hover:underline">
           Back to customers
         </Link>
-        <span className="rounded-full border border-[var(--co-line)] bg-[var(--co-surface)] px-3 py-1 text-xs text-[var(--co-muted)]">Manual customer record</span>
       </div>
 
-      <header className="space-y-2">
-        <p className="eyebrow">Operations / Relationships</p>
+      <header>
         <h1 className="page-title">Add customer</h1>
-        <p className="page-subtitle max-w-3xl">
-          GHL leads and form submissions can still flow in automatically. Use this when you need to create or correct a customer record by hand.
-        </p>
       </header>
 
-      <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-        <Panel eyebrow="Customer details" title="Create the record" description="The information below is enough to get the customer into the system immediately.">
+      <section className="space-y-5">
+        <Panel title="Customer details">
           <div className="grid gap-4 sm:grid-cols-2">
             {FIELD_ORDER.map(({ key, label, placeholder }) => (
               <label key={key} className={key === "addressLine1" ? "sm:col-span-2" : ""}>
@@ -298,14 +287,12 @@ export default function NewCustomerPage() {
               />
               {fieldErrors.ghlContactId ? <p className="mt-1 text-xs text-[var(--co-danger)]">{fieldErrors.ghlContactId}</p> : null}
             </label>
-            <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4 text-sm text-[var(--co-muted)] sm:col-span-2">
-              Keep this minimal if you’re creating the record by hand. Home notes, room counts, and access details are optional here and can also be filled in on the customer profile later.
-            </div>
           </div>
         </Panel>
 
-        <Panel eyebrow="Optional home profile" title="Rooms, preferences, and access" description="Capture any details that will help the team quote and serve this customer from day one.">
-          <div className="space-y-6">
+        <details className="co-card overflow-hidden">
+          <summary className="cursor-pointer border-b border-[var(--co-line-soft)] p-6 text-lg font-semibold">Home details (optional)</summary>
+          <div className="space-y-6 p-6">
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Room counts</p>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -356,38 +343,13 @@ export default function NewCustomerPage() {
               </div>
             ) : null}
           </div>
-        </Panel>
+        </details>
 
-        <Panel eyebrow="Beta workflow" title="How this fits the office side" description="This is the manual fallback while automatic lead sync stays in place.">
-          <div className="space-y-4 text-sm text-[var(--co-muted)]">
-            <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
-              <p className="font-medium text-[var(--co-ink)]">Use this when:</p>
-              <ul className="mt-2 space-y-2">
-                <li>• A client is not yet in GHL</li>
-                <li>• You need a correction or duplicate cleanup</li>
-                <li>• You want to start scheduling before automation is connected</li>
-              </ul>
-            </div>
-
-            <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
-              <p className="font-medium text-[var(--co-ink)]">What happens next</p>
-              <ul className="mt-2 space-y-2">
-                <li>• The customer opens in Shimmer right after save</li>
-                <li>• You can add locations, notes, and jobs from the profile</li>
-                <li>• Later we can map GHL contacts into the same profile automatically</li>
-              </ul>
-            </div>
-
-            <div className="rounded-2xl border border-dashed border-[var(--co-line-soft)] bg-[var(--co-surface)] p-4 text-xs">
-              Address autocomplete is supported when your Google Maps key is present. If not, you can still type the address manually.
-            </div>
-          </div>
-        </Panel>
       </section>
 
       <section className="co-card flex flex-wrap items-center justify-between gap-3 px-6 py-4">
         <div className="text-sm text-[var(--co-muted)]">
-          {error ? <span className="text-[var(--co-danger)]">{error}</span> : "The customer will appear in Shimmer immediately after saving."}
+          {error ? <span className="text-[var(--co-danger)]">{error}</span> : null}
         </div>
         <div className="flex gap-2">
           <button onClick={() => router.push("/customers")} className="co-button-secondary">

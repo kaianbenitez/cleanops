@@ -119,22 +119,16 @@ function formatApiError(error: unknown): string {
 }
 
 function Section({
-  eyebrow,
   title,
-  description,
   children,
 }: {
-  eyebrow: string;
   title: string;
-  description?: string;
   children: React.ReactNode;
 }) {
   return (
     <section className="co-card overflow-hidden">
       <div className="border-b border-[var(--co-line-soft)] px-5 py-4 sm:px-6">
-        <p className="eyebrow">{eyebrow}</p>
-        <h2 className="mt-1 text-lg font-semibold">{title}</h2>
-        {description ? <p className="mt-1 text-sm text-[var(--co-muted)]">{description}</p> : null}
+        <h2 className="text-lg font-semibold">{title}</h2>
       </div>
       <div className="px-5 py-5 sm:px-6">{children}</div>
     </section>
@@ -769,7 +763,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
         </div>
 
         <div className="space-y-5">
-        <Section eyebrow="Schedule" title="Upcoming visits" description="The next jobs on the board, in the order they should happen.">
+        <Section title="Upcoming visits">
           {upcomingJobs.length === 0 ? (
             <p className="py-4 text-sm text-[var(--co-muted)]">No upcoming jobs scheduled.</p>
           ) : (
@@ -801,7 +795,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
             </div>
           </Section>
 
-          <Section eyebrow="Billing" title="Invoice history" description="Quick glance at what’s paid and what still needs collection.">
+          <Section title="Invoice history">
             {invoices.length === 0 ? (
               <p className="py-4 text-sm text-[var(--co-muted)]">No invoices recorded.</p>
             ) : (
@@ -822,7 +816,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
             )}
           </Section>
 
-          <Section eyebrow="Sales" title="Quote history" description="Every proposal created for this customer, newest first.">
+          <Section title="Quote history">
             {quotes.length === 0 ? (
               <p className="py-4 text-sm text-[var(--co-muted)]">No quotes created yet.</p>
             ) : (
@@ -843,7 +837,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
             )}
           </Section>
 
-          <Section eyebrow="History" title="Recent jobs" description="Useful when someone is taking over the account.">
+          <Section title="Recent jobs">
             {recentJobs.length === 0 ? (
               <p className="py-4 text-sm text-[var(--co-muted)]">No completed jobs yet.</p>
             ) : (
@@ -864,7 +858,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-        <Section eyebrow="Notes" title="General notes" description="One place for the context the team should remember about this customer.">
+        <Section title="General notes">
           <div className="space-y-4">
             <Field label="General notes" value={customer.generalNotes ?? ""} onChange={(value) => updateCustomer("generalNotes", value)} textarea />
             <Field label="Do not clean" value={customer.doNotClean ?? ""} onChange={(value) => updateCustomer("doNotClean", value || null)} textarea />
@@ -892,7 +886,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
           </div>
         </Section>
 
-        <Section eyebrow="Preferences" title="Scheduling and payment" description="Keep repeat-visit preferences compact and easy to scan.">
+        <Section title="Scheduling and payment">
           <div className="space-y-5">
             <div>
               <p className="mb-2 text-xs font-semibold text-[var(--co-muted)]">Preferred day</p>
@@ -943,7 +937,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
       </section>
 
       <section>
-        <Section eyebrow="Equipment" title="Cleaning equipment" description="Set the real counts a cleaner should bring. Leave a field blank when it is not set.">
+        <Section title="Cleaning equipment">
           <div className="grid gap-3 sm:grid-cols-3">
             <Field label="Mop heads" type="number" value={String(equipmentCustomer?.mopHeadCount ?? "")} onChange={(value) => updateEquipment("mopHeadCount", value)} />
             <Field label="Rags" type="number" value={String(equipmentCustomer?.ragCount ?? "")} onChange={(value) => updateEquipment("ragCount", value)} />
@@ -953,7 +947,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
       </section>
 
       <section>
-        <Section eyebrow="Home profile" title="Rooms and preferences" description="The fields your team needs when they first walk in.">
+        <Section title="Rooms and preferences">
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Dirt level" value={String(home.dirtLevel ?? "")} onChange={(value) => updateHome("dirtLevel", value)} />
             <Field label="Clutter code" value={String(home.clutterCode ?? "")} onChange={(value) => updateHome("clutterCode", value)} />
@@ -981,7 +975,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
       </section>
 
       <section>
-        <Section eyebrow="Audit trail" title="Recent changes" description="Helpful when you inherit a job and need to see what changed.">
+        <Section title="Recent changes">
           {auditLogs.length === 0 ? (
             <p className="py-4 text-sm text-[var(--co-muted)]">No audit history recorded yet.</p>
           ) : (

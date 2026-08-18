@@ -50,22 +50,16 @@ function Pill({ children, tone }: { children: React.ReactNode; tone?: "good" | "
 }
 
 function Panel({
-  eyebrow,
   title,
-  description,
   children,
 }: {
-  eyebrow: string;
   title: string;
-  description?: string;
   children: React.ReactNode;
 }) {
   return (
     <section className="co-card overflow-hidden">
       <div className="border-b border-[var(--co-line-soft)] px-5 py-4 sm:px-6">
-        <p className="eyebrow">{eyebrow}</p>
-        <h2 className="mt-1 text-lg font-semibold">{title}</h2>
-        {description ? <p className="mt-1 text-sm text-[var(--co-muted)]">{description}</p> : null}
+        <h2 className="text-lg font-semibold">{title}</h2>
       </div>
       <div className="px-5 py-5 sm:px-6">{children}</div>
     </section>
@@ -256,7 +250,6 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
             Back to invoices
           </Link>
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <p className="eyebrow">Billing / Invoice</p>
             <Pill tone={invoice.status === "paid" ? "good" : invoice.status === "sent" ? "warn" : "neutral"}>{invoice.status}</Pill>
           </div>
           <h1 className="page-title mt-2">{invoiceTitle}</h1>
@@ -266,6 +259,9 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <Link href={`/customers?search=${encodeURIComponent(customerName)}`} className="co-button-secondary">
+            Customer
+          </Link>
           <button onClick={() => window.print()} className="co-button-secondary">
             Download PDF
           </button>
@@ -282,48 +278,28 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
         </div>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="co-card p-5">
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Invoice total</p>
-          <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{dollars(invoice.totalCents)}</p>
+      <section className="co-card grid divide-y divide-[var(--co-line-soft)] sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+        <div className="px-5 py-4">
+          <p className="text-xs text-[var(--co-muted)]">Total</p>
+          <p className="mt-1 text-xl font-semibold tabular-nums">{dollars(invoice.totalCents)}</p>
         </div>
-        <div className="co-card p-5">
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Amount paid</p>
-          <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--co-success)]">{dollars(invoice.amountPaidCents)}</p>
+        <div className="px-5 py-4">
+          <p className="text-xs text-[var(--co-muted)]">Paid</p>
+          <p className="mt-1 text-xl font-semibold tabular-nums text-[var(--co-success)]">{dollars(invoice.amountPaidCents)}</p>
         </div>
-        <div className="co-card p-5">
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Balance due</p>
-          <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--co-accent-text)]">{dollars(balance)}</p>
+        <div className="px-5 py-4">
+          <p className="text-xs text-[var(--co-muted)]">Balance</p>
+          <p className="mt-1 text-xl font-semibold tabular-nums text-[var(--co-accent-text)]">{dollars(balance)}</p>
         </div>
-        <div className="co-card p-5">
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">Payment method</p>
-          <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{invoice.method || "—"}</p>
+        <div className="px-5 py-4">
+          <p className="text-xs text-[var(--co-muted)]">Method</p>
+          <p className="mt-1 text-xl font-semibold capitalize">{invoice.method || "—"}</p>
         </div>
       </section>
 
       <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-5">
-          <Panel eyebrow="Invoice at a glance" title="Billing summary" description="Quick context for office staff before they send, record, or reconcile payment.">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.08em] text-[var(--co-muted)]">Customer</p>
-                <p className="mt-2 font-semibold">{customerName}</p>
-                <p className="mt-1 text-sm text-[var(--co-muted)]">{customerEmail || "No email on file"}</p>
-              </div>
-              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.08em] text-[var(--co-muted)]">Related job</p>
-                <p className="mt-2 font-semibold">{jobType.replaceAll("_", " ") || "Service"}</p>
-                <p className="mt-1 text-sm text-[var(--co-muted)]">{jobDate || "No job date recorded"}</p>
-              </div>
-              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.08em] text-[var(--co-muted)]">Open balance</p>
-                <p className="mt-2 font-semibold text-[var(--co-accent-text)]">{dollars(balance)}</p>
-                <p className="mt-1 text-sm text-[var(--co-muted)]">{invoice.status === "paid" ? "Paid in full" : "Waiting on customer"}</p>
-              </div>
-            </div>
-          </Panel>
-
-          <Panel eyebrow="Invoice preview" title="Customer-facing bill" description="This is the document you can print, email, or send through Square.">
+          <Panel title="Invoice">
             <div className="rounded-3xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-5 shadow-[0_20px_60px_rgba(20,33,31,.04)] print:shadow-none">
               <div className="flex flex-wrap items-start justify-between gap-5 border-b border-[var(--co-line-soft)] pb-5">
                 <div>
@@ -392,7 +368,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
             </div>
           </Panel>
 
-          <Panel eyebrow="Payment history" title="Activity" description="Keep an audit-friendly record of what happened and when.">
+          <Panel title="Activity">
             <div className="space-y-4">
               <div className="flex gap-3 text-sm">
                 <span className="mt-1 h-3 w-3 rounded-full bg-[var(--co-accent-fill)]" />
@@ -427,7 +403,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
         </div>
 
         <aside className="space-y-5 print:hidden">
-          <Panel eyebrow="Send and share" title="Quick actions" description="Use the path that matches the customer and payment method.">
+          <Panel title="Send invoice">
             <div className="grid gap-2">
               <button onClick={sendSquare} disabled={busy || invoice.status !== "draft"} className="co-button-primary w-full justify-center">
                 {busy ? "Sending..." : invoice.status === "draft" ? "Send through Square" : "Already sent"}
@@ -446,13 +422,10 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
                 </a>
               ) : null}
             </div>
-            <p className="mt-3 text-xs text-[var(--co-muted)]">
-              Square is the cleanest path for credit-card payment. Email/text opens the customer’s own mail or SMS app.
-            </p>
           </Panel>
 
           {!isClosed ? (
-            <Panel eyebrow="Record payment" title="Check or cash" description="This supports a partial amount, a full amount, and a separate check-only full settlement.">
+            <Panel title="Record payment">
               <div className="space-y-3">
                 <Input label="Method">
                   <select className="co-input w-full" value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value as "check" | "cash")}>
@@ -498,48 +471,26 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
                   ) : null}
                 </div>
 
-                <p className="text-xs text-[var(--co-muted)]">
-                  You can enter a partial amount or the full balance. If the customer pays by check, you can also record the full check amount quickly.
-                </p>
               </div>
             </Panel>
           ) : null}
 
-          <Panel eyebrow="Adjust totals" title="Discount and invoice tip" description="Available while the invoice is still a draft.">
-            <div className="grid gap-3">
-              <Input label="Discount">
-                <input className="co-input w-full" type="number" min="0" step="0.01" value={discount} onChange={(event) => setDiscount(event.target.value)} />
-              </Input>
-              <Input label="Tip">
-                <input className="co-input w-full" type="number" min="0" step="0.01" value={tip} onChange={(event) => setTip(event.target.value)} />
-              </Input>
-            </div>
-            <button onClick={adjust} disabled={busy || invoice.status !== "draft"} className="co-button-secondary mt-4 w-full justify-center">
-              {busy ? "Saving..." : invoice.status === "draft" ? "Save discount and tip" : "Locked after send"}
-            </button>
-          </Panel>
+          {invoice.status === "draft" ? (
+            <Panel title="Adjust total">
+              <div className="grid gap-3">
+                <Input label="Discount">
+                  <input className="co-input w-full" type="number" min="0" step="0.01" value={discount} onChange={(event) => setDiscount(event.target.value)} />
+                </Input>
+                <Input label="Tip">
+                  <input className="co-input w-full" type="number" min="0" step="0.01" value={tip} onChange={(event) => setTip(event.target.value)} />
+                </Input>
+              </div>
+              <button onClick={adjust} disabled={busy} className="co-button-secondary mt-4 w-full justify-center">
+                {busy ? "Saving..." : "Save discount and tip"}
+              </button>
+            </Panel>
+          ) : null}
 
-          <Panel eyebrow="Customer contact" title="Reach them directly" description="These links use the stored customer details.">
-            <div className="space-y-2 text-sm">
-              {customerEmail ? (
-                <a className="block font-medium text-[var(--co-accent-text)] hover:underline" href={`mailto:${customerEmail}?subject=Invoice ${invoiceTitle}`}>
-                  Email {customerEmail}
-                </a>
-              ) : (
-                <p className="text-[var(--co-muted)]">No email recorded</p>
-              )}
-              {customerPhone ? (
-                <a className="block font-medium text-[var(--co-accent-text)] hover:underline" href={`sms:${customerPhone}`}>
-                  Text {customerPhone}
-                </a>
-              ) : (
-                <p className="text-[var(--co-muted)]">No phone recorded</p>
-              )}
-              <Link href={`/customers?search=${encodeURIComponent(customerName)}`} className="block text-[var(--co-accent-text)] hover:underline">
-                Open customer profile
-              </Link>
-            </div>
-          </Panel>
         </aside>
       </div>
 

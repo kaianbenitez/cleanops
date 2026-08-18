@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 type InventoryItem = {
@@ -42,33 +41,29 @@ function stockLabel(item: InventoryItem) {
   return "In stock";
 }
 
-function StatCard({ label, value, sub }: { label: string; value: string; sub: string }) {
+function SummaryStat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="co-card p-5">
-      <p className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--co-muted)]">{label}</p>
-      <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{value}</p>
-      <p className="mt-2 text-xs text-[var(--co-muted)]">{sub}</p>
+    <div className="px-4 py-3">
+      <p className="text-xs text-[var(--co-muted)]">{label}</p>
+      <div className="mt-1 flex items-baseline gap-2">
+        <p className="text-xl font-semibold tabular-nums">{value}</p>
+        {sub ? <p className="text-xs text-[var(--co-muted)]">{sub}</p> : null}
+      </div>
     </div>
   );
 }
 
 function Panel({
-  eyebrow,
   title,
-  description,
   children,
 }: {
-  eyebrow: string;
   title: string;
-  description?: string;
   children: React.ReactNode;
 }) {
   return (
     <section className="co-card overflow-hidden">
       <div className="border-b border-[var(--co-line-soft)] px-5 py-4">
-        <p className="eyebrow">{eyebrow}</p>
-        <h2 className="mt-1 text-lg font-semibold">{title}</h2>
-        {description ? <p className="mt-1 text-sm text-[var(--co-muted)]">{description}</p> : null}
+        <h2 className="text-lg font-semibold">{title}</h2>
       </div>
       <div className="px-5 py-5">{children}</div>
     </section>
@@ -111,8 +106,6 @@ export default function SuppliesPage() {
   const inventoryValue = items.reduce((sum, item) => sum + item.onHand * item.unitCostCents, 0);
   const lowStockItems = items.filter((item) => item.onHand <= item.reorderAt);
   const watchItems = items.filter((item) => item.onHand > item.reorderAt && item.onHand <= item.reorderAt * 1.5);
-  const trackedCategories = new Set(items.map((item) => item.category)).size;
-
   async function save(next: InventoryItem[]) {
     setSaving(true);
     setMessage("");
@@ -162,15 +155,8 @@ export default function SuppliesPage() {
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="eyebrow">Operations / Supplies</p>
-          <h1 className="page-title mt-2">Supplies & inventory</h1>
-          <p className="page-subtitle">Keep the team stocked for every job and know what needs reordering at a glance.</p>
-        </div>
+        <h1 className="page-title">Supplies</h1>
         <div className="flex flex-wrap gap-2">
-          <Link href="/dashboard" className="co-button-secondary">
-            Dashboard
-          </Link>
           <button className="co-button-secondary" onClick={addItem}>
             + Add item
           </button>
@@ -182,16 +168,16 @@ export default function SuppliesPage() {
 
       {message ? <p className="text-sm font-medium text-[var(--co-accent-text)]">{message}</p> : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Inventory value" value={dollars(inventoryValue)} sub={`${items.length} items tracked`} />
-        <StatCard label="Low stock" value={`${lowStockItems.length}`} sub="Needs attention now" />
-        <StatCard label="Watch list" value={`${watchItems.length}`} sub="Near reorder threshold" />
-        <StatCard label="Tracked categories" value={`${trackedCategories}`} sub={updatedAt ? `Last saved ${new Date(updatedAt).toLocaleDateString()}` : "No save history"} />
+      <section className="co-card grid divide-y divide-[var(--co-line-soft)] sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+        <SummaryStat label="Items" value={`${items.length}`} />
+        <SummaryStat label="Low stock" value={`${lowStockItems.length}`} />
+        <SummaryStat label="Watch list" value={`${watchItems.length}`} />
+        <SummaryStat label="Inventory value" value={dollars(inventoryValue)} sub={updatedAt ? `Saved ${new Date(updatedAt).toLocaleDateString()}` : undefined} />
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[1.45fr_0.85fr]">
         <div className="space-y-5">
-          <Panel eyebrow="Inventory" title="Stock table" description="Edit quantities, thresholds, and supplier info inline.">
+          <Panel title="Inventory">
             <div className="flex flex-wrap gap-3 border-b border-[var(--co-line-soft)] pb-4">
               <input
                 className="co-input min-w-[240px] flex-1"
@@ -288,15 +274,10 @@ export default function SuppliesPage() {
             </div>
           </Panel>
 
-          <Panel eyebrow="Inventory note" title="What’s live in beta" description="This page is functional now; deeper purchasing workflow can come later.">
-            <p className="text-sm leading-6 text-[var(--co-muted)]">
-              Inventory is stored in company settings for now, so you can edit it immediately without a migration. Counts and reorder thresholds work now. Purchase history, receipts, and job-level usage are future additions.
-            </p>
-          </Panel>
         </div>
 
         <div className="space-y-5">
-          <Panel eyebrow="Needs attention" title="Low stock items" description="The items most likely to need a reorder soon.">
+          <Panel title="Low stock">
             <div className="space-y-3">
               {lowStockItems.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/30 p-4 text-sm text-[var(--co-muted)]">
@@ -330,19 +311,6 @@ export default function SuppliesPage() {
             </div>
           </Panel>
 
-          <Panel eyebrow="Quick actions" title="Inventory workflow" description="Use the same clean office flow as the rest of Shimmer.">
-            <div className="space-y-2">
-              <button type="button" className="co-button-primary w-full" onClick={() => save(items)} disabled={saving}>
-                {saving ? "Saving..." : "Save inventory"}
-              </button>
-              <button type="button" className="co-button-secondary w-full" onClick={addItem}>
-                + Add item
-              </button>
-              <Link href="/dashboard" className="co-button-secondary block w-full text-center">
-                Back to dashboard
-              </Link>
-            </div>
-          </Panel>
         </div>
       </section>
     </div>
