@@ -11,6 +11,7 @@
     "test:payroll": "tsx --test tests/payroll.test.ts",
     "test:hybrid-access": "tsx --test tests/hybrid-access.test.ts",
     "test:capacity": "tsx --test tests/capacity.test.ts",
+    "test:calendar-shared": "tsx --test tests/calendar-shared.test.ts",
     "check:env": "node scripts/check-env.mjs",
     "check:drift": "tsx scripts/check-schema-drift.ts",
     "smoke:routes": "node scripts/smoke-routes.mjs",
