@@ -4,7 +4,16 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Plus, ChevronDown, FileText, ClipboardList, UserPlus } from "lucide-react";
 
-export default function CreateMenu({ compact = false }: { compact?: boolean }) {
+export default function CreateMenu({
+  compact = false,
+  leadingItem,
+}: {
+  compact?: boolean;
+  /** An extra menu item rendered above Customer/Quote/Job — e.g. Calendar's
+   * own "Schedule job" shortcut. Additive only; omitting it (every existing
+   * call site) renders the original 3-item menu unchanged. */
+  leadingItem?: { href: string; label: string; icon: React.ComponentType<{ className?: string }> };
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -43,6 +52,17 @@ export default function CreateMenu({ compact = false }: { compact?: boolean }) {
           role="menu"
           className="absolute right-0 top-full z-30 mt-2 w-48 overflow-hidden rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] py-1 shadow-[0_10px_32px_rgba(18,24,19,0.12)]"
         >
+          {leadingItem ? (
+            <Link
+              href={leadingItem.href}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-[var(--co-ink)] transition hover:bg-[var(--co-surface-muted)]"
+            >
+              <leadingItem.icon className="h-4 w-4 text-[var(--co-muted)]" aria-hidden />
+              {leadingItem.label}
+            </Link>
+          ) : null}
           <Link
             href="/customers/new"
             role="menuitem"

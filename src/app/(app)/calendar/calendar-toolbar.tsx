@@ -1,17 +1,22 @@
+import { ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import DatePicker, { CalendarViewSelector } from "./date-picker";
 import NewAppointmentButton from "./new-appointment-button";
 import CalendarFocusMode from "./calendar-focus-mode";
 import FilterBar from "./filter-bar";
+import GlobalSearch from "../global-search";
+import CreateMenu from "../create-menu";
+import NotificationsMenu, { type Notification } from "../notifications-menu";
 
 type StaffMember = { id: string; firstName: string; lastName: string };
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
 /** The whole calendar toolbar, one row: nav toggle, date nav, view pills,
- * attention/filters (filter-bar.tsx), then Schedule job. Date/view routing
- * stays in date-picker.tsx; the prev/next/today hrefs are computed by
- * page.tsx from the current search params and just rendered here. */
+ * attention/filters (filter-bar.tsx), then the app tools absorbed from the
+ * (now hidden, see calendar-focus-mode.tsx) top bar — search, notifications,
+ * create — separated by a divider. Date/view routing stays in
+ * date-picker.tsx; the prev/next/today hrefs are computed by page.tsx from
+ * the current search params and just rendered here. */
 export default function CalendarToolbar({
   view,
   currentDate,
@@ -24,6 +29,7 @@ export default function CalendarToolbar({
   appointmentDefaultDate,
   employees,
   attentionCount,
+  initialNotifications,
 }: {
   view: string;
   currentDate: Date;
@@ -38,6 +44,7 @@ export default function CalendarToolbar({
   appointmentDefaultDate: string;
   employees: Employee[];
   attentionCount: number;
+  initialNotifications: Notification[];
 }) {
   return (
     <div className="flex w-full min-w-max items-center justify-between gap-3">
@@ -66,9 +73,10 @@ export default function CalendarToolbar({
       </div>
       <div className="flex items-center gap-2">
         <NewAppointmentButton staffRoster={staffRoster} defaultDate={appointmentDefaultDate} />
-        <Link href="/jobs/new" className="co-button-primary">
-          Schedule job
-        </Link>
+        <div className="mx-1 h-6 w-px bg-[var(--co-line-soft)]" aria-hidden />
+        <GlobalSearch variant="icon" />
+        <NotificationsMenu initialNotifications={initialNotifications} />
+        <CreateMenu compact leadingItem={{ href: "/jobs/new", label: "Schedule job", icon: ClipboardList }} />
       </div>
     </div>
   );
