@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.59",
+    date: "August 19, 2026",
+    title: "Calendar navigation is easier to scan",
+    changes: [
+      "The calendar views are now named for what a scheduler actually does: Dispatch, Capacity, and Month, with Day list and Vertical timeline tucked under a More views menu.",
+      "The top of the Calendar page is now a single, compact toolbar — date navigation, views, and Schedule job — instead of a wide row that scrolled sideways.",
+      "Projected revenue and discounts no longer show on the Calendar header; a single Needs attention count and one Filters button (with all filter fields inside it) replaced the old scattered filter controls.",
+    ],
+  },
+  {
     version: "v0.2.58",
     date: "August 18, 2026",
     title: "Key pages are cleaner and more direct",

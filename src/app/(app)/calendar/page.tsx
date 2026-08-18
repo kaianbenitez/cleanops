@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import {
@@ -46,10 +45,9 @@ import StaffVerticalBoard from "./staff-vertical-board";
 import WeekBoard from "./week-board";
 import MonthBoard from "./month-board";
 import TodayListBoard from "./today-list-board";
-import DatePicker, { CalendarViewSelector } from "./date-picker";
+import CalendarToolbar from "./calendar-toolbar";
 import CalendarStateSync from "./state-sync";
 import WeekendOrphanBanner from "./weekend-orphan-banner";
-import NewAppointmentButton from "./new-appointment-button";
 import { employeeColorAt } from "./shared";
 import { rotationalTaskForDate } from "@/lib/scheduling/rotational-tasks";
 
@@ -766,48 +764,55 @@ export default async function CalendarPage({
           )
           .reduce((total, summary) => total + Number(summary.jobs), 0)
       : displayedJobs.length;
-  const revenueEligibleJobs = displayedJobs.filter(
-    (job) => !["cancelled", "no_show"].includes(job.status),
+  // Composed from data already fetched for the Dispatch (staff) view: a job
+  // needs attention if it has no crew, has a crew but no arrival time, or has
+  // an assigned cleaner on PTO that day. Not computed for other views, which
+  // don't fetch unassignedRows/ptoRows for this date range.
+  const attentionEligibleJobs = jobsWithAssignments.filter(
+    (job) => !["cancelled", "no_show", "completed"].includes(job.status),
   );
-  const projectedRevenueCents = revenueEligibleJobs.reduce((total, job) => total + job.priceCents, 0);
-  const discountTotalCents = revenueEligibleJobs.reduce((total, job) => total + job.discountCents, 0);
+  const dayIsoForAttention = toISODate(dayAnchor);
+  const attentionJobIds =
+    view === "staff" || view === "staff_vertical"
+      ? new Set(
+          attentionEligibleJobs
+            .filter(
+              (job) =>
+                !job.assignedUserIds.length ||
+                !job.scheduledStartTime ||
+                job.assignedUserIds.some((employeeId) =>
+                  ptoRows.some(
+                    (pto) =>
+                      pto.userId === employeeId &&
+                      pto.startDate <= dayIsoForAttention &&
+                      pto.endDate >= dayIsoForAttention,
+                  ),
+                ),
+            )
+            .map((job) => job.id),
+        )
+      : new Set<string>();
   return (
     <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
       <CalendarStateSync view={view} anchor={stateAnchor} />
       <section className="co-card mx-3 mt-3 overflow-hidden sm:mx-4 lg:mx-5">
       <header className="overflow-x-auto border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-3 lg:px-5">
-        <div className="flex w-full min-w-max items-center justify-between gap-5">
-          <div className="flex items-center gap-2">
-            <DatePicker view={view} value={currentDate} label={dateLabel} />
-          <Link
-            href={`/calendar${prev}`}
-            className="co-button-secondary"
-            aria-label="Previous period"
-          >
-            Previous
-          </Link>
-          <Link href={`/calendar${todayQuery}`} className="co-button-secondary">
-            Today
-          </Link>
-          <Link
-            href={`/calendar${next}`}
-            className="co-button-secondary"
-            aria-label="Next period"
-          >
-            Next
-          </Link>
-          <NewAppointmentButton staffRoster={staffRoster} defaultDate={stateAnchor.length === 10 ? stateAnchor : toISODate(dayAnchor)} />
-          </div>
-          <CalendarViewSelector view={view} value={currentDate} />
-        </div>
+        <CalendarToolbar
+          view={view}
+          currentDate={currentDate}
+          dateLabel={dateLabel}
+          prevHref={`/calendar${prev}`}
+          nextHref={`/calendar${next}`}
+          todayHref={`/calendar${todayQuery}`}
+          staffRoster={staffRoster}
+          appointmentDefaultDate={stateAnchor.length === 10 ? stateAnchor : toISODate(dayAnchor)}
+        />
       </header>
 
       <FilterBar
         employees={employees}
         totalJobs={totalJobs}
-        unassignedJobs={view === "staff" || view === "staff_vertical" ? unassignedRows.length : 0}
-        projectedRevenueCents={projectedRevenueCents}
-        discountTotalCents={discountTotalCents}
+        unassignedJobs={attentionJobIds.size}
       />
       </section>
 
