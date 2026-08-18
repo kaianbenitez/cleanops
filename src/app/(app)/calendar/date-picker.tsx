@@ -110,7 +110,7 @@ export default function DatePicker({ view, value, label }: { view: string; value
   return <div ref={pickerRef} className="relative"><button type="button" onClick={() => setOpen((current) => !current)} aria-expanded={open} aria-haspopup="dialog" className="co-button-secondary min-w-[170px] justify-start gap-2 text-left"><CalendarDays className="h-4 w-4 shrink-0 text-[var(--co-accent-text)]" aria-hidden /><span>{label}</span></button>{dialog ? createPortal(dialog, document.body) : null}</div>;
 }
 
-export function CalendarViewSelector({ view, value }: { view: string; value: Date }) {
+export function CalendarViewSelector({ view, focusDayIso }: { view: string; focusDayIso: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -135,13 +135,17 @@ export function CalendarViewSelector({ view, value }: { view: string; value: Dat
 
   function selectView(nextView: ViewValue) {
     const params = new URLSearchParams(searchParams.toString());
-    const selected = iso(value);
     params.set("view", nextView);
     params.delete("week"); params.delete("day"); params.delete("month");
-    if (nextView === "month") params.set("month", selected.slice(0, 7));
-    else if (nextView === "staff" || nextView === "staff_vertical" || nextView === "list") params.set("day", selected);
+    // Anchored on focusDayIso (the last specific day the user actually
+    // looked at, tracked independently of the current view) rather than
+    // `value` — `value` collapses to the month/week anchor while on Month
+    // or Capacity, which silently dropped the real day on every switch back
+    // to a day-based view.
+    if (nextView === "month") params.set("month", focusDayIso.slice(0, 7));
+    else if (nextView === "staff" || nextView === "staff_vertical" || nextView === "list") params.set("day", focusDayIso);
     else {
-      const monday = new Date(value);
+      const monday = new Date(`${focusDayIso}T00:00:00.000Z`);
       monday.setUTCDate(monday.getUTCDate() - mondayIndex(monday));
       params.set("week", iso(monday));
     }

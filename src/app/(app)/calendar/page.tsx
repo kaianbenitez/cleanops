@@ -40,7 +40,7 @@ import {
 import { todayInTimeZone } from "@/lib/dashboard/range";
 import { listEmployeePto } from "@/lib/scheduling/pto";
 import FilterBar from "./filter-bar";
-import StaffBoard from "./staff-board";
+import DispatchBoard from "./dispatch-board";
 import StaffVerticalBoard from "./staff-vertical-board";
 import WeekBoard from "./week-board";
 import MonthBoard from "./month-board";
@@ -48,7 +48,7 @@ import TodayListBoard from "./today-list-board";
 import CalendarToolbar from "./calendar-toolbar";
 import CalendarStateSync from "./state-sync";
 import WeekendOrphanBanner from "./weekend-orphan-banner";
-import { employeeColorAt } from "./shared";
+import { categorizeForAttention, employeeColorAt } from "./shared";
 import { rotationalTaskForDate } from "@/lib/scheduling/rotational-tasks";
 
 const CALENDAR_STATE_COOKIE = "co_calendar_state";
@@ -764,34 +764,13 @@ export default async function CalendarPage({
           )
           .reduce((total, summary) => total + Number(summary.jobs), 0)
       : displayedJobs.length;
-  // Composed from data already fetched for the Dispatch (staff) view: a job
-  // needs attention if it has no crew, has a crew but no arrival time, or has
-  // an assigned cleaner on PTO that day. Not computed for other views, which
-  // don't fetch unassignedRows/ptoRows for this date range.
-  const attentionEligibleJobs = jobsWithAssignments.filter(
-    (job) => !["cancelled", "no_show", "completed"].includes(job.status),
-  );
-  const dayIsoForAttention = toISODate(dayAnchor);
-  const attentionJobIds =
+  // Same categorization dispatch-board.tsx uses for the Needs-attention
+  // strip, so the toolbar's count and the strip's contents never drift.
+  // Only computed for the views that fetch ptoRows for this date range.
+  const attentionCount =
     view === "staff" || view === "staff_vertical"
-      ? new Set(
-          attentionEligibleJobs
-            .filter(
-              (job) =>
-                !job.assignedUserIds.length ||
-                !job.scheduledStartTime ||
-                job.assignedUserIds.some((employeeId) =>
-                  ptoRows.some(
-                    (pto) =>
-                      pto.userId === employeeId &&
-                      pto.startDate <= dayIsoForAttention &&
-                      pto.endDate >= dayIsoForAttention,
-                  ),
-                ),
-            )
-            .map((job) => job.id),
-        )
-      : new Set<string>();
+      ? categorizeForAttention(jobsWithAssignments, ptoRows, toISODate(dayAnchor)).length
+      : 0;
   return (
     <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
       <CalendarStateSync view={view} anchor={stateAnchor} />
@@ -801,6 +780,7 @@ export default async function CalendarPage({
           view={view}
           currentDate={currentDate}
           dateLabel={dateLabel}
+          focusDayIso={toISODate(dayAnchor)}
           prevHref={`/calendar${prev}`}
           nextHref={`/calendar${next}`}
           todayHref={`/calendar${todayQuery}`}
@@ -812,7 +792,7 @@ export default async function CalendarPage({
       <FilterBar
         employees={employees}
         totalJobs={totalJobs}
-        unassignedJobs={attentionJobIds.size}
+        unassignedJobs={attentionCount}
       />
       </section>
 
@@ -839,9 +819,8 @@ export default async function CalendarPage({
           />
         ) : null}
         {view === "staff" ? (
-          <StaffBoard
+          <DispatchBoard
             dayIso={toISODate(dayAnchor)}
-            dayLabel={formatDayLabel(dayAnchor)}
             todayIso={todayIso}
             employees={employees}
             savedColumnOrder={Array.isArray(
@@ -854,12 +833,7 @@ export default async function CalendarPage({
                   ))
               : []}
             laneEmployeeId={sp.employeeId}
-            queueOpen={sp.queue === "unassigned" || sp.assignment === "unassigned"}
             jobs={displayedJobs}
-            unassignedJobs={unassignedRows.map((row) => ({
-              ...row,
-              assignedUserIds: [],
-            }))}
             ptoRecords={ptoRows}
             appointments={appointments}
             staffRoster={staffRoster}

@@ -12,6 +12,7 @@ export default function CalendarToolbar({
   view,
   currentDate,
   dateLabel,
+  focusDayIso,
   prevHref,
   nextHref,
   todayHref,
@@ -21,6 +22,9 @@ export default function CalendarToolbar({
   view: string;
   currentDate: Date;
   dateLabel: string;
+  /** The last specific day the user looked at, tracked independently of the
+   * current view — see date-picker.tsx's CalendarViewSelector. */
+  focusDayIso: string;
   prevHref: string;
   nextHref: string;
   todayHref: string;
@@ -50,7 +54,7 @@ export default function CalendarToolbar({
         </Link>
       </div>
       <div className="flex items-center gap-2">
-        <CalendarViewSelector view={view} value={currentDate} />
+        <CalendarViewSelector view={view} focusDayIso={focusDayIso} />
         <NewAppointmentButton staffRoster={staffRoster} defaultDate={appointmentDefaultDate} />
         <Link href="/jobs/new" className="co-button-primary">
           Schedule job

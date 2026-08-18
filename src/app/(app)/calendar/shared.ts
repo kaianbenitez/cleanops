@@ -14,12 +14,57 @@ export const TYPE_LABELS: Record<string, string> = {
 export const APPOINTMENT_COLOR = "co-badge-spark";
 export const APPOINTMENT_COLOR_CANCELLED = "co-badge-muted line-through";
 
-function clockLabelFromMinutes(totalMinutes: number) {
+export function clockLabelFromMinutes(totalMinutes: number) {
   const hour24 = Math.floor(totalMinutes / 60) % 24;
-  const minute = totalMinutes % 60;
+  const minute = Math.round(totalMinutes % 60);
   const hour12 = ((hour24 + 11) % 12) + 1;
   const suffix = hour24 < 12 ? "AM" : "PM";
   return `${hour12}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
+
+export type ArrivalWindow = "morning" | "afternoon";
+
+// The confirmed operating model from the Calendar Dispatch Redesign
+// Architecture doc. Presentation-only grouping derived from the stored start
+// time — formalizing arrival windows in domain logic is WP-4 scope.
+export const ARRIVAL_WINDOW_START_MINUTES: Record<ArrivalWindow, number> = { morning: 9 * 60, afternoon: 13 * 60 };
+export const ARRIVAL_WINDOW_DEFAULT_TIME: Record<ArrivalWindow, string> = { morning: "09:00:00", afternoon: "13:00:00" };
+
+/** before 12:00 → Morning, 12:00 or later → Afternoon, no time → null
+ * (Needs attention, not a window). */
+export function arrivalWindowFor(time: string | null | undefined): ArrivalWindow | null {
+  if (!time) return null;
+  return time.slice(0, 5) < "12:00" ? "morning" : "afternoon";
+}
+
+export type AttentionCategory = "unassigned" | "no-time" | "conflict";
+const RETAINED_JOB_STATUSES = ["cancelled", "no_show"];
+
+/** Categorizes a day's active jobs for the Needs-attention strip: no crew,
+ * no arrival time, or an assigned cleaner on PTO that day — in that priority
+ * order, one bucket per job. Cancelled/no-show/completed jobs are excluded
+ * (cancelled/no-show get their own collapsed list in the UI; completed jobs
+ * need no action). Generic so it has no dependency on the page-level
+ * CalendarJob type. */
+export function categorizeForAttention<
+  T extends { id: string; status: string; assignedUserIds: string[]; scheduledStartTime: string | null },
+>(jobs: T[], ptoRecords: { userId: string; startDate: string; endDate: string }[], dayIso: string): { job: T; category: AttentionCategory }[] {
+  const entries: { job: T; category: AttentionCategory }[] = [];
+  for (const job of jobs) {
+    if (RETAINED_JOB_STATUSES.includes(job.status) || job.status === "completed") continue;
+    if (!job.assignedUserIds.length) {
+      entries.push({ job, category: "unassigned" });
+    } else if (!job.scheduledStartTime) {
+      entries.push({ job, category: "no-time" });
+    } else if (
+      job.assignedUserIds.some((employeeId) =>
+        ptoRecords.some((pto) => pto.userId === employeeId && pto.startDate <= dayIso && pto.endDate >= dayIso),
+      )
+    ) {
+      entries.push({ job, category: "conflict" });
+    }
+  }
+  return entries;
 }
 
 export function formatAppointmentTime(startTime: string | null, durationMinutes: number | null) {

@@ -7,6 +7,18 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.61",
+    date: "August 19, 2026",
+    title: "Dispatch replaces the hourly grid",
+    changes: [
+      "The default Calendar screen (Dispatch) no longer shows a tall hourly grid. Jobs are grouped into Morning and Afternoon, and within each into the crews working together, with full names, job counts, and an estimated finish time.",
+      "A new Needs attention section lists every job missing a crew, missing an arrival time, or with a time-off conflict, each with one clear action — Assign crew, Schedule, or Review conflict. Cancelled and no-show jobs are tucked into a collapsed list below it.",
+      "An empty Morning or Afternoon now says so plainly and offers Schedule job, instead of just \"no jobs.\"",
+      "The older detailed timeline is still available under More views → Vertical timeline.",
+      "Fixed: switching from Capacity or Month back to Dispatch, Day list, or Vertical timeline could silently jump to a different day than the one you were looking at — it now stays on the same day.",
+    ],
+  },
+  {
     version: "v0.2.60",
     date: "August 19, 2026",
     title: "A safe way to schedule without dragging",

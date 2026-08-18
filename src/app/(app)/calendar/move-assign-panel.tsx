@@ -4,7 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { DateInput } from "@/components/date-input";
 import { commitJobPatch, type JobPatch } from "./drag-commit";
-import { displayCustomer, formatEstimatedTime, TYPE_LABELS } from "./shared";
+import {
+  ARRIVAL_WINDOW_DEFAULT_TIME,
+  ARRIVAL_WINDOW_START_MINUTES,
+  arrivalWindowFor,
+  clockLabelFromMinutes,
+  displayCustomer,
+  formatEstimatedTime,
+  TYPE_LABELS,
+  type ArrivalWindow,
+} from "./shared";
 import { formatDisplayDate, toISODate, addDays } from "@/lib/scheduling/dates";
 import type { EmployeePtoRecord, PtoPeriod } from "@/lib/scheduling/pto";
 
@@ -25,24 +34,7 @@ export type MoveAssignJob = {
   assignedUserIds: string[];
 };
 
-type ArrivalWindow = "morning" | "afternoon";
-
-const WINDOW_START_MINUTES: Record<ArrivalWindow, number> = { morning: 9 * 60, afternoon: 13 * 60 };
-const WINDOW_DEFAULT_TIME: Record<ArrivalWindow, string> = { morning: "09:00:00", afternoon: "13:00:00" };
 const LOCKED_STATUSES = ["completed", "cancelled", "no_show"];
-
-function windowFor(time: string | null): ArrivalWindow | null {
-  if (!time) return null;
-  return time.slice(0, 5) < "12:00" ? "morning" : "afternoon";
-}
-
-function clockLabel(totalMinutes: number) {
-  const hour24 = Math.floor(totalMinutes / 60);
-  const minute = Math.round(totalMinutes % 60);
-  const hour12 = ((hour24 + 11) % 12) + 1;
-  const suffix = hour24 < 12 ? "AM" : "PM";
-  return `${hour12}:${String(minute).padStart(2, "0")} ${suffix}`;
-}
 
 function joinNames(names: string[]) {
   if (names.length === 0) return "";
@@ -83,7 +75,7 @@ export default function MoveAssignPanel({
   onSaved: (patch: JobPatch, previous: JobPatch) => void;
 }) {
   const isLocked = LOCKED_STATUSES.includes(job.status);
-  const initialWindow = windowFor(job.scheduledStartTime);
+  const initialWindow = arrivalWindowFor(job.scheduledStartTime);
   const [draftDate, setDraftDate] = useState(job.scheduledDate);
   const [draftWindow, setDraftWindow] = useState<ArrivalWindow | null>(initialWindow);
   const [draftTime, setDraftTime] = useState(job.scheduledStartTime);
@@ -139,7 +131,7 @@ export default function MoveAssignPanel({
     setValidationError(null);
     if (next === draftWindow) return;
     setDraftWindow(next);
-    setDraftTime(WINDOW_DEFAULT_TIME[next]);
+    setDraftTime(ARRIVAL_WINDOW_DEFAULT_TIME[next]);
   }
 
   function toggleEmployee(employeeId: string) {
@@ -176,7 +168,7 @@ export default function MoveAssignPanel({
   if (draftDate === job.scheduledDate && draftWindow) {
     for (const other of dayJobs) {
       if (other.id === job.id) continue;
-      const otherWindow = windowFor(other.scheduledStartTime);
+      const otherWindow = arrivalWindowFor(other.scheduledStartTime);
       if (otherWindow !== draftWindow) continue;
       const otherName = other.companyName?.trim() || `${other.customerFirstName} ${other.customerLastName}`;
       for (const employeeId of other.assignedUserIds) conflictByEmployee.set(employeeId, otherName);
@@ -188,7 +180,7 @@ export default function MoveAssignPanel({
     job.estimatedDurationMinutes && assignedIds.length ? job.estimatedDurationMinutes / assignedIds.length : null;
   const finishLabel =
     draftWindow && elapsedMinutes
-      ? clockLabel(WINDOW_START_MINUTES[draftWindow] + elapsedMinutes)
+      ? clockLabelFromMinutes(ARRIVAL_WINDOW_START_MINUTES[draftWindow] + elapsedMinutes)
       : null;
   const reviewSentence = `Move ${displayCustomer(job)} to ${formatDisplayDate(draftDate)}${
     draftWindow ? `, ${draftWindow === "morning" ? "in the morning" : "in the afternoon"}` : ", with no arrival window chosen yet"
@@ -236,8 +228,8 @@ export default function MoveAssignPanel({
     onSaved(patch, previous);
     // A soft double-booking warning already saved server-side (see
     // route.ts) — keep the panel open so the coordinator can see and act on
-    // it, matching how JobDetailPanel/UnassignedPanel already handle this
-    // response shape. A clean save closes the panel.
+    // it, matching how JobDetailPanel already handles this response shape.
+    // A clean save closes the panel.
     if (!hadWarning) onClose();
   }
 
