@@ -7,6 +7,7 @@ import { CircleUserRound, Mail, MapPin, Pencil, Phone, Send, XCircle } from "luc
 import { statusOptions } from "@/components/ui/status-pill";
 import { formatDisplayDate } from "@/lib/scheduling/dates";
 import { DateInput } from "@/components/date-input";
+import { TimeInput } from "@/components/time-input";
 import HandoffPanel from "./handoff-panel";
 import JobPhotos from "./job-photos";
 import TeamPanel from "./team-panel";
@@ -470,13 +471,7 @@ export default function JobDetailClient({
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <DateInput label="Date" value={scheduleDate} onChange={setScheduleDate} />
-              <input
-                aria-label="Start time"
-                type="time"
-                value={scheduleTime}
-                onChange={(event) => setScheduleTime(event.target.value)}
-                className="co-input"
-              />
+              <TimeInput label="Start time" value={scheduleTime} onChange={setScheduleTime} />
               <select
                 aria-label="Job status"
                 value={scheduleStatus}
