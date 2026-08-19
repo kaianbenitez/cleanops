@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { hasAdminAccess, hasFieldAccess } from "@/lib/auth/field-staff";
+import { hasAdminAccess, hasFieldAccess, isHybridEmployee } from "@/lib/auth/field-staff";
 import { resolveLandingSurface } from "@/lib/auth/surface";
 
 test("hasFieldAccess covers plain employees, office-only admins, and hybrids", () => {
@@ -12,6 +12,12 @@ test("hasFieldAccess covers plain employees, office-only admins, and hybrids", (
 test("hasAdminAccess is role-only, independent of field-staff status", () => {
   assert.equal(hasAdminAccess({ role: "admin" }), true);
   assert.equal(hasAdminAccess({ role: "employee" }), false);
+});
+
+test("isHybridEmployee only enables surface switching for admin field staff", () => {
+  assert.equal(isHybridEmployee({ role: "employee", isFieldStaff: true }), false);
+  assert.equal(isHybridEmployee({ role: "admin", isFieldStaff: false }), false);
+  assert.equal(isHybridEmployee({ role: "admin", isFieldStaff: true }), true);
 });
 
 test("resolveLandingSurface: plain employee always lands on /my-day", () => {
