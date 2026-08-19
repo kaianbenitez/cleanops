@@ -7,6 +7,17 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.64",
+    date: "August 19, 2026",
+    title: "Calendar foundation work for the upcoming Board view",
+    changes: [
+      "The Needs-attention count in the calendar toolbar now shows up on every view — Day, Week, and Month, not just the staff boards.",
+      "The scheduling now-line reads the company's own time zone instead of your browser's clock, so it lines up correctly wherever you're viewing from.",
+      "Clicking a day on the Month view now returns you to the crew layout (columns or rows) you were last using, instead of always opening the column layout.",
+      "Added a new Working hours setting (Settings → Calendar) so the board's start and end times can be configured per company, ahead of a bigger calendar redesign landing soon.",
+    ],
+  },
+  {
     version: "v0.2.63",
     date: "August 19, 2026",
     title: "Job schedule edits now save together",

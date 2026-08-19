@@ -114,6 +114,11 @@ const schema = z.object({
   // fallback duration used when a job has no estimatedDurationMinutes yet.
   workdayHoursPerCleaner: z.number().positive().max(24).optional(),
   defaultJobDurationMinutes: z.number().int().positive().max(24 * 60).optional(),
+  // Calendar board day window (WP-1 of the calendar rework): the one working
+  // range boards render jobs against, replacing three inconsistent hardcoded
+  // ranges. Validated as a pair so an end before/at start can't be saved.
+  workdayStartMinutes: z.number().int().min(0).max(1439).optional(),
+  workdayEndMinutes: z.number().int().min(0).max(1439).optional(),
   // Staff-board column order. Employee ids are validated again against the
   // company roster by the calendar UI, so stale ids from archived staff are
   // harmless and simply ignored when the board renders.
@@ -157,6 +162,22 @@ const schema = z.object({
   squareEnvironment: z.enum(["sandbox", "production"]).optional(),
   squareWebhookSignatureKey: z.string().trim().min(1).max(1000).optional(),
   googleMapsApiKey: z.string().trim().min(1).max(1000).optional(),
+}).superRefine((data, ctx) => {
+  // Only enforced when both are present in the same request — the calendar
+  // settings UI always saves this pair together, and a partial update of
+  // just one field (leaving the other at its existing stored value) has
+  // nothing here to compare against.
+  if (
+    data.workdayStartMinutes !== undefined &&
+    data.workdayEndMinutes !== undefined &&
+    data.workdayEndMinutes <= data.workdayStartMinutes
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["workdayEndMinutes"],
+      message: "Workday end must be after workday start.",
+    });
+  }
 });
 
 /** PATCH /api/settings — partial update. Only the keys present in the body are
@@ -210,6 +231,12 @@ export async function PATCH(req: NextRequest) {
       : {}),
     ...(parsed.data.workdayHoursPerCleaner !== undefined
       ? { workdayHoursPerCleaner: parsed.data.workdayHoursPerCleaner }
+      : {}),
+    ...(parsed.data.workdayStartMinutes !== undefined
+      ? { workdayStartMinutes: parsed.data.workdayStartMinutes }
+      : {}),
+    ...(parsed.data.workdayEndMinutes !== undefined
+      ? { workdayEndMinutes: parsed.data.workdayEndMinutes }
       : {}),
     ...(parsed.data.defaultJobDurationMinutes !== undefined
       ? { defaultJobDurationMinutes: parsed.data.defaultJobDurationMinutes }

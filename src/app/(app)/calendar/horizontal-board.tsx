@@ -6,7 +6,7 @@ import ClientHomeSymbols from "./client-home-symbols";
 import JobDetailPanel from "./job-detail-panel";
 import JobCard from "./job-card";
 import AppointmentPanel from "./appointment-panel";
-import { APPOINTMENT_COLOR, APPOINTMENT_COLOR_CANCELLED, displayCustomer, employeeCardStyle, employeeColor, formatAppointmentTime, jobWallClockDuration, minutesFromTime, ordinalLabel, stopOrdinals } from "./shared";
+import { APPOINTMENT_COLOR, APPOINTMENT_COLOR_CANCELLED, displayCustomer, employeeCardStyle, employeeColor, formatAppointmentTime, jobWallClockDuration, minuteOfDayInTimeZone, minutesFromTime, ordinalLabel, stopOrdinals } from "./shared";
 import { cleanNoteText } from "@/lib/format";
 import type { EmployeePtoRecord } from "@/lib/scheduling/pto";
 
@@ -24,6 +24,7 @@ function formatDurationShort(minutes: number) {
 export default function HorizontalBoard({
   dayIso,
   todayIso,
+  timezone,
   employees,
   jobs: initialJobs,
   queueOpen,
@@ -31,9 +32,18 @@ export default function HorizontalBoard({
   ptoRecords: _ptoRecords,
   appointments = [],
   staffRoster = [],
+  // Accepted from page.tsx (company settings) but not yet wired into this
+  // board's rendering — WP-1 is server/shared-logic only. WP-2's merged
+  // Board component consumes these to replace the hardcoded START/HOURS
+  // constants above with the real per-company window.
+  workdayStartMinutes: _workdayStartMinutes,
+  workdayEndMinutes: _workdayEndMinutes,
 }: {
   dayIso: string;
   todayIso: string;
+  /** IANA zone the company operates in — the now-line reads the clock in
+   * this zone, not the viewer's own. */
+  timezone: string;
   employees: CalendarEmployee[];
   jobs: CalendarJob[];
   queueOpen: boolean;
@@ -41,6 +51,8 @@ export default function HorizontalBoard({
   ptoRecords: EmployeePtoRecord[];
   appointments?: CalendarAppointment[];
   staffRoster?: StaffRosterMember[];
+  workdayStartMinutes?: number;
+  workdayEndMinutes?: number;
 }) {
   const [detailJobId, setDetailJobId] = useState<string | null>(null);
   const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
@@ -62,13 +74,12 @@ export default function HorizontalBoard({
   const [nowMinutes, setNowMinutes] = useState<number | null>(null);
   useEffect(() => {
     function update() {
-      const now = new Date();
-      setNowMinutes(now.getHours() * 60 + now.getMinutes());
+      setNowMinutes(minuteOfDayInTimeZone(new Date(), timezone));
     }
     update();
     const interval = setInterval(update, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [timezone]);
   const showNowLine = dayIso === todayIso && nowMinutes !== null && nowMinutes >= START && nowMinutes <= START + TOTAL;
   const nowLeftPercent = nowMinutes !== null ? Math.max(0, Math.min(((nowMinutes - START) / TOTAL) * 100, 100)) : 0;
 

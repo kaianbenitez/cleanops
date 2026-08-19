@@ -50,28 +50,34 @@ import TodayListBoard from "./today-list-board";
 import CalendarToolbar from "./calendar-toolbar";
 import CalendarStateSync from "./state-sync";
 import WeekendOrphanBanner from "./weekend-orphan-banner";
-import { categorizeForAttention, employeeColorAt } from "./shared";
+import { categorizeForAttention, DEFAULT_WORKDAY_END_MINUTES, DEFAULT_WORKDAY_START_MINUTES, employeeColorAt } from "./shared";
 import { rotationalTaskForDate } from "@/lib/scheduling/rotational-tasks";
 
 const CALENDAR_STATE_COOKIE = "co_calendar_state";
 
 function readCalendarStateCookie(
   raw: string | undefined,
-): Partial<Record<"view" | "day" | "week" | "month", string>> {
+): Partial<Record<"view" | "axis" | "day" | "week" | "month", string>> {
   if (!raw) return {};
   try {
     const parsed = JSON.parse(decodeURIComponent(raw));
     if (!parsed || typeof parsed !== "object") return {};
-    const result: Partial<Record<"view" | "day" | "week" | "month", string>> =
-      {};
+    const result: Partial<
+      Record<"view" | "axis" | "day" | "week" | "month", string>
+    > = {};
     if (
       parsed.view === "week" ||
       parsed.view === "month" ||
+      parsed.view === "board" ||
+      // Legacy values from before the Board merge — still accepted so the
+      // cookie and old bookmarks survive. Resolved to board+axis below.
       parsed.view === "staff" ||
       parsed.view === "staff_vertical" ||
       parsed.view === "list"
     )
       result.view = parsed.view;
+    if (parsed.axis === "vertical" || parsed.axis === "horizontal")
+      result.axis = parsed.axis;
     if (
       typeof parsed.day === "string" &&
       /^\d{4}-\d{2}-\d{2}$/.test(parsed.day)
@@ -92,6 +98,7 @@ function readCalendarStateCookie(
 
 type SearchParams = {
   view?: string;
+  axis?: string;
   week?: string;
   day?: string;
   month?: string;
@@ -203,14 +210,32 @@ export default async function CalendarPage({
   const savedState = readCalendarStateCookie(
     cookieStore.get(CALENDAR_STATE_COOKIE)?.value,
   );
+  // Canonical view is "board" (crews-as-columns/rows merged behind an axis
+  // toggle); "staff" and "staff_vertical" are accepted legacy aliases so the
+  // cookie and old bookmarks keep resolving. Axis defaults to "vertical",
+  // the old VerticalBoard's geometry, matching the pre-merge default view.
   const effectiveView = sp.view ?? savedState.view;
-  const view =
+  const effectiveAxis = sp.axis ?? savedState.axis;
+  let view: "board" | "week" | "month" | "list";
+  let axis: "vertical" | "horizontal";
+  if (effectiveView === "staff") {
+    view = "board";
+    axis = "vertical";
+  } else if (effectiveView === "staff_vertical") {
+    view = "board";
+    axis = "horizontal";
+  } else if (
     effectiveView === "week" ||
     effectiveView === "month" ||
-    effectiveView === "list"
-      || effectiveView === "staff_vertical"
-      ? effectiveView
-      : "staff";
+    effectiveView === "list" ||
+    effectiveView === "board"
+  ) {
+    view = effectiveView;
+    axis = effectiveAxis === "horizontal" ? "horizontal" : "vertical";
+  } else {
+    view = "board";
+    axis = "vertical";
+  }
   const [company] = await db
     .select({ timezone: companies.timezone, settings: companies.settings })
     .from(companies)
@@ -243,6 +268,29 @@ export default async function CalendarPage({
   const workingDays = configuredWorkingDays.length
     ? configuredWorkingDays
     : [1, 2, 3, 4, 5];
+  // Same defensive-parse-with-default pattern as workingDays/holidays above.
+  // No migration: workdayStartMinutes/workdayEndMinutes are new keys in the
+  // free-form settings jsonb, not a schema change (see settings/route.ts).
+  const rawWorkdayStart = (
+    company.settings as { workdayStartMinutes?: unknown } | null
+  )?.workdayStartMinutes;
+  const rawWorkdayEnd = (
+    company.settings as { workdayEndMinutes?: unknown } | null
+  )?.workdayEndMinutes;
+  const workdayStartMinutes =
+    typeof rawWorkdayStart === "number" &&
+    Number.isInteger(rawWorkdayStart) &&
+    rawWorkdayStart >= 0 &&
+    rawWorkdayStart <= 1439
+      ? rawWorkdayStart
+      : DEFAULT_WORKDAY_START_MINUTES;
+  const workdayEndMinutes =
+    typeof rawWorkdayEnd === "number" &&
+    Number.isInteger(rawWorkdayEnd) &&
+    rawWorkdayEnd > workdayStartMinutes &&
+    rawWorkdayEnd <= 1439
+      ? rawWorkdayEnd
+      : DEFAULT_WORKDAY_END_MINUTES;
 
   const todayIso = todayInTimeZone(new Date(), company.timezone);
   const today = new Date(`${todayIso}T00:00:00.000Z`);
@@ -263,7 +311,7 @@ export default async function CalendarPage({
     : new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
   const month = monthBounds(monthAnchor);
   const days =
-    view === "staff" || view === "staff_vertical" || view === "list"
+    view === "board" || view === "list"
       ? [dayAnchor]
       : view === "month"
         ? []
@@ -428,7 +476,7 @@ export default async function CalendarPage({
       : Promise.resolve([]);
 
   const unassignedRowsQuery =
-    view === "staff" || view === "staff_vertical"
+    view === "board"
       ? buildBaseQuery()
           .where(
             and(
@@ -464,8 +512,13 @@ export default async function CalendarPage({
       ),
     );
 
+  // Needed by both the board's PTO lane rendering (board only) and the
+  // Needs-attention count (board, list, week — see attentionCount below).
+  // Month is deliberately excluded: it never fetches full job rows (see
+  // rowsQuery above), so there is nothing here for PTO to categorize against
+  // and fetching it would be a pure-waste query.
   const ptoRowsQuery =
-    view === "staff" || view === "staff_vertical"
+    view === "board" || view === "list" || view === "week"
       ? listEmployeePto({
           companyId: admin.companyId,
           startDate: start,
@@ -690,6 +743,7 @@ export default async function CalendarPage({
 
   const filterParams: SearchParams = {
     view: sp.view,
+    axis: sp.axis,
     week: sp.week,
     day: sp.day,
     month: sp.month,
@@ -709,7 +763,7 @@ export default async function CalendarPage({
             1,
           ),
         )
-      : view === "staff" || view === "staff_vertical" || view === "list"
+      : view === "board" || view === "list"
         ? addDays(dayAnchor, -1)
         : addDays(weekStart, -7);
   const nextDate =
@@ -721,14 +775,14 @@ export default async function CalendarPage({
             1,
           ),
         )
-      : view === "staff" || view === "staff_vertical" || view === "list"
+      : view === "board" || view === "list"
         ? addDays(dayAnchor, 1)
         : addDays(weekStart, 7);
   const prev = query({
     ...filterParams,
     ...(view === "month"
       ? { month: toISODate(previousDate).slice(0, 7) }
-      : view === "staff" || view === "staff_vertical" || view === "list"
+      : view === "board" || view === "list"
         ? { day: toISODate(previousDate) }
         : { week: toISODate(previousDate) }),
   });
@@ -736,7 +790,7 @@ export default async function CalendarPage({
     ...filterParams,
     ...(view === "month"
       ? { month: toISODate(nextDate).slice(0, 7) }
-      : view === "staff" || view === "staff_vertical" || view === "list"
+      : view === "board" || view === "list"
         ? { day: toISODate(nextDate) }
         : { week: toISODate(nextDate) }),
   });
@@ -744,7 +798,7 @@ export default async function CalendarPage({
     ...filterParams,
     ...(view === "month"
       ? { month: todayIso.slice(0, 7) }
-      : view === "staff" || view === "staff_vertical" || view === "list"
+      : view === "board" || view === "list"
         ? { day: todayIso }
         : { week: toISODate(startOfWeek(today)) }),
   });
@@ -752,7 +806,7 @@ export default async function CalendarPage({
   const currentDate =
     view === "month"
       ? monthAnchor
-      : view === "staff" || view === "staff_vertical" || view === "list"
+      : view === "board" || view === "list"
         ? dayAnchor
         : weekStart;
   const dateLabel =
@@ -762,29 +816,56 @@ export default async function CalendarPage({
           year: "numeric",
           timeZone: "UTC",
         })
-      : view === "staff" || view === "staff_vertical" || view === "list"
+      : view === "board" || view === "list"
         ? formatDayLabel(dayAnchor)
         : `${weekDays[0].toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })} to ${weekDays[weekDays.length - 1].toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`;
   const stateAnchor =
     view === "month"
       ? toISODate(monthAnchor).slice(0, 7)
-      : view === "staff" || view === "staff_vertical" || view === "list"
+      : view === "board" || view === "list"
         ? toISODate(dayAnchor)
         : toISODate(weekStart);
   // Same categorization the Vertical/Horizontal boards use for their
-  // Needs-attention badge, so the toolbar's count never drifts from theirs.
-  // Only computed for the views that fetch ptoRows for this date range.
+  // Needs-attention badge, so the toolbar's count never drifts from theirs —
+  // computed for every view now, not just Board, so the warning doesn't
+  // silently vanish on Day/Week/Month. Reuses whatever this render already
+  // fetched for its own date range; never fetches full job rows just to
+  // produce a count.
   const attentionCount =
-    view === "staff" || view === "staff_vertical"
+    view === "board" || view === "list"
       ? categorizeForAttention(jobsWithAssignments, ptoRows, toISODate(dayAnchor)).length
-      : 0;
+      : view === "week"
+        ? weekDays.reduce((sum, day) => {
+            const dayIso = toISODate(day);
+            const dayJobs = jobsWithAssignments.filter(
+              (job) => job.scheduledDate === dayIso,
+            );
+            return sum + categorizeForAttention(dayJobs, ptoRows, dayIso).length;
+          }, 0)
+        : view === "month"
+          ? // Month never fetches full job rows (see rowsQuery above), so the
+            // closest available signal is the unassigned count already
+            // aggregated per day by monthRowsQuery — narrower than the
+            // unassigned/no-time/conflict union the other views report, but
+            // it costs no additional query.
+            monthRows.reduce((sum, day) => sum + day.unassigned, 0)
+          : 0;
+  // date-picker.tsx's pills/day-selector (calendar-toolbar.tsx's own view
+  // prop) still speak the pre-merge "staff"/"staff_vertical" vocabulary —
+  // rebuilding them onto board+axis is WP-2's job (the actual axis-toggle
+  // Board UI), not this work package's. Translate the canonical view back
+  // to the legacy value those client components already understand so pill
+  // highlighting and the date popover's day-vs-week routing keep working
+  // unchanged.
+  const toolbarView =
+    view === "board" ? (axis === "horizontal" ? "staff_vertical" : "staff") : view;
   return (
     <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
-      <CalendarStateSync view={view} anchor={stateAnchor} />
+      <CalendarStateSync view={view} axis={axis} anchor={stateAnchor} />
       <section className="co-card mx-3 mt-3 overflow-hidden sm:mx-4 lg:mx-5">
       <header className="border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-3 lg:px-5">
         <CalendarToolbar
-          view={view}
+          view={toolbarView}
           currentDate={currentDate}
           dateLabel={dateLabel}
           focusDayIso={toISODate(dayAnchor)}
@@ -822,11 +903,12 @@ export default async function CalendarPage({
             staffRoster={staffRoster}
           />
         ) : null}
-        {view === "staff" ? (
+        {view === "board" && axis === "vertical" ? (
           <VerticalBoard
             dayIso={toISODate(dayAnchor)}
             todayIso={todayIso}
             dayLabel={formatDayLabel(dayAnchor)}
+            timezone={company.timezone}
             employees={employees}
             savedColumnOrder={Array.isArray(
               (company.settings as { staffColumnOrder?: unknown } | null)
@@ -844,12 +926,15 @@ export default async function CalendarPage({
             ptoRecords={ptoRows}
             appointments={appointments}
             staffRoster={staffRoster}
+            workdayStartMinutes={workdayStartMinutes}
+            workdayEndMinutes={workdayEndMinutes}
           />
         ) : null}
-        {view === "staff_vertical" ? (
+        {view === "board" && axis === "horizontal" ? (
           <HorizontalBoard
             dayIso={toISODate(dayAnchor)}
             todayIso={todayIso}
+            timezone={company.timezone}
             employees={employees}
             jobs={displayedJobs}
             queueOpen={sp.queue === "unassigned" || sp.assignment === "unassigned"}
@@ -857,6 +942,8 @@ export default async function CalendarPage({
             ptoRecords={ptoRows}
             appointments={appointments}
             staffRoster={staffRoster}
+            workdayStartMinutes={workdayStartMinutes}
+            workdayEndMinutes={workdayEndMinutes}
           />
         ) : null}
         {view === "month" ? (
@@ -865,6 +952,7 @@ export default async function CalendarPage({
             summaries={monthRows}
             holidays={holidays}
             workingDays={workingDays}
+            boardAxis={axis}
             appointmentCountByDate={Object.fromEntries(appointmentCountByDate)}
           />
         ) : null}

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
+import { CalendarDays } from "lucide-react";
 import type { CalendarDaySummary } from "./page";
 
 export default function MonthBoard({
@@ -9,12 +10,17 @@ export default function MonthBoard({
   summaries,
   holidays,
   workingDays,
+  boardAxis,
   appointmentCountByDate = {},
 }: {
   month: Date;
   summaries: CalendarDaySummary[];
   holidays: string[];
   workingDays: number[];
+  /** The viewer's board axis preference (from the state cookie/query, not
+   * this view), so a day cell returns to Board on the axis they last used
+   * instead of always hardcoding the vertical axis. */
+  boardAxis: "vertical" | "horizontal";
   appointmentCountByDate?: Record<string, number>;
 }) {
   const first = new Date(
@@ -89,7 +95,7 @@ export default function MonthBoard({
           return (
             <Link
               key={iso}
-              href={`/calendar?view=staff&day=${iso}`}
+              href={`/calendar?view=board&axis=${boardAxis}&day=${iso}`}
               className="min-h-[132px] bg-[var(--co-surface)] p-3 transition hover:bg-[var(--co-accent-tint)]/40"
             >
               <div className="flex items-center justify-between">
@@ -102,7 +108,8 @@ export default function MonthBoard({
               </div>
               {appointmentCountByDate[iso] ? (
                 <span className="co-badge-spark mt-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold">
-                  📅 {appointmentCountByDate[iso]} {appointmentCountByDate[iso] === 1 ? "meeting" : "meetings"}
+                  <CalendarDays className="h-3 w-3" strokeWidth={1.75} aria-hidden />
+                  {appointmentCountByDate[iso]} {appointmentCountByDate[iso] === 1 ? "meeting" : "meetings"}
                 </span>
               ) : null}
               <div className="mt-5 space-y-2 text-xs">

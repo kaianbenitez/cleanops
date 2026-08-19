@@ -105,10 +105,26 @@ export function formatAppointmentTime(startTime: string | null, durationMinutes:
   return `${start} – ${clockLabelFromMinutes(startMinutes + durationMinutes)}`;
 }
 
-export const EMPLOYEE_PALETTE = ["#f6ed00", "#f4c542", "#9bd8ad", "#008c99", "#e600d0", "#4ed66c", "#a7c8ef", "#e31b16", "#a899d1", "#d4a500", "#8f9698", "#ff7a00", "#fff3ca", "#f4d5cf", "#b9d8e8", "#5687d8"];
+// Order matters here, not just membership: employeeColorAt() assigns colors
+// by *index* (0, 1, 2, ...) to employees in tenure order, so the first 8
+// entries are the ones that actually get worn side-by-side on a normal-sized
+// crew. They're picked and ordered so every pair among the first 8 is
+// distinguishable at a glance — as a 1px card border and as a 9px lane dot —
+// against both --co-surface (white) and its dark equivalent. The old order
+// put #f6ed00 (yellow, near-invisible on white) and #fff3ca (cream, reads as
+// blank) first, and put the near-identical #f6ed00/#f4c542 next to each
+// other. The weakest colors (pale pastels, the near-duplicate second amber)
+// are pushed to the tail, where they only surface once a company has more
+// than 8 concurrent crews.
+export const EMPLOYEE_PALETTE = ["#008c99", "#e31b16", "#5687d8", "#e600d0", "#4ed66c", "#ff7a00", "#a899d1", "#8f9698", "#d4a500", "#f4c542", "#9bd8ad", "#a7c8ef", "#b9d8e8", "#f4d5cf", "#fff3ca", "#f6ed00"];
 
-export const STAFF_RANGE_START = 9 * 60;
-export const STAFF_RANGE_MINUTES = 9 * 60;
+// The one working window jobs render against on the calendar boards. Replaces
+// three inconsistent hardcoded ranges (vertical-board.tsx's 9am-7pm,
+// horizontal-board.tsx's 7am-7pm, and this file's old 9am-6pm) with a single
+// default that's overridden by the company's saved workdayStartMinutes /
+// workdayEndMinutes setting where present (see settings/calendar/page.tsx).
+export const DEFAULT_WORKDAY_START_MINUTES = 7 * 60;
+export const DEFAULT_WORKDAY_END_MINUTES = 19 * 60;
 
 export function minutesFromTime(value: string | null | undefined) {
   if (!value) return 9 * 60;
@@ -156,13 +172,16 @@ export function employeeColorAt(index: number) {
   return `#${[red, green, blue].map((value) => Math.round((value + match) * 255).toString(16).padStart(2, "0")).join("")}`;
 }
 
+/** Matches the prototype's `.jc` rule: a uniform 1px border tinted from the
+ * crew color plus a faint background tint, both mixed against the current
+ * surface so they hold their contrast in light and dark. Crew identity is
+ * carried by a dot (rendered by the caller), not by a heavier colored edge —
+ * the old 3px `border-left` read as an alert rather than an identity mark. */
 export function employeeCardStyle(id: string | null | undefined) {
   const color = id?.startsWith("#") ? id : employeeColor(id);
   return {
-    backgroundColor: `${color}66`,
-    borderColor: `${color}d9`,
-    borderLeftColor: color,
-    borderLeftWidth: "3px",
+    backgroundColor: `color-mix(in srgb, ${color} 10%, var(--co-surface))`,
+    borderColor: `color-mix(in srgb, ${color} 36%, var(--co-surface))`,
   };
 }
 
@@ -190,6 +209,64 @@ export function jobWallClockDuration(job: { estimatedDurationMinutes: number | n
 export function formatEstimatedTime(minutes: number | null | undefined) {
   if (!minutes) return "Est. pending";
   return `Est. ${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
+/** Whether a job has a real scheduled arrival time. `minutesFromTime(null)`
+ * still returns 9 AM for existing geometry math (kept as-is, see its own
+ * comment) — this helper is how a caller distinguishes "actually at 9 AM"
+ * from "no time yet" so an untimed job can be routed to a tray instead of
+ * being drawn on top of a real 9 AM booking. */
+export function hasArrivalTime(job: { scheduledStartTime: string | null | undefined }): boolean {
+  return job.scheduledStartTime != null;
+}
+
+/** Minute-of-day (0-1439) as read in `timeZone`, not the caller's own clock.
+ * The calendar boards' now-line must track dispatch time (e.g.
+ * America/Chicago), not wherever the admin's laptop happens to be — from
+ * Manila that used to put the line about 13 hours off. `hour12: false` can
+ * report "24" at local midnight on some ICU builds, hence the `% 24`. */
+export function minuteOfDayInTimeZone(date: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const hour = Number(values.hour) % 24;
+  const minute = Number(values.minute);
+  return hour * 60 + minute;
+}
+
+/**
+ * Per-crew capacity for a working window, porting the prototype's corrected
+ * `capacity()` maths exactly: PTO eats into the *working window*
+ * (`windowStart`-`windowEnd`), not directly into the contracted workday, so a
+ * cleaner on leave from noon still shows the morning as available. A
+ * half-day cleaner reads e.g. "4h 30m / 5h" (window minus leave, capped at
+ * the contracted day) — never "/ 1h" (window minus leave with no cap) and
+ * never "/ 8h" (the full contracted day, ignoring the leave entirely).
+ */
+export function capacityForCrew({
+  jobs,
+  pto,
+  workdayMinutes,
+  windowStart,
+  windowEnd,
+}: {
+  jobs: { scheduledStartTime: string | null | undefined; estimatedDurationMinutes: number | null }[];
+  pto: { from: number; to: number } | null;
+  workdayMinutes: number;
+  windowStart: number;
+  windowEnd: number;
+}): { usedMinutes: number; availableMinutes: number; isOver: boolean } {
+  const usedMinutes = jobs
+    .filter((job) => job.scheduledStartTime != null)
+    .reduce((sum, job) => sum + jobDuration(job), 0);
+  const off = pto ? Math.max(Math.min(pto.to, windowEnd) - Math.max(pto.from, windowStart), 0) : 0;
+  const availableMinutes = Math.min(workdayMinutes, windowEnd - windowStart - off);
+  const isOver = availableMinutes > 0 && usedMinutes > availableMinutes;
+  return { usedMinutes, availableMinutes, isOver };
 }
 
 export function jobsOverlap(

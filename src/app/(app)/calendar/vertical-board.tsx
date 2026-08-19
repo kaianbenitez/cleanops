@@ -6,7 +6,7 @@ import type { CalendarAppointment, CalendarEmployee, CalendarJob, StaffRosterMem
 import { commitJobPatch } from "./drag-commit";
 import { UndoToast, useUndoToast } from "./undo-toast";
 import JobCard from "./job-card";
-import { APPOINTMENT_COLOR, APPOINTMENT_COLOR_CANCELLED, assignDayLanes, employeeColor, formatAppointmentTime, formatEstimatedTime, minutesFromTime, ordinalLabel, stopOrdinals } from "./shared";
+import { APPOINTMENT_COLOR, APPOINTMENT_COLOR_CANCELLED, assignDayLanes, employeeColor, formatAppointmentTime, formatEstimatedTime, minuteOfDayInTimeZone, minutesFromTime, ordinalLabel, stopOrdinals } from "./shared";
 import UnassignedPanel from "./unassigned-panel";
 import JobDetailPanel from "./job-detail-panel";
 import AppointmentPanel from "./appointment-panel";
@@ -66,6 +66,7 @@ export default function VerticalBoard({
   dayIso,
   todayIso,
   dayLabel,
+  timezone,
   employees,
   savedColumnOrder,
   laneEmployeeId,
@@ -75,10 +76,19 @@ export default function VerticalBoard({
   ptoRecords,
   appointments = [],
   staffRoster = [],
+  // Accepted from page.tsx (company settings) but not yet wired into this
+  // board's rendering — WP-1 is server/shared-logic only. WP-2's merged
+  // Board component consumes these to replace the hardcoded START/HOURS
+  // constants above with the real per-company window.
+  workdayStartMinutes: _workdayStartMinutes,
+  workdayEndMinutes: _workdayEndMinutes,
 }: {
   dayIso: string;
   todayIso: string;
   dayLabel: string;
+  /** IANA zone the company operates in — the now-line reads the clock in
+   * this zone, not the viewer's own. */
+  timezone: string;
   employees: CalendarEmployee[];
   savedColumnOrder: string[];
   laneEmployeeId?: string;
@@ -88,6 +98,8 @@ export default function VerticalBoard({
   ptoRecords: EmployeePtoRecord[];
   appointments?: CalendarAppointment[];
   staffRoster?: StaffRosterMember[];
+  workdayStartMinutes?: number;
+  workdayEndMinutes?: number;
 }) {
   const router = useRouter();
   const [jobs, setJobs] = useState(initialJobs);
@@ -197,13 +209,12 @@ export default function VerticalBoard({
   const [nowMinutes, setNowMinutes] = useState<number | null>(null);
   useEffect(() => {
     function update() {
-      const now = new Date();
-      setNowMinutes(now.getHours() * 60 + now.getMinutes());
+      setNowMinutes(minuteOfDayInTimeZone(new Date(), timezone));
     }
     update();
     const interval = setInterval(update, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [timezone]);
   const showNowLine = dayIso === todayIso && nowMinutes !== null && nowMinutes >= START && nowMinutes <= START + TOTAL;
   const nowTopPercent = nowMinutes !== null ? Math.max(0, Math.min(((nowMinutes - START) / TOTAL) * 100, 100)) : 0;
 
