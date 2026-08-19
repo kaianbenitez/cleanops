@@ -257,6 +257,8 @@ export default function Board({
   const [resizing, setResizing] = useState<{ jobId: string; startY: number; initialDuration: number; previewDuration: number } | null>(null);
   const [columnOrder, setColumnOrder] = useState(savedColumnOrder);
   const [draggedEmployeeId, setDraggedEmployeeId] = useState<string | null>(null);
+  // Attention-rail drop affordance for the lane->rail unassign gesture below.
+  const [railDropActive, setRailDropActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const { toast, showUndo, dismiss } = useUndoToast();
@@ -592,6 +594,10 @@ export default function Board({
     if (!job || LOCKED_STATUSES.includes(job.status)) return;
 
     const previousEmployees = job.assignedUserIds;
+    // Settled product decision (confirmed 2026-08-20): replacing only the
+    // cleaner whose lane the job was dragged out of — and keeping the rest
+    // of the crew — is the correct behaviour, not a bug to "fix" back to an
+    // additive merge. Do not change this.
     const nextEmployees = sourceEmployeeId
       ? Array.from(new Set(previousEmployees.map((id) => (id === sourceEmployeeId ? employeeId : id))))
       : Array.from(new Set([...previousEmployees, employeeId]));
@@ -628,6 +634,90 @@ export default function Board({
         onError: (message) => {
           setError(message);
           setJobs((current) => current.map((entry) => (entry.id === job.id ? { ...entry, assignedUserIds: previousEmployees, scheduledStartTime: previousTime } : entry)));
+        },
+      },
+    );
+  }
+
+  // Rail -> lane drag ("No crew yet" cards only). Dragstart selects the job
+  // exactly like clicking its rail card would — that's what makes the rest
+  // of this share the click-to-place path instead of duplicating it:
+  // laneDragOver/laneDrop below run through the same selectedJob-driven
+  // laneVerdict/renderGhostAndNote/commitPlacement the click flow already
+  // uses, so a blocked lane refuses the drop and a warn lane still warns,
+  // with the identical ghost (z-2) + note (z-8) affordance.
+  function startRailDrag(event: React.DragEvent<HTMLButtonElement>, job: CalendarJob) {
+    event.dataTransfer.setData("text/plain", job.id);
+    event.dataTransfer.setData("application/x-cleanops-source-rail", "1");
+    event.dataTransfer.effectAllowed = "move";
+    setSelectedJobId(job.id);
+    setPlacement(null);
+  }
+
+  function laneDragOver(event: React.DragEvent<HTMLDivElement>, employeeId: string) {
+    event.preventDefault();
+    setDragOverEmployeeId(employeeId);
+    if (!event.dataTransfer.types.includes("application/x-cleanops-source-rail") || !selectedJob) return;
+    // Untimed job: the hovered position is a placement preview, same as
+    // laneMouseMove for the click path — drag suppresses native mousemove,
+    // so this is the drag equivalent.
+    if (!hasArrivalTime(selectedJob)) {
+      const minutes = minutesFromDragEvent(event);
+      setPlacement((current) => (current && current.employeeId === employeeId && current.minutes === minutes ? current : { employeeId, minutes }));
+    }
+  }
+
+  function laneDrop(event: React.DragEvent<HTMLDivElement>, employeeId: string) {
+    if (event.dataTransfer.types.includes("application/x-cleanops-source-rail")) {
+      event.preventDefault();
+      setDragOverEmployeeId(null);
+      // Untimed job: drop position sets the arrival time (15-minute snap,
+      // same rule as click-to-place). Timed jobs ignore this override —
+      // commitPlacement keeps the job's own scheduledStartTime.
+      commitPlacement(employeeId, minutesFromDragEvent(event));
+      return;
+    }
+    dropOnEmployee(event, employeeId);
+  }
+
+  // Lane -> rail drag: dropping an assigned job onto the attention rail
+  // unassigns it entirely (all crew, not just the dragged-from lane) and it
+  // reappears in "No crew yet". Goes through the same commitJobPatch/undo
+  // path as every other board mutation.
+  function dropOnRail(event: React.DragEvent<HTMLElement>) {
+    event.preventDefault();
+    setRailDropActive(false);
+    const sourceEmployeeId = event.dataTransfer.getData("application/x-cleanops-source-employee") || null;
+    if (!sourceEmployeeId) return;
+    const jobId = event.dataTransfer.getData("text/plain");
+    const job = jobs.find((entry) => entry.id === jobId);
+    if (!job || LOCKED_STATUSES.includes(job.status) || !job.assignedUserIds.length) return;
+
+    const previousAssigned = job.assignedUserIds;
+    setJobs((current) => current.map((entry) => (entry.id === job.id ? { ...entry, assignedUserIds: [] } : entry)));
+    commitJobPatch(
+      job.id,
+      { employeeIds: [] },
+      {
+        onOptimistic: () => undefined,
+        onSuccess: () => {
+          router.refresh();
+          showUndo(`${displayCustomer(job)} unassigned — back in No crew yet`, () =>
+            commitJobPatch(
+              job.id,
+              { employeeIds: previousAssigned },
+              {
+                onOptimistic: () => setJobs((current) => current.map((entry) => (entry.id === job.id ? { ...entry, assignedUserIds: previousAssigned } : entry))),
+                onSuccess: () => router.refresh(),
+                onError: setError,
+              },
+            ),
+          );
+        },
+        onWarning: setWarning,
+        onError: (message) => {
+          setError(message);
+          setJobs((current) => current.map((entry) => (entry.id === job.id ? { ...entry, assignedUserIds: previousAssigned } : entry)));
         },
       },
     );
@@ -730,6 +820,11 @@ export default function Board({
           const lane = job.assignedUserIds.find((id) => laneData.has(id));
           if (lane) event.dataTransfer.setData("application/x-cleanops-source-employee", lane);
           event.dataTransfer.effectAllowed = "move";
+        }}
+        onDragEnd={() => {
+          // Safety net: a drag cancelled outside any drop target (Escape,
+          // released off-window) may skip the rail's own dragleave.
+          setRailDropActive(false);
         }}
         onClick={(event) => {
           if (selectedJobId) {
@@ -1010,7 +1105,27 @@ export default function Board({
         tabIndex={-1}
         aria-label="Needs attention"
         className="co-card sticky top-3 overflow-hidden outline-none"
+        onDragOver={(event) => {
+          if (!event.dataTransfer.types.includes("application/x-cleanops-source-employee")) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          setRailDropActive(true);
+        }}
+        onDragLeave={(event) => {
+          if (event.currentTarget.contains(event.relatedTarget as Node)) return;
+          setRailDropActive(false);
+        }}
+        onDrop={dropOnRail}
       >
+        {railDropActive ? (
+          <div
+            role="presentation"
+            className="pointer-events-none absolute inset-0 z-[20] flex flex-col items-center justify-center gap-1.5 rounded-[inherit] border-2 border-dashed border-[var(--co-danger)] bg-[color-mix(in_srgb,var(--co-danger)_10%,var(--co-surface))]"
+          >
+            <Ban className="h-5 w-5 text-[var(--co-danger)]" aria-hidden strokeWidth={1.75} />
+            <span className="text-[13px] font-bold text-[var(--co-danger)]">Drop to remove the crew</span>
+          </div>
+        ) : null}
         <div className="border-b border-[var(--co-line-soft)] px-[15px] py-[13px] pb-[11px]">
           <div className="flex items-center gap-2 text-[13px] font-bold text-[var(--co-ink)]">
             <AlertCircle className="h-[13px] w-[13px] text-[var(--co-warning)]" aria-hidden strokeWidth={1.75} />
@@ -1031,6 +1146,9 @@ export default function Board({
                 job={job}
                 selected={selectedJobId === job.id}
                 onSelect={() => selectJob(job.id)}
+                draggable
+                onDragStart={(event) => startRailDrag(event, job)}
+                onDragEnd={() => setDragOverEmployeeId(null)}
                 refCallback={(el) => {
                   if (el) railCardRefs.current.set(job.id, el);
                   else railCardRefs.current.delete(job.id);
@@ -1198,12 +1316,9 @@ export default function Board({
                       onFocus={() => laneFocus(employee.id)}
                       onKeyDown={(event) => laneKeyDown(event, employee.id)}
                       onClick={(event) => laneClick(event, employee.id)}
-                      onDragOver={(event) => {
-                        event.preventDefault();
-                        setDragOverEmployeeId(employee.id);
-                      }}
+                      onDragOver={(event) => laneDragOver(event, employee.id)}
                       onDragLeave={() => setDragOverEmployeeId(null)}
-                      onDrop={(event) => dropOnEmployee(event, employee.id)}
+                      onDrop={(event) => laneDrop(event, employee.id)}
                       className={`relative border-r border-[var(--co-line-soft)] outline-none ${dragOverEmployeeId === employee.id ? "bg-[var(--co-accent-tint)]" : ""} ${selectedJob ? "cursor-copy" : ""}`}
                       style={{ height: hours * HOUR_HEIGHT, backgroundImage: "repeating-linear-gradient(to bottom, var(--co-line-soft) 0 1px, transparent 1px 100%)", backgroundSize: `100% ${HOUR_HEIGHT}px` }}
                     >
@@ -1271,12 +1386,9 @@ export default function Board({
                         onFocus={() => laneFocus(employee.id)}
                         onKeyDown={(event) => laneKeyDown(event, employee.id)}
                         onClick={(event) => laneClick(event, employee.id)}
-                        onDragOver={(event) => {
-                          event.preventDefault();
-                          setDragOverEmployeeId(employee.id);
-                        }}
+                        onDragOver={(event) => laneDragOver(event, employee.id)}
                         onDragLeave={() => setDragOverEmployeeId(null)}
-                        onDrop={(event) => dropOnEmployee(event, employee.id)}
+                        onDrop={(event) => laneDrop(event, employee.id)}
                         className={`relative outline-none ${dragOverEmployeeId === employee.id ? "bg-[var(--co-accent-tint)]" : ""} ${selectedJob ? "cursor-copy" : ""}`}
                         style={{ width: hours * HOUR_WIDTH, height: rowHeight, backgroundImage: "repeating-linear-gradient(to right, var(--co-line-soft) 0 1px, transparent 1px 100%)", backgroundSize: `${HOUR_WIDTH}px 100%` }}
                       >
@@ -1355,6 +1467,9 @@ function RailCard({
   selected,
   onSelect,
   refCallback,
+  draggable = false,
+  onDragStart,
+  onDragEnd,
 }: {
   job: CalendarJob;
   crewLabel?: string;
@@ -1362,6 +1477,9 @@ function RailCard({
   selected: boolean;
   onSelect: () => void;
   refCallback: (el: HTMLButtonElement | null) => void;
+  draggable?: boolean;
+  onDragStart?: (event: React.DragEvent<HTMLButtonElement>) => void;
+  onDragEnd?: (event: React.DragEvent<HTMLButtonElement>) => void;
 }) {
   return (
     <button
@@ -1369,7 +1487,12 @@ function RailCard({
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
       className={`relative w-full rounded-[10px] border px-[11px] py-[9px] pb-2.5 text-left shadow-[0_1px_1px_rgba(20,26,46,.03)] transition hover:-translate-y-px hover:border-[var(--co-accent-text)] hover:shadow-[0_1px_2px_rgba(20,26,46,.05),0_8px_24px_-12px_rgba(36,54,104,.22)] ${
+        draggable ? "cursor-grab active:cursor-grabbing" : ""
+      } ${
         selected ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-tint)] shadow-[0_0_0_3px_var(--co-focus-ring)]" : "border-[var(--co-line)] bg-[var(--co-surface)]"
       }`}
     >

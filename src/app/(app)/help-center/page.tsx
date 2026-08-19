@@ -7,6 +7,17 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.67",
+    date: "August 20, 2026",
+    title: "Calendar Board: drag a job onto a crew, or drag it back off",
+    changes: [
+      "Jobs in the \"No crew yet\" list can now be dragged straight onto a crew's lane, not just clicked. It checks the exact same rules as clicking — a crew that's fully booked or on leave still refuses the drop, and a tight-but-possible fit still shows the same warning before you let go.",
+      "Dragging an untimed job onto a lane sets its arrival time to wherever you drop it, snapped to the nearest 15 minutes — the same as setting the time by clicking.",
+      "You can now drag a job off a crew's lane and drop it onto the \"Needs attention\" list to unassign it — the list lights up with a clear \"Drop to remove the crew\" cue while you're dragging over it. Undo brings the crew and time right back.",
+      "Dragging a multi-cleaner job from one crew's lane onto another still swaps out only the crew member whose lane you dragged it from, keeping the rest of the crew in place — that's staying as-is by design.",
+    ],
+  },
+  {
     version: "v0.2.66",
     date: "August 20, 2026",
     title: "Calendar toolbar: four views, a layout switch, and feedback while dates load",
