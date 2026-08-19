@@ -92,10 +92,6 @@ export const users = pgTable("users", {
   // source spreadsheet showed different tier numbers. Verify before relying
   // on this for a real payroll run.
   payTiers: jsonb("pay_tiers"),
-  // Which service location (e.g. Bartlesville vs. Tulsa) this person primarily
-  // works out of. Cleaning techs generally stick to one area rather than
-  // cross-driving between them. Nullable — not every employee has this set.
-  serviceLocationId: uuid("service_location_id").references(() => serviceLocations.id),
   // Storage object path in the private employee-photos bucket.
   profilePhotoUrl: text("profile_photo_url"),
   // Free-form skill/specialty labels shown on the profile, e.g. "Organizer",
@@ -339,9 +335,8 @@ export const serviceLocations = pgTable("service_locations", {
   ...timestamps,
 });
 
-/** Branches an employee may be assigned work in. `users.serviceLocationId`
- * remains their primary/home branch for compatibility; this table represents
- * the operational "Works in" eligibility used by guided booking. */
+/** The service areas an employee may be assigned work in. This is the single
+ * source of truth for dispatch and guided booking. */
 export const employeeServiceLocations = pgTable("employee_service_locations", {
   id: uuid("id").primaryKey().defaultRandom(),
   companyId: uuid("company_id").notNull().references(() => companies.id),
