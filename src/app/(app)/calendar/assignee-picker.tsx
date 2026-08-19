@@ -47,6 +47,12 @@ export default function AssigneePicker({
     }
   }
 
+  function assignFromSearch(employeeId: string) {
+    toggle(employeeId);
+    setQuery("");
+    setOpen(false);
+  }
+
   function makeLead(employeeId: string) {
     if (assignedUserIds[0] === employeeId) return;
     onChange([employeeId, ...assignedUserIds.filter((id) => id !== employeeId)]);
@@ -87,6 +93,13 @@ export default function AssigneePicker({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              const firstMatch = matchingEmployees.find((employee) => !assignedUserIds.includes(employee.id));
+              if (firstMatch) assignFromSearch(firstMatch.id);
+              else setOpen(false);
+            }}
             placeholder="Search cleaners"
             aria-label="Search cleaners"
             autoFocus
@@ -101,7 +114,7 @@ export default function AssigneePicker({
                   <div key={employee.id} className="flex items-center gap-2 rounded-xl px-1.5 py-1 hover:bg-[var(--co-surface-muted)]/70">
                     <button
                       type="button"
-                      onClick={() => toggle(employee.id)}
+                      onClick={() => assignFromSearch(employee.id)}
                       aria-pressed={checked}
                       className="flex flex-1 items-center gap-2 rounded-lg px-1 py-1 text-left text-xs"
                     >

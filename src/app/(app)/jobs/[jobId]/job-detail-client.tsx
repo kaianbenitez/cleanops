@@ -64,6 +64,8 @@ export default function JobDetailClient({
   const [scheduleDate, setScheduleDate] = useState(job.scheduledDate);
   const [scheduleTime, setScheduleTime] = useState(job.scheduledStartTime?.slice(0, 5) ?? "");
   const [scheduleStatus, setScheduleStatus] = useState(job.status);
+  const [draftAssignedIds, setDraftAssignedIds] = useState(() => assignments.map((assignment) => assignment.userId));
+  const [draftTrainerId, setDraftTrainerId] = useState<string | null>(() => assignments.find((assignment) => assignment.role === "trainer")?.userId ?? null);
 
   const refresh = useCallback(() => {
     startTransition(() => router.refresh());
@@ -159,15 +161,19 @@ export default function JobDetailClient({
     setEditingPrice(true);
   }, [job.priceCents]);
 
-  const savePrice = useCallback(async () => {
+  const validatePriceDraft = useCallback(() => {
     const dollars = Number(priceInput);
     if (!Number.isFinite(dollars) || dollars < 0) {
       setPriceEditError("Enter a non-negative dollar amount.");
-      return;
+      return null;
     }
-    const saved = await save({ priceCents: Math.round(dollars * 100) });
-    if (saved) setEditingPrice(false);
-  }, [priceInput, save]);
+    setPriceEditError(null);
+    return Math.round(dollars * 100);
+  }, [priceInput]);
+
+  const finishPriceEdit = useCallback(() => {
+    if (validatePriceDraft() !== null) setEditingPrice(false);
+  }, [validatePriceDraft]);
 
   const beginJthEdit = useCallback(() => {
     const minutes = job.estimatedDurationMinutes ?? 0;
@@ -177,26 +183,50 @@ export default function JobDetailClient({
     setEditingJth(true);
   }, [job.estimatedDurationMinutes]);
 
-  const saveJth = useCallback(async () => {
+  const validateJthDraft = useCallback(() => {
     const match = /^(\d+):([0-5]\d)$/.exec(jthInput.trim());
     const minutes = match ? Number(match[1]) * 60 + Number(match[2]) : Number.NaN;
     if (!Number.isInteger(minutes) || minutes < 15 || minutes > 600) {
       setJthEditError("Enter a duration from 0:15 to 10:00 (HH:MM).");
-      return;
+      return null;
     }
-    const saved = await save({ estimatedDurationMinutes: minutes });
-    if (saved) setEditingJth(false);
-  }, [jthInput, save]);
+    setJthEditError(null);
+    return minutes;
+  }, [jthInput]);
 
+  const finishJthEdit = useCallback(() => {
+    if (validateJthDraft() !== null) setEditingJth(false);
+  }, [validateJthDraft]);
+
+  const savedAssignedIds = assignments.map((assignment) => assignment.userId);
+  const savedTrainerId = assignments.find((assignment) => assignment.role === "trainer")?.userId ?? null;
   const scheduleDirty = scheduleDate !== job.scheduledDate || scheduleTime !== (job.scheduledStartTime?.slice(0, 5) ?? "") || scheduleStatus !== job.status;
-  const saveSchedule = useCallback(async () => {
-    if (!scheduleDirty) return;
+  const assignmentDirty = draftAssignedIds.join(",") !== savedAssignedIds.join(",") || draftTrainerId !== savedTrainerId;
+  const draftPriceCents = Number.isFinite(Number(priceInput)) ? Math.round(Number(priceInput) * 100) : null;
+  const jthMatch = /^(\d+):([0-5]\d)$/.exec(jthInput.trim());
+  const parsedJthMinutes = jthMatch ? Number(jthMatch[1]) * 60 + Number(jthMatch[2]) : Number.NaN;
+  const draftJthMinutes = Number.isInteger(parsedJthMinutes) && parsedJthMinutes >= 15 && parsedJthMinutes <= 600 ? parsedJthMinutes : null;
+  const priceDirty = draftPriceCents !== null && draftPriceCents !== job.priceCents;
+  const jthDirty = draftJthMinutes !== null && draftJthMinutes !== (job.estimatedDurationMinutes ?? 0);
+  const jobDetailsDirty = scheduleDirty || assignmentDirty || priceDirty || jthDirty;
+  const saveJobDetails = useCallback(async () => {
+    if (!jobDetailsDirty) return;
     const fields: Record<string, unknown> = {};
     if (scheduleDate !== job.scheduledDate) fields.scheduledDate = scheduleDate;
     if (scheduleTime !== (job.scheduledStartTime?.slice(0, 5) ?? "")) fields.scheduledStartTime = scheduleTime ? `${scheduleTime}:00` : null;
     if (scheduleStatus !== job.status) fields.status = scheduleStatus;
-    await save(fields);
-  }, [job.scheduledDate, job.scheduledStartTime, job.status, save, scheduleDate, scheduleDirty, scheduleStatus, scheduleTime]);
+    if (assignmentDirty) {
+      fields.employeeIds = draftAssignedIds;
+      fields.trainerId = draftTrainerId;
+    }
+    if (priceDirty && draftPriceCents !== null) fields.priceCents = draftPriceCents;
+    if (jthDirty && draftJthMinutes !== null) fields.estimatedDurationMinutes = draftJthMinutes;
+    const saved = await save(fields);
+    if (saved) {
+      setEditingPrice(false);
+      setEditingJth(false);
+    }
+  }, [assignmentDirty, draftAssignedIds, draftJthMinutes, draftPriceCents, draftTrainerId, job.estimatedDurationMinutes, job.priceCents, job.scheduledDate, job.scheduledStartTime, job.status, jobDetailsDirty, jthDirty, priceDirty, save, scheduleDate, scheduleStatus, scheduleTime]);
 
   const serviceProgress = job.status === "completed" ? 100 : job.status === "in_progress" ? 62 : timeEntries.length > 0 ? 35 : 0;
   const serviceSteps = [
@@ -314,13 +344,13 @@ export default function JobDetailClient({
                 {editingPrice ? (
                   <form
                     className="flex flex-col items-end gap-1"
-                    onSubmit={(event) => { event.preventDefault(); void savePrice(); }}
+                    onSubmit={(event) => { event.preventDefault(); finishPriceEdit(); }}
                   >
                     <label className="text-xs text-[var(--co-muted)]" htmlFor="job-price">Price charged</label>
                     <div className="flex items-center gap-1">
                       <span className="text-sm font-semibold text-[var(--co-accent-text)]">$</span>
                       <input id="job-price" aria-invalid={Boolean(priceEditError)} type="number" min="0" step="0.01" value={priceInput} onChange={(event) => setPriceInput(event.target.value)} onFocus={(event) => event.target.select()} className="co-input w-24 py-1 text-sm" autoFocus disabled={saving} />
-                      <button type="submit" disabled={saving} className="co-button-secondary px-2 py-1 text-xs disabled:opacity-50">Save</button>
+                      <button type="submit" disabled={saving} className="co-button-secondary px-2 py-1 text-xs disabled:opacity-50">Done</button>
                       <button type="button" disabled={saving} onClick={() => { setEditingPrice(false); setPriceEditError(null); }} className="co-button-secondary px-2 py-1 text-xs disabled:opacity-50">Cancel</button>
                     </div>
                     {priceEditError ? <p role="alert" className="max-w-48 text-right text-xs text-[var(--co-danger)]">{priceEditError}</p> : null}
@@ -358,11 +388,11 @@ export default function JobDetailClient({
               <div className="col-span-2 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-3">
                 <p className="text-xs text-[var(--co-muted)]">Job Ticket Hours</p>
                 {editingJth ? (
-                  <form className="mt-1" onSubmit={(event) => { event.preventDefault(); void saveJth(); }}>
+                  <form className="mt-1" onSubmit={(event) => { event.preventDefault(); finishJthEdit(); }}>
                     <label className="sr-only" htmlFor="job-ticket-hours">Job Ticket Hours in hours and minutes</label>
                     <div className="flex flex-wrap items-center gap-2">
                       <input id="job-ticket-hours" aria-invalid={Boolean(jthEditError)} aria-describedby={jthEditError ? "job-ticket-hours-error" : undefined} type="text" inputMode="numeric" pattern="\\d+:\\d{2}" value={jthInput} onChange={(event) => setJthInput(event.target.value)} placeholder="HH:MM" className="co-input w-24 py-1 text-sm" autoFocus disabled={saving} />
-                      <button type="submit" disabled={saving} className="co-button-secondary px-2 py-1 text-xs disabled:opacity-50">Save</button>
+                      <button type="submit" disabled={saving} className="co-button-secondary px-2 py-1 text-xs disabled:opacity-50">Done</button>
                       <button type="button" disabled={saving} onClick={() => { setEditingJth(false); setJthEditError(null); }} className="co-button-secondary px-2 py-1 text-xs disabled:opacity-50">Cancel</button>
                     </div>
                     {jthEditError ? <p id="job-ticket-hours-error" role="alert" className="mt-1 text-xs text-[var(--co-danger)]">{jthEditError}</p> : <p className="mt-1 text-xs text-[var(--co-muted)]">Use HH:MM, from 0:15 to 10:00.</p>}
@@ -395,8 +425,12 @@ export default function JobDetailClient({
             employees={employees}
             assignments={assignments}
             assignedEmployees={assignedEmployees}
-            saving={saving}
-            onSave={(employeeIds, trainerId) => save({ employeeIds, trainerId })}
+            selectedIds={draftAssignedIds}
+            trainerId={draftTrainerId}
+            onDraftChange={(employeeIds, trainerId) => {
+              setDraftAssignedIds(employeeIds);
+              setDraftTrainerId(trainerId);
+            }}
           />
 
           <section className={CARD_CLASS}>
@@ -544,10 +578,10 @@ export default function JobDetailClient({
               </select>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
-              <button type="button" disabled={saving || !scheduleDirty} onClick={() => void saveSchedule()} className="co-button-primary disabled:opacity-50">
-                {saving ? "Saving…" : "Save schedule changes"}
+              <button type="button" disabled={saving || !jobDetailsDirty} onClick={() => void saveJobDetails()} className="co-button-primary disabled:opacity-50">
+                {saving ? "Saving…" : "Save changes"}
               </button>
-              {scheduleDirty ? <button type="button" disabled={saving} onClick={() => { setScheduleDate(job.scheduledDate); setScheduleTime(job.scheduledStartTime?.slice(0, 5) ?? ""); setScheduleStatus(job.status); }} className="co-button-secondary disabled:opacity-50">Discard changes</button> : null}
+              {jobDetailsDirty ? <button type="button" disabled={saving} onClick={() => { setScheduleDate(job.scheduledDate); setScheduleTime(job.scheduledStartTime?.slice(0, 5) ?? ""); setScheduleStatus(job.status); setDraftAssignedIds(savedAssignedIds); setDraftTrainerId(savedTrainerId); setPriceInput((job.priceCents / 100).toFixed(2)); setJthInput(`${Math.floor((job.estimatedDurationMinutes ?? 0) / 60)}:${String((job.estimatedDurationMinutes ?? 0) % 60).padStart(2, "0")}`); setPriceEditError(null); setJthEditError(null); setEditingPrice(false); setEditingJth(false); }} className="co-button-secondary disabled:opacity-50">Discard changes</button> : null}
             </div>
           </section>
 

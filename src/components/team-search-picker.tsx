@@ -47,6 +47,7 @@ export default function TeamSearchPicker({
   function add(employeeId: string) {
     onChange([...selectedIds, employeeId]);
     setQuery("");
+    setOpen(false);
   }
 
   function remove(employeeId: string) {
@@ -61,7 +62,9 @@ export default function TeamSearchPicker({
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter") {
       event.preventDefault();
-      if (matches[0]) add(matches[0].id);
+      const firstUnassignedMatch = matches.find((employee) => !selectedIds.includes(employee.id));
+      if (firstUnassignedMatch) add(firstUnassignedMatch.id);
+      else setOpen(false);
     } else if (event.key === "Backspace" && !query && selectedIds.length) {
       remove(selectedIds[selectedIds.length - 1]);
     } else if (event.key === "Escape") {
@@ -96,9 +99,9 @@ export default function TeamSearchPicker({
         value={query}
         onChange={(event) => {
           setQuery(event.target.value);
-          setOpen(true);
+          setOpen(event.target.value.trim().length > 0);
         }}
-        onFocus={() => setOpen(true)}
+        onFocus={() => setOpen(query.trim().length > 0)}
         onKeyDown={onKeyDown}
         placeholder={placeholder}
         className="co-input w-full"

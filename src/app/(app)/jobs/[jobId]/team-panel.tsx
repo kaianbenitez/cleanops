@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Phone } from "lucide-react";
 import TeamSearchPicker from "@/components/team-search-picker";
 import { CARD_CLASS, type Assignment, type Employee } from "./types";
@@ -8,27 +7,24 @@ import { CARD_CLASS, type Assignment, type Employee } from "./types";
 /**
  * Assigned crew for a job, plus the picker that changes it.
  *
- * The picker holds a *draft* selection that only reaches the server on "Save
- * team". The parent remounts this component (via `key`) whenever the saved
- * assignments change, which resets the draft back to server truth — no effect
- * syncing props into state.
+ * The picker holds a draft selection. The parent owns the single save action
+ * for the whole job-details edit.
  */
 export default function TeamPanel({
   employees,
   assignments,
   assignedEmployees,
-  saving,
-  onSave,
+  selectedIds,
+  trainerId,
+  onDraftChange,
 }: {
   employees: Employee[];
   assignments: Assignment[];
   assignedEmployees: Employee[];
-  saving: boolean;
-  onSave: (employeeIds: string[], trainerId: string | null) => void;
+  selectedIds: string[];
+  trainerId: string | null;
+  onDraftChange: (employeeIds: string[], trainerId: string | null) => void;
 }) {
-  const [selectedIds, setSelectedIds] = useState<string[]>(() => assignments.map((assignment) => assignment.userId));
-  const [trainerId, setTrainerId] = useState<string | null>(() => assignments.find((assignment) => assignment.role === "trainer")?.userId ?? null);
-
   return (
     <section id="assignment" className={CARD_CLASS}>
       <div className="flex items-center justify-between gap-3">
@@ -78,17 +74,14 @@ export default function TeamPanel({
       <details className="mt-4 rounded-xl border border-[var(--co-line-soft)] p-3">
         <summary className="cursor-pointer text-sm font-semibold text-[var(--co-accent-text)]">Manage assignment</summary>
         <div className="mt-3">
-          <TeamSearchPicker employees={employees} selectedIds={selectedIds} onChange={setSelectedIds} />
+          <TeamSearchPicker employees={employees} selectedIds={selectedIds} onChange={(ids) => onDraftChange(ids, trainerId)} />
         </div>
         <label className="mt-3 block text-xs font-semibold text-[var(--co-muted)]">Trainer (optional)
-          <select value={trainerId ?? ""} onChange={(event) => setTrainerId(event.target.value || null)} className="co-input mt-1 w-full">
+          <select value={trainerId ?? ""} onChange={(event) => onDraftChange(selectedIds, event.target.value || null)} className="co-input mt-1 w-full">
             <option value="">No trainer assigned</option>
             {assignedEmployees.filter((employee) => employee.id !== selectedIds[0]).map((employee) => <option key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}</option>)}
           </select>
         </label>
-        <button type="button" disabled={saving} onClick={() => onSave(selectedIds, trainerId)} className="co-button-primary mt-3">
-          {saving ? "Saving..." : "Save team"}
-        </button>
       </details>
     </section>
   );
