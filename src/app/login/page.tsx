@@ -87,7 +87,9 @@ export default function LoginPage() {
               className="co-input w-full py-3"
               placeholder="Your password"
             />
-            <span className="mt-2 block text-xs text-[var(--co-muted)]">Your browser can save this login for next time.</span>
+            <span className="mt-2 block text-xs leading-5 text-[var(--co-muted)]">
+              You&apos;ll stay signed in on this device until you choose Sign out. On iPhone, open Shimmer from the same Safari tab or Home Screen icon each day.
+            </span>
           </label>
 
           {error ? (
