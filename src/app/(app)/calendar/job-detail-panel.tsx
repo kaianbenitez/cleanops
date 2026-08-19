@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatEstimatedTime, TYPE_LABELS } from "./shared";
+import { formatEstimatedTime, jobTypeLabel } from "./shared";
 import { StatusPill } from "@/components/ui/status-pill";
 import { DateInput } from "@/components/date-input";
 import { TimeInput } from "@/components/time-input";
@@ -17,6 +17,7 @@ type Employee = { id: string; firstName: string; lastName: string };
 type JobDetail = {
   id: string;
   type: string;
+  recurrenceFrequency: string | null;
   status: string;
   scheduledDate: string;
   scheduledStartTime: string | null;
@@ -186,7 +187,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
 
             <div className="flex flex-wrap items-center gap-2">
               <StatusPill domain="job" status={job.status} />
-              <span className="text-xs text-[var(--co-muted)]">{TYPE_LABELS[job.type] ?? job.type}</span>
+              <span className="text-xs text-[var(--co-muted)]">{jobTypeLabel(job)}</span>
               {saving ? <span className="text-xs text-[var(--co-muted)]">Saving...</span> : null}
             </div>
 

@@ -192,7 +192,18 @@ export function displayCustomer(job: { customerFirstName: string; customerLastNa
 export function recurrenceLabel(value: string | null | undefined) {
   if (!value || value === "none") return "One-time";
   if (value === "every4weeks") return "Every 4 weeks";
+  if (value === "biweekly") return "Bi-weekly";
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+/** Cards show the customer's actual cadence (Weekly, Bi-weekly, Every 4
+ * weeks, Monthly) instead of the generic "Recurring" job type — matches the
+ * My Day convention (recurringFrequencyLabel in lib/my-day/job-format.ts). */
+export function jobTypeLabel(job: { type: string; recurrenceFrequency?: string | null }) {
+  if (job.type === "recurring" && job.recurrenceFrequency && job.recurrenceFrequency !== "none") {
+    return recurrenceLabel(job.recurrenceFrequency);
+  }
+  return TYPE_LABELS[job.type] ?? job.type;
 }
 
 export function jobDuration(job: { estimatedDurationMinutes: number | null }) {
