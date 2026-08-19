@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   const startDate = input.startDate ?? today(); const endDate = input.endDate ?? plusDays(startDate, 28);
   if (endDate < startDate) return NextResponse.json({ error: "End date must be on or after start date." }, { status: 400 });
   const [staff, eligibility, pto, jobRows, jobAssignmentRows, eventRows, eventAssignmentRows] = await Promise.all([
-    db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, isActive: users.isActive, isFieldStaff: users.isFieldStaff }).from(users).where(and(eq(users.companyId, admin.companyId), eq(users.isActive, true), isFieldEligible)),
+    db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, role: users.role, isActive: users.isActive, isFieldStaff: users.isFieldStaff }).from(users).where(and(eq(users.companyId, admin.companyId), eq(users.isActive, true), isFieldEligible)),
     db.select({ userId: employeeServiceLocations.userId, serviceLocationId: employeeServiceLocations.serviceLocationId }).from(employeeServiceLocations).where(eq(employeeServiceLocations.companyId, admin.companyId)),
     db.select().from(employeePto).where(and(eq(employeePto.companyId, admin.companyId), lte(employeePto.startDate, endDate), gte(employeePto.endDate, startDate))),
     db.select({ id: jobs.id, scheduledDate: jobs.scheduledDate, scheduledStartTime: jobs.scheduledStartTime, estimatedDurationMinutes: jobs.estimatedDurationMinutes, status: jobs.status }).from(jobs).where(and(eq(jobs.companyId, admin.companyId), gte(jobs.scheduledDate, startDate), lte(jobs.scheduledDate, endDate))),
@@ -44,6 +44,11 @@ export async function POST(req: NextRequest) {
   const assignmentsByJob = new Map<string, string[]>(); jobAssignmentRows.forEach((row) => assignmentsByJob.set(row.jobId, [...(assignmentsByJob.get(row.jobId) ?? []), row.userId]));
   const assignmentsByEvent = new Map<string, string[]>(); eventAssignmentRows.forEach((row) => assignmentsByEvent.set(row.eventId, [...(assignmentsByEvent.get(row.eventId) ?? []), row.userId]));
   const totalJthMinutes = estimateDurationMinutesFromPrice(pricing.finalCents, quoteRow.hourlyRateCents);
-  const recommendations = getSchedulingRecommendations({ startDate, endDate, serviceLocationId: quoteRow.quote.serviceLocationId!, serviceType, totalJthMinutes, preferredWindow: input.preferredWindow, employees: staff.map((employee) => ({ ...employee, serviceLocationIds: idsByUser.get(employee.id) ?? [] })), pto, jobs: jobRows.map((job) => ({ ...job, assignedUserIds: assignmentsByJob.get(job.id) ?? [] })), calendarEvents: eventRows.map((event) => ({ ...event, attendeeUserIds: assignmentsByEvent.get(event.id) ?? [] })), settings: parseSchedulingSettings((company?.settings as Record<string, unknown> | null) ?? {}) });
+  const recommendations = getSchedulingRecommendations({ startDate, endDate, serviceLocationId: quoteRow.quote.serviceLocationId!, serviceType, totalJthMinutes, preferredWindow: input.preferredWindow, employees: staff.map((employee) => ({
+    ...employee,
+    // isFieldEligible includes every employee role; normalize that for the recommendation engine.
+    isFieldStaff: employee.role === "employee" || employee.isFieldStaff,
+    serviceLocationIds: idsByUser.get(employee.id) ?? [],
+  })), pto, jobs: jobRows.map((job) => ({ ...job, assignedUserIds: assignmentsByJob.get(job.id) ?? [] })), calendarEvents: eventRows.map((event) => ({ ...event, attendeeUserIds: assignmentsByEvent.get(event.id) ?? [] })), settings: parseSchedulingSettings((company?.settings as Record<string, unknown> | null) ?? {}) });
   return NextResponse.json({ quoteId: quoteRow.quote.id, serviceType, serviceLocationId: quoteRow.quote.serviceLocationId, totalJthMinutes, eligibleEmployees: staff.filter((employee) => (idsByUser.get(employee.id) ?? []).includes(quoteRow.quote.serviceLocationId!)).map(({ id, firstName, lastName }) => ({ id, firstName, lastName })), recommendations });
 }

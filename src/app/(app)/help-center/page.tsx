@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.68",
+    date: "August 20, 2026",
+    title: "Quote availability now includes the full field team",
+    changes: [
+      "Fixed Check availability on quotes so active employees assigned to the selected service area are included alongside field-enabled admins.",
+    ],
+  },
+  {
     version: "v0.2.67",
     date: "August 20, 2026",
     title: "Calendar Board: drag a job onto a crew, or drag it back off",
