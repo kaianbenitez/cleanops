@@ -18,6 +18,11 @@ export function hasFieldAccess(user: Pick<CurrentUser, "role" | "isFieldStaff">)
   return user.role === "employee" || (user.role === "admin" && user.isFieldStaff);
 }
 
+/** True only for admins who also work in the field and can switch surfaces. */
+export function isHybridEmployee(user: Pick<CurrentUser, "role" | "isFieldStaff">) {
+  return user.role === "admin" && user.isFieldStaff;
+}
+
 export function hasAdminAccess(user: Pick<CurrentUser, "role">) {
   return user.role === "admin";
 }
