@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState, useTransition } from "react";
-import { ArrowLeft, CalendarClock, Check, CircleUserRound, Mail, MapPin, Pencil, Phone, Send, UserPlus, XCircle } from "lucide-react";
-import { StatusPill, statusOptions } from "@/components/ui/status-pill";
+import { CircleUserRound, Mail, MapPin, Pencil, Phone, Send, XCircle } from "lucide-react";
+import { statusOptions } from "@/components/ui/status-pill";
 import { formatDisplayDate } from "@/lib/scheduling/dates";
 import HandoffPanel from "./handoff-panel";
 import JobPhotos from "./job-photos";
@@ -226,66 +226,21 @@ export default function JobDetailClient({
       setEditingPrice(false);
       setEditingJth(false);
     }
-  }, [assignmentDirty, draftAssignedIds, draftJthMinutes, draftPriceCents, draftTrainerId, job.estimatedDurationMinutes, job.priceCents, job.scheduledDate, job.scheduledStartTime, job.status, jobDetailsDirty, jthDirty, priceDirty, save, scheduleDate, scheduleStatus, scheduleTime]);
-
-  const serviceProgress = job.status === "completed" ? 100 : job.status === "in_progress" ? 62 : timeEntries.length > 0 ? 35 : 0;
-  const serviceSteps = [
-    { label: "Arrival & access", detail: "Confirm arrival, access, and home notes.", done: job.status !== "scheduled" },
-    { label: `${job.serviceName ?? TYPE_LABELS[job.type] ?? job.type} service`, detail: "Complete the quoted cleaning scope.", done: job.status === "completed" },
-    { label: "Close-out & photos", detail: "Add service notes and photos before handoff.", done: job.status === "completed" && Boolean(job.completionNotes) },
-  ];
-
-  function scrollTo(id: string) {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }
+  }, [assignmentDirty, draftAssignedIds, draftJthMinutes, draftPriceCents, draftTrainerId, job.scheduledDate, job.scheduledStartTime, job.status, jobDetailsDirty, jthDirty, priceDirty, save, scheduleDate, scheduleStatus, scheduleTime]);
 
   return (
     <div className="-mx-4 -mt-6 min-h-[100dvh] bg-[var(--co-bg)] pb-10 sm:-mx-6 lg:-mx-8">
-      <header className="sticky top-0 z-20 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)]/95 px-5 py-3 backdrop-blur sm:px-8">
-        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <Link href="/jobs" aria-label="Back to jobs" className="rounded-lg p-2 text-[var(--co-ink)] transition hover:bg-[var(--co-surface-muted)]">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <span className="text-lg font-bold tracking-[-0.03em]">Job #{job.id.slice(0, 8).toUpperCase()}</span>
-            <StatusPill domain="job" status={job.status} />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => scrollTo("assignment")} className="co-button-secondary">
-              <UserPlus className="h-4 w-4" /> Reassign
-            </button>
-            <button type="button" onClick={() => scrollTo("schedule")} className="co-button-secondary">
-              <CalendarClock className="h-4 w-4" /> Reschedule
-            </button>
-            {job.status === "cancelled" ? null : (
-              <button type="button" disabled={saving} onClick={createInvoice} className="co-button-secondary">
-                Create draft invoice
-              </button>
-            )}
-            {job.status === "cancelled" ? null : confirmingCancel ? (
-              <div className="co-badge-danger w-full space-y-2 rounded-lg p-3 sm:w-[22rem]">
-                <label className="block text-xs font-semibold">
-                  Cancellation reason
-                  <textarea value={cancellationReason} onChange={(event) => setCancellationReason(event.target.value)} rows={2} placeholder="Why is this job being cancelled?" className="co-input mt-1 w-full resize-none" />
-                </label>
-                <div className="flex gap-2">
-                  <button type="button" disabled={saving} onClick={() => { setConfirmingCancel(false); setCancellationReason(""); }} className="co-button-secondary py-1 text-xs disabled:opacity-50">Keep job</button>
-                  <button type="button" disabled={saving || !cancellationReason.trim()} onClick={cancelJob} className="rounded-lg border border-[var(--co-danger)]/30 bg-[var(--co-danger)]/10 px-3 py-1 text-xs font-semibold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/20 disabled:opacity-50">Confirm cancel</button>
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => setConfirmingCancel(true)}
-                className="co-button-secondary !border-[var(--co-danger)]/30 !text-[var(--co-danger)] hover:!bg-[var(--co-danger)]/10"
-              >
-                <XCircle className="h-4 w-4" /> Cancel
-              </button>
-            )}
-          </div>
+      <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-3 px-5 pb-1 pt-5 sm:px-8">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Job details</p>
+          <h1 className="mt-1 text-xl font-bold">{job.customerFirstName} {job.customerLastName}</h1>
         </div>
-      </header>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" disabled={saving} onClick={createInvoice} className="co-button-secondary">Create invoice</button>
+          <button type="button" disabled={saving || !jobDetailsDirty} onClick={() => void saveJobDetails()} className="co-button-primary disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button>
+          {job.status === "cancelled" ? null : <button type="button" disabled={saving} onClick={() => setConfirmingCancel(true)} className="co-button-secondary !border-[var(--co-danger)]/30 !text-[var(--co-danger)] hover:!bg-[var(--co-danger)]/10"><XCircle className="h-4 w-4" /> Cancel job</button>}
+        </div>
+      </div>
 
       <main className="mx-auto grid max-w-[1500px] gap-6 px-5 py-7 xl:grid-cols-[290px_minmax(0,1fr)_280px] sm:px-8">
         <aside className="space-y-6">
@@ -386,10 +341,10 @@ export default function JobDetailClient({
                 <p className="mt-1 font-semibold">{job.scheduledStartTime?.slice(0, 5) ?? "Unscheduled"}</p>
               </div>
               <div className="col-span-2 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-3">
-                <p className="text-xs text-[var(--co-muted)]">Job Ticket Hours</p>
+                <p className="text-xs text-[var(--co-muted)]">Duration</p>
                 {editingJth ? (
                   <form className="mt-1" onSubmit={(event) => { event.preventDefault(); finishJthEdit(); }}>
-                    <label className="sr-only" htmlFor="job-ticket-hours">Job Ticket Hours in hours and minutes</label>
+                    <label className="sr-only" htmlFor="job-ticket-hours">Duration in hours and minutes</label>
                     <div className="flex flex-wrap items-center gap-2">
                       <input id="job-ticket-hours" aria-invalid={Boolean(jthEditError)} aria-describedby={jthEditError ? "job-ticket-hours-error" : undefined} type="text" inputMode="numeric" pattern="\\d+:\\d{2}" value={jthInput} onChange={(event) => setJthInput(event.target.value)} placeholder="HH:MM" className="co-input w-24 py-1 text-sm" autoFocus disabled={saving} />
                       <button type="submit" disabled={saving} className="co-button-secondary px-2 py-1 text-xs disabled:opacity-50">Done</button>
@@ -401,7 +356,7 @@ export default function JobDetailClient({
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <p className="font-semibold">{formatEstimatedTime(job.estimatedDurationMinutes)}</p>
                     {job.jthManualOverride ? <span className="rounded border border-[var(--co-line)] px-1.5 py-0.5 text-xs text-[var(--co-muted)]">Manually set</span> : null}
-                    <button type="button" aria-label="Edit Job Ticket Hours" disabled={saving} onClick={beginJthEdit} className="rounded p-1 text-[var(--co-accent-text)] hover:bg-[var(--co-surface-muted)] disabled:opacity-50">
+                    <button type="button" aria-label="Edit duration" disabled={saving} onClick={beginJthEdit} className="rounded p-1 text-[var(--co-accent-text)] hover:bg-[var(--co-surface-muted)] disabled:opacity-50">
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                   </div>
@@ -434,36 +389,6 @@ export default function JobDetailClient({
           />
 
           <section className={CARD_CLASS}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="font-semibold">Cleaning checklist</h2>
-                <p className="mt-1 text-xs text-[var(--co-muted)]">Live job progress from the service status.</p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-[var(--co-accent-text)]">{serviceProgress}%</p>
-                <p className="text-xs text-[var(--co-muted)]">Complete</p>
-              </div>
-            </div>
-            <div className="mt-5 h-2 overflow-hidden rounded-full bg-[var(--co-surface-muted-2)]">
-              <div className="h-full bg-[var(--co-accent-fill)] transition-all" style={{ width: `${serviceProgress}%` }} />
-            </div>
-            <div className="mt-5 space-y-4">
-              {serviceSteps.map((step) => (
-                <div key={step.label} className={`flex gap-3 rounded-xl p-3 ${step.done ? "bg-[var(--co-surface-muted)]" : ""}`}>
-                  <span
-                    className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded ${
-                      step.done ? "bg-[var(--co-accent-fill)] text-white" : "border border-[var(--co-line)] bg-[var(--co-surface)]"
-                    }`}
-                  >
-                    {step.done ? <Check className="h-3.5 w-3.5" /> : null}
-                  </span>
-                  <div>
-                    <p className={`font-semibold ${step.done ? "line-through decoration-[var(--co-faint)]" : ""}`}>{step.label}</p>
-                    <p className="mt-0.5 text-sm text-[var(--co-muted)]">{step.detail}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
             <details className="mt-5 rounded-xl border border-[var(--co-line-soft)] p-3">
               <summary className="cursor-pointer text-sm font-semibold text-[var(--co-accent-text)]">Add close-out notes</summary>
               <textarea
@@ -577,10 +502,7 @@ export default function JobDetailClient({
                 ))}
               </select>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button type="button" disabled={saving || !jobDetailsDirty} onClick={() => void saveJobDetails()} className="co-button-primary disabled:opacity-50">
-                {saving ? "Saving…" : "Save changes"}
-              </button>
+            <div className="mt-3">
               {jobDetailsDirty ? <button type="button" disabled={saving} onClick={() => { setScheduleDate(job.scheduledDate); setScheduleTime(job.scheduledStartTime?.slice(0, 5) ?? ""); setScheduleStatus(job.status); setDraftAssignedIds(savedAssignedIds); setDraftTrainerId(savedTrainerId); setPriceInput((job.priceCents / 100).toFixed(2)); setJthInput(`${Math.floor((job.estimatedDurationMinutes ?? 0) / 60)}:${String((job.estimatedDurationMinutes ?? 0) % 60).padStart(2, "0")}`); setPriceEditError(null); setJthEditError(null); setEditingPrice(false); setEditingJth(false); }} className="co-button-secondary disabled:opacity-50">Discard changes</button> : null}
             </div>
           </section>
@@ -662,6 +584,23 @@ export default function JobDetailClient({
             <button type="button" onClick={() => setError(null)} className="shrink-0 font-semibold hover:underline">
               Dismiss
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {confirmingCancel ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" role="dialog" aria-modal="true" aria-labelledby="cancel-job-title">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-5 shadow-[0_20px_70px_rgba(15,23,20,0.25)]">
+            <h2 id="cancel-job-title" className="text-lg font-semibold">Cancel this job?</h2>
+            <p className="mt-1 text-sm text-[var(--co-muted)]">Add a reason so the team knows why this job was cancelled.</p>
+            <label className="mt-4 block text-xs font-semibold text-[var(--co-muted)]">
+              Cancellation reason
+              <textarea autoFocus value={cancellationReason} onChange={(event) => setCancellationReason(event.target.value)} rows={3} placeholder="Why is this job being cancelled?" className="co-input mt-1 w-full resize-none" />
+            </label>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" disabled={saving} onClick={() => { setConfirmingCancel(false); setCancellationReason(""); }} className="co-button-secondary">Keep job</button>
+              <button type="button" disabled={saving || !cancellationReason.trim()} onClick={cancelJob} className="rounded-lg border border-[var(--co-danger)]/30 bg-[var(--co-danger)]/10 px-3 py-2 text-xs font-semibold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/20 disabled:opacity-50">Confirm cancel</button>
+            </div>
           </div>
         </div>
       ) : null}

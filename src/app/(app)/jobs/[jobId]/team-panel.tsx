@@ -71,8 +71,8 @@ export default function TeamPanel({
         )}
       </div>
 
-      <details className="mt-4 rounded-xl border border-[var(--co-line-soft)] p-3">
-        <summary className="cursor-pointer text-sm font-semibold text-[var(--co-accent-text)]">Manage assignment</summary>
+      <div className="mt-4 border-t border-[var(--co-line-soft)] pt-4">
+        <p className="text-sm font-semibold text-[var(--co-accent-text)]">Assign technicians</p>
         <div className="mt-3">
           <TeamSearchPicker employees={employees} selectedIds={selectedIds} onChange={(ids) => onDraftChange(ids, trainerId)} />
         </div>
@@ -82,7 +82,7 @@ export default function TeamPanel({
             {assignedEmployees.filter((employee) => employee.id !== selectedIds[0]).map((employee) => <option key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}</option>)}
           </select>
         </label>
-      </details>
+      </div>
     </section>
   );
 }

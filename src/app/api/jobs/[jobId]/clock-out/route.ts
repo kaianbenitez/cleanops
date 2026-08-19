@@ -110,7 +110,7 @@ export async function POST(
     const customerName = `${job.customerFirstName} ${job.customerLastName}`;
     if (completion) {
       await ensureFeedbackRequest({ companyId: user.companyId, jobId, origin: req.url });
-      await notifyAdmins({ companyId: user.companyId, type: "job.completed", title: "Job completed", body: customerName, href: `/jobs/${jobId}`, customerId: job.customerId });
+      await notifyAdmins({ companyId: user.companyId, type: "job.completed", title: `Job completed by ${user.firstName} ${user.lastName}`, body: customerName, href: `/jobs/${jobId}`, customerId: job.customerId });
     }
     if (cleanerNotes) {
       await notifyAdmins({ companyId: user.companyId, type: "job.note_added", title: "Note added from the field", body: `${customerName} — ${cleanerNotes}`, href: `/jobs/${jobId}`, customerId: job.customerId });
