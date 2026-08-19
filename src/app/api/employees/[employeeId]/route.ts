@@ -24,7 +24,6 @@ const updateEmployeeSchema = z.object({
   tierRatesCents: z.array(z.number().int().nonnegative()).min(1).optional(),
   gustoEmployeeId: z.string().trim().optional(),
   isActive: z.boolean().optional(),
-  serviceLocationId: z.string().uuid().optional().nullable(),
   serviceLocationIds: z.array(z.string().uuid()).min(1).max(20).optional(),
   tags: z.array(z.string().trim().min(1).max(40)).max(12).optional(),
 });
@@ -46,22 +45,21 @@ export async function GET(
   const admin = await requireAdmin();
   const { employeeId } = await params;
 
-  const [employeeRow] = await db
-    .select({ employee: users, serviceLocationName: serviceLocations.name })
+  const [employee] = await db
+    .select()
     .from(users)
-    .leftJoin(serviceLocations, eq(users.serviceLocationId, serviceLocations.id))
     .where(and(eq(users.id, employeeId), eq(users.companyId, admin.companyId)))
     .limit(1);
 
-  if (!employeeRow) {
+  if (!employee) {
     return NextResponse.json({ error: "Employee not found" }, { status: 404 });
   }
 
   const eligibilityRows = await db.select({ serviceLocationId: employeeServiceLocations.serviceLocationId, name: serviceLocations.name }).from(employeeServiceLocations).innerJoin(serviceLocations, eq(employeeServiceLocations.serviceLocationId, serviceLocations.id)).where(and(eq(employeeServiceLocations.companyId, admin.companyId), eq(employeeServiceLocations.userId, employeeId)));
-  const employee = { ...employeeRow.employee, serviceLocationName: employeeRow.serviceLocationName, serviceLocationIds: eligibilityRows.map((row) => row.serviceLocationId), serviceLocationNames: eligibilityRows.map((row) => row.name) };
-  if (employee.profilePhotoUrl) {
-    const { data } = await createAdminClient().storage.from("employee-photos").createSignedUrl(employee.profilePhotoUrl, 60 * 60);
-    employee.profilePhotoUrl = data?.signedUrl ?? null;
+  const employeeWithServiceAreas = { ...employee, serviceLocationIds: eligibilityRows.map((row) => row.serviceLocationId), serviceLocationNames: eligibilityRows.map((row) => row.name) };
+  if (employeeWithServiceAreas.profilePhotoUrl) {
+    const { data } = await createAdminClient().storage.from("employee-photos").createSignedUrl(employeeWithServiceAreas.profilePhotoUrl, 60 * 60);
+    employeeWithServiceAreas.profilePhotoUrl = data?.signedUrl ?? null;
   }
 
   const [jobsCompletedResult] = await db
@@ -213,7 +211,7 @@ export async function GET(
   });
 
   return NextResponse.json({
-    employee,
+    employee: employeeWithServiceAreas,
     stats: {
       jobsCompleted: jobsCompletedResult?.count ?? 0,
       hoursWorked: Math.round(hoursWorked * 100) / 100,
@@ -257,16 +255,6 @@ export async function PATCH(
   const { tierRatesCents, serviceLocationIds, ...rest } = parsed.data;
   const fields: Record<string, unknown> = { ...rest };
 
-  if (fields.serviceLocationId) {
-    const [location] = await db
-      .select({ id: serviceLocations.id })
-      .from(serviceLocations)
-      .where(and(eq(serviceLocations.id, fields.serviceLocationId as string), eq(serviceLocations.companyId, admin.companyId)))
-      .limit(1);
-    if (!location) {
-      return NextResponse.json({ error: "That service location was not found for this company." }, { status: 400 });
-    }
-  }
   if (serviceLocationIds) {
     const locations = await db.select({ id: serviceLocations.id }).from(serviceLocations).where(and(eq(serviceLocations.companyId, admin.companyId), inArray(serviceLocations.id, serviceLocationIds)));
     if (locations.length !== serviceLocationIds.length) return NextResponse.json({ error: "One or more service locations were not found for this company." }, { status: 400 });

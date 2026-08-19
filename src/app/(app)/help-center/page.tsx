@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.58",
+    date: "August 19, 2026",
+    title: "Cleaner service areas now have one clear setting",
+    changes: [
+      "Employee profiles now use one “Works in” checkbox list for service areas. That same list is what guided booking uses when checking which cleaners are available.",
+      "The old primary-area dropdown was removed, so a cleaner cannot appear assigned to an area while being excluded from availability checks.",
+    ],
+  },
+  {
     version: "v0.2.57",
     date: "August 18, 2026",
     title: "Quotes can now be booked with a real schedule",
