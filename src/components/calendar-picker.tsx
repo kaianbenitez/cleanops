@@ -173,7 +173,10 @@ export function CalendarPicker({ value, onChange, onClose, anchorRef, min, max, 
       </div>
 
       {capacityReady && neededHours != null ? (
-        <p className="mt-2 text-xs text-[var(--co-muted)]">This visit needs about {formatHours(neededHours)}.</p>
+        <div className="mt-2 space-y-1 text-xs text-[var(--co-muted)]">
+          <p>This visit needs about {formatHours(neededHours)}.</p>
+          <p><span className="font-semibold text-[var(--co-success)]">Green</span> open · <span className="font-semibold text-[var(--co-warning)]">Yellow</span> tight · <span className="font-semibold text-[var(--co-danger)]">Red</span> over capacity</p>
+        </div>
       ) : null}
 
       <div className="mt-2 grid grid-cols-7 text-center text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--co-faint)]">

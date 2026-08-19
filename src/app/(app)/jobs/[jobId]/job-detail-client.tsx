@@ -375,6 +375,38 @@ export default function JobDetailClient({
         </aside>
 
         <section className="space-y-6">
+          <section id="schedule" className={CARD_CLASS}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-semibold">Schedule & status</h2>
+                <p className="mt-1 text-sm text-[var(--co-muted)]">Green dates have room for more work; select a date to reschedule.</p>
+              </div>
+              <Link href="/calendar" className="text-sm font-semibold text-[var(--co-accent-text)] hover:underline">Open calendar</Link>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <DateInput label="Date" value={scheduleDate} onChange={setScheduleDate} showCapacity neededHours={(job.estimatedDurationMinutes ?? 0) / 60} />
+              <TimeInput label="Start time" value={scheduleTime} onChange={setScheduleTime} />
+              <select
+                aria-label="Job status"
+                value={scheduleStatus}
+                onChange={(event) => {
+                  if (event.target.value === "cancelled") {
+                    setScheduleStatus(job.status);
+                    setConfirmingCancel(true);
+                    return;
+                  }
+                  setScheduleStatus(event.target.value);
+                }}
+                className="co-input"
+              >
+                {statusOptions("job").map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            </div>
+            <div className="mt-3">
+              {jobDetailsDirty ? <button type="button" disabled={saving} onClick={() => { setScheduleDate(job.scheduledDate); setScheduleTime(job.scheduledStartTime?.slice(0, 5) ?? ""); setScheduleStatus(job.status); setDraftAssignedIds(savedAssignedIds); setDraftTrainerId(savedTrainerId); setPriceInput((job.priceCents / 100).toFixed(2)); setJthInput(`${Math.floor((job.estimatedDurationMinutes ?? 0) / 60)}:${String((job.estimatedDurationMinutes ?? 0) % 60).padStart(2, "0")}`); setPriceEditError(null); setJthEditError(null); setEditingPrice(false); setEditingJth(false); }} className="co-button-secondary disabled:opacity-50">Discard changes</button> : null}
+            </div>
+          </section>
+
           <TeamPanel
             // Remounting on a membership change resets the picker's draft selection
             // to whatever the server just saved. Sorted so row order can't churn it.
@@ -456,44 +488,6 @@ export default function JobDetailClient({
                   placeholder="Nothing reported."
                 />
               </label>
-            </div>
-          </section>
-
-          <section id="schedule" className={CARD_CLASS}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="font-semibold">Schedule & status</h2>
-                <p className="mt-1 text-sm text-[var(--co-muted)]">Update the visit without leaving the dispatch view.</p>
-              </div>
-              <Link href="/calendar" className="text-sm font-semibold text-[var(--co-accent-text)] hover:underline">
-                Open calendar
-              </Link>
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <DateInput label="Date" value={scheduleDate} onChange={setScheduleDate} />
-              <TimeInput label="Start time" value={scheduleTime} onChange={setScheduleTime} />
-              <select
-                aria-label="Job status"
-                value={scheduleStatus}
-                onChange={(event) => {
-                  if (event.target.value === "cancelled") {
-                    setScheduleStatus(job.status);
-                    setConfirmingCancel(true);
-                    return;
-                  }
-                  setScheduleStatus(event.target.value);
-                }}
-                className="co-input"
-              >
-                {statusOptions("job").map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="mt-3">
-              {jobDetailsDirty ? <button type="button" disabled={saving} onClick={() => { setScheduleDate(job.scheduledDate); setScheduleTime(job.scheduledStartTime?.slice(0, 5) ?? ""); setScheduleStatus(job.status); setDraftAssignedIds(savedAssignedIds); setDraftTrainerId(savedTrainerId); setPriceInput((job.priceCents / 100).toFixed(2)); setJthInput(`${Math.floor((job.estimatedDurationMinutes ?? 0) / 60)}:${String((job.estimatedDurationMinutes ?? 0) % 60).padStart(2, "0")}`); setPriceEditError(null); setJthEditError(null); setEditingPrice(false); setEditingJth(false); }} className="co-button-secondary disabled:opacity-50">Discard changes</button> : null}
             </div>
           </section>
 
