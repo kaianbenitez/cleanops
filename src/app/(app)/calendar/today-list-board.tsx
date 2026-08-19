@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { APPOINTMENT_COLOR, APPOINTMENT_COLOR_CANCELLED, displayCustomer, formatAppointmentTime, formatClockLabel, formatEstimatedTime, ordinalLabel, stopOrdinals, TYPE_LABELS } from "./shared";
+import { APPOINTMENT_COLOR, APPOINTMENT_COLOR_CANCELLED, displayCustomer, formatAppointmentTime, formatClockLabel, formatEstimatedTime, jobTypeLabel, ordinalLabel, stopOrdinals } from "./shared";
 import { commitJobPatch } from "./drag-commit";
 import { useUndoToast, UndoToast } from "./undo-toast";
 import AssigneePicker from "./assignee-picker";
@@ -19,6 +19,7 @@ type Employee = { id: string; firstName: string; lastName: string; isActive?: bo
 type ListJob = {
   id: string;
   type: string;
+  recurrenceFrequency: string | null;
   status: string;
   scheduledDate: string;
   scheduledStartTime: string | null;
@@ -339,7 +340,7 @@ export default function TodayListBoard({
                       {job.clientType === "commercial" ? "Commercial" : "Residential"}
                     </p>
                     <p className="mt-1.5 text-sm text-[var(--co-ink)]">
-                      {job.serviceName ?? TYPE_LABELS[job.type] ?? job.type}
+                      {job.serviceName ?? jobTypeLabel(job)}
                       {job.addOnNames.length ? ` + ${job.addOnNames.join(", ")}` : ""}
                       <span className="ml-1.5 font-medium text-[var(--co-muted)]">${(job.priceCents / 100).toFixed(2)}</span>
                     </p>

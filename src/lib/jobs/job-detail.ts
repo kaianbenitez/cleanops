@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { auditLog, customers, feedbackRequests, jobAssignments, jobs, roomTypes, services, timeEntries, users } from "@/db/schema";
+import { auditLog, customers, feedbackRequests, jobAssignments, jobs, recurringSeries, roomTypes, services, timeEntries, users } from "@/db/schema";
 import { isFieldEligible } from "@/lib/auth/field-staff";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -56,6 +56,7 @@ export async function loadJobDetail(jobId: string, companyId: string) {
       cancellationReason: jobs.cancellationReason,
       serviceId: jobs.serviceId,
       addOnIds: jobs.addOnIds,
+      recurrenceFrequency: recurringSeries.frequency,
       customerId: jobs.customerId,
       customerFirstName: customers.firstName,
       customerLastName: customers.lastName,
@@ -74,6 +75,7 @@ export async function loadJobDetail(jobId: string, companyId: string) {
     .from(jobs)
     .innerJoin(customers, eq(jobs.customerId, customers.id))
     .leftJoin(feedbackRequests, eq(feedbackRequests.jobId, jobs.id))
+    .leftJoin(recurringSeries, eq(jobs.recurringSeriesId, recurringSeries.id))
     .where(and(eq(jobs.id, jobId), eq(jobs.companyId, companyId)))
     .limit(1);
 
