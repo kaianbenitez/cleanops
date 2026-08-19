@@ -22,6 +22,7 @@ import {
   Package,
 } from "lucide-react";
 import { timeLabel, jobAddress, formatElapsed, jobTypeLabel, recurringFrequencyLabel } from "@/lib/my-day/job-format";
+import { pickMyDayActiveJob } from "@/lib/my-day/active-job";
 import { MaskedCode } from "@/components/ui/masked-code";
 
 type JobCard = {
@@ -215,7 +216,7 @@ export default function MyDayClient({
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(currentJob?.jobId ?? todayJobs[0]?.jobId ?? upcomingJobs[0]?.jobId ?? completedJobs[0]?.jobId ?? null);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(currentJob?.jobId ?? todayJobs[0]?.jobId ?? upcomingJobs[0]?.jobId ?? null);
   const [localTodayJobs, setLocalTodayJobs] = useState<JobCard[]>(todayJobs);
   const [localUpcomingJobs, setLocalUpcomingJobs] = useState<JobCard[]>(upcomingJobs);
   const [localCompletedJobs, setLocalCompletedJobs] = useState<JobCard[]>(completedJobs);
@@ -258,32 +259,25 @@ export default function MyDayClient({
   useEffect(() => {
     if (!selectedJobId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelectedJobId(currentJob?.jobId ?? todayJobs[0]?.jobId ?? upcomingJobs[0]?.jobId ?? completedJobs[0]?.jobId ?? null);
+      setSelectedJobId(currentJob?.jobId ?? todayJobs[0]?.jobId ?? upcomingJobs[0]?.jobId ?? null);
       return;
     }
     const present =
       todayJobs.some((job) => job.jobId === selectedJobId) ||
-      upcomingJobs.some((job) => job.jobId === selectedJobId) ||
-      completedJobs.some((job) => job.jobId === selectedJobId);
+      upcomingJobs.some((job) => job.jobId === selectedJobId);
     if (!present) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelectedJobId(currentJob?.jobId ?? todayJobs[0]?.jobId ?? upcomingJobs[0]?.jobId ?? completedJobs[0]?.jobId ?? null);
+      setSelectedJobId(currentJob?.jobId ?? todayJobs[0]?.jobId ?? upcomingJobs[0]?.jobId ?? null);
     }
-  }, [completedJobs, currentJob?.jobId, selectedJobId, todayJobs, upcomingJobs]);
+  }, [currentJob?.jobId, selectedJobId, todayJobs, upcomingJobs]);
 
-  const activeJob = useMemo(() => {
-    const chosenId = openEntry?.jobId ?? selectedJobId;
-    if (chosenId) {
-      return (
-        localTodayJobs.find((job) => job.jobId === chosenId) ??
-        localUpcomingJobs.find((job) => job.jobId === chosenId) ??
-        localCompletedJobs.find((job) => job.jobId === chosenId) ??
-        currentJob ??
-        null
-      );
-    }
-    return currentJob ?? localTodayJobs[0] ?? localUpcomingJobs[0] ?? null;
-  }, [currentJob, localCompletedJobs, localTodayJobs, localUpcomingJobs, openEntry?.jobId, selectedJobId]);
+  const activeJob = useMemo(() => pickMyDayActiveJob({
+    currentJob,
+    openEntryJobId: openEntry?.jobId ?? null,
+    selectedJobId,
+    todayJobs: localTodayJobs,
+    upcomingJobs: localUpcomingJobs,
+  }), [currentJob, localTodayJobs, localUpcomingJobs, openEntry?.jobId, selectedJobId]);
 
   const activeTimerLabel = formatElapsed(openEntry?.clockIn ?? null, now);
   const routeJobs = [...localTodayJobs].sort((a, b) => (a.scheduledStartTime ?? "").localeCompare(b.scheduledStartTime ?? ""));
@@ -355,7 +349,7 @@ export default function MyDayClient({
 
   function onMyWay(jobId: string) {
     clockIn(jobId, {
-      undoLabel: "Clock in saved",
+      undoLabel: "Travel started · you’re clocked in",
       undoAction: () => clockOut(jobId),
     });
   }
@@ -452,7 +446,7 @@ export default function MyDayClient({
           <span className="font-mono text-[20px] font-semibold tabular-nums tracking-[-0.01em]" style={{ color: "var(--co-success)" }}>
             {activeTimerLabel}
           </span>
-          <span className="type-field-meta font-medium text-[var(--co-muted)]">on this house</span>
+          <span className="type-field-meta font-medium text-[var(--co-muted)]">clocked in · travel included</span>
           <span className="ml-auto type-field-meta font-medium tabular-nums text-[var(--co-muted)]">since {timeLabel(openEntry.clockIn)}</span>
         </Link>
       ) : null}
@@ -563,12 +557,12 @@ export default function MyDayClient({
               hasArrived ? (
                 <button type="button" onClick={() => beginJob(activeJob.jobId)} className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full bg-[var(--co-accent-fill)] px-5 text-[17px] font-semibold text-white transition-colors hover:bg-[var(--co-accent-fill-hover)]">
                   <Play className="h-[19px] w-[19px]" aria-hidden />
-                  Start
+                  Start cleaning
                 </button>
               ) : (
                 <button type="button" onClick={() => markArrived(activeJob.jobId)} className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full bg-[var(--co-accent-fill)] px-5 text-[17px] font-semibold text-white transition-colors hover:bg-[var(--co-accent-fill-hover)]">
                   <CheckCircle2 className="h-[19px] w-[19px]" aria-hidden />
-                  Arrived
+                  I&apos;ve arrived
                 </button>
               )
             ) : (
@@ -579,7 +573,7 @@ export default function MyDayClient({
                 className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full bg-[var(--co-accent-fill)] px-5 text-[17px] font-semibold text-white transition-colors hover:bg-[var(--co-accent-fill-hover)] disabled:opacity-60"
               >
                 <Car className="h-[19px] w-[19px]" aria-hidden />
-                {busy[`clock:${activeJob.jobId}`] ? "Saving…" : "On my way"}
+                {busy[`clock:${activeJob.jobId}`] ? "Clocking in…" : "Start travel & clock in"}
               </button>
             )}
           </div>

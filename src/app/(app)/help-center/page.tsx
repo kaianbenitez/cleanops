@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.69",
+    date: "August 20, 2026",
+    title: "My Day makes clocked-in travel and saved time clear",
+    changes: [
+      "The travel action now says Start travel & clock in, and the running timer confirms that travel is included in the cleaner's recorded time.",
+      "After a cleaner finishes a house, My Day now moves the next pending stop to the main action area instead of leaving the completed house at the top.",
+      "Completion messages now explicitly confirm that the cleaner's time was saved, and the login form can be recognized by the device's password manager for easier sign-in.",
+    ],
+  },
+  {
     version: "v0.2.68",
     date: "August 20, 2026",
     title: "Quote availability now includes the full field team",

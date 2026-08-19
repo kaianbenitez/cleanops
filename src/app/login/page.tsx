@@ -63,6 +63,7 @@ export default function LoginPage() {
             <span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Username</span>
             <input
               id="username"
+              name="username"
               type="text"
               autoComplete="username"
               required
@@ -77,13 +78,16 @@ export default function LoginPage() {
             <span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Password</span>
             <input
               id="password"
+              name="password"
               type="password"
+              autoComplete="current-password"
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="co-input w-full py-3"
               placeholder="Your password"
             />
+            <span className="mt-2 block text-xs text-[var(--co-muted)]">Your browser can save this login for next time.</span>
           </label>
 
           {error ? (

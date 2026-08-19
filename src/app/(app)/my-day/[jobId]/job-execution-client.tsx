@@ -506,7 +506,7 @@ export default function JobExecutionClient({
             </>
           ) : jobFullyCompleted ? (
             <section className="co-card p-5 text-center">
-              <p className="text-lg font-semibold text-[var(--co-accent-text)]">Job completed</p>
+              <p className="text-lg font-semibold text-[var(--co-accent-text)]">Job complete — time saved</p>
               <p className="mt-1 text-sm text-[var(--co-muted)]">
                 Worked {elapsed} · finished {timeEntry?.clockOut ? timeLabel(new Date(timeEntry.clockOut).toISOString()) : timeLabel(new Date().toISOString())}
               </p>
@@ -516,9 +516,9 @@ export default function JobExecutionClient({
             </section>
           ) : myPortionDone ? (
             <section className="co-card p-5 text-center">
-              <p className="text-lg font-semibold text-[var(--co-ink)]">Your part is done</p>
+              <p className="text-lg font-semibold text-[var(--co-ink)]">Your time is saved</p>
               <p className="mt-1 text-sm text-[var(--co-muted)]">
-                Worked {elapsed} · finished {timeEntry?.clockOut ? timeLabel(new Date(timeEntry.clockOut).toISOString()) : timeLabel(new Date().toISOString())}
+                You worked {elapsed} · clocked out {timeEntry?.clockOut ? timeLabel(new Date(timeEntry.clockOut).toISOString()) : timeLabel(new Date().toISOString())}
               </p>
               <div className="co-badge-warning mx-auto mt-4 max-w-sm rounded-xl px-4 py-3 text-left">
                 <p className="text-sm font-semibold">Waiting on {waitingOnLabel}</p>
