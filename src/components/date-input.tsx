@@ -53,7 +53,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
             onClick={() => setIsOpen(!isOpen)}
             className="co-date-input w-full text-left"
           >
-            <span className={displayValue ? "text-[var(--co-ink)]" : "text-[var(--co-input-placeholder)]"}>
+            <span className={`whitespace-nowrap ${displayValue ? "text-[var(--co-ink)]" : "text-[var(--co-input-placeholder)]"}`}>
               {displayValue ? formatDisplay(displayValue) : "Select a date"}
             </span>
           </button>

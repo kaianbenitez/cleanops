@@ -386,21 +386,24 @@ export default function JobDetailClient({
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <DateInput label="Date" value={scheduleDate} onChange={setScheduleDate} showCapacity neededHours={(job.estimatedDurationMinutes ?? 0) / 60} />
               <TimeInput label="Start time" value={scheduleTime} onChange={setScheduleTime} />
-              <select
-                aria-label="Job status"
-                value={scheduleStatus}
-                onChange={(event) => {
-                  if (event.target.value === "cancelled") {
-                    setScheduleStatus(job.status);
-                    setConfirmingCancel(true);
-                    return;
-                  }
-                  setScheduleStatus(event.target.value);
-                }}
-                className="co-input"
-              >
-                {statusOptions("job").map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
+              <label className="block text-xs font-semibold text-[var(--co-muted)]">
+                <span className="mb-2 block">Status</span>
+                <select
+                  aria-label="Job status"
+                  value={scheduleStatus}
+                  onChange={(event) => {
+                    if (event.target.value === "cancelled") {
+                      setScheduleStatus(job.status);
+                      setConfirmingCancel(true);
+                      return;
+                    }
+                    setScheduleStatus(event.target.value);
+                  }}
+                  className="co-input h-[3.5rem] w-full"
+                >
+                  {statusOptions("job").map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              </label>
             </div>
             <div className="mt-3">
               {jobDetailsDirty ? <button type="button" disabled={saving} onClick={() => { setScheduleDate(job.scheduledDate); setScheduleTime(job.scheduledStartTime?.slice(0, 5) ?? ""); setScheduleStatus(job.status); setDraftAssignedIds(savedAssignedIds); setDraftTrainerId(savedTrainerId); setPriceInput((job.priceCents / 100).toFixed(2)); setJthInput(`${Math.floor((job.estimatedDurationMinutes ?? 0) / 60)}:${String((job.estimatedDurationMinutes ?? 0) % 60).padStart(2, "0")}`); setPriceEditError(null); setJthEditError(null); setEditingPrice(false); setEditingJth(false); }} className="co-button-secondary disabled:opacity-50">Discard changes</button> : null}

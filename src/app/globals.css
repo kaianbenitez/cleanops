@@ -292,7 +292,8 @@ body {
   align-items: center;
   font-size: 0.9375rem;
   font-weight: 500;
-  min-height: 2.55rem;
+  height: 3.5rem;
+  min-height: 3.5rem;
   padding: 0.7rem 0.9rem 0.7rem 2.8rem;
   text-align: left;
   transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
