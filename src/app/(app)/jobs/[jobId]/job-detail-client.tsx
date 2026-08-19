@@ -6,6 +6,7 @@ import { useCallback, useMemo, useState, useTransition } from "react";
 import { CircleUserRound, Mail, MapPin, Pencil, Phone, Send, XCircle } from "lucide-react";
 import { statusOptions } from "@/components/ui/status-pill";
 import { formatDisplayDate } from "@/lib/scheduling/dates";
+import { DateInput } from "@/components/date-input";
 import HandoffPanel from "./handoff-panel";
 import JobPhotos from "./job-photos";
 import TeamPanel from "./team-panel";
@@ -468,13 +469,7 @@ export default function JobDetailClient({
               </Link>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <input
-                aria-label="Scheduled date"
-                type="date"
-                value={scheduleDate}
-                onChange={(event) => setScheduleDate(event.target.value)}
-                className="co-input"
-              />
+              <DateInput label="Date" value={scheduleDate} onChange={setScheduleDate} />
               <input
                 aria-label="Start time"
                 type="time"
