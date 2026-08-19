@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.70",
+    date: "August 20, 2026",
+    title: "Employee sign-in now stays put on personal phones",
+    changes: [
+      "Shimmer now locks its long-lived, automatically refreshed sign-in cookie across browser, server, and route protection so closing the app does not end a session.",
+      "The login and iPhone install guidance now explains that employees stay signed in until they choose Sign out and should reopen Shimmer from the same Home Screen icon each day.",
+    ],
+  },
+  {
     version: "v0.2.69",
     date: "August 20, 2026",
     title: "My Day makes clocked-in travel and saved time clear",

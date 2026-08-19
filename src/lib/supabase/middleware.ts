@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { AUTH_COOKIE_OPTIONS } from "./cookie-options";
 
 /** Creates a request-scoped Supabase client and resolves the auth user,
  * returning the response that carries any refreshed session cookies.
@@ -13,6 +14,7 @@ export async function getSessionUser(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: AUTH_COOKIE_OPTIONS,
       cookies: {
         getAll() {
           return request.cookies.getAll();
