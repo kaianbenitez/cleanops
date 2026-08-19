@@ -10,6 +10,7 @@ import {
   isNotNull,
   isNull,
   lte,
+  ne,
   notExists,
   sql,
 } from "drizzle-orm";
@@ -297,6 +298,7 @@ export default async function CalendarPage({
     eq(jobs.companyId, admin.companyId),
     gte(jobs.scheduledDate, start),
     lte(jobs.scheduledDate, end),
+    ne(jobs.status, "cancelled"),
   ];
   if (sp.type && (jobTypeEnum as readonly string[]).includes(sp.type))
     conditions.push(
@@ -457,6 +459,7 @@ export default async function CalendarPage({
       and(
         eq(jobs.companyId, admin.companyId),
         gte(jobs.scheduledDate, todayIso),
+        ne(jobs.status, "cancelled"),
         sql`extract(dow from ${jobs.scheduledDate}) in (0, 6)`,
       ),
     );
