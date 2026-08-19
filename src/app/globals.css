@@ -383,6 +383,16 @@ button:active { transform: translateY(1px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Calendar Board: assign-motion "land" pop — the card scales up briefly
+   right after the FLIP flight finishes. Driven by board.tsx adding/removing
+   this class; automatically neutralized by the reduced-motion block below. */
+@keyframes co-board-land {
+  0% { transform: scale(1); }
+  55% { transform: scale(1.045); }
+  100% { transform: scale(1); }
+}
+.co-board-landed { animation: co-board-land 500ms cubic-bezier(.16,1,.3,1); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

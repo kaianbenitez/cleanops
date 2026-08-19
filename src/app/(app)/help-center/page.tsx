@@ -7,6 +7,19 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.65",
+    date: "August 19, 2026",
+    title: "Calendar Board rework: one board, an always-on attention list, and click-to-place",
+    changes: [
+      "The staff calendar's column and row layouts are now one Board, so switching between crews-as-columns and crews-as-rows keeps the same features instead of two boards drifting apart.",
+      "A new \"Needs attention\" list sits beside the board at all times (it used to hide below a certain screen width): no crew yet, no arrival time, assigned over a leave day, and double-booked, each in its own group.",
+      "You can now click a job in that list (or in the new \"No arrival time\" tray above the board) and then click a crew's lane to place it — no drag required. Every lane shows whether that spot is open, a conflict, or blocked by leave before you commit, with the exact reason (\"Overlaps 1:30 PM Pham,\" \"On leave,\" \"Over 8h day\").",
+      "Each crew's header now shows a capacity meter (hours booked out of hours available) and a \"Half day\" chip when they're on partial leave, using the company's configured workday hours.",
+      "Placing a job now flies it into position with a short landing animation, and switching layouts animates the crews into place — both skip automatically if your system has reduced motion turned on.",
+      "Lane placement is fully keyboard-operable: Tab to a crew's lane, arrow keys to nudge an untimed job's time in 15-minute steps, Enter to place it, Escape to cancel.",
+    ],
+  },
+  {
     version: "v0.2.64",
     date: "August 19, 2026",
     title: "Calendar foundation work for the upcoming Board view",

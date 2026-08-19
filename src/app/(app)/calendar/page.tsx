@@ -42,8 +42,8 @@ import {
 } from "@/lib/scheduling/dates";
 import { todayInTimeZone } from "@/lib/dashboard/range";
 import { listEmployeePto } from "@/lib/scheduling/pto";
-import VerticalBoard from "./vertical-board";
-import HorizontalBoard from "./horizontal-board";
+import { DEFAULT_WORKDAY_HOURS } from "@/lib/scheduling/capacity";
+import Board from "./board";
 import WeekBoard from "./week-board";
 import MonthBoard from "./month-board";
 import TodayListBoard from "./today-list-board";
@@ -291,6 +291,16 @@ export default async function CalendarPage({
     rawWorkdayEnd <= 1439
       ? rawWorkdayEnd
       : DEFAULT_WORKDAY_END_MINUTES;
+  // Per-cleaner contracted day, used by the Board's capacity meter (caps
+  // "used / available" at this even when the working window is longer).
+  const rawWorkdayHours = (
+    company.settings as { workdayHoursPerCleaner?: unknown } | null
+  )?.workdayHoursPerCleaner;
+  const workdayHoursPerCleaner =
+    typeof rawWorkdayHours === "number" && rawWorkdayHours > 0
+      ? rawWorkdayHours
+      : DEFAULT_WORKDAY_HOURS;
+  const workdayMinutesPerCleaner = workdayHoursPerCleaner * 60;
 
   const todayIso = todayInTimeZone(new Date(), company.timezone);
   const today = new Date(`${todayIso}T00:00:00.000Z`);
@@ -475,23 +485,6 @@ export default async function CalendarPage({
             .orderBy(jobs.scheduledDate)
       : Promise.resolve([]);
 
-  const unassignedRowsQuery =
-    view === "board"
-      ? buildBaseQuery()
-          .where(
-            and(
-              ...conditions,
-              notExists(
-                db
-                  .select({ jobId: jobAssignments.jobId })
-                  .from(jobAssignments)
-                  .where(eq(jobAssignments.jobId, jobs.id)),
-              ),
-            ),
-          )
-          .orderBy(jobs.scheduledDate, jobs.scheduledStartTime)
-      : Promise.resolve([]);
-
   // Month and week deliberately omit weekends. Keep any imported weekend work
   // visible so a dispatcher can still reach it from the Staff view. Bounded to
   // today-forward: past weekend jobs are already done and don't need dispatch
@@ -562,7 +555,6 @@ export default async function CalendarPage({
   const [
     employees,
     rows,
-    unassignedRows,
     [weekendOrphans],
     ptoRows,
     monthRows,
@@ -572,7 +564,6 @@ export default async function CalendarPage({
   ] = (await Promise.all([
     employeesQuery,
     rowsQuery,
-    unassignedRowsQuery,
     weekendRowsQuery,
     ptoRowsQuery,
     monthRowsQuery,
@@ -581,7 +572,6 @@ export default async function CalendarPage({
     notificationsQuery,
   ])) as [
     CalendarEmployee[],
-    Omit<CalendarJob, "assignedUserIds">[],
     Omit<CalendarJob, "assignedUserIds">[],
     { count: number; firstDate: string | null }[],
     Awaited<ReturnType<typeof listEmployeePto>>,
@@ -903,8 +893,9 @@ export default async function CalendarPage({
             staffRoster={staffRoster}
           />
         ) : null}
-        {view === "board" && axis === "vertical" ? (
-          <VerticalBoard
+        {view === "board" ? (
+          <Board
+            axis={axis}
             dayIso={toISODate(dayAnchor)}
             todayIso={todayIso}
             dayLabel={formatDayLabel(dayAnchor)}
@@ -920,30 +911,13 @@ export default async function CalendarPage({
                   ))
               : []}
             laneEmployeeId={sp.employeeId}
-            queueOpen={sp.queue === "unassigned" || sp.assignment === "unassigned"}
             jobs={displayedJobs}
-            unassignedJobs={unassignedRows.map((row) => ({ ...row, assignedUserIds: [] }))}
             ptoRecords={ptoRows}
             appointments={appointments}
             staffRoster={staffRoster}
             workdayStartMinutes={workdayStartMinutes}
             workdayEndMinutes={workdayEndMinutes}
-          />
-        ) : null}
-        {view === "board" && axis === "horizontal" ? (
-          <HorizontalBoard
-            dayIso={toISODate(dayAnchor)}
-            todayIso={todayIso}
-            timezone={company.timezone}
-            employees={employees}
-            jobs={displayedJobs}
-            queueOpen={sp.queue === "unassigned" || sp.assignment === "unassigned"}
-            unassignedJobs={unassignedRows.map((row) => ({ ...row, assignedUserIds: [] }))}
-            ptoRecords={ptoRows}
-            appointments={appointments}
-            staffRoster={staffRoster}
-            workdayStartMinutes={workdayStartMinutes}
-            workdayEndMinutes={workdayEndMinutes}
+            workdayMinutesPerCleaner={workdayMinutesPerCleaner}
           />
         ) : null}
         {view === "month" ? (
