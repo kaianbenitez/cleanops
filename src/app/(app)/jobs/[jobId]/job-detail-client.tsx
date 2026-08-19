@@ -61,6 +61,9 @@ export default function JobDetailClient({
   const [jthEditError, setJthEditError] = useState<string | null>(null);
   const [feedbackBusy, setFeedbackBusy] = useState(false);
   const [feedbackLink, setFeedbackLink] = useState<string | null>(null);
+  const [scheduleDate, setScheduleDate] = useState(job.scheduledDate);
+  const [scheduleTime, setScheduleTime] = useState(job.scheduledStartTime?.slice(0, 5) ?? "");
+  const [scheduleStatus, setScheduleStatus] = useState(job.status);
 
   const refresh = useCallback(() => {
     startTransition(() => router.refresh());
@@ -145,6 +148,7 @@ export default function JobDetailClient({
       return;
     }
     setConfirmingCancel(false);
+    setScheduleStatus("cancelled");
     void save({ status: "cancelled", cancellationReason: cancellationReason.trim() });
   }, [cancellationReason, save]);
 
@@ -183,6 +187,16 @@ export default function JobDetailClient({
     const saved = await save({ estimatedDurationMinutes: minutes });
     if (saved) setEditingJth(false);
   }, [jthInput, save]);
+
+  const scheduleDirty = scheduleDate !== job.scheduledDate || scheduleTime !== (job.scheduledStartTime?.slice(0, 5) ?? "") || scheduleStatus !== job.status;
+  const saveSchedule = useCallback(async () => {
+    if (!scheduleDirty) return;
+    const fields: Record<string, unknown> = {};
+    if (scheduleDate !== job.scheduledDate) fields.scheduledDate = scheduleDate;
+    if (scheduleTime !== (job.scheduledStartTime?.slice(0, 5) ?? "")) fields.scheduledStartTime = scheduleTime ? `${scheduleTime}:00` : null;
+    if (scheduleStatus !== job.status) fields.status = scheduleStatus;
+    await save(fields);
+  }, [job.scheduledDate, job.scheduledStartTime, job.status, save, scheduleDate, scheduleDirty, scheduleStatus, scheduleTime]);
 
   const serviceProgress = job.status === "completed" ? 100 : job.status === "in_progress" ? 62 : timeEntries.length > 0 ? 35 : 0;
   const serviceSteps = [
@@ -498,21 +512,28 @@ export default function JobDetailClient({
               <input
                 aria-label="Scheduled date"
                 type="date"
-                defaultValue={job.scheduledDate}
-                onBlur={(event) => save({ scheduledDate: event.target.value })}
+                value={scheduleDate}
+                onChange={(event) => setScheduleDate(event.target.value)}
                 className="co-input"
               />
               <input
                 aria-label="Start time"
                 type="time"
-                defaultValue={job.scheduledStartTime?.slice(0, 5) ?? ""}
-                onBlur={(event) => event.target.value && save({ scheduledStartTime: `${event.target.value}:00` })}
+                value={scheduleTime}
+                onChange={(event) => setScheduleTime(event.target.value)}
                 className="co-input"
               />
               <select
                 aria-label="Job status"
-                value={job.status}
-                onChange={(event) => save({ status: event.target.value })}
+                value={scheduleStatus}
+                onChange={(event) => {
+                  if (event.target.value === "cancelled") {
+                    setScheduleStatus(job.status);
+                    setConfirmingCancel(true);
+                    return;
+                  }
+                  setScheduleStatus(event.target.value);
+                }}
                 className="co-input"
               >
                 {statusOptions("job").map((option) => (
@@ -521,6 +542,12 @@ export default function JobDetailClient({
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" disabled={saving || !scheduleDirty} onClick={() => void saveSchedule()} className="co-button-primary disabled:opacity-50">
+                {saving ? "Saving…" : "Save schedule changes"}
+              </button>
+              {scheduleDirty ? <button type="button" disabled={saving} onClick={() => { setScheduleDate(job.scheduledDate); setScheduleTime(job.scheduledStartTime?.slice(0, 5) ?? ""); setScheduleStatus(job.status); }} className="co-button-secondary disabled:opacity-50">Discard changes</button> : null}
             </div>
           </section>
 

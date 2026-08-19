@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatEstimatedTime, TYPE_LABELS } from "./shared";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -48,6 +48,10 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
   const router = useRouter();
   const [job, setJob] = useState<JobDetail | null>(null);
   const [assignedUserIds, setAssignedUserIds] = useState<string[]>([]);
+  const [draftDate, setDraftDate] = useState("");
+  const [draftTime, setDraftTime] = useState("");
+  const [draftStatus, setDraftStatus] = useState("");
+  const [draftAssignedUserIds, setDraftAssignedUserIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
@@ -69,13 +73,30 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
       const sortedAssignments = [...(data.assignments ?? [])].sort((a: { role: string }, b: { role: string }) =>
         a.role === b.role ? 0 : a.role === "lead" ? -1 : 1
       );
-      setAssignedUserIds(sortedAssignments.map((assignment: { userId: string }) => assignment.userId));
+      const nextAssignedUserIds = sortedAssignments.map((assignment: { userId: string }) => assignment.userId);
+      setAssignedUserIds(nextAssignedUserIds);
+      setDraftAssignedUserIds(nextAssignedUserIds);
+      setDraftDate(data.job?.scheduledDate ?? "");
+      setDraftTime(data.job?.scheduledStartTime?.slice(0, 5) ?? "");
+      setDraftStatus(data.job?.status ?? "");
     } catch {
       if (!isCancelled()) setError("Couldn't load job details.");
     } finally {
       if (!isCancelled()) setLoading(false);
     }
   }
+
+  const isDirty = Boolean(job) && (
+    draftDate !== job?.scheduledDate ||
+    draftTime !== (job?.scheduledStartTime?.slice(0, 5) ?? "") ||
+    draftStatus !== job?.status ||
+    draftAssignedUserIds.join(",") !== assignedUserIds.join(",")
+  );
+
+  const requestClose = useCallback(() => {
+    if (isDirty && !window.confirm("Discard unsaved changes?")) return;
+    onClose();
+  }, [isDirty, onClose]);
 
   useEffect(() => {
     if (!jobId) return;
@@ -91,11 +112,11 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
   useEffect(() => {
     if (!jobId) return;
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") requestClose();
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [jobId, onClose]);
+  }, [jobId, requestClose]);
 
   if (!jobId) return null;
 
@@ -119,12 +140,24 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
     });
   }
 
+  function saveChanges() {
+    if (!job || !isDirty) return;
+    const fields: Parameters<typeof commitJobPatch>[1] = {};
+    if (draftDate !== job.scheduledDate) fields.scheduledDate = draftDate;
+    const currentTime = job.scheduledStartTime?.slice(0, 5) ?? "";
+    if (draftTime !== currentTime) fields.scheduledStartTime = draftTime ? `${draftTime}:00` : null;
+    if (draftStatus !== job.status) fields.status = draftStatus;
+    if (draftAssignedUserIds.join(",") !== assignedUserIds.join(",")) fields.employeeIds = draftAssignedUserIds;
+    patch(fields);
+  }
+
   function confirmCancelJob() {
     if (!cancellationReason.trim()) {
       setError("Enter a cancellation reason before cancelling this job.");
       return;
     }
     setConfirmingCancel(false);
+    setDraftStatus("cancelled");
     patch({ status: "cancelled", cancellationReason: cancellationReason.trim() });
   }
 
@@ -132,14 +165,14 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4 sm:p-6">
-      <button type="button" aria-label="Close job details" onClick={onClose} className="absolute inset-0 bg-black/30" />
+      <button type="button" aria-label="Close job details" onClick={requestClose} className="absolute inset-0 bg-black/30" />
       <aside role="dialog" aria-modal="true" aria-labelledby="calendar-job-detail-title" className="relative flex h-[min(720px,calc(100dvh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] shadow-[0_20px_70px_rgba(15,23,20,0.25)] sm:h-[min(720px,calc(100dvh-3rem))]">
         <div className="flex items-start justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
           <div>
             <p className="eyebrow">Job details</p>
             {job ? <Link id="calendar-job-detail-title" href={`/customers/${job.customerId}`} className="mt-1 block text-lg font-semibold hover:text-[var(--co-accent-text)] hover:underline">{job.customerFirstName} {job.customerLastName}</Link> : <h2 id="calendar-job-detail-title" className="mt-1 text-lg font-semibold">Loading...</h2>}
           </div>
-          <button type="button" onClick={onClose} className="rounded-full p-1 text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]" aria-label="Close">
+          <button type="button" onClick={requestClose} className="rounded-full p-1 text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]" aria-label="Close">
             ✕
           </button>
         </div>
@@ -168,18 +201,14 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
               <DateInput
                 key={`date-${job.scheduledDate}`}
                 label="Date"
-                defaultValue={job.scheduledDate}
-                onChange={(newValue) => newValue && newValue !== job.scheduledDate && patch({ scheduledDate: newValue })}
+                value={draftDate}
+                onChange={setDraftDate}
               />
               <TimeInput
                 key={`time-${job.scheduledStartTime}`}
                 label="Time"
-                defaultValue={job.scheduledStartTime?.slice(0, 5) ?? ""}
-                onChange={(newValue) => {
-                  if (!newValue) return;
-                  const withSeconds = `${newValue}:00`;
-                  if (withSeconds !== job.scheduledStartTime) patch({ scheduledStartTime: withSeconds });
-                }}
+                value={draftTime}
+                onChange={setDraftTime}
               />
             </div>
 
@@ -188,8 +217,8 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
               <div className="mt-1">
                 <AssigneePicker
                   employees={employees}
-                  assignedUserIds={assignedUserIds}
-                  onChange={(ids) => patch({ employeeIds: ids })}
+                  assignedUserIds={draftAssignedUserIds}
+                  onChange={setDraftAssignedUserIds}
                   ariaLabel="Assign crew to this job"
                   className="w-full"
                 />
@@ -199,15 +228,14 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
             <label className="block text-xs font-semibold text-[var(--co-muted)]">
               Status
               <select
-                key={`status-${job.status}`}
-                defaultValue={job.status}
+                value={draftStatus}
                 onChange={(event) => {
                   if (event.target.value === "cancelled") {
                     event.target.value = job.status;
                     setConfirmingCancel(true);
                     return;
                   }
-                  patch({ status: event.target.value });
+                  setDraftStatus(event.target.value);
                 }}
                 className="co-input mt-1 w-full"
               >
@@ -231,6 +259,10 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
             </div>
 
             <div className="flex flex-wrap gap-2 border-t border-[var(--co-line-soft)] pt-4">
+              <button type="button" disabled={saving || !isDirty} onClick={saveChanges} className="co-button-primary disabled:opacity-50">
+                {saving ? "Saving…" : "Save changes"}
+              </button>
+              {isDirty ? <button type="button" disabled={saving} onClick={() => { setDraftDate(job.scheduledDate); setDraftTime(job.scheduledStartTime?.slice(0, 5) ?? ""); setDraftStatus(job.status); setDraftAssignedUserIds(assignedUserIds); }} className="co-button-secondary disabled:opacity-50">Discard changes</button> : null}
               {job.status !== "cancelled" ? confirmingCancel ? (
                 <div className="w-full space-y-2 co-badge-danger rounded-lg p-3">
                   <label className="block text-xs font-semibold text-[var(--co-danger)]">

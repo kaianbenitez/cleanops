@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.63",
+    date: "August 19, 2026",
+    title: "Job schedule edits now save together",
+    changes: [
+      "Date, time, crew, and status changes now stay in a draft until you choose Save changes, so a multi-field edit is reviewed and validated as one update.",
+      "Discard changes is available before saving, and closing a job with unsaved edits asks for confirmation. Quick list edits and drag-and-drop scheduling remain immediate with their existing feedback and Undo behavior.",
+    ],
+  },
+  {
     version: "v0.2.62",
     date: "August 19, 2026",
     title: "Cleaner service areas now have one clear setting",
