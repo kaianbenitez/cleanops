@@ -129,13 +129,13 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
   const location = job ? [job.addressLine1, job.city, job.state, job.zip].filter(Boolean).join(", ") : "";
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end">
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 sm:p-6">
       <button type="button" aria-label="Close assign panel" onClick={onClose} className="absolute inset-0 bg-black/30" />
-      <aside className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-[var(--co-line)] bg-[var(--co-surface)] shadow-[0_0_60px_rgba(15,23,20,0.25)]">
+      <aside role="dialog" aria-modal="true" aria-labelledby="calendar-assign-title" className="relative flex h-[min(720px,calc(100dvh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] shadow-[0_20px_70px_rgba(15,23,20,0.25)] sm:h-[min(720px,calc(100dvh-3rem))]">
         <div className="flex items-start justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
           <div>
             <p className="eyebrow">Assign cleaner</p>
-            <h2 className="mt-1 text-lg font-semibold">{job ? `${job.customerFirstName} ${job.customerLastName}` : "Loading…"}</h2>
+            <h2 id="calendar-assign-title" className="mt-1 text-lg font-semibold">{job ? `${job.customerFirstName} ${job.customerLastName}` : "Loading…"}</h2>
             {job ? (
               <p className="mt-0.5 text-xs text-[var(--co-muted)]">
                 {formatVisitDate(job.scheduledDate)} · {job.scheduledStartTime?.slice(0, 5) ?? "No time"}
@@ -151,7 +151,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
         {loading && !job ? <div className="p-5 text-sm text-[var(--co-muted)]">Loading job…</div> : null}
 
         {job ? (
-          <div className="flex-1 space-y-5 px-5 py-5">
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
             {error ? <p className="text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
             {warning ? <p role="status" className="co-badge-warning px-3 py-2 text-xs font-medium">Scheduling warning: {warning}</p> : null}
             {assigned ? <p className="rounded-xl bg-[var(--co-accent-tint)] px-3 py-2 text-xs font-medium text-[var(--co-accent-text)]">Assigned. This card will drop out of the unassigned queue on refresh.</p> : null}
