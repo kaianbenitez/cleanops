@@ -798,6 +798,10 @@ export default function Board({
     compact: boolean,
     overflowCount: number,
     resize?: { isResizing: boolean; onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void; onPointerMove: (event: React.PointerEvent<HTMLDivElement>) => void; onPointerUp: () => void },
+    /** The crew whose lane is rendering this card. A multi-cleaner job draws
+     * one card per assigned crew member, so this is the only way to know
+     * which lane a drag actually started from. */
+    laneOwnerId?: string,
   ) {
     const ordinal = ordinalByJobId.get(job.id);
     const isConflict = doubleBookedJobIds.has(job.id);
@@ -817,7 +821,13 @@ export default function Board({
         draggable={!isLocked}
         onDragStart={(event) => {
           event.dataTransfer.setData("text/plain", job.id);
-          const lane = job.assignedUserIds.find((id) => laneData.has(id));
+          // Must be the lane this card was dragged OUT of, not merely the
+          // first assigned cleaner: the same job renders a card in every
+          // assigned crew member's lane, so find() would always name the
+          // first one and drop the wrong person off the crew. Dragging
+          // replaces the cleaner whose lane you grabbed it from — a settled
+          // product decision (confirmed 2026-08-20).
+          const lane = laneOwnerId ?? job.assignedUserIds.find((id) => laneData.has(id));
           if (lane) event.dataTransfer.setData("application/x-cleanops-source-employee", lane);
           event.dataTransfer.effectAllowed = "move";
         }}
@@ -1340,7 +1350,7 @@ export default function Board({
                           onPointerDown: (event) => startResize(event, job),
                           onPointerMove: onResizeMove,
                           onPointerUp: endResize,
-                        });
+                        }, employee.id);
                       })}
                       {renderGhostAndNote(employee.id)}
                     </div>
@@ -1404,7 +1414,7 @@ export default function Board({
                           const lane = data!.lanes.get(job.id);
                           if (!lane) return null;
                           const style = jobStyleHorizontal(job, lane.lane, lane.laneCount, rowHeight);
-                          return renderJobCard(job, style, (style.height as number) < COMPACT_HEIGHT_HORIZONTAL, lane.overflowCount);
+                          return renderJobCard(job, style, (style.height as number) < COMPACT_HEIGHT_HORIZONTAL, lane.overflowCount, undefined, employee.id);
                         })}
                         {renderGhostAndNote(employee.id)}
                       </div>
