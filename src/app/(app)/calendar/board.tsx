@@ -910,7 +910,7 @@ export default function Board({
           <div className="mt-1">
             <span className="co-badge-muted inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold">
               <Ban className="h-[11px] w-[11px]" aria-hidden strokeWidth={1.75} />
-              Half day
+              {(data?.capacity.availableMinutes ?? 0) === 0 ? "Off today" : "Half day"}
             </span>
           </div>
         ) : null}
