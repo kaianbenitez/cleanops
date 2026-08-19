@@ -442,8 +442,19 @@ export default async function CalendarPage({
             .where(and(...conditions))
             .orderBy(jobs.scheduledDate, jobs.scheduledStartTime);
 
+  // `queue=unassigned` (set by the old filter-bar.tsx toggle, now removed —
+  // see filter-bar.tsx) and `assignment=unassigned` (set by
+  // calendar-filters-panel.tsx's Assignment select) used to be two params
+  // for the same concept. `assignment` is the one that actually filters rows
+  // below, so it's the one that survives; a legacy `queue=unassigned` link
+  // is normalized onto it here rather than filtered on separately, and
+  // filterParams below propagates the normalized value forward so
+  // prev/next/today links upgrade the URL instead of re-emitting `queue`.
+  const effectiveAssignment =
+    sp.assignment ?? (sp.queue === "unassigned" ? "unassigned" : undefined);
+
   const monthConditions =
-    sp.assignment === "unassigned"
+    effectiveAssignment === "unassigned"
       ? [
           ...conditions,
           notExists(
@@ -689,7 +700,7 @@ export default async function CalendarPage({
     };
   });
   const displayedJobs =
-    sp.assignment === "unassigned"
+    effectiveAssignment === "unassigned"
       ? jobsWithAssignments.filter((job) => !job.assignedUserIds.length)
       : jobsWithAssignments;
 
@@ -742,7 +753,7 @@ export default async function CalendarPage({
     recurrence: sp.recurrence,
     status: sp.status,
     zip: sp.zip,
-    assignment: sp.assignment,
+    assignment: effectiveAssignment,
   };
   const previousDate =
     view === "month"
@@ -840,22 +851,14 @@ export default async function CalendarPage({
             // it costs no additional query.
             monthRows.reduce((sum, day) => sum + day.unassigned, 0)
           : 0;
-  // date-picker.tsx's pills/day-selector (calendar-toolbar.tsx's own view
-  // prop) still speak the pre-merge "staff"/"staff_vertical" vocabulary —
-  // rebuilding them onto board+axis is WP-2's job (the actual axis-toggle
-  // Board UI), not this work package's. Translate the canonical view back
-  // to the legacy value those client components already understand so pill
-  // highlighting and the date popover's day-vs-week routing keep working
-  // unchanged.
-  const toolbarView =
-    view === "board" ? (axis === "horizontal" ? "staff_vertical" : "staff") : view;
   return (
     <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
       <CalendarStateSync view={view} axis={axis} anchor={stateAnchor} />
       <section className="co-card mx-3 mt-3 overflow-hidden sm:mx-4 lg:mx-5">
       <header className="border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-3 lg:px-5">
         <CalendarToolbar
-          view={toolbarView}
+          view={view}
+          axis={axis}
           currentDate={currentDate}
           dateLabel={dateLabel}
           focusDayIso={toISODate(dayAnchor)}

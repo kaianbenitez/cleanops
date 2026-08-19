@@ -1,22 +1,24 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Columns3, Rows3 } from "lucide-react";
 
 function iso(date: Date) { return date.toISOString().slice(0, 10); }
 function mondayIndex(date: Date) { return (date.getUTCDay() + 6) % 7; }
 
-// Five flat pills, no "More views" menu. Internal query values are
-// unchanged so existing links, the state cookie, and bookmarks keep
-// working — only the labels and the layout (nested vs. flat) changed.
+// Four flat pills, no "More views" menu. "board" replaces the old
+// "staff"/"staff_vertical" pair now that crews-as-columns/crews-as-rows are
+// one Board behind the axis toggle (CalendarAxisToggle) instead of two
+// separate pills. page.tsx still accepts "staff"/"staff_vertical" as legacy
+// aliases for old bookmarks/cookies, resolving them to board+axis before
+// this component ever sees them.
 const VIEWS = [
+  { value: "board", label: "Board" },
   { value: "list", label: "Day" },
   { value: "week", label: "Week" },
   { value: "month", label: "Month" },
-  { value: "staff", label: "Vertical" },
-  { value: "staff_vertical", label: "Horizontal" },
 ] as const;
 
 type ViewValue = (typeof VIEWS)[number]["value"];
@@ -26,6 +28,7 @@ export default function DatePicker({ view, value, label }: { view: string; value
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const pickerRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const [dialogPosition, setDialogPosition] = useState({ left: 0, top: 0 });
@@ -71,14 +74,14 @@ export default function DatePicker({ view, value, label }: { view: string; value
     params.delete("week"); params.delete("day"); params.delete("month");
     const selected = iso(date);
     if (view === "month") params.set("month", selected.slice(0, 7));
-    else if (view === "staff" || view === "staff_vertical" || view === "list") params.set("day", selected);
+    else if (view === "board" || view === "list") params.set("day", selected);
     else {
       const monday = new Date(date);
       const offset = mondayIndex(monday);
       monday.setUTCDate(monday.getUTCDate() - offset);
       params.set("week", iso(monday));
     }
-    router.push(`${pathname}?${params.toString()}`);
+    startTransition(() => router.push(`${pathname}?${params.toString()}`));
     setOpen(false);
   }
 
@@ -103,10 +106,29 @@ export default function DatePicker({ view, value, label }: { view: string; value
     </div>
   ) : null;
 
-  return <div ref={pickerRef} className="relative"><button type="button" onClick={() => setOpen((current) => !current)} aria-expanded={open} aria-haspopup="dialog" className="co-button-secondary min-w-[170px] justify-start gap-2 text-left"><CalendarDays className="h-4 w-4 shrink-0 text-[var(--co-accent-text)]" aria-hidden /><span>{label}</span></button>{dialog ? createPortal(dialog, document.body) : null}</div>;
+  return (
+    <div aria-busy={isPending} className="flex items-center gap-2">
+      <div ref={pickerRef} className="relative">
+        <button type="button" onClick={() => setOpen((current) => !current)} aria-expanded={open} aria-haspopup="dialog" className="co-button-secondary min-w-[170px] justify-start gap-2 text-left"><CalendarDays className="h-4 w-4 shrink-0 text-[var(--co-accent-text)]" aria-hidden /><span>{label}</span></button>
+        {dialog ? createPortal(dialog, document.body) : null}
+      </div>
+      {isPending ? <span role="status" className="text-xs text-[var(--co-muted)]">Updating…</span> : null}
+    </div>
+  );
 }
 
-export function CalendarViewSelector({ view, focusDayIso }: { view: string; focusDayIso: string }) {
+export function CalendarViewSelector({
+  view,
+  axis,
+  focusDayIso,
+}: {
+  view: string;
+  /** Explicitly re-set on every view switch (not just left to the state
+   * cookie) so the axis toggle survives a Day/Week/Month detour even before
+   * CalendarStateSync's cookie write lands. */
+  axis: "vertical" | "horizontal";
+  focusDayIso: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -114,6 +136,7 @@ export function CalendarViewSelector({ view, focusDayIso }: { view: string; focu
   function selectView(nextView: ViewValue) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("view", nextView);
+    params.set("axis", axis);
     params.delete("week"); params.delete("day"); params.delete("month");
     // Anchored on focusDayIso (the last specific day the user actually
     // looked at, tracked independently of the current view) rather than
@@ -121,7 +144,7 @@ export function CalendarViewSelector({ view, focusDayIso }: { view: string; focu
     // or Week, which silently dropped the real day on every switch back
     // to a day-based view.
     if (nextView === "month") params.set("month", focusDayIso.slice(0, 7));
-    else if (nextView === "staff" || nextView === "staff_vertical" || nextView === "list") params.set("day", focusDayIso);
+    else if (nextView === "board" || nextView === "list") params.set("day", focusDayIso);
     else {
       const monday = new Date(`${focusDayIso}T00:00:00.000Z`);
       monday.setUTCDate(monday.getUTCDate() - mondayIndex(monday));
@@ -143,6 +166,53 @@ export function CalendarViewSelector({ view, focusDayIso }: { view: string; focu
           {entry.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+/** Two icon buttons — crews as columns vs. crews as rows — shown only while
+ * `view === "board"` (see calendar-toolbar.tsx). Preserves every other
+ * search param (including the current day/week/month anchor) so toggling
+ * axis never moves the focused date. Matches the prototype's `.axis`
+ * styling 1:1 (`calendar-board-prototype.html`, `#axis`). */
+export function CalendarAxisToggle({ axis }: { axis: "vertical" | "horizontal" }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  function selectAxis(nextAxis: "vertical" | "horizontal") {
+    if (nextAxis === axis) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("axis", nextAxis);
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
+  function axisButtonClass(pressed: boolean) {
+    return `grid h-7 w-[30px] place-items-center rounded-md transition-colors duration-150 ${pressed ? "bg-[var(--co-surface)] text-[var(--co-accent-text)] shadow-[0_1px_2px_rgba(20,26,46,0.1)]" : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"}`;
+  }
+
+  return (
+    <div role="group" aria-label="Board axis" className="flex gap-0.5 rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-[3px]">
+      <button
+        type="button"
+        aria-pressed={axis === "vertical"}
+        aria-label="Crews as columns"
+        title="Crews as columns"
+        onClick={() => selectAxis("vertical")}
+        className={axisButtonClass(axis === "vertical")}
+      >
+        <Columns3 className="h-4 w-4" aria-hidden strokeWidth={1.75} />
+      </button>
+      <button
+        type="button"
+        aria-pressed={axis === "horizontal"}
+        aria-label="Crews as rows"
+        title="Crews as rows"
+        onClick={() => selectAxis("horizontal")}
+        className={axisButtonClass(axis === "horizontal")}
+      >
+        <Rows3 className="h-4 w-4" aria-hidden strokeWidth={1.75} />
+      </button>
     </div>
   );
 }

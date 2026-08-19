@@ -1005,7 +1005,12 @@ export default function Board({
       {/* -------------------------------------------------------------- */}
       {/* Attention rail — always visible, four groups in priority order */}
       {/* -------------------------------------------------------------- */}
-      <aside aria-label="Needs attention" className="co-card sticky top-3 overflow-hidden">
+      <aside
+        id="calendar-attention-rail"
+        tabIndex={-1}
+        aria-label="Needs attention"
+        className="co-card sticky top-3 overflow-hidden outline-none"
+      >
         <div className="border-b border-[var(--co-line-soft)] px-[15px] py-[13px] pb-[11px]">
           <div className="flex items-center gap-2 text-[13px] font-bold text-[var(--co-ink)]">
             <AlertCircle className="h-[13px] w-[13px] text-[var(--co-warning)]" aria-hidden strokeWidth={1.75} />

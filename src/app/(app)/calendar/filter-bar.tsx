@@ -36,15 +36,23 @@ export default function FilterBar({
   const status = searchParams.get("status") ?? "";
   const assignment = searchParams.get("assignment") ?? "";
   const zip = searchParams.get("zip") ?? "";
-  const queueOpen = searchParams.get("queue") === "unassigned";
   const activeFilterCount = [employeeId, type, recurrence, status, assignment, zip].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
 
-  function toggleQueue() {
-    const params = new URLSearchParams(searchParams.toString());
-    if (queueOpen) params.delete("queue");
-    else params.set("queue", "unassigned");
-    startTransition(() => router.push(`${pathname}?${params.toString()}`));
+  // The old collapsible unassigned-queue panel (toggled via ?queue=unassigned)
+  // is gone — board.tsx's Board now renders an always-visible attention rail
+  // instead (id="calendar-attention-rail"), so there's nothing left to open.
+  // This button now moves focus to that rail and scrolls it into view, which
+  // works for both a mouse click and a keyboard activation (Enter/Space).
+  // Board is the only view that renders the rail; on Day/Week/Month the
+  // count is still shown but the click is a no-op since there's nothing to
+  // jump to there.
+  function focusAttentionRail() {
+    const rail = document.getElementById("calendar-attention-rail");
+    if (!rail) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    rail.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
+    rail.focus({ preventScroll: true });
   }
 
   return (
@@ -52,11 +60,10 @@ export default function FilterBar({
       {attentionCount ? (
         <button
           type="button"
-          onClick={toggleQueue}
-          aria-controls="unassigned-queue-list"
-          aria-expanded={queueOpen}
+          onClick={focusAttentionRail}
+          aria-controls="calendar-attention-rail"
           aria-label={`Needs attention · ${attentionCount}`}
-          className={`co-button-secondary flex h-9 items-center gap-1 px-2.5 text-xs font-semibold ${queueOpen ? "border-[var(--co-warning)] !text-[var(--co-warning)]" : "!text-[var(--co-warning)]"}`}
+          className="co-button-secondary flex h-9 items-center gap-1 px-2.5 text-xs font-semibold !text-[var(--co-warning)]"
         >
           <AlertCircle className="h-3.5 w-3.5" aria-hidden />
           {attentionCount}

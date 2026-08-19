@@ -7,6 +7,19 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.66",
+    date: "August 20, 2026",
+    title: "Calendar toolbar: four views, a layout switch, and feedback while dates load",
+    changes: [
+      "The view buttons are now Board, Day, Week and Month. The old \"Vertical\" and \"Horizontal\" buttons are gone — those were the same board drawn two ways, so they became a small layout switch that appears beside the view buttons only while you're on Board.",
+      "Switching to Day, Week or Month and back to Board now keeps whichever layout you were using, and switching layout no longer moves you off the date you were looking at.",
+      "Your old saved calendar links still work and land on the right view and layout.",
+      "The \"Needs attention\" button in the toolbar now jumps you straight to that list beside the board, instead of opening a panel that no longer exists.",
+      "Moving between dates with the arrows, the date picker, or \"Today\" now shows a brief \"Updating…\" note, so it's clear the calendar is fetching rather than ignoring the click.",
+      "Opening the calendar fresh now shows the board's shape while it loads instead of a blank screen.",
+    ],
+  },
+  {
     version: "v0.2.65",
     date: "August 19, 2026",
     title: "Calendar Board rework: one board, an always-on attention list, and click-to-place",
