@@ -117,6 +117,7 @@ export type CalendarEmployee = {
   lastName: string;
   hiredDate: string | null;
   isActive: boolean;
+  role: string;
   calendarColor?: string;
 };
 
@@ -344,6 +345,7 @@ export default async function CalendarPage({
       lastName: users.lastName,
       hiredDate: users.hiredDate,
       isActive: users.isActive,
+      role: users.role,
     })
     .from(users)
     .where(
@@ -859,8 +861,10 @@ export default async function CalendarPage({
   const dailySummaryJobs = jobsWithAssignments.filter(
     (job) => job.scheduledDate === toISODate(dayAnchor) && !["cancelled", "no_show"].includes(job.status),
   );
+  const activeEmployees = employees.filter((employee) => employee.isActive && employee.role === "employee");
+  const activeEmployeeIds = new Set(activeEmployees.map((employee) => employee.id));
   const dailySummary = {
-    workingEmployees: new Set(dailySummaryJobs.flatMap((job) => job.assignedUserIds)).size,
+    workingEmployees: new Set(dailySummaryJobs.flatMap((job) => job.assignedUserIds).filter((id) => activeEmployeeIds.has(id))).size,
     recurringClients: new Set(dailySummaryJobs.filter((job) => job.recurringSeriesId).map((job) => job.customerId)).size,
     revenueCents: dailySummaryJobs.reduce((sum, job) => sum + job.priceCents, 0),
     discountCents: dailySummaryJobs.reduce((sum, job) => sum + job.discountCents, 0),
@@ -883,7 +887,7 @@ export default async function CalendarPage({
           appointmentDefaultDate={stateAnchor.length === 10 ? stateAnchor : toISODate(dayAnchor)}
           employees={employees}
           attentionCount={attentionCount}
-          totalEmployees={employees.length}
+          totalEmployees={activeEmployees.length}
           dailySummary={dailySummary}
           initialNotifications={notifications}
         />
