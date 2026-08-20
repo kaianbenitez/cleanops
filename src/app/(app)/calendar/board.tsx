@@ -629,12 +629,15 @@ export default function Board({
     );
   }
 
-  function minutesFromDragEvent(event: { clientX: number; clientY: number; currentTarget: HTMLElement }) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const fraction = axis === "vertical" ? (event.clientY - rect.top) / rect.height : (event.clientX - rect.left) / rect.width;
+  function minutesFromCoordinates(rect: DOMRect, clientX: number, clientY: number) {
+    const fraction = axis === "vertical" ? (clientY - rect.top) / rect.height : (clientX - rect.left) / rect.width;
     const raw = windowStart + fraction * windowMinutes;
     const snapped = Math.round(raw / PLACEMENT_SNAP_MINUTES) * PLACEMENT_SNAP_MINUTES;
     return Math.min(Math.max(snapped, windowStart), windowEnd - PLACEMENT_SNAP_MINUTES);
+  }
+
+  function minutesFromDragEvent(event: { clientX: number; clientY: number; currentTarget: HTMLElement }) {
+    return minutesFromCoordinates(event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY);
   }
 
   // Cross-lane drag: kept working exactly as before the merge. Dragging
@@ -661,8 +664,12 @@ export default function Board({
     const isExistingLane = previousEmployees.includes(employeeId);
     const isCrossLaneMove = Boolean(sourceEmployeeId) && sourceEmployeeId !== employeeId;
     const previousTime = job.scheduledStartTime;
-    const clampedMinutes = dragMinutesRef.current ?? minutesFromDragEvent(event);
+    const clampedMinutes = dragMinutesRef.current;
     dragMinutesRef.current = null;
+    if (clampedMinutes === null) {
+      setWarning("Drop the job inside a cleaner's time lane so its arrival time is clear.");
+      return;
+    }
     const nextTime = minutesToTime(clampedMinutes);
 
     if (JSON.stringify(previousEmployees) === JSON.stringify(nextEmployees) && previousTime === nextTime) return;
@@ -736,8 +743,12 @@ export default function Board({
       // Untimed job: drop position sets the arrival time (15-minute snap,
       // same rule as click-to-place). Timed jobs ignore this override —
       // commitPlacement keeps the job's own scheduledStartTime.
-      const minutes = dragMinutesRef.current ?? minutesFromDragEvent(event);
+      const minutes = dragMinutesRef.current;
       dragMinutesRef.current = null;
+      if (minutes === null) {
+        setWarning("Drop the job inside a cleaner's time lane so its arrival time is clear.");
+        return;
+      }
       commitPlacement(employeeId, minutes);
       return;
     }
@@ -807,6 +818,8 @@ export default function Board({
       if (!currentBoard) return stopDragAutoScroll();
       const rect = currentBoard.getBoundingClientRect();
       const { x, y } = dragPointRef.current;
+      const laneUnderPointer = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-calendar-time-lane]");
+      if (laneUnderPointer) dragMinutesRef.current = minutesFromCoordinates(laneUnderPointer.getBoundingClientRect(), x, y);
       const horizontalEdge = Math.max(0, edgeSize - Math.min(x - rect.left, rect.right - x));
       const verticalEdge = Math.max(0, edgeSize - Math.min(y - rect.top, rect.bottom - y));
       const speed = (distance: number) => Math.min(44, Math.max(5, Math.round(distance / 2.5)));
@@ -1414,6 +1427,7 @@ export default function Board({
                     <div
                       key={employee.id}
                       data-lane-slot
+                      data-calendar-time-lane
                       role="group"
                       tabIndex={0}
                       aria-label={laneAriaLabel(employee)}
@@ -1484,6 +1498,7 @@ export default function Board({
                     <div key={employee.id} data-lane-row className="grid border-b border-[var(--co-line-soft)] last:border-b-0" style={{ gridTemplateColumns: `${LANE_HEADER_WIDTH}px ${hours * HOUR_WIDTH}px` }}>
                       <div className="sticky left-0 z-[4] flex flex-col justify-center border-r border-[var(--co-line)] bg-[var(--co-surface)]">{renderLaneHeader(employee)}</div>
                       <div
+                        data-calendar-time-lane
                         role="group"
                         tabIndex={0}
                         aria-label={laneAriaLabel(employee)}
