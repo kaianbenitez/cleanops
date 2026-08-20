@@ -17,6 +17,7 @@ const updateJobSchema = z.object({
   estimatedDurationMinutes: z.number().int().min(15).max(600).optional(),
   status: z.enum(["scheduled", "in_progress", "completed", "cancelled", "no_show"]).optional(),
   cancellationReason: z.string().trim().min(1).max(1000).optional(),
+  skipOccurrence: z.boolean().optional(),
   employeeIds: z.array(z.string().uuid()).optional(),
   trainerId: z.string().uuid().nullable().optional(),
   completionNotes: z.string().optional(),
@@ -57,7 +58,7 @@ export async function PATCH(
   }
 
   const [existing] = await db
-    .select({ id: jobs.id, type: jobs.type, status: jobs.status, customerId: jobs.customerId, quoteId: jobs.quoteId, scheduledDate: jobs.scheduledDate, scheduledStartTime: jobs.scheduledStartTime, estimatedDurationMinutes: jobs.estimatedDurationMinutes, jthManualOverride: jobs.jthManualOverride, priceCents: jobs.priceCents, completionNotes: jobs.completionNotes, paymentMethodCollected: jobs.paymentMethodCollected, checkNumberCollected: jobs.checkNumberCollected, cleanerNotes: jobs.cleanerNotes, cancellationReason: jobs.cancellationReason })
+    .select({ id: jobs.id, type: jobs.type, status: jobs.status, customerId: jobs.customerId, quoteId: jobs.quoteId, recurringSeriesId: jobs.recurringSeriesId, scheduledDate: jobs.scheduledDate, scheduledStartTime: jobs.scheduledStartTime, estimatedDurationMinutes: jobs.estimatedDurationMinutes, jthManualOverride: jobs.jthManualOverride, priceCents: jobs.priceCents, completionNotes: jobs.completionNotes, paymentMethodCollected: jobs.paymentMethodCollected, checkNumberCollected: jobs.checkNumberCollected, cleanerNotes: jobs.cleanerNotes, cancellationReason: jobs.cancellationReason })
     .from(jobs)
     .where(and(eq(jobs.id, jobId), eq(jobs.companyId, admin.companyId)))
     .limit(1);
@@ -66,11 +67,14 @@ export async function PATCH(
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  const { employeeIds, trainerId, ...parsedJobFields } = parsed.data;
+  const { employeeIds, trainerId, skipOccurrence, ...parsedJobFields } = parsed.data;
   if (trainerId && employeeIds && !employeeIds.includes(trainerId)) {
     return NextResponse.json({ error: "Trainer must be one of the assigned employees." }, { status: 400 });
   }
   const jobFields: Partial<typeof jobs.$inferInsert> = { ...parsedJobFields };
+  if (skipOccurrence && (!existing.recurringSeriesId || jobFields.status !== "cancelled")) {
+    return NextResponse.json({ error: "Only recurring visits can be skipped from the calendar." }, { status: 400 });
+  }
   if (jobFields.status === "cancelled" && existing.status !== "cancelled" && !jobFields.cancellationReason) {
     return NextResponse.json({ error: "Enter a cancellation reason before cancelling this job." }, { status: 400 });
   }

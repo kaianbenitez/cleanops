@@ -13,6 +13,14 @@ const DAYS: Array<[number, string]> = [
   [6, "Sat"],
 ];
 
+const DEFAULT_CANCELLATION_POLICY = `Skip & Cancellation Fees: We truly value your time—and our team’s time too! While we’d much rather clean your home than charge a fee, last-minute changes do impact our techs’ schedules and income.
+
+Our policy:
+Less than 24 hours’ notice: 50% of your service rate will be charged. This goes directly to your tech to cover lost wages.
+Same-day cancellations: 100% of your service fee will be charged.
+Skip fees: If you cancel or skip a scheduled cleaning, a skip fee may be applied to your next “catch-up” cleaning to get your home back on track.
+Recurring clients: Missing two consecutive cleanings means your next visit will be billed at the First-Time Cleaning rate.`;
+
 function minutesToTimeInput(totalMinutes: number) {
   return `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
 }
@@ -28,11 +36,13 @@ export default function CalendarSettingsPage() {
   const [workdayHours, setWorkdayHours] = useState("8");
   const [workdayStart, setWorkdayStart] = useState(minutesToTimeInput(DEFAULT_WORKDAY_START_MINUTES));
   const [workdayEnd, setWorkdayEnd] = useState(minutesToTimeInput(DEFAULT_WORKDAY_END_MINUTES));
+  const [cancellationPolicy, setCancellationPolicy] = useState(DEFAULT_CANCELLATION_POLICY);
   const [loading, setLoading] = useState(true);
   const [holidaysMessage, setHolidaysMessage] = useState("");
   const [workingDaysMessage, setWorkingDaysMessage] = useState("");
   const [workdayHoursMessage, setWorkdayHoursMessage] = useState("");
   const [workdayWindowMessage, setWorkdayWindowMessage] = useState("");
+  const [cancellationPolicyMessage, setCancellationPolicyMessage] = useState("");
 
   useEffect(() => {
     fetch("/api/settings")
@@ -58,6 +68,7 @@ export default function CalendarSettingsPage() {
               : DEFAULT_WORKDAY_END_MINUTES,
           ),
         );
+        setCancellationPolicy(typeof data.company.settings?.cancellationPolicy === "string" ? data.company.settings.cancellationPolicy : DEFAULT_CANCELLATION_POLICY);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -129,6 +140,15 @@ export default function CalendarSettingsPage() {
     setWorkdayWindowMessage(response.ok ? "Working hours saved." : "Could not save working hours.");
   }
 
+  async function saveCancellationPolicy() {
+    const response = await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cancellationPolicy: cancellationPolicy.trim() }),
+    });
+    setCancellationPolicyMessage(response.ok ? "Cancellation policy saved." : "Could not save cancellation policy.");
+  }
+
   if (loading) {
     return <div className="co-card p-8 text-sm text-[var(--co-muted)]">Loading calendar settings…</div>;
   }
@@ -166,6 +186,19 @@ export default function CalendarSettingsPage() {
             Save holidays
           </button>
           {holidaysMessage ? <p className="mt-3 text-sm font-medium text-[var(--co-accent-text)]">{holidaysMessage}</p> : null}
+        </div>
+      </section>
+
+      <section id="cancellation-policy" className="co-card overflow-hidden">
+        <div className="border-b border-[var(--co-line-soft)] px-5 py-4">
+          <p className="eyebrow">Client policy</p>
+          <h2 className="mt-1 text-lg font-semibold">Skip & cancellation fees</h2>
+          <p className="mt-1 text-sm text-[var(--co-muted)]">This copy is shown to the team when a recurring visit is skipped from Calendar.</p>
+        </div>
+        <div className="p-5">
+          <textarea value={cancellationPolicy} onChange={(event) => setCancellationPolicy(event.target.value)} rows={10} className="co-input w-full resize-y text-sm leading-6" />
+          <button onClick={saveCancellationPolicy} className="co-button-primary mt-5">Save cancellation policy</button>
+          {cancellationPolicyMessage ? <p className="mt-3 text-sm font-medium text-[var(--co-accent-text)]">{cancellationPolicyMessage}</p> : null}
         </div>
       </section>
 

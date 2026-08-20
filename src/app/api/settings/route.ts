@@ -110,6 +110,7 @@ const schema = z.object({
     .max(366)
     .optional(),
   workingDays: z.array(z.number().int().min(0).max(6)).min(1).max(7).optional(),
+  cancellationPolicy: z.string().trim().max(5000).optional(),
   // Capacity planning (SF-7): hours one cleaner works in a normal day, and the
   // fallback duration used when a job has no estimatedDurationMinutes yet.
   workdayHoursPerCleaner: z.number().positive().max(24).optional(),
@@ -228,6 +229,9 @@ export async function PATCH(req: NextRequest) {
       : {}),
     ...(parsed.data.workingDays !== undefined
       ? { workingDays: parsed.data.workingDays }
+      : {}),
+    ...(parsed.data.cancellationPolicy !== undefined
+      ? { cancellationPolicy: parsed.data.cancellationPolicy }
       : {}),
     ...(parsed.data.workdayHoursPerCleaner !== undefined
       ? { workdayHoursPerCleaner: parsed.data.workdayHoursPerCleaner }

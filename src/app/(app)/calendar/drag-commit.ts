@@ -6,6 +6,7 @@ export type JobPatch = Partial<{
   employeeIds: string[];
   status: string;
   cancellationReason: string;
+  skipOccurrence: boolean;
 }>;
 
 export async function commitJobPatch(

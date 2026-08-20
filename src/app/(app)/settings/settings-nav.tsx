@@ -48,7 +48,7 @@ const GROUPS: NavGroup[] = [
   {
     label: "Calendar",
     icon: CalendarDays,
-    links: [{ href: "/settings/calendar", label: "Holidays & working days" }],
+    links: [{ href: "/settings/calendar", label: "Calendar & cancellation policy" }],
   },
   {
     label: "Integrations",
