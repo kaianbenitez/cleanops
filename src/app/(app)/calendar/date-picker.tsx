@@ -154,14 +154,14 @@ export function CalendarViewSelector({
   }
 
   return (
-    <div role="group" aria-label="Calendar view" className="flex overflow-hidden rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-0.5">
+    <div role="group" aria-label="Calendar view" className="flex gap-0.5 rounded-xl border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-1">
       {VIEWS.map((entry) => (
         <button
           key={entry.value}
           type="button"
           aria-pressed={view === entry.value}
           onClick={() => selectView(entry.value)}
-          className={`min-h-9 whitespace-nowrap px-3 py-1.5 text-xs font-semibold ${view === entry.value ? "bg-[var(--co-accent-fill)] text-white" : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"}`}
+          className={`min-h-9 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${view === entry.value ? "bg-[var(--co-accent-fill)] text-white shadow-[0_1px_2px_rgba(20,26,46,.12)]" : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"}`}
         >
           {entry.label}
         </button>
