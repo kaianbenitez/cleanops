@@ -46,6 +46,17 @@ const STATUS_OPTIONS = [
   { value: "no_show", label: "No show" },
 ] as const;
 
+function formatDurationInput(minutes: number | null | undefined) {
+  if (minutes == null) return "";
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
+function parseDurationInput(value: string) {
+  const match = /^(\d{1,2}):([0-5]\d)$/.exec(value.trim());
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
 export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: string | null; employees: Employee[]; onClose: () => void }) {
   const router = useRouter();
   const [job, setJob] = useState<JobDetail | null>(null);
@@ -84,7 +95,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
       setDraftTime(data.job?.scheduledStartTime?.slice(0, 5) ?? "");
       setDraftStatus(data.job?.status ?? "");
       setDraftPrice(data.job?.priceCents == null ? "" : (data.job.priceCents / 100).toFixed(2));
-      setDraftDuration(data.job?.estimatedDurationMinutes == null ? "" : String(data.job.estimatedDurationMinutes));
+      setDraftDuration(formatDurationInput(data.job?.estimatedDurationMinutes));
     } catch {
       if (!isCancelled()) setError("Couldn't load job details.");
     } finally {
@@ -97,7 +108,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
     draftTime !== (job?.scheduledStartTime?.slice(0, 5) ?? "") ||
     draftStatus !== job?.status ||
     draftPrice !== (job ? (job.priceCents / 100).toFixed(2) : "") ||
-    draftDuration !== (job?.estimatedDurationMinutes == null ? "" : String(job.estimatedDurationMinutes)) ||
+    draftDuration !== formatDurationInput(job?.estimatedDurationMinutes) ||
     draftAssignedUserIds.join(",") !== assignedUserIds.join(",")
   );
 
@@ -157,8 +168,8 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
     if (draftStatus !== job.status) fields.status = draftStatus;
     const nextPriceCents = Math.round(Number(draftPrice) * 100);
     if (Number.isFinite(nextPriceCents) && nextPriceCents >= 0 && nextPriceCents !== job.priceCents) fields.priceCents = nextPriceCents;
-    const nextDuration = Number(draftDuration);
-    if (Number.isInteger(nextDuration) && nextDuration >= 15 && nextDuration <= 600 && nextDuration !== job.estimatedDurationMinutes) fields.estimatedDurationMinutes = nextDuration;
+    const nextDuration = parseDurationInput(draftDuration);
+    if (nextDuration !== null && Number.isInteger(nextDuration) && nextDuration >= 15 && nextDuration <= 600 && nextDuration !== job.estimatedDurationMinutes) fields.estimatedDurationMinutes = nextDuration;
     if (draftAssignedUserIds.join(",") !== assignedUserIds.join(",")) fields.employeeIds = draftAssignedUserIds;
     patch(fields);
   }
@@ -237,9 +248,9 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
               </div>
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <label className="block text-xs font-semibold text-[var(--co-muted)]">Value<input type="number" min="0" step="0.01" value={draftPrice} onChange={(event) => setDraftPrice(event.target.value)} className="co-input mt-1 w-full" /></label>
-                <label className="block text-xs font-semibold text-[var(--co-muted)]">JTH / Duration (minutes)<input type="number" min="15" max="600" step="15" value={draftDuration} onChange={(event) => setDraftDuration(event.target.value)} className="co-input mt-1 w-full" /></label>
+                <label className="block text-xs font-semibold text-[var(--co-muted)]">JTH / Duration (hh:mm)<input type="text" inputMode="numeric" pattern="[0-9]{1,2}:[0-5][0-9]" placeholder="03:01" value={draftDuration} onChange={(event) => setDraftDuration(event.target.value)} className="co-input mt-1 w-full" /></label>
               </div>
-              <p className="mt-2 text-[11px] leading-4 text-[var(--co-muted)]">Duration controls the calendar block length and can be edited in 15-minute increments.</p>
+              <p className="mt-2 text-[11px] leading-4 text-[var(--co-muted)]">Use hours and minutes, for example 03:00. Duration controls the calendar block length.</p>
             </section>
 
             <div>
@@ -252,7 +263,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
             <div className="text-sm text-[var(--co-muted)]">{formatEstimatedTime(job.estimatedDurationMinutes)}</div>
 
             <div className="flex flex-wrap gap-2 border-t border-[var(--co-line-soft)] pt-4">
-              {isDirty ? <button type="button" disabled={saving} onClick={() => { setDraftDate(job.scheduledDate); setDraftTime(job.scheduledStartTime?.slice(0, 5) ?? ""); setDraftStatus(job.status); setDraftPrice((job.priceCents / 100).toFixed(2)); setDraftDuration(job.estimatedDurationMinutes == null ? "" : String(job.estimatedDurationMinutes)); setDraftAssignedUserIds(assignedUserIds); }} className="co-button-secondary disabled:opacity-50">Discard changes</button> : null}
+              {isDirty ? <button type="button" disabled={saving} onClick={() => { setDraftDate(job.scheduledDate); setDraftTime(job.scheduledStartTime?.slice(0, 5) ?? ""); setDraftStatus(job.status); setDraftPrice((job.priceCents / 100).toFixed(2)); setDraftDuration(formatDurationInput(job.estimatedDurationMinutes)); setDraftAssignedUserIds(assignedUserIds); }} className="co-button-secondary disabled:opacity-50">Discard changes</button> : null}
               {job.status !== "cancelled" ? confirmingCancel ? (
                 <div className="w-full space-y-2 co-badge-danger rounded-lg p-3">
                   <label className="block text-xs font-semibold text-[var(--co-danger)]">
