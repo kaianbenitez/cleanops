@@ -4,7 +4,7 @@ import { CalendarDays } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/date-input";
 
 const PRESETS = [
   ["yesterday", "Yesterday"],
@@ -135,24 +135,24 @@ export default function DateRangeControls({
             className="co-date-popover co-date-popover-responsive absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] p-3"
           >
             <div className="grid gap-3">
-              <label className="grid gap-1 text-xs font-medium text-[var(--co-muted)]">
+              <div className="grid gap-1 text-xs font-medium text-[var(--co-muted)]">
                 <span>From</span>
-                <Input
-                  type="date"
+                <DateInput
                   value={from}
-                  onChange={(event) => setFrom(event.target.value)}
-                  className="min-h-11"
+                  onChange={setFrom}
+                  ariaLabel="From date"
+                  className="w-full"
                 />
-              </label>
-              <label className="grid gap-1 text-xs font-medium text-[var(--co-muted)]">
+              </div>
+              <div className="grid gap-1 text-xs font-medium text-[var(--co-muted)]">
                 <span>Through</span>
-                <Input
-                  type="date"
+                <DateInput
                   value={to}
-                  onChange={(event) => setTo(event.target.value)}
-                  className="min-h-11"
+                  onChange={setTo}
+                  ariaLabel="Through date"
+                  className="w-full"
                 />
-              </label>
+              </div>
               <Button
                 type="button"
                 onClick={applyCustomRange}
