@@ -42,6 +42,18 @@ type Stats = {
   teamSize: number;
 };
 type WeekDay = { date: string; jobCount: number };
+type CalendarBlock = {
+  id: string;
+  title: string;
+  scheduledDate: string;
+  startTime: string | null;
+  durationMinutes: number | null;
+  isAllDay: boolean;
+  category: "meeting" | "reminder" | "training";
+  status: "scheduled" | "cancelled";
+  timeOffType: "paid" | "unpaid" | null;
+  note: string | null;
+};
 type ServiceLocation = { id: string; name: string };
 type EmployeeJob = {
   id: string;
@@ -81,6 +93,13 @@ function dollars(cents: number) {
 
 function formatClock(value: string | null) {
   return value ? value.slice(0, 5) : "—";
+}
+
+function formatBlockTime(block: CalendarBlock) {
+  if (block.isAllDay) return "All day";
+  if (!block.startTime) return "Time not set";
+  const start = formatClock(block.startTime);
+  return `${start}${block.durationMinutes ? ` · ${block.durationMinutes} min` : ""}`;
 }
 
 /** hh:mm, matching the Jobs list / Job Detail / Calendar convention. */
@@ -167,6 +186,7 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
   const [recentJobs, setRecentJobs] = useState<EmployeeJob[]>([]);
   const [, setPayTierBrackets] = useState<PayTierBracket[]>([]);
   const [weeklySchedule, setWeeklySchedule] = useState<WeekDay[]>([]);
+  const [calendarBlocks, setCalendarBlocks] = useState<CalendarBlock[]>([]);
   const [serviceLocations, setServiceLocations] = useState<ServiceLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -193,6 +213,7 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
     setRecentJobs(data.recentJobs ?? []);
     setPayTierBrackets(data.payTierBrackets ?? []);
     setWeeklySchedule(data.weeklySchedule ?? []);
+    setCalendarBlocks(data.calendarBlocks ?? []);
     setError(null);
     setLoading(false);
   }, [employeeId]);
@@ -275,6 +296,7 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ empl
     stats={stats}
     recentJobs={recentJobs}
     weeklySchedule={weeklySchedule}
+    calendarBlocks={calendarBlocks}
     pto={pto}
     serviceLocations={serviceLocations}
     editMode={editMode}
@@ -299,6 +321,7 @@ type CompactProfileProps = {
   stats: Stats;
   recentJobs: EmployeeJob[];
   weeklySchedule: WeekDay[];
+  calendarBlocks: CalendarBlock[];
   pto: EmployeePto[];
   serviceLocations: ServiceLocation[];
   editMode: boolean;
@@ -322,6 +345,7 @@ function CompactProfile({
   stats,
   recentJobs,
   weeklySchedule,
+  calendarBlocks,
   pto,
   serviceLocations,
   editMode,
@@ -436,6 +460,7 @@ function CompactProfile({
           <section className="co-card overflow-hidden"><div className="flex items-center justify-between border-b border-[var(--co-line-soft)] px-5 py-4"><div className="flex items-center gap-2"><History className="h-4 w-4 text-[var(--co-accent-text)]" /><h2 className="text-sm font-semibold">Recent jobs</h2></div><Link href="/jobs" className="text-xs font-semibold text-[var(--co-accent-text)] hover:underline">View full history ↗</Link></div><div className="divide-y divide-[var(--co-line-soft)]">{recentJobs.length === 0 ? <div className="px-5 py-6"><EmptyState label="No recent jobs yet." detail="Completed work will appear here." /></div> : recentJobs.map((job) => <JobRow key={job.id} job={job} compact />)}</div></section>
 
           <section className="co-card p-5"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[var(--co-accent-text)]" /><h2 className="text-sm font-semibold">Weekly schedule preview</h2></div><Link href={`/calendar?view=staff_vertical&employeeId=${employee.id}`} className="text-xs font-semibold text-[var(--co-accent-text)] hover:underline">View schedule</Link></div><p className="mt-1 text-xs text-[var(--co-muted)]">Assignments and planned time off for this week.</p><div className="mt-4"><WeekStrip days={weeklySchedule} pto={pto} /></div><PtoEditor employeeId={employee.id} onChange={setPto} /></section>
+          <section className="co-card overflow-hidden"><div className="border-b border-[var(--co-line-soft)] px-5 py-4"><div className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[var(--co-accent-text)]" /><h2 className="text-sm font-semibold">Calendar blocks</h2></div><p className="mt-1 text-xs text-[var(--co-muted)]">Meetings and blocked time assigned to this employee.</p></div><div className="divide-y divide-[var(--co-line-soft)]">{calendarBlocks.length === 0 ? <p className="px-5 py-5 text-sm text-[var(--co-muted)]">No calendar blocks assigned.</p> : calendarBlocks.map((block) => <div key={block.id} className={`flex items-start justify-between gap-3 px-5 py-3 ${block.status === "cancelled" ? "opacity-55" : ""}`}><div className="min-w-0"><p className="truncate text-sm font-medium text-[var(--co-ink)]">{block.title}</p><p className="mt-1 text-xs text-[var(--co-muted)]">{block.scheduledDate} · {formatBlockTime(block)}{block.timeOffType ? ` · ${block.timeOffType}` : ""}</p>{block.note ? <p className="mt-1 truncate text-xs text-[var(--co-muted)]">{block.note}</p> : null}</div><span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold ${block.status === "cancelled" ? "co-badge-danger" : block.category === "reminder" ? "co-badge-warning" : "co-badge-info"}`}>{block.status === "cancelled" ? "Cancelled" : block.category === "reminder" ? "Blocked" : "Meeting"}</span></div>)}</div></section>
           <PendingPtoRequests employeeId={employee.id} />
           <ReportNotes employeeId={employee.id} />
 

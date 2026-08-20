@@ -429,6 +429,10 @@ export default function Board({
     () => appointments.filter((appointment) => appointment.scheduledDate === dayIso && !appointment.isAllDay),
     [appointments, dayIso],
   );
+  const dayAllDayAppointments = useMemo(
+    () => appointments.filter((appointment) => appointment.scheduledDate === dayIso && appointment.isAllDay),
+    [appointments, dayIso],
+  );
 
   // Escape cancels placement, matching the prototype's global handler.
   useEffect(() => {
@@ -1448,6 +1452,9 @@ export default function Board({
                       style={{ height: hours * HOUR_HEIGHT, backgroundImage: "repeating-linear-gradient(to bottom, color-mix(in srgb, var(--co-line-soft) 58%, transparent) 0 1px, transparent 1px 16px), repeating-linear-gradient(to bottom, var(--co-line-soft) 0 1px, transparent 1px 100%)", backgroundSize: `100% ${HOUR_HEIGHT / 4}px, 100% ${HOUR_HEIGHT}px` }}
                     >
                       {renderPto(employee.id)}
+                      {dayAllDayAppointments
+                        .filter((appointment) => appointment.attendeeUserIds.includes(employee.id))
+                        .map((appointment) => renderAppointment(appointment, { left: 4, right: 4, top: 4, bottom: 4 }))}
                       {dayAppointments
                         .filter((appointment) => appointment.attendeeUserIds.includes(employee.id))
                         .map((appointment) => {
@@ -1519,6 +1526,9 @@ export default function Board({
                         style={{ width: hours * HOUR_WIDTH, height: rowHeight, backgroundImage: "repeating-linear-gradient(to right, color-mix(in srgb, var(--co-line-soft) 58%, transparent) 0 1px, transparent 1px 16px), repeating-linear-gradient(to right, var(--co-line-soft) 0 1px, transparent 1px 100%)", backgroundSize: `${HOUR_WIDTH / 4}px 100%, ${HOUR_WIDTH}px 100%` }}
                       >
                         {renderPto(employee.id)}
+                        {dayAllDayAppointments
+                          .filter((appointment) => appointment.attendeeUserIds.includes(employee.id))
+                          .map((appointment) => renderAppointment(appointment, { left: 4, right: 4, top: 4, bottom: 4 }))}
                         {dayAppointments
                           .filter((appointment) => appointment.attendeeUserIds.includes(employee.id))
                           .map((appointment) => {

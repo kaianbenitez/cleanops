@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
-import { auditLog, customers, users, jobs, jobAssignments, timeEntries, payrollLines, payrollPeriods, serviceLocations, employeeServiceLocations } from "@/db/schema";
+import { auditLog, calendarEventAssignments, calendarEvents, customers, users, jobs, jobAssignments, timeEntries, payrollLines, payrollPeriods, serviceLocations, employeeServiceLocations } from "@/db/schema";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildPayTiers, getPayTierBrackets } from "@/lib/payroll/calculate";
@@ -145,6 +145,25 @@ export async function GET(
     .orderBy(desc(jobs.completedAt), desc(jobs.scheduledDate))
     .limit(6);
 
+  const calendarBlocks = await db
+    .select({
+      id: calendarEvents.id,
+      title: calendarEvents.title,
+      scheduledDate: calendarEvents.scheduledDate,
+      startTime: calendarEvents.startTime,
+      durationMinutes: calendarEvents.durationMinutes,
+      isAllDay: calendarEvents.isAllDay,
+      category: calendarEvents.category,
+      status: calendarEvents.status,
+      timeOffType: calendarEvents.timeOffType,
+      note: calendarEvents.note,
+    })
+    .from(calendarEventAssignments)
+    .innerJoin(calendarEvents, eq(calendarEventAssignments.eventId, calendarEvents.id))
+    .where(and(eq(calendarEventAssignments.userId, employeeId), eq(calendarEvents.companyId, admin.companyId)))
+    .orderBy(desc(calendarEvents.scheduledDate), desc(calendarEvents.startTime))
+    .limit(20);
+
   const recentTimeEntries = await db
     .select({
       id: timeEntries.id,
@@ -222,6 +241,7 @@ export async function GET(
     },
     upcomingJobs,
     recentJobs,
+    calendarBlocks,
     recentTimeEntries,
     payTierBrackets,
     weeklySchedule,
