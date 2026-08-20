@@ -544,13 +544,14 @@ export default async function CalendarPage({
     )
     .orderBy(calendarEvents.scheduledDate, calendarEvents.startTime);
 
-  // Full active staff (field + office) — the attendee picker for a meeting
-  // must include office/admin staff, unlike the field-eligible-only
-  // `employeesQuery` above.
+  // Calendar appointments are part of the field schedule, so their attendee
+  // picker should use the same field-staff roster as jobs. This keeps office
+  // staff out while retaining admins who are explicitly marked as hybrid /
+  // field staff (for example, Brittney).
   const staffRosterQuery = db
     .select({ id: users.id, firstName: users.firstName, lastName: users.lastName })
     .from(users)
-    .where(and(eq(users.companyId, admin.companyId), eq(users.isActive, true)))
+    .where(and(eq(users.companyId, admin.companyId), eq(users.isActive, true), isFieldEligible))
     .orderBy(users.firstName, users.lastName);
 
   // Calendar's toolbar absorbs NotificationsMenu (the app-wide top bar is
