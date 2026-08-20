@@ -2,7 +2,7 @@
 
 import { Suspense, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { createClient } from "@/lib/supabase/client";
 import { usernameToEmail } from "@/lib/auth/username";
@@ -34,7 +34,6 @@ function ReasonAwareLoginForm() {
 }
 
 function LoginForm({ reasonMessage }: { reasonMessage: string }) {
-  const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -68,8 +67,17 @@ function LoginForm({ reasonMessage }: { reasonMessage: string }) {
     // resolveLandingSurface) instead of hardcoding /dashboard and relying on
     // that page to bounce field employees to /my-day — sends them there
     // directly (WP-E §8.2).
-    router.push("/");
-    router.refresh();
+    //
+    // A hard navigation, not router.push(): "/" is deliberately built as a
+    // static page (src/app/page.tsx) so anonymous/crawler traffic never pays
+    // for a dynamic render, which means Next's client Router Cache treats it
+    // as a "static" segment cached for 5 minutes by default (staleTimes.md).
+    // router.push("/") after sign-in could serve that stale, signed-out
+    // marketing-page render straight from the client cache — skipping the
+    // server round trip entirely, so middleware's resolveRootRequest never
+    // runs and a freshly-authenticated user lands back on the landing page.
+    // window.location.href always issues a real HTTP request.
+    window.location.href = "/";
   }
 
   return (
