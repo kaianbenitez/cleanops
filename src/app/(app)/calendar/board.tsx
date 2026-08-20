@@ -1367,7 +1367,7 @@ export default function Board({
           </div>
         ) : null}
 
-        <div ref={gridScrollRef} onDragOver={scrollBoardWhileDragging} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) stopDragAutoScroll(); }} className="max-h-[calc(100dvh-232px)] overflow-auto overscroll-contain [scrollbar-gutter:stable]">
+        <div ref={gridScrollRef} onDragEnter={scrollBoardWhileDragging} onDragOver={scrollBoardWhileDragging} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) stopDragAutoScroll(); }} className="max-h-[calc(100dvh-232px)] overflow-auto overscroll-contain [scrollbar-gutter:stable]">
           {sortedEmployees.length === 0 ? (
             <div className="flex items-center justify-center px-4 py-16 text-sm text-[var(--co-muted)]">Create or activate a technician to use the dispatch board.</div>
           ) : axis === "vertical" ? (
