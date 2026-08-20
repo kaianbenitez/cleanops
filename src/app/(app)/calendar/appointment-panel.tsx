@@ -102,6 +102,10 @@ export default function AppointmentPanel({
       setError(`Enter a ${appointmentKind === "blocker" ? "reason" : "title"} for this appointment.`);
       return;
     }
+    if (appointmentKind === "blocker" && form.employeeIds.length !== 1) {
+      setError("Choose the cleaner whose day should be blocked.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -227,7 +231,11 @@ export default function AppointmentPanel({
                   </option>
                 ))}
               </select>
-              <span className="mt-1 block text-[11px] font-normal normal-case text-[var(--co-muted)]">Every attendee is automatically paid for this much time.</span>
+              <span className="mt-1 block text-[11px] font-normal normal-case text-[var(--co-muted)]">
+                {appointmentKind === "blocker"
+                  ? "This time will appear on the selected cleaner's day."
+                  : "Every attendee is automatically paid for this much time."}
+              </span>
             </label>
 
             {appointmentKind === "meeting" ? (
@@ -238,9 +246,25 @@ export default function AppointmentPanel({
                 </div>
               </div>
             ) : (
-              <p className="text-xs leading-5 text-[var(--co-muted)]">
-                This marks the time unavailable on the calendar. It does not create a job or affect payroll.
-              </p>
+              <div className="block text-xs font-semibold text-[var(--co-muted)]">
+                Cleaner
+                <div className="mt-1">
+                  <AttendeePicker
+                    staff={staffRoster}
+                    selectedIds={form.employeeIds}
+                    onChange={(ids) =>
+                      setForm((current) => ({
+                        ...current,
+                        employeeIds: ids.slice(-1),
+                      }))
+                    }
+                    placeholder="Search cleaner by name…"
+                  />
+                </div>
+                <span className="mt-1 block text-[11px] font-normal normal-case text-[var(--co-muted)]">
+                  This marks the selected cleaner&apos;s time unavailable. It does not create a job or affect payroll.
+                </span>
+              </div>
             )}
 
             <label className="block text-xs font-semibold text-[var(--co-muted)]">
