@@ -1,4 +1,4 @@
-export const FREQUENCIES = ["weekly", "biweekly", "every4weeks", "monthly"] as const;
+export const FREQUENCIES = ["weekly", "biweekly", "every4weeks", "monthly", "custom"] as const;
 
 export type SeriesFrequency = (typeof FREQUENCIES)[number];
 
@@ -7,6 +7,7 @@ export const FREQUENCY_LABELS: Record<SeriesFrequency, string> = {
   biweekly: "Every 2 weeks",
   every4weeks: "Every 4 weeks",
   monthly: "Monthly",
+  custom: "Custom schedule",
 };
 
 /** Ordered Monday-first for scheduling, but the values are JS `getDay()`

@@ -11,6 +11,7 @@ import type { Submission } from "./types";
 export default function SeriesSummary({
   customer,
   frequency,
+  intervalWeeks,
   dayOfWeek,
   startDate,
   priceCents,
@@ -20,6 +21,7 @@ export default function SeriesSummary({
 }: {
   customer: SeriesCustomerOption | null;
   frequency: SeriesFrequency;
+  intervalWeeks: number;
   dayOfWeek: number;
   startDate: string;
   priceCents: number;
@@ -35,7 +37,7 @@ export default function SeriesSummary({
 
         <div className="mt-5 space-y-4 border-y border-[var(--co-line-soft)] py-5 text-sm">
           <Row label="Customer" value={customer ? `${customer.firstName} ${customer.lastName}` : "Not selected"} />
-          <Row label="Frequency" value={FREQUENCY_LABELS[frequency]} />
+          <Row label="Frequency" value={frequency === "custom" ? `Every ${intervalWeeks} weeks` : FREQUENCY_LABELS[frequency]} />
           {frequency !== "monthly" ? (
             <Row label="Preferred day" value={DAYS.find((day) => day.value === dayOfWeek)?.label ?? "—"} />
           ) : null}

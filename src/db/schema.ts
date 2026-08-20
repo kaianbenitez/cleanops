@@ -434,13 +434,16 @@ export const quotes = pgTable("quotes", {
 }));
 
 // ---------- recurring series ----------
-export const frequencyEnum = ["weekly", "biweekly", "every4weeks", "monthly"] as const;
+export const frequencyEnum = ["weekly", "biweekly", "every4weeks", "monthly", "custom"] as const;
 
 export const recurringSeries = pgTable("recurring_series", {
   id: uuid("id").primaryKey().defaultRandom(),
   companyId: uuid("company_id").notNull().references(() => companies.id),
   customerId: uuid("customer_id").notNull().references(() => customers.id),
   frequency: text("frequency", { enum: frequencyEnum }).notNull(),
+  // Used when frequency is custom. Stored in weeks so 3-, 5-, and 6-week
+  // services stay anchored to the original start date without monthly drift.
+  intervalWeeks: integer("interval_weeks"),
   dayOfWeek: integer("day_of_week"),
   startDate: date("start_date").notNull(),
   endDate: date("end_date"),

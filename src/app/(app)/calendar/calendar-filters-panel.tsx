@@ -20,6 +20,7 @@ const RECURRENCES = [
   { value: "biweekly", label: "Biweekly" },
   { value: "every4weeks", label: "Every 4 weeks" },
   { value: "monthly", label: "Monthly" },
+  { value: "custom", label: "Custom recurring" },
   { value: "none", label: "One-time" },
 ] as const;
 

@@ -8,7 +8,8 @@ import { generateJobsForSeries } from "@/lib/scheduling/generate-jobs";
 
 const createSeriesSchema = z.object({
   customerId: z.string().uuid(),
-  frequency: z.enum(["weekly", "biweekly", "every4weeks", "monthly"]),
+  frequency: z.enum(["weekly", "biweekly", "every4weeks", "monthly", "custom"]),
+  intervalWeeks: z.number().int().min(1).max(52).optional(),
   dayOfWeek: z.number().int().min(0).max(6).optional(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -28,6 +29,10 @@ export async function POST(req: NextRequest) {
 
   const data = parsed.data;
 
+  if (data.frequency === "custom" && data.intervalWeeks === undefined) {
+    return NextResponse.json({ error: "Custom recurring series require an interval in weeks." }, { status: 400 });
+  }
+
   const [customer] = await db
     .select({ id: customers.id })
     .from(customers)
@@ -44,6 +49,7 @@ export async function POST(req: NextRequest) {
       companyId: admin.companyId,
       customerId: data.customerId,
       frequency: data.frequency,
+      intervalWeeks: data.frequency === "custom" ? data.intervalWeeks : null,
       dayOfWeek: data.dayOfWeek,
       startDate: data.startDate,
       endDate: data.endDate,

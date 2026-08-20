@@ -40,6 +40,7 @@ function parseDateOnly(dateStr: string): Date {
 export function computeOccurrences(
   series: {
     frequency: string;
+    intervalWeeks?: number | null;
     dayOfWeek: number | null;
     startDate: string;
     endDate: string | null;
@@ -73,7 +74,14 @@ export function computeOccurrences(
     return dates;
   }
 
-  const intervalDays = series.frequency === "weekly" ? 7 : series.frequency === "biweekly" ? 14 : 28;
+  const intervalDays = series.frequency === "weekly"
+    ? 7
+    : series.frequency === "biweekly"
+      ? 14
+      : series.frequency === "custom"
+        ? (series.intervalWeeks ?? 0) * 7
+        : 28;
+  if (intervalDays <= 0) return [];
   const dayOfWeek = series.dayOfWeek ?? seriesStart.getUTCDay();
 
   // Find the first occurrence on/after seriesStart matching dayOfWeek.

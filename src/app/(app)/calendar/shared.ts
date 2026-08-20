@@ -193,6 +193,7 @@ export function recurrenceLabel(value: string | null | undefined) {
   if (!value || value === "none") return "One-time";
   if (value === "every4weeks") return "Every 4 weeks";
   if (value === "biweekly") return "Bi-weekly";
+  if (value === "custom") return "Custom recurring";
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 

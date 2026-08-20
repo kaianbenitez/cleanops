@@ -26,6 +26,7 @@ export default function NewSeriesForm({ customers, employees, services }: NewSer
       : "",
   );
   const [frequency, setFrequency] = useState<SeriesFrequency>("weekly");
+  const [intervalWeeks, setIntervalWeeks] = useState(3);
   const [dayOfWeek, setDayOfWeek] = useState(1);
   const [startDate, setStartDate] = useState("");
   const [manualPriceCents, setManualPriceCents] = useState<number | null>(null);
@@ -58,6 +59,7 @@ export default function NewSeriesForm({ customers, employees, services }: NewSer
       body: JSON.stringify({
         customerId,
         frequency,
+        intervalWeeks: frequency === "custom" ? intervalWeeks : undefined,
         // Monthly series are anchored to the start date's day-of-month; the
         // generator ignores dayOfWeek, so don't send a misleading value.
         dayOfWeek: frequency === "monthly" ? undefined : dayOfWeek,
@@ -91,6 +93,8 @@ export default function NewSeriesForm({ customers, employees, services }: NewSer
         <CadenceSection
           frequency={frequency}
           onFrequencyChange={setFrequency}
+          intervalWeeks={intervalWeeks}
+          onIntervalWeeksChange={setIntervalWeeks}
           dayOfWeek={dayOfWeek}
           onDayOfWeekChange={setDayOfWeek}
           startDate={startDate}
@@ -110,6 +114,7 @@ export default function NewSeriesForm({ customers, employees, services }: NewSer
       <SeriesSummary
         customer={customer}
         frequency={frequency}
+        intervalWeeks={intervalWeeks}
         dayOfWeek={dayOfWeek}
         startDate={startDate}
         priceCents={priceCents}

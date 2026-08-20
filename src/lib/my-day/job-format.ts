@@ -34,6 +34,19 @@ export function timeLabel(value: string | null) {
   return Number.isNaN(date.getTime()) ? "Time not set" : date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
+/** For an absolute instant (clockIn, clockOut, travelStartedAt, arrivedAt,
+ * workStartedAt, completedAt) — never a bare Postgres `time` value. Formats
+ * in an explicit IANA zone so the same timestamp reads the same way on the
+ * server and in the browser, regardless of which timezone the runtime
+ * happens to be in. Do not route `scheduledStartTime` (or any other
+ * wall-clock-only value) through this — it has no instant to anchor a
+ * timezone conversion to; keep using `timeLabel` for those. */
+export function timestampLabel(value: string | null, timeZone: string) {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Time not set" : date.toLocaleTimeString([], { timeZone, hour: "numeric", minute: "2-digit" });
+}
+
 export function dateLabel(value: string, timezone: string) {
   const date = new Date(`${value}T12:00:00.000Z`);
   if (Number.isNaN(date.getTime())) return "Date not set";
@@ -104,6 +117,7 @@ const RECURRING_FREQUENCY_LABELS: Record<string, string> = {
   biweekly: "Bi-weekly",
   every4weeks: "Every 4 weeks",
   monthly: "Monthly",
+  custom: "Custom recurring",
 };
 
 /** The cadence saved on a recurring-service subscription, if this job has one. */
