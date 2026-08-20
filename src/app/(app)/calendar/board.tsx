@@ -582,7 +582,11 @@ export default function Board({
     const employee = employeesById.get(employeeId);
     if (!employee) return;
     const wasTimed = hasArrivalTime(selectedJob);
-    const start = wasTimed ? minutesFromTime(selectedJob.scheduledStartTime) : (minutesOverride ?? placement?.minutes ?? windowStart);
+    // An unassigned job may already carry the legacy/default 09:00 value even
+    // though the dispatcher is choosing its real arrival time now. An explicit
+    // placement time must always win; only preserve the existing time when the
+    // caller did not provide a new one.
+    const start = minutesOverride ?? (wasTimed ? minutesFromTime(selectedJob.scheduledStartTime) : (placement?.minutes ?? windowStart));
     const verdict = laneVerdict(employeeId, start);
     if (verdict.state === "blocked") {
       setWarning(`${employee.firstName} ${employee.lastName} is on leave then — pick another crew or a different time.`);
