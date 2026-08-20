@@ -74,6 +74,10 @@ function formatDuration(totalMinutes: number) {
   return minutes ? `${hours}h ${minutes}m` : `${hours}h`;
 }
 
+function minutesToTimeInput(totalMinutes: number) {
+  return `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
+}
+
 function ptoPeriodForDay(pto: EmployeePtoRecord, dayIso: string): PtoPeriod {
   if (pto.startDate === pto.endDate)
     return pto.startPeriod === pto.endPeriod ? pto.startPeriod : "full";
@@ -249,6 +253,7 @@ export default function Board({
   );
 
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [timeAssignmentJob, setTimeAssignmentJob] = useState<CalendarJob | null>(null);
   const [railAction, setRailAction] = useState<{ job: CalendarJob; mode: "bump" | "skip" } | null>(null);
   const [placement, setPlacement] = useState<{ employeeId: string; minutes: number } | null>(null);
   const [detailJobId, setDetailJobId] = useState<string | null>(null);
@@ -511,6 +516,12 @@ export default function Board({
   function selectJob(jobId: string) {
     setSelectedJobId((current) => (current === jobId ? null : jobId));
     setPlacement(null);
+  }
+
+  function openTimeAssignment(job: CalendarJob) {
+    setSelectedJobId(job.id);
+    setPlacement({ employeeId: "", minutes: 13 * 60 });
+    setTimeAssignmentJob(job);
   }
 
   function applyRailAction(job: CalendarJob, mode: "bump" | "skip", fields: { scheduledDate?: string; scheduledStartTime?: string; cancellationReason?: string }) {
@@ -1205,12 +1216,13 @@ export default function Board({
                 key={job.id}
                 job={job}
                 selected={selectedJobId === job.id}
-                onSelect={() => selectJob(job.id)}
+                onSelect={() => openTimeAssignment(job)}
                 draggable
                 onDragStart={(event) => startRailDrag(event, job)}
                 onDragEnd={() => setDragOverEmployeeId(null)}
                 onBump={() => setRailAction({ job, mode: "bump" })}
                 onSkip={job.recurringSeriesId ? () => setRailAction({ job, mode: "skip" }) : undefined}
+                onAssignAtTime={() => openTimeAssignment(job)}
                 refCallback={(el) => {
                   if (el) railCardRefs.current.set(job.id, el);
                   else railCardRefs.current.delete(job.id);
@@ -1513,6 +1525,20 @@ export default function Board({
           onConfirm={(fields) => applyRailAction(railAction.job, railAction.mode, fields)}
         />
       ) : null}
+      {timeAssignmentJob ? (
+        <AssignAtTimeDialog
+          job={timeAssignmentJob}
+          employees={sortedEmployees}
+          initialMinutes={placement?.minutes ?? 13 * 60}
+          getVerdict={(employeeId, minutes) => laneVerdict(employeeId, minutes)}
+          onClose={() => { setTimeAssignmentJob(null); setSelectedJobId(null); setPlacement(null); }}
+          onConfirm={(employeeId, minutes) => {
+            setTimeAssignmentJob(null);
+            setPlacement({ employeeId, minutes });
+            commitPlacement(employeeId, minutes);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -1543,6 +1569,7 @@ function RailCard({
   onDragEnd,
   onBump,
   onSkip,
+  onAssignAtTime,
 }: {
   job: CalendarJob;
   crewLabel?: string;
@@ -1555,6 +1582,7 @@ function RailCard({
   onDragEnd?: (event: React.DragEvent<HTMLButtonElement>) => void;
   onBump?: () => void;
   onSkip?: () => void;
+  onAssignAtTime?: () => void;
 }) {
   return (
     <div
@@ -1594,12 +1622,34 @@ function RailCard({
         <div className="mt-2 flex items-center gap-[5px] border-t border-dashed border-[var(--co-line)] pt-[7px] text-[11.5px] font-semibold text-[var(--co-accent-text)]">Choose a crew lane on the board</div>
       ) : null}
       </button>
-      {onBump || onSkip ? (
+      {onBump || onSkip || onAssignAtTime ? (
         <div className="mt-2 flex gap-1.5 border-t border-[var(--co-line-soft)] pt-2">
+          {onAssignAtTime ? <button type="button" onClick={(event) => { event.stopPropagation(); onAssignAtTime(); }} className="rounded-md border border-[var(--co-accent-fill)] bg-[var(--co-accent-tint)] px-2 py-1 text-[10.5px] font-bold text-[var(--co-accent-text)] hover:border-[var(--co-accent-text)]">Assign at time</button> : null}
           {onBump ? <button type="button" onClick={(event) => { event.stopPropagation(); onBump(); }} className="rounded-md border border-[var(--co-line)] px-2 py-1 text-[10.5px] font-bold text-[var(--co-body)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-accent-text)]">Bump date</button> : null}
           {onSkip ? <button type="button" onClick={(event) => { event.stopPropagation(); onSkip(); }} className="rounded-md border border-[var(--co-danger)]/30 px-2 py-1 text-[10.5px] font-bold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/10">Skip visit</button> : null}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function AssignAtTimeDialog({ job, employees, initialMinutes, getVerdict, onClose, onConfirm }: { job: CalendarJob; employees: CalendarEmployee[]; initialMinutes: number; getVerdict: (employeeId: string, minutes: number) => Verdict; onClose: () => void; onConfirm: (employeeId: string, minutes: number) => void }) {
+  const [time, setTime] = useState(minutesToTimeInput(initialMinutes));
+  const minutes = Math.max(0, Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5)));
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+  const selectedVerdict = selectedEmployeeId ? getVerdict(selectedEmployeeId, minutes) : null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/30" />
+      <div role="dialog" aria-modal="true" aria-labelledby="assign-at-time-title" className="relative flex max-h-[min(760px,calc(100dvh-2rem))] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] shadow-[0_20px_70px_rgba(15,23,20,.25)]">
+        <div className="border-b border-[var(--co-line-soft)] px-5 py-4"><h2 id="assign-at-time-title" className="text-lg font-semibold">Assign {displayCustomer(job)} at a time</h2><p className="mt-1 text-sm text-[var(--co-muted)]">Cleaner colors are calculated for this exact arrival time, including their other houses and time off.</p></div>
+        <div className="min-h-0 overflow-y-auto p-5">
+          <div className="flex flex-wrap items-end gap-3"><label className="text-sm font-semibold">Arrival time<input type="time" value={time} onChange={(event) => setTime(event.target.value)} className="co-input mt-1 block" /></label><div className="flex gap-2"><button type="button" onClick={() => setTime("09:00")} className="co-button-secondary py-2 text-xs">Morning · 9 AM</button><button type="button" onClick={() => setTime("13:00")} className="co-button-secondary py-2 text-xs">Afternoon · 1 PM</button><button type="button" onClick={() => setTime("14:00")} className="co-button-secondary py-2 text-xs">Second house · 2 PM</button></div></div>
+          <div className="mt-5 grid gap-2 sm:grid-cols-2">{employees.map((employee) => { const verdict = getVerdict(employee.id, minutes); const selected = selectedEmployeeId === employee.id; return <button key={employee.id} type="button" onClick={() => setSelectedEmployeeId(employee.id)} className={`rounded-xl border p-3 text-left ${selected ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-tint)] shadow-[0_0_0_3px_var(--co-focus-ring)]" : verdict.state === "blocked" ? "border-[var(--co-line)] bg-[var(--co-surface-muted)]" : verdict.state === "warn" ? "border-[var(--co-warning)]/50 bg-[var(--co-warning)]/10" : "border-[var(--co-accent-fill)]/40 bg-[var(--co-accent-tint)]/40"}`}><div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: employee.calendarColor ?? employeeColor(employee.id) }} /><span className="font-semibold">{employee.firstName} {employee.lastName}</span><span className="ml-auto text-xs font-bold">{verdict.state === "ok" ? "Available" : verdict.state === "warn" ? "Check" : "Unavailable"}</span></div><p className="mt-1 text-xs text-[var(--co-muted)]">{verdict.message}</p></button>; })}</div>
+          {selectedVerdict?.state === "blocked" ? <p className="mt-3 text-sm font-medium text-[var(--co-danger)]">Choose an available cleaner or another time.</p> : null}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-[var(--co-line-soft)] px-5 py-4"><button type="button" onClick={onClose} className="co-button-secondary">Cancel</button><button type="button" disabled={!selectedEmployeeId || selectedVerdict?.state === "blocked"} onClick={() => selectedEmployeeId && onConfirm(selectedEmployeeId, minutes)} className="co-button-primary disabled:opacity-50">Assign cleaner</button></div>
+      </div>
     </div>
   );
 }
