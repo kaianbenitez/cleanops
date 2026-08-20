@@ -167,7 +167,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4 sm:p-6">
       <button type="button" aria-label="Close job details" onClick={requestClose} className="absolute inset-0 bg-black/30" />
-      <aside role="dialog" aria-modal="true" aria-labelledby="calendar-job-detail-title" className="relative flex h-[min(720px,calc(100dvh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] shadow-[0_20px_70px_rgba(15,23,20,0.25)] sm:h-[min(720px,calc(100dvh-3rem))]">
+      <aside role="dialog" aria-modal="true" aria-labelledby="calendar-job-detail-title" className="calendar-detail-panel relative flex h-[min(720px,calc(100dvh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] shadow-[0_20px_70px_rgba(15,23,20,0.25)] sm:h-[min(720px,calc(100dvh-3rem))]">
         <div className="flex items-start justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
           <div>
             <p className="eyebrow">Job details</p>

@@ -320,6 +320,23 @@ body {
   opacity: 0.6;
 }
 
+/* The calendar job drawer is a desktop side panel, so its date/time controls
+ * should not use the full touch-sized treatment used by booking forms. */
+.calendar-detail-panel .co-date-input,
+.calendar-detail-panel .co-time-input {
+  height: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.75rem 0.55rem 2.35rem;
+  font-size: 0.875rem;
+}
+
+.calendar-detail-panel .co-date-input-icon,
+.calendar-detail-panel .co-time-input-icon {
+  left: 0.8rem;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
 /* Icon positioning for date/time inputs — always visible, never obscured. */
 .co-date-input-icon, .co-time-input-icon {
   color: var(--co-faint);
