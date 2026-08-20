@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Plus, ChevronDown, CalendarClock, FileText, ClipboardList, UserPlus } from "lucide-react";
+import { Plus, ChevronDown, CalendarClock, Clock3, FileText, ClipboardList, UserPlus } from "lucide-react";
 import { createPortal } from "react-dom";
 import AppointmentPanel from "./calendar/appointment-panel";
 
@@ -33,7 +33,7 @@ export default function CreateMenu({
   portal?: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const [appointmentOpen, setAppointmentOpen] = useState(false);
+  const [appointmentKind, setAppointmentKind] = useState<"meeting" | "blocker" | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -122,13 +122,25 @@ export default function CreateMenu({
             type="button"
             role="menuitem"
             onClick={() => {
-              setAppointmentOpen(true);
+              setAppointmentKind("meeting");
               setOpen(false);
             }}
             className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-[var(--co-ink)] transition hover:bg-[var(--co-surface-muted)]"
           >
             <CalendarClock className="h-4 w-4 text-[var(--co-muted)]" aria-hidden />
             Internal meeting
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setAppointmentKind("blocker");
+              setOpen(false);
+            }}
+            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-[var(--co-ink)] transition hover:bg-[var(--co-surface-muted)]"
+          >
+            <Clock3 className="h-4 w-4 text-[var(--co-muted)]" aria-hidden />
+            Block time
           </button>
         </>
       ) : null}
@@ -158,8 +170,8 @@ export default function CreateMenu({
       )}
 
       {open ? (portal ? createPortal(menu, document.body) : menu) : null}
-      {appointments && appointmentOpen ? (
-        <AppointmentPanel mode="create" staffRoster={appointments.staffRoster} defaultDate={appointments.defaultDate} onClose={() => setAppointmentOpen(false)} />
+      {appointments && appointmentKind ? (
+        <AppointmentPanel mode="create" kind={appointmentKind} staffRoster={appointments.staffRoster} defaultDate={appointments.defaultDate} onClose={() => setAppointmentKind(null)} />
       ) : null}
     </div>
   );
