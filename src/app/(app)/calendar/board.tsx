@@ -968,7 +968,7 @@ export default function Board({
           {clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime))} – {clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime) + jobWallClockDuration(job))}
         </div>
         {!compact ? (
-          <div className="mt-px truncate text-[10.5px] text-[var(--co-faint)]">
+          <div className="mt-px break-words text-[10.5px] leading-4 text-[var(--co-faint)]" title={formatCustomerAddress(job)}>
             {job.recurringSeriesId ? "↻ " : ""}{jobTypeLabel(job)} · {formatCustomerAddress(job)}
           </div>
         ) : null}
