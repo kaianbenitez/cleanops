@@ -268,7 +268,7 @@ export default function Board({
   const [draggedEmployeeId, setDraggedEmployeeId] = useState<string | null>(null);
   // Attention-rail drop affordance for the lane->rail unassign gesture below.
   const [railDropActive, setRailDropActive] = useState(false);
-  const [attentionRailOpen, setAttentionRailOpen] = useState(true);
+  const [attentionRailOpen, setAttentionRailOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const { toast, showUndo, dismiss } = useUndoToast();
@@ -279,6 +279,8 @@ export default function Board({
   const jobCardRefs = useRef(new Map<string, HTMLElement>());
   const pendingFlyRef = useRef<{ jobId: string; from: DOMRect; color: string; label: string } | null>(null);
   const isFirstAxisRender = useRef(true);
+  const dragScrollFrameRef = useRef<number | null>(null);
+  const dragPointRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     function toggleAttentionRail() {
@@ -640,6 +642,7 @@ export default function Board({
   // it was dragged out of is replaced, not the whole crew.
   function dropOnEmployee(event: React.DragEvent<HTMLDivElement>, employeeId: string) {
     event.preventDefault();
+    stopDragAutoScroll();
     setDragOverEmployeeId(null);
     const jobId = event.dataTransfer.getData("text/plain");
     const sourceEmployeeId = event.dataTransfer.getData("application/x-cleanops-source-employee") || null;
@@ -723,6 +726,7 @@ export default function Board({
   function laneDrop(event: React.DragEvent<HTMLDivElement>, employeeId: string) {
     if (event.dataTransfer.types.includes("application/x-cleanops-source-rail")) {
       event.preventDefault();
+      stopDragAutoScroll();
       setDragOverEmployeeId(null);
       // Untimed job: drop position sets the arrival time (15-minute snap,
       // same rule as click-to-place). Timed jobs ignore this override —
@@ -730,6 +734,7 @@ export default function Board({
       commitPlacement(employeeId, minutesFromDragEvent(event));
       return;
     }
+    stopDragAutoScroll();
     dropOnEmployee(event, employeeId);
   }
 
@@ -776,20 +781,38 @@ export default function Board({
     );
   }
 
+  function stopDragAutoScroll() {
+    if (dragScrollFrameRef.current !== null) {
+      cancelAnimationFrame(dragScrollFrameRef.current);
+      dragScrollFrameRef.current = null;
+    }
+  }
+
   function scrollBoardWhileDragging(event: React.DragEvent<HTMLDivElement>) {
     if (!event.dataTransfer.types.includes("text/plain")) return;
     const board = gridScrollRef.current;
     if (!board) return;
-    const rect = board.getBoundingClientRect();
-    const edgeSize = 80;
-    const scrollStep = 28;
-    if (axis === "vertical") {
-      if (event.clientX < rect.left + edgeSize) board.scrollLeft -= scrollStep;
-      if (event.clientX > rect.right - edgeSize) board.scrollLeft += scrollStep;
-    } else {
-      if (event.clientY < rect.top + edgeSize) board.scrollTop -= scrollStep;
-      if (event.clientY > rect.bottom - edgeSize) board.scrollTop += scrollStep;
-    }
+    dragPointRef.current = { x: event.clientX, y: event.clientY };
+    if (dragScrollFrameRef.current !== null) return;
+    const edgeSize = 88;
+    const tick = () => {
+      const currentBoard = gridScrollRef.current;
+      if (!currentBoard) return stopDragAutoScroll();
+      const rect = currentBoard.getBoundingClientRect();
+      const { x, y } = dragPointRef.current;
+      const horizontalEdge = Math.max(0, edgeSize - Math.min(x - rect.left, rect.right - x));
+      const verticalEdge = Math.max(0, edgeSize - Math.min(y - rect.top, rect.bottom - y));
+      const speed = (distance: number) => Math.min(34, Math.max(4, Math.round(distance / 3)));
+      if (axis === "vertical") {
+        if (x < rect.left + edgeSize) currentBoard.scrollLeft -= speed(horizontalEdge);
+        else if (x > rect.right - edgeSize) currentBoard.scrollLeft += speed(horizontalEdge);
+      } else {
+        if (y < rect.top + edgeSize) currentBoard.scrollTop -= speed(verticalEdge);
+        else if (y > rect.bottom - edgeSize) currentBoard.scrollTop += speed(verticalEdge);
+      }
+      dragScrollFrameRef.current = requestAnimationFrame(tick);
+    };
+    dragScrollFrameRef.current = requestAnimationFrame(tick);
   }
 
   function laneKeyDown(event: React.KeyboardEvent<HTMLDivElement>, employeeId: string) {
@@ -1210,7 +1233,7 @@ export default function Board({
           </p>
         </div>
         <div className="max-h-[calc(100vh-190px)] overflow-y-auto">
-          <RailGroup icon={<Users className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />} label="No crew yet" jobs={noCrewJobs} collapsible defaultCollapsed>
+          <RailGroup icon={<Users className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />} label="No crew yet" jobs={noCrewJobs}>
             {noCrewJobs.map((job) => (
               <RailCard
                 key={job.id}
@@ -1219,7 +1242,7 @@ export default function Board({
                 onSelect={() => openTimeAssignment(job)}
                 draggable
                 onDragStart={(event) => startRailDrag(event, job)}
-                onDragEnd={() => setDragOverEmployeeId(null)}
+                onDragEnd={() => { stopDragAutoScroll(); setDragOverEmployeeId(null); }}
                 onBump={() => setRailAction({ job, mode: "bump" })}
                 onSkip={job.recurringSeriesId ? () => setRailAction({ job, mode: "skip" }) : undefined}
                 onAssignAtTime={() => openTimeAssignment(job)}
@@ -1336,7 +1359,7 @@ export default function Board({
           </div>
         ) : null}
 
-        <div ref={gridScrollRef} onDragOver={scrollBoardWhileDragging} className="max-h-[calc(100dvh-232px)] overflow-auto overscroll-contain [scrollbar-gutter:stable]">
+        <div ref={gridScrollRef} onDragOver={scrollBoardWhileDragging} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) stopDragAutoScroll(); }} className="max-h-[calc(100dvh-232px)] overflow-auto overscroll-contain [scrollbar-gutter:stable]">
           {sortedEmployees.length === 0 ? (
             <div className="flex items-center justify-center px-4 py-16 text-sm text-[var(--co-muted)]">Create or activate a technician to use the dispatch board.</div>
           ) : axis === "vertical" ? (
