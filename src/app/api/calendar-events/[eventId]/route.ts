@@ -13,6 +13,7 @@ const updateEventSchema = z.object({
   durationMinutes: z.number().int().min(15).max(24 * 60).nullable().optional(),
   employeeIds: z.array(z.string().uuid()).max(50).optional(),
   status: z.literal("cancelled").optional(),
+  timeOffType: z.enum(["paid", "unpaid"]).nullable().optional(),
 });
 
 export async function GET(

@@ -13,6 +13,7 @@ const eventSchema = z.object({
   startTime: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
   durationMinutes: z.number().int().min(15).max(24 * 60).nullable().optional(),
   category: z.enum(["meeting", "reminder", "training"]).default("reminder"),
+  timeOffType: z.enum(["paid", "unpaid"]).nullable().optional(),
   employeeIds: z.array(z.string().uuid()).max(50),
 }).superRefine((event, ctx) => {
   if (!event.isAllDay && (!event.startTime || !event.durationMinutes)) ctx.addIssue({ code: "custom", message: "Timed events need a start time and duration." });
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
     if (staff.length !== data.employeeIds.length) return NextResponse.json({ error: "Every selected employee must be active and in this company." }, { status: 400 });
   }
   const event = await db.transaction(async (tx) => {
-    const [created] = await tx.insert(calendarEvents).values({ companyId: admin.companyId, title: data.title, note: data.note ?? null, scheduledDate: data.scheduledDate, isAllDay, startTime: isAllDay ? null : data.startTime!, durationMinutes, category: data.category, createdByUserId: admin.id }).returning();
+    const [created] = await tx.insert(calendarEvents).values({ companyId: admin.companyId, title: data.title, note: data.note ?? null, scheduledDate: data.scheduledDate, isAllDay, startTime: isAllDay ? null : data.startTime!, durationMinutes, category: data.category, timeOffType: data.category === "reminder" ? (data.timeOffType ?? "paid") : null, createdByUserId: admin.id }).returning();
     if (data.employeeIds.length) await tx.insert(calendarEventAssignments).values(data.employeeIds.map((userId) => ({ eventId: created.id, userId })));
     return created;
   });

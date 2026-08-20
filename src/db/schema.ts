@@ -471,6 +471,7 @@ export const recurringSeries = pgTable("recurring_series", {
 // src/lib/payroll/calculate.ts. See jobTypeEnum-style category enum below.
 export const calendarEventCategoryEnum = ["meeting", "reminder", "training"] as const;
 export const calendarEventStatusEnum = ["scheduled", "cancelled"] as const;
+export const calendarEventTimeOffTypeEnum = ["paid", "unpaid"] as const;
 
 export const calendarEvents = pgTable("calendar_events", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -483,6 +484,7 @@ export const calendarEvents = pgTable("calendar_events", {
   isAllDay: boolean("is_all_day").notNull().default(false),
   category: text("category", { enum: calendarEventCategoryEnum }).notNull().default("reminder"),
   status: text("status", { enum: calendarEventStatusEnum }).notNull().default("scheduled"),
+  timeOffType: text("time_off_type", { enum: calendarEventTimeOffTypeEnum }),
   createdByUserId: uuid("created_by_user_id").notNull().references(() => users.id),
   ...timestamps,
 }, (t) => ({
