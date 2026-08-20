@@ -596,7 +596,7 @@ export default function Board({
     const job = selectedJob;
     const previousAssigned = job.assignedUserIds;
     const previousTime = job.scheduledStartTime;
-    const nextTime = wasTimed ? previousTime : minutesToTime(start);
+    const nextTime = minutesToTime(start);
     const sourceEl = railCardRefs.current.get(job.id);
     const fromRect = sourceEl ? sourceEl.getBoundingClientRect() : null;
     const employeeName = `${employee.firstName} ${employee.lastName}`;
