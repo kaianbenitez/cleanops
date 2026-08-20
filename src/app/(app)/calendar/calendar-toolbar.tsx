@@ -13,6 +13,44 @@ import NotificationsMenu, { type Notification } from "../notifications-menu";
 type StaffMember = { id: string; firstName: string; lastName: string };
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
+function money(cents: number) {
+  return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function CalendarDaySummary({
+  totalEmployees,
+  workingEmployees,
+  recurringClients,
+  revenueCents,
+  discountCents,
+}: {
+  totalEmployees: number;
+  workingEmployees: number;
+  recurringClients: number;
+  revenueCents: number;
+  discountCents: number;
+}) {
+  return (
+    <div className="flex min-w-0 flex-1 items-center justify-center gap-5 px-4" aria-label="Selected day summary">
+      <div className="min-w-0 text-center">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-faint)]">Employees working</p>
+        <p className="mt-0.5 text-sm font-bold tabular-nums text-[var(--co-ink)]">{workingEmployees}/{totalEmployees}</p>
+        <p className="truncate text-[10px] text-[var(--co-muted)]">{recurringClients} recurring client{recurringClients === 1 ? "" : "s"}</p>
+      </div>
+      <div className="h-8 w-px bg-[var(--co-line-soft)]" aria-hidden />
+      <div className="min-w-0 text-center">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-faint)]">Projected revenue</p>
+        <p className="mt-0.5 text-sm font-bold tabular-nums text-[var(--co-ink)]">{money(revenueCents)}</p>
+      </div>
+      <div className="h-8 w-px bg-[var(--co-line-soft)]" aria-hidden />
+      <div className="min-w-0 text-center">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-faint)]">Discounts</p>
+        <p className="mt-0.5 text-sm font-bold tabular-nums text-[var(--co-ink)]">{money(discountCents)}</p>
+      </div>
+    </div>
+  );
+}
+
 const STORAGE_KEY = "co-calendar-focus-mode";
 
 /** The whole calendar toolbar, one row: nav toggle, date nav, view pills,
@@ -36,6 +74,8 @@ export default function CalendarToolbar({
   appointmentDefaultDate,
   employees,
   attentionCount,
+  totalEmployees,
+  dailySummary,
   initialNotifications,
 }: {
   view: "board" | "week" | "month" | "list";
@@ -52,6 +92,13 @@ export default function CalendarToolbar({
   appointmentDefaultDate: string;
   employees: Employee[];
   attentionCount: number;
+  totalEmployees: number;
+  dailySummary: {
+    workingEmployees: number;
+    recurringClients: number;
+    revenueCents: number;
+    discountCents: number;
+  };
   initialNotifications: Notification[];
 }) {
   const router = useRouter();
@@ -130,6 +177,7 @@ export default function CalendarToolbar({
         {view === "board" ? <CalendarAxisToggle axis={axis} /> : null}
         <FilterBar employees={employees} attentionCount={attentionCount} />
       </div>
+      <CalendarDaySummary totalEmployees={totalEmployees} {...dailySummary} />
       {focused ? (
         <div className="flex items-center gap-2">
           <div className="mx-1 h-6 w-px bg-[var(--co-line-soft)]" aria-hidden />

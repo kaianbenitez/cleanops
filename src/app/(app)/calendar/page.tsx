@@ -129,6 +129,7 @@ export type CalendarJob = {
   estimatedDurationMinutes: number | null;
   priceCents: number;
   discountCents: number;
+  customerId: string;
   recurringSeriesId: string | null;
   recurrenceFrequency: string | null;
   recurrenceStartDate: string | null;
@@ -403,6 +404,7 @@ export default async function CalendarPage({
         estimatedDurationMinutes: jobs.estimatedDurationMinutes,
         priceCents: jobs.priceCents,
         discountCents: jobs.discountCents,
+        customerId: jobs.customerId,
         recurringSeriesId: jobs.recurringSeriesId,
         recurrenceFrequency: recurringSeries.frequency,
         recurrenceStartDate: recurringSeries.startDate,
@@ -854,6 +856,15 @@ export default async function CalendarPage({
             // it costs no additional query.
             monthRows.reduce((sum, day) => sum + day.unassigned, 0)
           : 0;
+  const dailySummaryJobs = jobsWithAssignments.filter(
+    (job) => job.scheduledDate === toISODate(dayAnchor) && !["cancelled", "no_show"].includes(job.status),
+  );
+  const dailySummary = {
+    workingEmployees: new Set(dailySummaryJobs.flatMap((job) => job.assignedUserIds)).size,
+    recurringClients: new Set(dailySummaryJobs.filter((job) => job.recurringSeriesId).map((job) => job.customerId)).size,
+    revenueCents: dailySummaryJobs.reduce((sum, job) => sum + job.priceCents, 0),
+    discountCents: dailySummaryJobs.reduce((sum, job) => sum + job.discountCents, 0),
+  };
   return (
     <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
       <CalendarStateSync view={view} axis={axis} anchor={stateAnchor} />
@@ -872,6 +883,8 @@ export default async function CalendarPage({
           appointmentDefaultDate={stateAnchor.length === 10 ? stateAnchor : toISODate(dayAnchor)}
           employees={employees}
           attentionCount={attentionCount}
+          totalEmployees={employees.length}
+          dailySummary={dailySummary}
           initialNotifications={notifications}
         />
       </header>
