@@ -31,7 +31,7 @@ function CalendarDaySummary({
   discountCents: number;
 }) {
   return (
-    <div className="flex min-w-0 flex-1 items-center justify-center gap-5 px-4" aria-label="Selected day summary">
+    <div className="flex min-w-0 flex-1 items-center justify-center gap-3 overflow-hidden px-2 lg:gap-4" aria-label="Selected day summary">
       <div className="min-w-0 text-center">
         <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-faint)]">Employees working</p>
         <p className="mt-0.5 text-sm font-bold tabular-nums text-[var(--co-ink)]">{workingEmployees}/{totalEmployees}</p>
@@ -139,8 +139,8 @@ export default function CalendarToolbar({
   }
 
   return (
-    <div className="flex w-full min-w-max items-center justify-between gap-3">
-      <div className="flex items-center gap-2">
+    <div className="flex w-full min-w-0 items-center justify-between gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         <button
           type="button"
           onClick={toggleFocus}
@@ -179,7 +179,7 @@ export default function CalendarToolbar({
       </div>
       <CalendarDaySummary totalEmployees={totalEmployees} {...dailySummary} />
       {focused ? (
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <div className="mx-1 h-6 w-px bg-[var(--co-line-soft)]" aria-hidden />
           <GlobalSearch variant="icon" />
           <NotificationsMenu initialNotifications={initialNotifications} portal />
