@@ -41,6 +41,7 @@ import {
   ordinalLabel,
   stopOrdinals,
   TYPE_LABELS,
+  ATTENTION_RAIL_TOGGLE_EVENT,
 } from "./shared";
 import type { EmployeePtoRecord, PtoPeriod } from "@/lib/scheduling/pto";
 import { minutesToTime } from "@/lib/scheduling/wall-clock";
@@ -259,6 +260,7 @@ export default function Board({
   const [draggedEmployeeId, setDraggedEmployeeId] = useState<string | null>(null);
   // Attention-rail drop affordance for the lane->rail unassign gesture below.
   const [railDropActive, setRailDropActive] = useState(false);
+  const [attentionRailOpen, setAttentionRailOpen] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const { toast, showUndo, dismiss } = useUndoToast();
@@ -269,6 +271,14 @@ export default function Board({
   const jobCardRefs = useRef(new Map<string, HTMLElement>());
   const pendingFlyRef = useRef<{ jobId: string; from: DOMRect; color: string; label: string } | null>(null);
   const isFirstAxisRender = useRef(true);
+
+  useEffect(() => {
+    function toggleAttentionRail() {
+      setAttentionRailOpen((current) => !current);
+    }
+    window.addEventListener(ATTENTION_RAIL_TOGGLE_EVENT, toggleAttentionRail);
+    return () => window.removeEventListener(ATTENTION_RAIL_TOGGLE_EVENT, toggleAttentionRail);
+  }, []);
 
   const selectedJob = selectedJobId ? cleanedJobs.find((job) => job.id === selectedJobId) ?? null : null;
 
@@ -1106,7 +1116,7 @@ export default function Board({
   const untimedTrayJobs = noTimeJobs;
 
   return (
-    <div className="grid grid-cols-1 items-start gap-3.5 min-[1180px]:grid-cols-[286px_minmax(0,1fr)]">
+    <div className={`grid grid-cols-1 items-start gap-3.5 ${attentionRailOpen ? "min-[1180px]:grid-cols-[286px_minmax(0,1fr)]" : "min-[1180px]:grid-cols-1"}`}>
       {/* -------------------------------------------------------------- */}
       {/* Attention rail — always visible, four groups in priority order */}
       {/* -------------------------------------------------------------- */}
@@ -1114,7 +1124,7 @@ export default function Board({
         id="calendar-attention-rail"
         tabIndex={-1}
         aria-label="Needs attention"
-        className="co-card sticky top-3 overflow-hidden outline-none"
+        className={`co-card sticky top-3 overflow-hidden outline-none ${attentionRailOpen ? "" : "hidden"}`}
         onDragOver={(event) => {
           if (!event.dataTransfer.types.includes("application/x-cleanops-source-employee")) return;
           event.preventDefault();
@@ -1138,7 +1148,15 @@ export default function Board({
         ) : null}
         <div className="border-b border-[var(--co-line-soft)] px-[15px] py-[13px] pb-[11px]">
           <div className="flex items-center gap-2 text-[13px] font-bold text-[var(--co-ink)]">
-            <AlertCircle className="h-[13px] w-[13px] text-[var(--co-warning)]" aria-hidden strokeWidth={1.75} />
+            <button
+              type="button"
+              onClick={() => setAttentionRailOpen(false)}
+              aria-label="Hide needs attention"
+              title="Hide needs attention"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[var(--co-warning)] transition hover:bg-[color-mix(in_srgb,var(--co-warning)_10%,var(--co-tint-base))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--co-accent-fill)]"
+            >
+              <AlertCircle className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />
+            </button>
             Needs attention
             <span className="ml-auto flex h-5 min-w-[22px] items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--co-warning)_30%,var(--co-tint-base))] bg-[color-mix(in_srgb,var(--co-warning)_15%,var(--co-tint-base))] px-1.5 text-[11.5px] font-bold text-[var(--co-warning)] tabular-nums">
               {attentionTotal}

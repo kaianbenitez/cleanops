@@ -4,6 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { AlertCircle, SlidersHorizontal } from "lucide-react";
 import CalendarFiltersPanel from "./calendar-filters-panel";
+import { ATTENTION_RAIL_TOGGLE_EVENT } from "./shared";
 
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
@@ -39,36 +40,19 @@ export default function FilterBar({
   const activeFilterCount = [employeeId, type, recurrence, status, assignment, zip].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
 
-  // The old collapsible unassigned-queue panel (toggled via ?queue=unassigned)
-  // is gone — board.tsx's Board now renders an always-visible attention rail
-  // instead (id="calendar-attention-rail"), so there's nothing left to open.
-  // This button now moves focus to that rail and scrolls it into view, which
-  // works for both a mouse click and a keyboard activation (Enter/Space).
-  // Board is the only view that renders the rail; on Day/Week/Month the
-  // count is still shown but the click is a no-op since there's nothing to
-  // jump to there.
-  function focusAttentionRail() {
-    const rail = document.getElementById("calendar-attention-rail");
-    if (!rail) return;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    rail.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
-    rail.focus({ preventScroll: true });
-  }
-
   return (
     <div aria-busy={isPending} className="flex shrink-0 items-center gap-2">
-      {attentionCount ? (
-        <button
-          type="button"
-          onClick={focusAttentionRail}
-          aria-controls="calendar-attention-rail"
-          aria-label={`Needs attention · ${attentionCount}`}
-          className="co-button-secondary flex h-9 items-center gap-1 px-2.5 text-xs font-semibold !text-[var(--co-warning)]"
-        >
-          <AlertCircle className="h-3.5 w-3.5" aria-hidden />
-          {attentionCount}
-        </button>
-      ) : null}
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event(ATTENTION_RAIL_TOGGLE_EVENT))}
+        aria-controls="calendar-attention-rail"
+        aria-label={`Show or hide needs attention · ${attentionCount}`}
+        title="Show or hide needs attention"
+        className="co-button-secondary flex h-9 items-center gap-1 px-2.5 text-xs font-semibold !text-[var(--co-warning)]"
+      >
+        <AlertCircle className="h-3.5 w-3.5" aria-hidden />
+        {attentionCount}
+      </button>
 
       <div className="relative">
         <button

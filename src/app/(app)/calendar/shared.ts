@@ -13,6 +13,7 @@ export const TYPE_LABELS: Record<string, string> = {
 // seventh hue.
 export const APPOINTMENT_COLOR = "co-badge-spark";
 export const APPOINTMENT_COLOR_CANCELLED = "co-badge-muted line-through";
+export const ATTENTION_RAIL_TOGGLE_EVENT = "cleanops:toggle-calendar-attention-rail";
 
 export function clockLabelFromMinutes(totalMinutes: number) {
   const hour24 = Math.floor(totalMinutes / 60) % 24;
