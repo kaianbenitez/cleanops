@@ -634,8 +634,9 @@ export default function Board({
   }
 
   function minutesFromCoordinates(rect: DOMRect, clientX: number, clientY: number) {
-    const fraction = axis === "vertical" ? (clientY - rect.top) / rect.height : (clientX - rect.left) / rect.width;
-    const raw = windowStart + fraction * windowMinutes;
+    const raw = axis === "vertical"
+      ? windowStart + ((clientY - rect.top) / HOUR_HEIGHT) * 60
+      : windowStart + ((clientX - rect.left) / HOUR_WIDTH) * 60;
     const snapped = Math.round(raw / PLACEMENT_SNAP_MINUTES) * PLACEMENT_SNAP_MINUTES;
     return Math.min(Math.max(snapped, windowStart), windowEnd - PLACEMENT_SNAP_MINUTES);
   }
@@ -1443,7 +1444,7 @@ export default function Board({
                       onDragLeave={() => setDragOverEmployeeId(null)}
                       onDrop={(event) => laneDrop(event, employee.id)}
                       className={`relative border-r border-[var(--co-line-soft)] outline-none ${dragOverEmployeeId === employee.id ? "bg-[var(--co-accent-tint)]" : ""} ${selectedJob ? "cursor-copy" : ""}`}
-                      style={{ height: hours * HOUR_HEIGHT, backgroundImage: "repeating-linear-gradient(to bottom, var(--co-line-soft) 0 1px, transparent 1px 100%)", backgroundSize: `100% ${HOUR_HEIGHT}px` }}
+                      style={{ height: hours * HOUR_HEIGHT, backgroundImage: "repeating-linear-gradient(to bottom, color-mix(in srgb, var(--co-line-soft) 58%, transparent) 0 1px, transparent 1px 16px), repeating-linear-gradient(to bottom, var(--co-line-soft) 0 1px, transparent 1px 100%)", backgroundSize: `100% ${HOUR_HEIGHT / 4}px, 100% ${HOUR_HEIGHT}px` }}
                     >
                       {renderPto(employee.id)}
                       {dayAppointments
@@ -1514,7 +1515,7 @@ export default function Board({
                         onDragLeave={() => setDragOverEmployeeId(null)}
                         onDrop={(event) => laneDrop(event, employee.id)}
                         className={`relative outline-none ${dragOverEmployeeId === employee.id ? "bg-[var(--co-accent-tint)]" : ""} ${selectedJob ? "cursor-copy" : ""}`}
-                        style={{ width: hours * HOUR_WIDTH, height: rowHeight, backgroundImage: "repeating-linear-gradient(to right, var(--co-line-soft) 0 1px, transparent 1px 100%)", backgroundSize: `${HOUR_WIDTH}px 100%` }}
+                        style={{ width: hours * HOUR_WIDTH, height: rowHeight, backgroundImage: "repeating-linear-gradient(to right, color-mix(in srgb, var(--co-line-soft) 58%, transparent) 0 1px, transparent 1px 16px), repeating-linear-gradient(to right, var(--co-line-soft) 0 1px, transparent 1px 100%)", backgroundSize: `${HOUR_WIDTH / 4}px 100%, ${HOUR_WIDTH}px 100%` }}
                       >
                         {renderPto(employee.id)}
                         {dayAppointments

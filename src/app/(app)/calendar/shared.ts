@@ -187,7 +187,7 @@ export function employeeCardStyle(id: string | null | undefined) {
 }
 
 export function displayCustomer(job: { customerFirstName: string; customerLastName: string; companyName?: string | null }) {
-  return job.companyName?.trim() || `${job.customerFirstName} ${job.customerLastName}`;
+  return job.companyName?.trim() || `${job.customerLastName}, ${job.customerFirstName}`;
 }
 
 export function recurrenceLabel(value: string | null | undefined) {

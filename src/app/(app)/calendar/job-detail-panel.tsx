@@ -52,6 +52,8 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
   const [draftDate, setDraftDate] = useState("");
   const [draftTime, setDraftTime] = useState("");
   const [draftStatus, setDraftStatus] = useState("");
+  const [draftPrice, setDraftPrice] = useState("");
+  const [draftDuration, setDraftDuration] = useState("");
   const [draftAssignedUserIds, setDraftAssignedUserIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +82,8 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
       setDraftDate(data.job?.scheduledDate ?? "");
       setDraftTime(data.job?.scheduledStartTime?.slice(0, 5) ?? "");
       setDraftStatus(data.job?.status ?? "");
+      setDraftPrice(data.job?.priceCents == null ? "" : (data.job.priceCents / 100).toFixed(2));
+      setDraftDuration(data.job?.estimatedDurationMinutes == null ? "" : String(data.job.estimatedDurationMinutes));
     } catch {
       if (!isCancelled()) setError("Couldn't load job details.");
     } finally {
@@ -91,6 +95,8 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
     draftDate !== job?.scheduledDate ||
     draftTime !== (job?.scheduledStartTime?.slice(0, 5) ?? "") ||
     draftStatus !== job?.status ||
+    draftPrice !== (job ? (job.priceCents / 100).toFixed(2) : "") ||
+    draftDuration !== (job?.estimatedDurationMinutes == null ? "" : String(job.estimatedDurationMinutes)) ||
     draftAssignedUserIds.join(",") !== assignedUserIds.join(",")
   );
 
@@ -148,6 +154,10 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
     const currentTime = job.scheduledStartTime?.slice(0, 5) ?? "";
     if (draftTime !== currentTime) fields.scheduledStartTime = draftTime ? `${draftTime}:00` : null;
     if (draftStatus !== job.status) fields.status = draftStatus;
+    const nextPriceCents = Math.round(Number(draftPrice) * 100);
+    if (Number.isFinite(nextPriceCents) && nextPriceCents >= 0 && nextPriceCents !== job.priceCents) fields.priceCents = nextPriceCents;
+    const nextDuration = Number(draftDuration);
+    if (Number.isInteger(nextDuration) && nextDuration >= 15 && nextDuration <= 600 && nextDuration !== job.estimatedDurationMinutes) fields.estimatedDurationMinutes = nextDuration;
     if (draftAssignedUserIds.join(",") !== assignedUserIds.join(",")) fields.employeeIds = draftAssignedUserIds;
     patch(fields);
   }
@@ -191,6 +201,41 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
               {saving ? <span className="text-xs text-[var(--co-muted)]">Saving...</span> : null}
             </div>
 
+            <section className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Schedule & status</p>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <DateInput
+                  key={`date-${job.scheduledDate}`}
+                  label="Date"
+                  value={draftDate}
+                  onChange={setDraftDate}
+                />
+                <TimeInput
+                  key={`time-${job.scheduledStartTime}`}
+                  label="Start time"
+                  value={draftTime}
+                  onChange={setDraftTime}
+                />
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="block text-xs font-semibold text-[var(--co-muted)]">
+                  Assigned to
+                  <div className="mt-1"><AssigneePicker employees={employees} assignedUserIds={draftAssignedUserIds} onChange={setDraftAssignedUserIds} ariaLabel="Assign crew to this job" className="w-full" /></div>
+                </div>
+                <label className="block text-xs font-semibold text-[var(--co-muted)]">
+                  Status
+                  <select value={draftStatus} onChange={(event) => { if (event.target.value === "cancelled") { event.target.value = job.status; setConfirmingCancel(true); return; } setDraftStatus(event.target.value); }} className="co-input mt-1 w-full">
+                    {STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </label>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <label className="block text-xs font-semibold text-[var(--co-muted)]">Value<input type="number" min="0" step="0.01" value={draftPrice} onChange={(event) => setDraftPrice(event.target.value)} className="co-input mt-1 w-full" /></label>
+                <label className="block text-xs font-semibold text-[var(--co-muted)]">JTH / Duration (minutes)<input type="number" min="15" max="600" step="15" value={draftDuration} onChange={(event) => setDraftDuration(event.target.value)} className="co-input mt-1 w-full" /></label>
+              </div>
+              <p className="mt-2 text-[11px] leading-4 text-[var(--co-muted)]">Duration controls the calendar block length and can be edited in 15-minute increments.</p>
+            </section>
+
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Location</p>
               <p className="mt-1 text-sm text-[var(--co-ink)]">{location || "No address recorded"}</p>
@@ -198,72 +243,13 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
 
             {(job.roomCounts.length || job.customerNotes || job.gateCodeOrKeyNotes || job.petNotes || job.doNotClean) ? <div className="border-t border-[var(--co-line-soft)] pt-4"><p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">House details</p><ClientHomeSymbols className="mt-2" roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} />{job.customerNotes ? <p className="mt-3 whitespace-pre-wrap text-sm leading-5 text-[var(--co-ink)]">{cleanNoteText(job.customerNotes)}</p> : null}</div> : null}
 
-            <div className="grid grid-cols-2 gap-3">
-              <DateInput
-                key={`date-${job.scheduledDate}`}
-                label="Date"
-                value={draftDate}
-                onChange={setDraftDate}
-              />
-              <TimeInput
-                key={`time-${job.scheduledStartTime}`}
-                label="Time"
-                value={draftTime}
-                onChange={setDraftTime}
-              />
-            </div>
-
-            <div className="block text-xs font-semibold text-[var(--co-muted)]">
-              Assigned to
-              <div className="mt-1">
-                <AssigneePicker
-                  employees={employees}
-                  assignedUserIds={draftAssignedUserIds}
-                  onChange={setDraftAssignedUserIds}
-                  ariaLabel="Assign crew to this job"
-                  className="w-full"
-                />
-              </div>
-            </div>
-
-            <label className="block text-xs font-semibold text-[var(--co-muted)]">
-              Status
-              <select
-                value={draftStatus}
-                onChange={(event) => {
-                  if (event.target.value === "cancelled") {
-                    event.target.value = job.status;
-                    setConfirmingCancel(true);
-                    return;
-                  }
-                  setDraftStatus(event.target.value);
-                }}
-                className="co-input mt-1 w-full"
-              >
-                {STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Job value</p>
-                <p className="mt-1 text-sm text-[var(--co-ink)]">${(job.priceCents / 100).toFixed(2)}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Job Ticket Hours</p>
-                <p className="mt-1 text-sm text-[var(--co-ink)]">{formatEstimatedTime(job.estimatedDurationMinutes)}</p>
-              </div>
-            </div>
+            <div className="text-sm text-[var(--co-muted)]">{formatEstimatedTime(job.estimatedDurationMinutes)}</div>
 
             <div className="flex flex-wrap gap-2 border-t border-[var(--co-line-soft)] pt-4">
               <button type="button" disabled={saving || !isDirty} onClick={saveChanges} className="co-button-primary disabled:opacity-50">
                 {saving ? "Saving…" : "Save changes"}
               </button>
-              {isDirty ? <button type="button" disabled={saving} onClick={() => { setDraftDate(job.scheduledDate); setDraftTime(job.scheduledStartTime?.slice(0, 5) ?? ""); setDraftStatus(job.status); setDraftAssignedUserIds(assignedUserIds); }} className="co-button-secondary disabled:opacity-50">Discard changes</button> : null}
+              {isDirty ? <button type="button" disabled={saving} onClick={() => { setDraftDate(job.scheduledDate); setDraftTime(job.scheduledStartTime?.slice(0, 5) ?? ""); setDraftStatus(job.status); setDraftPrice((job.priceCents / 100).toFixed(2)); setDraftDuration(job.estimatedDurationMinutes == null ? "" : String(job.estimatedDurationMinutes)); setDraftAssignedUserIds(assignedUserIds); }} className="co-button-secondary disabled:opacity-50">Discard changes</button> : null}
               {job.status !== "cancelled" ? confirmingCancel ? (
                 <div className="w-full space-y-2 co-badge-danger rounded-lg p-3">
                   <label className="block text-xs font-semibold text-[var(--co-danger)]">
