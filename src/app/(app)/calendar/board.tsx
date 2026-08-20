@@ -202,6 +202,7 @@ export default function Board({
   workdayStartMinutes,
   workdayEndMinutes,
   workdayMinutesPerCleaner,
+  cancellationPolicy,
 }: {
   axis: "vertical" | "horizontal";
   dayIso: string;
@@ -220,6 +221,7 @@ export default function Board({
   workdayStartMinutes?: number;
   workdayEndMinutes?: number;
   workdayMinutesPerCleaner?: number;
+  cancellationPolicy?: string;
 }) {
   const router = useRouter();
   const windowStart = workdayStartMinutes ?? DEFAULT_WORKDAY_START_MINUTES;
@@ -246,6 +248,7 @@ export default function Board({
   );
 
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [railAction, setRailAction] = useState<{ job: CalendarJob; mode: "bump" | "skip" } | null>(null);
   const [placement, setPlacement] = useState<{ employeeId: string; minutes: number } | null>(null);
   const [detailJobId, setDetailJobId] = useState<string | null>(null);
   const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
@@ -498,6 +501,35 @@ export default function Board({
   function selectJob(jobId: string) {
     setSelectedJobId((current) => (current === jobId ? null : jobId));
     setPlacement(null);
+  }
+
+  function applyRailAction(job: CalendarJob, mode: "bump" | "skip", fields: { scheduledDate?: string; scheduledStartTime?: string; cancellationReason?: string }) {
+    const previous = { scheduledDate: job.scheduledDate, scheduledStartTime: job.scheduledStartTime, status: job.status };
+    const patch = mode === "skip"
+      ? { status: "cancelled", cancellationReason: fields.cancellationReason ?? "Skipped from calendar.", skipOccurrence: true }
+      : { scheduledDate: fields.scheduledDate!, scheduledStartTime: fields.scheduledStartTime ?? null };
+    const optimisticFields = mode === "skip"
+      ? { status: "cancelled" as const }
+      : { scheduledDate: fields.scheduledDate!, scheduledStartTime: fields.scheduledStartTime ?? null };
+    commitJobPatch(job.id, patch, {
+      onOptimistic: () => {
+        setRailAction(null);
+        setSelectedJobId(null);
+        setJobs((current) => current.map((entry) => (entry.id === job.id ? { ...entry, ...optimisticFields } : entry)));
+      },
+      onSuccess: () => {
+        router.refresh();
+        showUndo(mode === "skip" ? `${displayCustomer(job)} skipped for this visit` : `${displayCustomer(job)} bumped to ${fields.scheduledDate}`, () =>
+          commitJobPatch(job.id, previous, {
+            onOptimistic: () => setJobs((current) => current.map((entry) => (entry.id === job.id ? { ...entry, ...previous } : entry))),
+            onSuccess: () => router.refresh(),
+            onError: setError,
+          }),
+        );
+      },
+      onWarning: setWarning,
+      onError: setError,
+    });
   }
 
   function minutesFromPointerEvent(event: { clientX: number; clientY: number; currentTarget: HTMLElement }) {
@@ -1159,6 +1191,8 @@ export default function Board({
                 draggable
                 onDragStart={(event) => startRailDrag(event, job)}
                 onDragEnd={() => setDragOverEmployeeId(null)}
+                onBump={() => setRailAction({ job, mode: "bump" })}
+                onSkip={job.recurringSeriesId ? () => setRailAction({ job, mode: "skip" }) : undefined}
                 refCallback={(el) => {
                   if (el) railCardRefs.current.set(job.id, el);
                   else railCardRefs.current.delete(job.id);
@@ -1452,6 +1486,15 @@ export default function Board({
           onClose={() => setEditingAppointmentId(null)}
         />
       ) : null}
+      {railAction ? (
+        <RailActionDialog
+          job={railAction.job}
+          mode={railAction.mode}
+          onClose={() => setRailAction(null)}
+          policy={cancellationPolicy}
+          onConfirm={(fields) => applyRailAction(railAction.job, railAction.mode, fields)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -1480,32 +1523,31 @@ function RailCard({
   draggable = false,
   onDragStart,
   onDragEnd,
+  onBump,
+  onSkip,
 }: {
   job: CalendarJob;
   crewLabel?: string;
   crewColor?: string;
   selected: boolean;
   onSelect: () => void;
-  refCallback: (el: HTMLButtonElement | null) => void;
+  refCallback: (el: HTMLElement | null) => void;
   draggable?: boolean;
   onDragStart?: (event: React.DragEvent<HTMLButtonElement>) => void;
   onDragEnd?: (event: React.DragEvent<HTMLButtonElement>) => void;
+  onBump?: () => void;
+  onSkip?: () => void;
 }) {
   return (
-    <button
+    <div
       ref={refCallback}
-      type="button"
-      onClick={onSelect}
-      aria-pressed={selected}
-      draggable={draggable}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
       className={`relative w-full rounded-[10px] border px-[11px] py-[9px] pb-2.5 text-left shadow-[0_1px_1px_rgba(20,26,46,.03)] transition hover:-translate-y-px hover:border-[var(--co-accent-text)] hover:shadow-[0_1px_2px_rgba(20,26,46,.05),0_8px_24px_-12px_rgba(36,54,104,.22)] ${
         draggable ? "cursor-grab active:cursor-grabbing" : ""
       } ${
         selected ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-tint)] shadow-[0_0_0_3px_var(--co-focus-ring)]" : "border-[var(--co-line)] bg-[var(--co-surface)]"
       }`}
     >
+      <button type="button" onClick={onSelect} aria-pressed={selected} draggable={draggable} onDragStart={onDragStart} onDragEnd={onDragEnd} className="block w-full text-left">
       <div className="flex items-baseline gap-2">
         <span className="text-[13.5px] font-bold leading-[1.3] text-[var(--co-ink)]">{displayCustomer(job)}</span>
         <span className="ml-auto text-xs font-bold text-[var(--co-body)] tabular-nums">{job.scheduledStartTime ? clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime)) : "—"}</span>
@@ -1533,7 +1575,45 @@ function RailCard({
       {selected ? (
         <div className="mt-2 flex items-center gap-[5px] border-t border-dashed border-[var(--co-line)] pt-[7px] text-[11.5px] font-semibold text-[var(--co-accent-text)]">Choose a crew lane on the board</div>
       ) : null}
-    </button>
+      </button>
+      {onBump || onSkip ? (
+        <div className="mt-2 flex gap-1.5 border-t border-[var(--co-line-soft)] pt-2">
+          {onBump ? <button type="button" onClick={(event) => { event.stopPropagation(); onBump(); }} className="rounded-md border border-[var(--co-line)] px-2 py-1 text-[10.5px] font-bold text-[var(--co-body)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-accent-text)]">Bump date</button> : null}
+          {onSkip ? <button type="button" onClick={(event) => { event.stopPropagation(); onSkip(); }} className="rounded-md border border-[var(--co-danger)]/30 px-2 py-1 text-[10.5px] font-bold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/10">Skip visit</button> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function RailActionDialog({ job, mode, policy, onClose, onConfirm }: { job: CalendarJob; mode: "bump" | "skip"; policy?: string; onClose: () => void; onConfirm: (fields: { scheduledDate?: string; scheduledStartTime?: string; cancellationReason?: string }) => void }) {
+  const [date, setDate] = useState(job.scheduledDate);
+  const [period, setPeriod] = useState<"morning" | "afternoon">(job.scheduledStartTime && Number(job.scheduledStartTime.slice(0, 2)) >= 12 ? "afternoon" : "morning");
+  const [reason, setReason] = useState("");
+  const [fee, setFee] = useState<"50" | "100" | "0">("50");
+  const startTime = period === "afternoon" ? "13:00:00" : "09:00:00";
+  const canSubmit = mode === "bump" ? Boolean(date) : Boolean(reason.trim());
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/30" />
+      <div role="dialog" aria-modal="true" aria-labelledby="rail-action-title" className="relative w-full max-w-md rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-5 shadow-[0_20px_70px_rgba(15,23,20,.25)]">
+        <h2 id="rail-action-title" className="text-lg font-semibold">{mode === "bump" ? "Bump this visit" : "Skip this visit"}</h2>
+        <p className="mt-1 text-sm text-[var(--co-muted)]">{displayCustomer(job)} · {job.scheduledDate}</p>
+        {mode === "bump" ? (
+          <div className="mt-5 space-y-4">
+            <label className="block text-sm font-semibold">New date<input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="co-input mt-1 w-full" /></label>
+            <fieldset><legend className="text-sm font-semibold">Arrival window</legend><div className="mt-2 grid grid-cols-2 gap-2">{(["morning", "afternoon"] as const).map((value) => <button key={value} type="button" onClick={() => setPeriod(value)} className={`rounded-lg border px-3 py-2 text-sm font-semibold ${period === value ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]" : "border-[var(--co-line)]"}`}>{value === "morning" ? "Morning · 9:00 AM" : "Afternoon · 1:00 PM"}</button>)}</div></fieldset>
+          </div>
+        ) : (
+          <div className="mt-5 space-y-4">
+            <label className="block text-sm font-semibold">Why is this visit being skipped?<textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={3} className="co-input mt-1 w-full resize-none" placeholder="Required for the client record" /></label>
+            <fieldset><legend className="text-sm font-semibold">Bill a cancellation fee?</legend><div className="mt-2 space-y-2 text-sm">{([["50", "50% of service rate"], ["100", "100% of service rate"], ["0", "Do not bill a fee"]] as const).map(([value, label]) => <label key={value} className="flex items-center gap-2"><input type="radio" name="skip-fee" value={value} checked={fee === value} onChange={() => setFee(value)} />{label}</label>)}</div></fieldset>
+            <p className="whitespace-pre-line rounded-lg bg-[var(--co-surface-muted)] p-3 text-xs leading-5 text-[var(--co-muted)]">{policy ?? "Policy: less than 24 hours’ notice is 50%; same-day cancellations are 100%. A skip fee may be applied to the next catch-up cleaning."}</p>
+          </div>
+        )}
+        <div className="mt-6 flex justify-end gap-2"><button type="button" onClick={onClose} className="co-button-secondary">Keep visit</button><button type="button" disabled={!canSubmit} onClick={() => onConfirm(mode === "bump" ? { scheduledDate: date, scheduledStartTime: startTime } : { cancellationReason: `${reason.trim()} (Cancellation fee: ${fee === "0" ? "not billed" : `${fee}% billed`})` })} className="co-button-primary disabled:opacity-50">{mode === "bump" ? "Bump visit" : "Skip visit"}</button></div>
+      </div>
+    </div>
   );
 }
 

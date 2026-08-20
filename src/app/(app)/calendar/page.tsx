@@ -921,6 +921,11 @@ export default async function CalendarPage({
             workdayStartMinutes={workdayStartMinutes}
             workdayEndMinutes={workdayEndMinutes}
             workdayMinutesPerCleaner={workdayMinutesPerCleaner}
+            cancellationPolicy={
+              typeof (company.settings as { cancellationPolicy?: unknown } | null)?.cancellationPolicy === "string"
+                ? (company.settings as { cancellationPolicy: string }).cancellationPolicy
+                : undefined
+            }
           />
         ) : null}
         {view === "month" ? (
