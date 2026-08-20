@@ -594,6 +594,12 @@ export const jobAssignments = pgTable("job_assignments", {
   // Mileage is recorded against the assigned job so the lead/driver can
   // submit one unambiguous trip amount from My Day.
   mileageMiles: numeric("mileage_miles", { precision: 8, scale: 2 }).notNull().default("0"),
+  // Workday transitions, per employee per job. Recorded time still lives in
+  // time_entries — these only mark which part of the stop she is in, so the
+  // UI can state a real timestamp instead of guessing from browser state.
+  travelStartedAt: timestamp("travel_started_at", { withTimezone: true }),
+  arrivedAt:       timestamp("arrived_at",        { withTimezone: true }),
+  workStartedAt:   timestamp("work_started_at",   { withTimezone: true }),
   ...timestamps,
 }, (t) => ({
   jobUserIdx: uniqueIndex("job_assignments_job_user_idx").on(t.jobId, t.userId),

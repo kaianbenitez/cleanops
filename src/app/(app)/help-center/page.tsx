@@ -7,6 +7,24 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.73",
+    date: "August 21, 2026",
+    title: "Fixed layout on the job screen and near the top of the phone",
+    changes: [
+      "Fixed the Save/Complete button on a job screen so it no longer sits on top of the bottom menu bar.",
+      "Fixed content near the top of the screen so it no longer sits under your phone's signal and battery icons.",
+    ],
+  },
+  {
+    version: "v0.2.72",
+    date: "August 20, 2026",
+    title: "Team jobs and weekly hours are more accurate",
+    changes: [
+      "Fixed a rare case on team jobs where the office finishing one teammate's entry could mark the whole job done before every teammate had even started recording time — Shimmer now waits until everyone on the job has saved their time.",
+      "Fixed your weekly hours total so time recorded right around midnight lands in the correct week.",
+    ],
+  },
+  {
     version: "v0.2.71",
     date: "August 20, 2026",
     title: "Search is faster with Cmd/Ctrl+K",

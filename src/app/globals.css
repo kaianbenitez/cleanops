@@ -6,6 +6,14 @@
 
 :root {
   --app-nav-width: 260px;
+  /* Fixed part of the mobile field bottom nav's height (app-nav.tsx's
+     `<nav aria-label="Primary">`) — its own bottom padding already adds
+     env(safe-area-inset-bottom) on top of this. Any fixed bottom bar on a
+     field page (e.g. job-execution-client.tsx's primary-action bar) must
+     clear `calc(var(--app-nav-mobile-height) + env(safe-area-inset-bottom))`
+     or it renders on top of the nav instead of above it — measured directly
+     off the real element (71.5px), rounded up. */
+  --app-nav-mobile-height: 72px;
   /* Shimmer: cobalt navigation, bright semantic scheduling cues, calm surfaces. */
   --co-bg: #f4f6fb;
   --co-surface: #ffffff;

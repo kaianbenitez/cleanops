@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { auditLog, jobs, timeEntries, users } from "@/db/schema";
+import { auditLog, jobAssignments, jobs, timeEntries, users } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { isFieldEligible } from "@/lib/auth/field-staff";
 import { generatePayrollForPeriod } from "@/lib/payroll/calculate";
 import { refreshPayrollPeriodsForDates } from "@/lib/payroll/periods";
 import { z } from "zod";
 import { ensureFeedbackRequest } from "@/lib/feedback/ensure-feedback-request";
+import { isJobFullyComplete } from "@/lib/my-day/job-completion";
 
 const schema = z.object({
   employeeId: z.string().uuid(),
@@ -99,13 +100,24 @@ export async function POST(req: NextRequest) {
     .limit(1);
 
   if (job) {
-    const [stillOpen] = await db
-      .select({ id: timeEntries.id })
+    const assigned = await db
+      .select({ userId: jobAssignments.userId })
+      .from(jobAssignments)
+      .where(eq(jobAssignments.jobId, job.id));
+    const jobEntries = await db
+      .select({ userId: timeEntries.userId, clockOut: timeEntries.clockOut })
       .from(timeEntries)
-      .where(and(eq(timeEntries.jobId, job.id), isNull(timeEntries.clockOut)))
-      .limit(1);
+      .where(eq(timeEntries.jobId, job.id));
 
-    const completedNow = !stillOpen && job.status !== "cancelled" && job.status !== "no_show" && job.status !== "completed";
+    // D6: closing this one employee's entry must not mark the job complete
+    // unless every assigned employee has a closed entry too — otherwise the
+    // office can complete a job before a coworker ever clocks in, and the
+    // customer gets a feedback request for a job nobody finished.
+    const completedNow =
+      isJobFullyComplete(assigned, jobEntries) &&
+      job.status !== "cancelled" &&
+      job.status !== "no_show" &&
+      job.status !== "completed";
     if (completedNow) {
       await db.update(jobs).set({ status: "completed", completedAt: now, updatedAt: now }).where(eq(jobs.id, job.id));
       await ensureFeedbackRequest({ companyId: admin.companyId, jobId: job.id, origin: req.url });

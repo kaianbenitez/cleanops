@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { and, eq, gte, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, isNull } from "drizzle-orm";
 import { CalendarDays, ChevronRight, MapPin } from "lucide-react";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { companies, customerLocations, customers, jobs, jobAssignments } from "@/db/schema";
+import { companies, customerLocations, customers, jobs, jobAssignments, timeEntries } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasFieldAccess } from "@/lib/auth/field-staff";
 import { dateLabel, formatEstimatedTime, jobAddress, jobTypeLabel, timeLabel } from "@/lib/my-day/job-format";
+import { deriveWorkdayNow, type StopInput } from "@/lib/my-day/workday-state";
+import { scheduleJobHref } from "./schedule-link";
 
 function todayInTimezone(timezone: string) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -64,8 +66,66 @@ export default async function SchedulePage() {
 
   const jobsByDate = Map.groupBy(scheduledJobs, (job) => job.scheduledDate);
 
+  // Read-only "something is recording" banner: at most one open time entry
+  // per employee (Invariant 3), so a single row is enough to derive the
+  // current work line. Coworker/other-stop fields are unused by every state
+  // this open entry can be in (traveling/arrived/job_active/stale_entry), so
+  // they're safe placeholders here.
+  const openEntry = await db
+    .select({
+      jobId: jobs.id,
+      scheduledDate: jobs.scheduledDate,
+      scheduledStartTime: jobs.scheduledStartTime,
+      status: jobs.status,
+      completedAt: jobs.completedAt,
+      customerFirstName: customers.firstName,
+      customerLastName: customers.lastName,
+      travelStartedAt: jobAssignments.travelStartedAt,
+      arrivedAt: jobAssignments.arrivedAt,
+      workStartedAt: jobAssignments.workStartedAt,
+      clockIn: timeEntries.clockIn,
+    })
+    .from(timeEntries)
+    .innerJoin(jobs, eq(timeEntries.jobId, jobs.id))
+    .innerJoin(jobAssignments, and(eq(jobAssignments.jobId, jobs.id), eq(jobAssignments.userId, user.id)))
+    .innerJoin(customers, eq(jobs.customerId, customers.id))
+    .where(and(eq(timeEntries.userId, user.id), isNull(timeEntries.clockOut)))
+    .orderBy(desc(timeEntries.clockIn))
+    .limit(1)
+    .then((rows) => rows[0] ?? null);
+
+  let workLine: string | null = null;
+  if (openEntry) {
+    const stop: StopInput = {
+      jobId: openEntry.jobId,
+      customerFirstName: openEntry.customerFirstName,
+      customerLastName: openEntry.customerLastName,
+      scheduledDate: openEntry.scheduledDate,
+      scheduledStartTime: openEntry.scheduledStartTime,
+      status: openEntry.status,
+      completedAt: openEntry.completedAt ? openEntry.completedAt.toISOString() : null,
+      travelStartedAt: openEntry.travelStartedAt ? openEntry.travelStartedAt.toISOString() : null,
+      arrivedAt: openEntry.arrivedAt ? openEntry.arrivedAt.toISOString() : null,
+      workStartedAt: openEntry.workStartedAt ? openEntry.workStartedAt.toISOString() : null,
+      myOpenEntry: { clockIn: openEntry.clockIn.toISOString() },
+      myClosedEntry: null,
+      coworkers: [],
+    };
+    workLine = deriveWorkdayNow({ stops: [stop], todayIso: today, timeZone: company.timezone }).workLine;
+  }
+
   return (
     <div className="mx-auto max-w-[680px] space-y-4 pb-10">
+      {workLine ? (
+        <Link
+          href="/my-day"
+          className="co-card flex min-h-11 items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-[var(--co-ink)] transition hover:bg-[var(--co-surface-muted)] sm:px-5"
+        >
+          <span className="truncate">{workLine} · Back to My Day</span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-[var(--co-faint)]" aria-hidden />
+        </Link>
+      ) : null}
+
       <section className="co-card overflow-hidden">
         <div className="flex items-start gap-3 px-4 py-4 sm:px-5">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]">
@@ -73,7 +133,7 @@ export default async function SchedulePage() {
           </div>
           <div>
             <p className="eyebrow">Your route</p>
-            <h1 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--co-ink)]">Schedule</h1>
+            <h1 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--co-ink)]">Coming up</h1>
             <p className="mt-1 text-sm text-[var(--co-muted)]">Your assigned jobs, grouped by day.</p>
           </div>
         </div>
@@ -104,7 +164,11 @@ export default async function SchedulePage() {
                 const address = jobAddress(job);
                 const duration = job.estimatedDurationMinutes ? `Est. ${formatEstimatedTime(job.estimatedDurationMinutes)}` : null;
                 return (
-                  <Link key={job.jobId} href={`/my-day/${job.jobId}`} className="flex min-h-24 items-center gap-3 px-4 py-3 transition hover:bg-[var(--co-surface-muted)] sm:px-5">
+                  <Link
+                    key={job.jobId}
+                    href={scheduleJobHref(job.jobId, job.scheduledDate, today)}
+                    className="flex min-h-24 items-center gap-3 px-4 py-3 transition hover:bg-[var(--co-surface-muted)] sm:px-5"
+                  >
                     <div className="w-[62px] shrink-0 text-sm font-semibold tabular-nums text-[var(--co-accent-text)]">{timeLabel(job.scheduledStartTime)}</div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-[var(--co-ink)]">{job.customerFirstName} {job.customerLastName}</p>

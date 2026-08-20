@@ -7,7 +7,7 @@ import { Share, X } from "lucide-react";
 // see the more important sign-in guidance once.
 const STORAGE_KEY = "co-a2hs-signin-dismissed-v2";
 
-function isIosSafariBrowserTab() {
+export function isIosSafariBrowserTab() {
   if (typeof window === "undefined") return false;
   const ua = window.navigator.userAgent;
   const isIos = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);

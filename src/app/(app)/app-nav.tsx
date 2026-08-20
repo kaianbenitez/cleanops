@@ -182,7 +182,7 @@ export default function AppNav({
     <>
       {isAdmin ? (
       <>
-      <div data-app-nav="mobile" className="sticky top-0 z-40 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] text-[var(--co-ink)] backdrop-blur xl:hidden">
+      <div data-app-nav="mobile" className="sticky top-0 z-40 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] pt-[env(safe-area-inset-top)] text-[var(--co-ink)] backdrop-blur xl:hidden">
         <div className="flex h-16 items-center justify-between px-4">
           <button
             type="button"

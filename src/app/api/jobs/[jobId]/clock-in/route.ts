@@ -100,6 +100,14 @@ export async function DELETE(
 
     await tx.delete(timeEntries).where(eq(timeEntries.id, openEntry.id));
 
+    // Undoing the clock-in undoes every workday transition it started —
+    // travel/arrival/work-start are all downstream of the time_entries row
+    // this just deleted.
+    await tx
+      .update(jobAssignments)
+      .set({ travelStartedAt: null, arrivedAt: null, workStartedAt: null })
+      .where(eq(jobAssignments.id, assignment.id));
+
     const remainingEntries = await tx
       .select({ id: timeEntries.id })
       .from(timeEntries)
