@@ -190,6 +190,15 @@ export function displayCustomer(job: { customerFirstName: string; customerLastNa
   return job.companyName?.trim() || `${job.customerLastName}, ${job.customerFirstName}`;
 }
 
+export function formatCustomerAddress(job: {
+  customerAddress?: string | null;
+  customerCity?: string | null;
+  customerState?: string | null;
+  customerZip?: string | null;
+}) {
+  return [job.customerAddress, job.customerCity, job.customerState, job.customerZip].filter(Boolean).join(", ") || "No address";
+}
+
 export function recurrenceLabel(value: string | null | undefined) {
   if (!value || value === "none") return "One-time";
   if (value === "every4weeks") return "Every 4 weeks";

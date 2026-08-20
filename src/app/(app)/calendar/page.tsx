@@ -140,6 +140,7 @@ export type CalendarJob = {
   clientType: string;
   customerZip: string | null;
   customerCity: string | null;
+  customerState: string | null;
   customerAddress: string | null;
   customerHomeDetails: Record<string, unknown>;
   roomCounts: { name: string; count: number }[];
@@ -413,6 +414,7 @@ export default async function CalendarPage({
         clientType: customers.clientType,
         customerZip: customers.zip,
         customerCity: customers.city,
+        customerState: customers.state,
         customerAddress: customers.addressLine1,
         customerHomeDetails: customers.homeDetails,
         customerNotes: customers.generalNotes,

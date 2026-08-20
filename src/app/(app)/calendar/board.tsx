@@ -31,6 +31,7 @@ import {
   displayCustomer,
   employeeColor,
   formatAppointmentTime,
+  formatCustomerAddress,
   hasArrivalTime,
   isPlainClick,
   jobDuration,
@@ -40,7 +41,7 @@ import {
   minutesFromTime,
   ordinalLabel,
   stopOrdinals,
-  TYPE_LABELS,
+  jobTypeLabel,
   ATTENTION_RAIL_TOGGLE_EVENT,
 } from "./shared";
 import type { EmployeePtoRecord, PtoPeriod } from "@/lib/scheduling/pto";
@@ -968,7 +969,7 @@ export default function Board({
         </div>
         {!compact ? (
           <div className="mt-px truncate text-[10.5px] text-[var(--co-faint)]">
-            {TYPE_LABELS[job.type] ?? job.type} · {job.customerAddress ?? job.customerCity ?? "No address"}
+            {job.recurringSeriesId ? "↻ " : ""}{jobTypeLabel(job)} · {formatCustomerAddress(job)}
           </div>
         ) : null}
         {overflowCount > 0 ? (
@@ -1658,11 +1659,11 @@ function RailCard({
             {crewLabel}
           </>
         ) : (
-          <>{job.customerAddress ?? job.customerCity ?? "No address"}</>
+          <>{formatCustomerAddress(job)}</>
         )}
       </div>
       <div className="mt-[7px] flex flex-wrap gap-1">
-        <span className="co-badge-muted inline-flex h-[19px] items-center rounded px-1.5 text-[10.5px] font-bold">{TYPE_LABELS[job.type] ?? job.type}</span>
+        <span className="co-badge-muted inline-flex h-[19px] items-center rounded px-1.5 text-[10.5px] font-bold">{job.recurringSeriesId ? "↻ " : ""}{jobTypeLabel(job)}</span>
         <span className="co-badge-muted inline-flex h-[19px] items-center rounded px-1.5 text-[10.5px] font-bold tabular-nums">{formatDuration(jobDuration(job))}</span>
         {job.petNotes ? (
           <span className="co-badge-spark inline-flex h-[19px] items-center gap-1 rounded px-1.5 text-[10.5px] font-bold">
