@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.71",
+    date: "August 20, 2026",
+    title: "Search is faster with Cmd/Ctrl+K",
+    changes: [
+      "Press Cmd+K on Mac or Ctrl+K on Windows and Linux to jump straight into Shimmer search.",
+      "The search bar now shows the shortcut for your device so it is easy to discover.",
+    ],
+  },
+  {
     version: "v0.2.70",
     date: "August 20, 2026",
     title: "Employee sign-in now stays put on personal phones",

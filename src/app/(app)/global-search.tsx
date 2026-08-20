@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
 type Result = { id: string; kind: string; title: string; subtitle: string; meta?: string[]; href: string };
@@ -16,7 +16,15 @@ export default function GlobalSearch({ variant = "desktop" }: { variant?: "deskt
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const inlineInputRef = useRef<HTMLInputElement>(null);
   const paletteInputRef = useRef<HTMLInputElement>(null);
+
+  const isMac = useSyncExternalStore(
+    () => () => {},
+    () => /^Mac/i.test(window.navigator.platform),
+    () => false,
+  );
+  const shortcutLabel = isMac ? "⌘K" : "Ctrl K";
 
   useEffect(() => {
     if (isIcon || !open) return;
@@ -27,20 +35,22 @@ export default function GlobalSearch({ variant = "desktop" }: { variant?: "deskt
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open, isIcon]);
 
-  // ⌘K/Ctrl+K opens the palette — scoped to this component instance, so the
-  // shortcut only exists while an "icon" variant is actually mounted
-  // (Calendar's toolbar today; every other page keeps its inline input).
   useEffect(() => {
-    if (!isIcon) return;
     function onKeyDown(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      const hasShortcutModifier = isMac ? event.metaKey : event.ctrlKey;
+      if (hasShortcutModifier && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setOpen(true);
+        if (isIcon) {
+          setOpen(true);
+        } else {
+          setOpen(true);
+          inlineInputRef.current?.focus();
+        }
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isIcon]);
+  }, [isIcon, isMac]);
 
   useEffect(() => {
     if (isIcon && open) paletteInputRef.current?.focus();
@@ -145,7 +155,7 @@ export default function GlobalSearch({ variant = "desktop" }: { variant?: "deskt
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Search (⌘K)"
+          aria-label={`Search (${shortcutLabel})`}
           className="co-button-secondary flex h-9 w-9 shrink-0 items-center justify-center !p-0"
         >
           <Search className="h-4 w-4" aria-hidden />
@@ -159,6 +169,7 @@ export default function GlobalSearch({ variant = "desktop" }: { variant?: "deskt
     <label className={isMobile ? "relative block w-full" : "relative block w-[min(38vw,360px)]"}>
       <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-[var(--co-muted)]" aria-hidden />
       <input
+        ref={inlineInputRef}
         value={query}
         onChange={(event) => { setQuery(event.target.value); setResults([]); setError(false); setOpen(true); }}
         onFocus={() => setOpen(true)}
@@ -169,8 +180,11 @@ export default function GlobalSearch({ variant = "desktop" }: { variant?: "deskt
         aria-expanded={showResults}
         aria-controls="global-search-results"
         style={{ paddingLeft: "2.5rem" }}
-        className="co-input h-10 w-full rounded-lg bg-[var(--co-surface-muted)] pr-3 text-sm"
+        className="co-input h-10 w-full rounded-lg bg-[var(--co-surface-muted)] pr-16 text-sm"
       />
+      <kbd aria-hidden="true" className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded border border-[var(--co-line)] bg-[var(--co-surface)] px-1.5 py-0.5 text-[10px] font-medium leading-none text-[var(--co-muted)]">
+        {shortcutLabel}
+      </kbd>
     </label>
     {showResults ? <div id="global-search-results" role="listbox" className={`absolute left-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] shadow-[0_12px_32px_rgba(18,24,19,0.16)] ${isMobile ? "w-full" : "w-[min(38vw,420px)]"}`}>
       {resultsList}
