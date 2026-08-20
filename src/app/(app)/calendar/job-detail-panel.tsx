@@ -11,6 +11,7 @@ import { commitJobPatch } from "./drag-commit";
 import AssigneePicker from "./assignee-picker";
 import ClientHomeSymbols from "./client-home-symbols";
 import { cleanNoteText } from "@/lib/format";
+import { ExternalLink } from "lucide-react";
 
 type Employee = { id: string; firstName: string; lastName: string };
 
@@ -183,9 +184,14 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
             <p className="eyebrow">Job details</p>
             {job ? <Link id="calendar-job-detail-title" href={`/customers/${job.customerId}`} className="mt-1 block text-lg font-semibold hover:text-[var(--co-accent-text)] hover:underline">{job.customerFirstName} {job.customerLastName}</Link> : <h2 id="calendar-job-detail-title" className="mt-1 text-lg font-semibold">Loading...</h2>}
           </div>
-          <button type="button" onClick={requestClose} className="rounded-full p-1 text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]" aria-label="Close">
-            ✕
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {job ? <button type="button" disabled={saving || !isDirty} onClick={saveChanges} className="co-button-primary px-3 py-2 text-xs disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button> : null}
+            {job && job.status !== "cancelled" ? <button type="button" disabled={saving} onClick={() => setConfirmingCancel(true)} className="co-button-secondary px-3 py-2 text-xs text-[var(--co-danger)]">Cancel job</button> : null}
+            {job ? <Link href={`/jobs/${job.id}`} target="_blank" rel="noreferrer" aria-label="Open full job page in a new tab" title="Open full job page in a new tab" className="co-button-secondary flex h-9 w-9 items-center justify-center !p-0"><ExternalLink className="h-4 w-4" aria-hidden /></Link> : null}
+            <button type="button" onClick={requestClose} className="rounded-full p-1 text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]" aria-label="Close">
+              ✕
+            </button>
+          </div>
         </div>
 
         {loading && !job ? <div className="p-5 text-sm text-[var(--co-muted)]">Loading job...</div> : null}
@@ -246,9 +252,6 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
             <div className="text-sm text-[var(--co-muted)]">{formatEstimatedTime(job.estimatedDurationMinutes)}</div>
 
             <div className="flex flex-wrap gap-2 border-t border-[var(--co-line-soft)] pt-4">
-              <button type="button" disabled={saving || !isDirty} onClick={saveChanges} className="co-button-primary disabled:opacity-50">
-                {saving ? "Saving…" : "Save changes"}
-              </button>
               {isDirty ? <button type="button" disabled={saving} onClick={() => { setDraftDate(job.scheduledDate); setDraftTime(job.scheduledStartTime?.slice(0, 5) ?? ""); setDraftStatus(job.status); setDraftPrice((job.priceCents / 100).toFixed(2)); setDraftDuration(job.estimatedDurationMinutes == null ? "" : String(job.estimatedDurationMinutes)); setDraftAssignedUserIds(assignedUserIds); }} className="co-button-secondary disabled:opacity-50">Discard changes</button> : null}
               {job.status !== "cancelled" ? confirmingCancel ? (
                 <div className="w-full space-y-2 co-badge-danger rounded-lg p-3">
@@ -261,12 +264,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
                     <button type="button" disabled={saving || !cancellationReason.trim()} onClick={confirmCancelJob} className="rounded-lg border border-[var(--co-danger)]/30 bg-[var(--co-danger)]/10 px-3 py-1 text-xs font-semibold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/20 disabled:opacity-50">Confirm cancel</button>
                   </div>
                 </div>
-              ) : (
-                <button type="button" onClick={() => setConfirmingCancel(true)} className="co-button-secondary">Cancel job</button>
-              ) : null}
-              <Link href={`/jobs/${job.id}`} className="co-button-secondary">
-                Open full job page
-              </Link>
+              ) : null : null}
             </div>
           </div>
         ) : null}
