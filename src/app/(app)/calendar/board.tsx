@@ -1210,7 +1210,7 @@ export default function Board({
           </p>
         </div>
         <div className="max-h-[calc(100vh-190px)] overflow-y-auto">
-          <RailGroup icon={<Users className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />} label="No crew yet" jobs={noCrewJobs}>
+          <RailGroup icon={<Users className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />} label="No crew yet" jobs={noCrewJobs} collapsible defaultCollapsed>
             {noCrewJobs.map((job) => (
               <RailCard
                 key={job.id}
@@ -1543,16 +1543,18 @@ export default function Board({
   );
 }
 
-function RailGroup({ icon, label, jobs, children }: { icon: React.ReactNode; label: string; jobs: CalendarJob[]; children: React.ReactNode }) {
+function RailGroup({ icon, label, jobs, children, collapsible = false, defaultCollapsed = false }: { icon: React.ReactNode; label: string; jobs: CalendarJob[]; children: React.ReactNode; collapsible?: boolean; defaultCollapsed?: boolean }) {
+  const [collapsed, setCollapsed] = useState(collapsible && defaultCollapsed);
   if (!jobs.length) return null;
   return (
     <div className="border-b border-[var(--co-line-soft)] last:border-b-0">
-      <div className="flex items-center gap-[7px] bg-[var(--co-surface-muted)] px-[15px] py-[9px] text-[11px] font-bold uppercase tracking-[0.07em] text-[var(--co-faint)]">
+      <button type="button" onClick={() => collapsible && setCollapsed((current) => !current)} aria-expanded={collapsible ? !collapsed : undefined} className={`flex w-full items-center gap-[7px] bg-[var(--co-surface-muted)] px-[15px] py-[9px] text-left text-[11px] font-bold uppercase tracking-[0.07em] text-[var(--co-faint)] ${collapsible ? "cursor-pointer hover:bg-[var(--co-surface-muted-2)]" : "cursor-default"}`}>
         {icon}
         {label}
         <span className="ml-auto text-[11px] font-semibold text-[var(--co-muted)]">{jobs.length}</span>
-      </div>
-      <div className="flex flex-col gap-[7px] p-[9px]">{children}</div>
+        {collapsible ? <span className="ml-1 text-[13px] text-[var(--co-muted)]" aria-hidden>{collapsed ? "＋" : "−"}</span> : null}
+      </button>
+      {!collapsed ? <div className="flex flex-col gap-[7px] p-[9px]">{children}</div> : null}
     </div>
   );
 }
