@@ -31,12 +31,14 @@ function emptyForm(defaultDate: string): AppointmentForm {
 
 export default function AppointmentPanel({
   mode,
+  kind = "meeting",
   eventId,
   staffRoster,
   defaultDate,
   onClose,
 }: {
   mode: "create" | "edit";
+  kind?: "meeting" | "blocker";
   eventId?: string;
   staffRoster: StaffMember[];
   defaultDate: string;
@@ -44,6 +46,7 @@ export default function AppointmentPanel({
 }) {
   const router = useRouter();
   const [form, setForm] = useState<AppointmentForm>(() => emptyForm(defaultDate));
+  const [appointmentKind, setAppointmentKind] = useState(kind);
   const [status, setStatus] = useState<string>("scheduled");
   const [loading, setLoading] = useState(mode === "edit");
   const [saving, setSaving] = useState(false);
@@ -71,6 +74,7 @@ export default function AppointmentPanel({
           employeeIds: data.event.employeeIds ?? [],
           note: data.event.note ?? "",
         });
+        setAppointmentKind(data.event.category === "reminder" ? "blocker" : "meeting");
         setStatus(data.event.status);
       } catch {
         if (!cancelled) setError("Couldn't load this appointment.");
@@ -95,7 +99,7 @@ export default function AppointmentPanel({
 
   async function save() {
     if (!form.title.trim()) {
-      setError("Enter a title for this appointment.");
+      setError(`Enter a ${appointmentKind === "blocker" ? "reason" : "title"} for this appointment.`);
       return;
     }
     setSaving(true);
@@ -109,7 +113,9 @@ export default function AppointmentPanel({
         durationMinutes: form.durationMinutes,
         employeeIds: form.employeeIds,
         note: form.note.trim() || null,
-        ...(mode === "create" ? { category: "meeting" as const } : {}),
+        ...(mode === "create"
+          ? { category: appointmentKind === "blocker" ? ("reminder" as const) : ("meeting" as const) }
+          : {}),
       };
       const res = await fetch(mode === "create" ? "/api/calendar-events" : `/api/calendar-events/${eventId}`, {
         method: mode === "create" ? "POST" : "PATCH",
@@ -162,8 +168,13 @@ export default function AppointmentPanel({
       <aside className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-[var(--co-line)] bg-[var(--co-surface)] shadow-[0_0_60px_rgba(15,23,20,0.25)]">
         <div className="flex items-start justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
           <div>
-            <p className="eyebrow">Internal appointment</p>
-            <h2 className="mt-1 text-lg font-semibold">{mode === "create" ? "New appointment" : "Edit appointment"}</h2>
+            <h2 className="text-lg font-semibold">
+              {mode === "create"
+                ? appointmentKind === "blocker"
+                  ? "Block time"
+                  : "New appointment"
+                : "Edit appointment"}
+            </h2>
           </div>
           <button type="button" onClick={onClose} className="rounded-full p-1 text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]" aria-label="Close">
             ✕
@@ -180,12 +191,12 @@ export default function AppointmentPanel({
             ) : null}
 
             <label className="block text-xs font-semibold text-[var(--co-muted)]">
-              Title
+              {appointmentKind === "blocker" ? "Reason" : "Title"}
               <input
                 type="text"
                 value={form.title}
                 onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                placeholder="Weekly team meeting"
+                placeholder={appointmentKind === "blocker" ? "Dentist appointment, birthday…" : "Weekly team meeting"}
                 className="co-input mt-1 w-full"
               />
             </label>
@@ -219,12 +230,18 @@ export default function AppointmentPanel({
               <span className="mt-1 block text-[11px] font-normal normal-case text-[var(--co-muted)]">Every attendee is automatically paid for this much time.</span>
             </label>
 
-            <div className="block text-xs font-semibold text-[var(--co-muted)]">
-              Attendees
-              <div className="mt-1">
-                <AttendeePicker staff={staffRoster} selectedIds={form.employeeIds} onChange={(ids) => setForm((current) => ({ ...current, employeeIds: ids }))} />
+            {appointmentKind === "meeting" ? (
+              <div className="block text-xs font-semibold text-[var(--co-muted)]">
+                Attendees
+                <div className="mt-1">
+                  <AttendeePicker staff={staffRoster} selectedIds={form.employeeIds} onChange={(ids) => setForm((current) => ({ ...current, employeeIds: ids }))} />
+                </div>
               </div>
-            </div>
+            ) : (
+              <p className="text-xs leading-5 text-[var(--co-muted)]">
+                This marks the time unavailable on the calendar. It does not create a job or affect payroll.
+              </p>
+            )}
 
             <label className="block text-xs font-semibold text-[var(--co-muted)]">
               Notes
@@ -232,14 +249,20 @@ export default function AppointmentPanel({
                 value={form.note}
                 onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))}
                 rows={3}
-                placeholder="Agenda, location, or other notes"
+                placeholder={appointmentKind === "blocker" ? "Optional details" : "Agenda, location, or other notes"}
                 className="co-input mt-1 w-full resize-none"
               />
             </label>
 
             <div className="flex flex-wrap gap-2 border-t border-[var(--co-line-soft)] pt-4">
               <button type="button" disabled={saving} onClick={save} className="co-button-primary disabled:opacity-50">
-                {saving ? "Saving..." : mode === "create" ? "Create appointment" : "Save changes"}
+                {saving
+                  ? "Saving..."
+                  : mode === "create"
+                    ? appointmentKind === "blocker"
+                      ? "Block time"
+                      : "Create appointment"
+                    : "Save changes"}
               </button>
               {mode === "edit" && status !== "cancelled" ? (
                 confirmingCancel ? (
