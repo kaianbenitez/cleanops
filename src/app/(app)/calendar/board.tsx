@@ -281,6 +281,7 @@ export default function Board({
   const isFirstAxisRender = useRef(true);
   const dragScrollFrameRef = useRef<number | null>(null);
   const dragPointRef = useRef({ x: 0, y: 0 });
+  const dragMinutesRef = useRef<number | null>(null);
 
   useEffect(() => {
     function toggleAttentionRail() {
@@ -660,7 +661,8 @@ export default function Board({
     const isExistingLane = previousEmployees.includes(employeeId);
     const isCrossLaneMove = Boolean(sourceEmployeeId) && sourceEmployeeId !== employeeId;
     const previousTime = job.scheduledStartTime;
-    const clampedMinutes = minutesFromDragEvent(event);
+    const clampedMinutes = dragMinutesRef.current ?? minutesFromDragEvent(event);
+    dragMinutesRef.current = null;
     const nextTime = minutesToTime(clampedMinutes);
 
     if (JSON.stringify(previousEmployees) === JSON.stringify(nextEmployees) && previousTime === nextTime) return;
@@ -708,17 +710,20 @@ export default function Board({
     event.dataTransfer.effectAllowed = "move";
     setSelectedJobId(job.id);
     setPlacement(null);
+    dragMinutesRef.current = null;
   }
 
   function laneDragOver(event: React.DragEvent<HTMLDivElement>, employeeId: string) {
     event.preventDefault();
     setDragOverEmployeeId(employeeId);
+    if (!event.dataTransfer.types.includes("text/plain")) return;
+    const minutes = minutesFromDragEvent(event);
+    dragMinutesRef.current = minutes;
     if (!event.dataTransfer.types.includes("application/x-cleanops-source-rail") || !selectedJob) return;
     // Untimed job: the hovered position is a placement preview, same as
     // laneMouseMove for the click path — drag suppresses native mousemove,
     // so this is the drag equivalent.
     if (!hasArrivalTime(selectedJob)) {
-      const minutes = minutesFromDragEvent(event);
       setPlacement((current) => (current && current.employeeId === employeeId && current.minutes === minutes ? current : { employeeId, minutes }));
     }
   }
@@ -731,7 +736,9 @@ export default function Board({
       // Untimed job: drop position sets the arrival time (15-minute snap,
       // same rule as click-to-place). Timed jobs ignore this override —
       // commitPlacement keeps the job's own scheduledStartTime.
-      commitPlacement(employeeId, minutesFromDragEvent(event));
+      const minutes = dragMinutesRef.current ?? minutesFromDragEvent(event);
+      dragMinutesRef.current = null;
+      commitPlacement(employeeId, minutes);
       return;
     }
     stopDragAutoScroll();
@@ -794,7 +801,7 @@ export default function Board({
     if (!board) return;
     dragPointRef.current = { x: event.clientX, y: event.clientY };
     if (dragScrollFrameRef.current !== null) return;
-    const edgeSize = 88;
+    const edgeSize = 140;
     const tick = () => {
       const currentBoard = gridScrollRef.current;
       if (!currentBoard) return stopDragAutoScroll();
@@ -802,7 +809,7 @@ export default function Board({
       const { x, y } = dragPointRef.current;
       const horizontalEdge = Math.max(0, edgeSize - Math.min(x - rect.left, rect.right - x));
       const verticalEdge = Math.max(0, edgeSize - Math.min(y - rect.top, rect.bottom - y));
-      const speed = (distance: number) => Math.min(34, Math.max(4, Math.round(distance / 3)));
+      const speed = (distance: number) => Math.min(44, Math.max(5, Math.round(distance / 2.5)));
       if (axis === "vertical") {
         if (x < rect.left + edgeSize) currentBoard.scrollLeft -= speed(horizontalEdge);
         else if (x > rect.right - edgeSize) currentBoard.scrollLeft += speed(horizontalEdge);
@@ -906,6 +913,7 @@ export default function Board({
           const lane = laneOwnerId ?? job.assignedUserIds.find((id) => laneData.has(id));
           if (lane) event.dataTransfer.setData("application/x-cleanops-source-employee", lane);
           event.dataTransfer.effectAllowed = "move";
+          dragMinutesRef.current = null;
         }}
         onDragEnd={() => {
           // Safety net: a drag cancelled outside any drop target (Escape,
