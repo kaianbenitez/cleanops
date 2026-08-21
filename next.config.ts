@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  images: {
+    remotePatterns: [{ protocol: "https", hostname: "**.supabase.co" }],
+  },
   // Sentry DSNs aren't secret, so it's safe to bake the existing server-only
   // SENTRY_DSN into the client bundle under this name at build time instead
   // of duplicating it as a second Vercel env var.

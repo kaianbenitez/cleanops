@@ -117,6 +117,7 @@ export type CalendarEmployee = {
   lastName: string;
   hiredDate: string | null;
   isActive: boolean;
+  role: string;
   calendarColor?: string;
 };
 
@@ -129,6 +130,7 @@ export type CalendarJob = {
   estimatedDurationMinutes: number | null;
   priceCents: number;
   discountCents: number;
+  customerId: string;
   recurringSeriesId: string | null;
   recurrenceFrequency: string | null;
   recurrenceStartDate: string | null;
@@ -140,6 +142,7 @@ export type CalendarJob = {
   clientType: string;
   customerZip: string | null;
   customerCity: string | null;
+  customerState: string | null;
   customerAddress: string | null;
   customerHomeDetails: Record<string, unknown>;
   roomCounts: { name: string; count: number }[];
@@ -342,6 +345,7 @@ export default async function CalendarPage({
       lastName: users.lastName,
       hiredDate: users.hiredDate,
       isActive: users.isActive,
+      role: users.role,
     })
     .from(users)
     .where(
@@ -402,6 +406,7 @@ export default async function CalendarPage({
         estimatedDurationMinutes: jobs.estimatedDurationMinutes,
         priceCents: jobs.priceCents,
         discountCents: jobs.discountCents,
+        customerId: jobs.customerId,
         recurringSeriesId: jobs.recurringSeriesId,
         recurrenceFrequency: recurringSeries.frequency,
         recurrenceStartDate: recurringSeries.startDate,
@@ -413,6 +418,7 @@ export default async function CalendarPage({
         clientType: customers.clientType,
         customerZip: customers.zip,
         customerCity: customers.city,
+        customerState: customers.state,
         customerAddress: customers.addressLine1,
         customerHomeDetails: customers.homeDetails,
         customerNotes: customers.generalNotes,
@@ -544,13 +550,14 @@ export default async function CalendarPage({
     )
     .orderBy(calendarEvents.scheduledDate, calendarEvents.startTime);
 
-  // Full active staff (field + office) — the attendee picker for a meeting
-  // must include office/admin staff, unlike the field-eligible-only
-  // `employeesQuery` above.
+  // Calendar appointments are part of the field schedule, so their attendee
+  // picker should use the same field-staff roster as jobs. This keeps office
+  // staff out while retaining admins who are explicitly marked as hybrid /
+  // field staff (for example, Brittney).
   const staffRosterQuery = db
     .select({ id: users.id, firstName: users.firstName, lastName: users.lastName })
     .from(users)
-    .where(and(eq(users.companyId, admin.companyId), eq(users.isActive, true)))
+    .where(and(eq(users.companyId, admin.companyId), eq(users.isActive, true), isFieldEligible))
     .orderBy(users.firstName, users.lastName);
 
   // Calendar's toolbar absorbs NotificationsMenu (the app-wide top bar is
@@ -851,6 +858,17 @@ export default async function CalendarPage({
             // it costs no additional query.
             monthRows.reduce((sum, day) => sum + day.unassigned, 0)
           : 0;
+  const dailySummaryJobs = jobsWithAssignments.filter(
+    (job) => job.scheduledDate === toISODate(dayAnchor) && !["cancelled", "no_show"].includes(job.status),
+  );
+  const activeEmployees = employees.filter((employee) => employee.isActive && employee.role === "employee");
+  const activeEmployeeIds = new Set(activeEmployees.map((employee) => employee.id));
+  const dailySummary = {
+    workingEmployees: new Set(dailySummaryJobs.flatMap((job) => job.assignedUserIds).filter((id) => activeEmployeeIds.has(id))).size,
+    recurringClients: new Set(dailySummaryJobs.filter((job) => job.recurringSeriesId).map((job) => job.customerId)).size,
+    revenueCents: dailySummaryJobs.reduce((sum, job) => sum + job.priceCents, 0),
+    discountCents: dailySummaryJobs.reduce((sum, job) => sum + job.discountCents, 0),
+  };
   return (
     <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
       <CalendarStateSync view={view} axis={axis} anchor={stateAnchor} />
@@ -869,6 +887,8 @@ export default async function CalendarPage({
           appointmentDefaultDate={stateAnchor.length === 10 ? stateAnchor : toISODate(dayAnchor)}
           employees={employees}
           attentionCount={attentionCount}
+          totalEmployees={activeEmployees.length}
+          dailySummary={dailySummary}
           initialNotifications={notifications}
         />
       </header>

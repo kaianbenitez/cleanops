@@ -7,6 +7,7 @@ import { customers, invoices, jobAssignments, jobs, timeEntries, users } from "@
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { isFieldEligible } from "@/lib/auth/field-staff";
 import { StatusPill, statusLabel, statusOptions } from "@/components/ui/status-pill";
+import { DateInput } from "@/components/date-input";
 import { RecalculateEstimatesButton } from "./recalculate-estimates-button";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -228,9 +229,9 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
         <form className="flex flex-wrap items-center gap-2">
-          <input name="start" type="date" defaultValue={rangeStart} className="co-input w-[154px] text-sm" />
+          <DateInput name="start" defaultValue={rangeStart} ariaLabel="Start date" className="w-[154px]" />
           <span className="text-xs text-[var(--co-muted)]">to</span>
-          <input name="end" type="date" defaultValue={rangeEnd} className="co-input w-[154px] text-sm" />
+          <DateInput name="end" defaultValue={rangeEnd} ariaLabel="End date" className="w-[154px]" />
           {sp.tab ? <input type="hidden" name="tab" value={sp.tab} /> : null}
           <button className="co-button-secondary text-sm" type="submit">Apply</button>
         </form>

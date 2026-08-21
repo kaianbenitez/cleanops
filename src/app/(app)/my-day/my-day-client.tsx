@@ -15,6 +15,7 @@ import {
   PawPrint,
   CircleSlash,
   TriangleAlert,
+  KeyRound,
   Sparkles,
   Repeat,
   Clock3,
@@ -505,12 +506,12 @@ export default function MyDayClient({
           ) : officePhone ? (
             <a href={`tel:${officePhone}`} className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[var(--co-spark-tint)] px-2.5 py-1.5 type-field-meta font-semibold text-[var(--co-spark-text)]">
               <TriangleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
-              Address not set · call the office
+              Address missing · call the office
             </a>
           ) : (
-            <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--co-spark-tint)] px-2.5 py-1 type-field-meta font-semibold text-[var(--co-spark-text)]">
+            <p className="co-badge-danger mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 type-field-meta font-semibold">
               <TriangleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
-              Address not set
+              Address missing
             </p>
           )}
 

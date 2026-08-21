@@ -20,6 +20,14 @@ const LABELS: Record<string, string> = {
  * control without colliding with a real service uuid. */
 const PRESET_PREFIX = "preset:";
 
+function parsePriceInput(value: string) {
+  const normalized = value.trim();
+  if (!normalized || !/^\d*(?:\.\d{0,2})?$/.test(normalized)) return null;
+  const amount = Number(normalized);
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  return Math.round(amount * 100);
+}
+
 /**
  * The interactive half of `/jobs/new`. Owns the form state; the option lists
  * arrive as props from the server component, so there is no fetch-on-mount
@@ -34,7 +42,7 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
   const [addOnIds, setAddOnIds] = useState<string[]>([]);
   const [scheduledDate, setScheduledDate] = useState(searchParams.get("date") ?? "");
   const [scheduledStartTime, setScheduledStartTime] = useState("09:00");
-  const [priceCents, setPriceCents] = useState(0);
+  const [priceInput, setPriceInput] = useState("0.00");
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -52,7 +60,8 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
     return sum + (addOn?.defaultPriceCents ?? 0);
   }, 0);
   const hasVariablePricedAddOn = addOnIds.some((id) => allAddOns.find((entry) => entry.id === id)?.defaultPriceCents == null);
-  const totalCents = priceCents + addOnTotalCents;
+  const basePriceCents = parsePriceInput(priceInput) ?? 0;
+  const totalCents = basePriceCents + addOnTotalCents;
   const serviceLabel = selectedPreset ? selectedPreset.name : LABELS[type];
 
   function handleTypeSelect(value: string) {
@@ -61,7 +70,7 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
       if (!preset) return;
       setServiceId(preset.id);
       setType("one_time");
-      setPriceCents(preset.defaultPriceCents ?? 0);
+      setPriceInput(((preset.defaultPriceCents ?? 0) / 100).toFixed(2));
       // Add-ons picked for a previous preset may not apply to this one.
       setAddOnIds((current) => current.filter((id) => preset.availableAddOnIds.length === 0 || preset.availableAddOnIds.includes(id)));
     } else {
@@ -79,6 +88,10 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
     setError(null);
     if (!customerId || !scheduledDate || !scheduledStartTime || !type) {
       setError("Customer, service, date, and time are required.");
+      return;
+    }
+    if (parsePriceInput(priceInput) === null) {
+      setError("Enter a valid non-negative amount with up to two decimal places.");
       return;
     }
     setSubmitting(true);
@@ -185,11 +198,10 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
               <span className="flex items-center px-3 bg-[var(--co-input-bg)] border border-[var(--co-input-border)] border-r-0 rounded-l-[var(--co-radius-control)] text-sm text-[var(--co-muted)]">$</span>
               <input
                 required
-                type="number"
-                step="0.01"
-                min="0"
-                value={(priceCents / 100).toFixed(2)}
-                onChange={(event) => setPriceCents(Math.round(Number(event.target.value || 0) * 100))}
+                type="text"
+                inputMode="decimal"
+                value={priceInput}
+                onChange={(event) => setPriceInput(event.target.value)}
                 onFocus={(event) => event.target.select()}
                 className="co-input w-full rounded-l-none"
               />

@@ -60,7 +60,11 @@ type Photo = { id: string; slot: "before" | "after" | "extra"; url: string | nul
 
 type Coworker = { firstName: string; lastName: string; done: boolean };
 
-const OFFLINE_ERROR = "Couldn't reach the office — check your signal and try again.";
+const PHOTO_OFFLINE_ERROR = "We couldn't reach the server, so this photo was not uploaded. Check your signal and try again.";
+
+function serverErrorMessage(value: unknown, fallback: string) {
+  return typeof value === "string" && value.trim() ? `${value} No change was recorded. Check your current status before trying again.` : fallback;
+}
 
 const DOWNSCALE_MAX_EDGE = 1600;
 const DOWNSCALE_QUALITY = 0.8;
@@ -239,7 +243,7 @@ export default function JobExecutionClient({
       }
       setPhotos((current) => [result.photo, ...current]);
     } catch {
-      setError(OFFLINE_ERROR);
+      setError(PHOTO_OFFLINE_ERROR);
     } finally {
       setUploading(false);
     }
@@ -322,12 +326,12 @@ export default function JobExecutionClient({
       const response = await fetch(`/api/jobs/${job.jobId}/feedback-link`, { method: "POST" });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(typeof body.error === "string" ? body.error : "Could not create feedback link.");
+        setError(typeof body.error === "string" ? `Your work was saved, but the customer link could not be created: ${body.error}` : "Your work was saved, but the customer link is not ready. Refresh or call the office.");
         return;
       }
       setFeedbackUrl(body.feedbackUrl ?? null);
     } catch {
-      setError(OFFLINE_ERROR);
+      setError("Your work was saved, but the customer link could not be reached. Refresh or call the office.");
     } finally {
       setSendingFeedback(false);
     }

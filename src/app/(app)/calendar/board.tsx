@@ -31,6 +31,7 @@ import {
   displayCustomer,
   employeeColor,
   formatAppointmentTime,
+  formatCustomerAddress,
   hasArrivalTime,
   isPlainClick,
   jobDuration,
@@ -40,7 +41,8 @@ import {
   minutesFromTime,
   ordinalLabel,
   stopOrdinals,
-  TYPE_LABELS,
+  jobTypeLabel,
+  ATTENTION_RAIL_TOGGLE_EVENT,
 } from "./shared";
 import type { EmployeePtoRecord, PtoPeriod } from "@/lib/scheduling/pto";
 import { minutesToTime } from "@/lib/scheduling/wall-clock";
@@ -267,6 +269,7 @@ export default function Board({
   const [draggedEmployeeId, setDraggedEmployeeId] = useState<string | null>(null);
   // Attention-rail drop affordance for the lane->rail unassign gesture below.
   const [railDropActive, setRailDropActive] = useState(false);
+  const [attentionRailOpen, setAttentionRailOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const { toast, showUndo, dismiss } = useUndoToast();
@@ -277,6 +280,17 @@ export default function Board({
   const jobCardRefs = useRef(new Map<string, HTMLElement>());
   const pendingFlyRef = useRef<{ jobId: string; from: DOMRect; color: string; label: string } | null>(null);
   const isFirstAxisRender = useRef(true);
+  const dragScrollFrameRef = useRef<number | null>(null);
+  const dragPointRef = useRef({ x: 0, y: 0 });
+  const dragMinutesRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    function toggleAttentionRail() {
+      setAttentionRailOpen((current) => !current);
+    }
+    window.addEventListener(ATTENTION_RAIL_TOGGLE_EVENT, toggleAttentionRail);
+    return () => window.removeEventListener(ATTENTION_RAIL_TOGGLE_EVENT, toggleAttentionRail);
+  }, []);
 
   const selectedJob = selectedJobId ? cleanedJobs.find((job) => job.id === selectedJobId) ?? null : null;
 
@@ -413,6 +427,10 @@ export default function Board({
 
   const dayAppointments = useMemo(
     () => appointments.filter((appointment) => appointment.scheduledDate === dayIso && !appointment.isAllDay),
+    [appointments, dayIso],
+  );
+  const dayAllDayAppointments = useMemo(
+    () => appointments.filter((appointment) => appointment.scheduledDate === dayIso && appointment.isAllDay),
     [appointments, dayIso],
   );
 
@@ -569,7 +587,11 @@ export default function Board({
     const employee = employeesById.get(employeeId);
     if (!employee) return;
     const wasTimed = hasArrivalTime(selectedJob);
-    const start = wasTimed ? minutesFromTime(selectedJob.scheduledStartTime) : (minutesOverride ?? placement?.minutes ?? windowStart);
+    // An unassigned job may already carry the legacy/default 09:00 value even
+    // though the dispatcher is choosing its real arrival time now. An explicit
+    // placement time must always win; only preserve the existing time when the
+    // caller did not provide a new one.
+    const start = minutesOverride ?? (wasTimed ? minutesFromTime(selectedJob.scheduledStartTime) : (placement?.minutes ?? windowStart));
     const verdict = laneVerdict(employeeId, start);
     if (verdict.state === "blocked") {
       setWarning(`${employee.firstName} ${employee.lastName} is on leave then — pick another crew or a different time.`);
@@ -579,7 +601,7 @@ export default function Board({
     const job = selectedJob;
     const previousAssigned = job.assignedUserIds;
     const previousTime = job.scheduledStartTime;
-    const nextTime = wasTimed ? previousTime : minutesToTime(start);
+    const nextTime = minutesToTime(start);
     const sourceEl = railCardRefs.current.get(job.id);
     const fromRect = sourceEl ? sourceEl.getBoundingClientRect() : null;
     const employeeName = `${employee.firstName} ${employee.lastName}`;
@@ -616,12 +638,16 @@ export default function Board({
     );
   }
 
-  function minutesFromDragEvent(event: { clientX: number; clientY: number; currentTarget: HTMLElement }) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const fraction = axis === "vertical" ? (event.clientY - rect.top) / rect.height : (event.clientX - rect.left) / rect.width;
-    const raw = windowStart + fraction * windowMinutes;
+  function minutesFromCoordinates(rect: DOMRect, clientX: number, clientY: number) {
+    const raw = axis === "vertical"
+      ? windowStart + ((clientY - rect.top) / HOUR_HEIGHT) * 60
+      : windowStart + ((clientX - rect.left) / HOUR_WIDTH) * 60;
     const snapped = Math.round(raw / PLACEMENT_SNAP_MINUTES) * PLACEMENT_SNAP_MINUTES;
     return Math.min(Math.max(snapped, windowStart), windowEnd - PLACEMENT_SNAP_MINUTES);
+  }
+
+  function minutesFromDragEvent(event: { clientX: number; clientY: number; currentTarget: HTMLElement }) {
+    return minutesFromCoordinates(event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY);
   }
 
   // Cross-lane drag: kept working exactly as before the merge. Dragging
@@ -630,6 +656,7 @@ export default function Board({
   // it was dragged out of is replaced, not the whole crew.
   function dropOnEmployee(event: React.DragEvent<HTMLDivElement>, employeeId: string) {
     event.preventDefault();
+    stopDragAutoScroll();
     setDragOverEmployeeId(null);
     const jobId = event.dataTransfer.getData("text/plain");
     const sourceEmployeeId = event.dataTransfer.getData("application/x-cleanops-source-employee") || null;
@@ -647,7 +674,12 @@ export default function Board({
     const isExistingLane = previousEmployees.includes(employeeId);
     const isCrossLaneMove = Boolean(sourceEmployeeId) && sourceEmployeeId !== employeeId;
     const previousTime = job.scheduledStartTime;
-    const clampedMinutes = minutesFromDragEvent(event);
+    const clampedMinutes = dragMinutesRef.current;
+    dragMinutesRef.current = null;
+    if (clampedMinutes === null) {
+      setWarning("Drop the job inside a cleaner's time lane so its arrival time is clear.");
+      return;
+    }
     const nextTime = minutesToTime(clampedMinutes);
 
     if (JSON.stringify(previousEmployees) === JSON.stringify(nextEmployees) && previousTime === nextTime) return;
@@ -695,17 +727,20 @@ export default function Board({
     event.dataTransfer.effectAllowed = "move";
     setSelectedJobId(job.id);
     setPlacement(null);
+    dragMinutesRef.current = null;
   }
 
   function laneDragOver(event: React.DragEvent<HTMLDivElement>, employeeId: string) {
     event.preventDefault();
     setDragOverEmployeeId(employeeId);
+    if (!event.dataTransfer.types.includes("text/plain")) return;
+    const minutes = minutesFromDragEvent(event);
+    dragMinutesRef.current = minutes;
     if (!event.dataTransfer.types.includes("application/x-cleanops-source-rail") || !selectedJob) return;
     // Untimed job: the hovered position is a placement preview, same as
     // laneMouseMove for the click path — drag suppresses native mousemove,
     // so this is the drag equivalent.
     if (!hasArrivalTime(selectedJob)) {
-      const minutes = minutesFromDragEvent(event);
       setPlacement((current) => (current && current.employeeId === employeeId && current.minutes === minutes ? current : { employeeId, minutes }));
     }
   }
@@ -713,13 +748,21 @@ export default function Board({
   function laneDrop(event: React.DragEvent<HTMLDivElement>, employeeId: string) {
     if (event.dataTransfer.types.includes("application/x-cleanops-source-rail")) {
       event.preventDefault();
+      stopDragAutoScroll();
       setDragOverEmployeeId(null);
       // Untimed job: drop position sets the arrival time (15-minute snap,
       // same rule as click-to-place). Timed jobs ignore this override —
       // commitPlacement keeps the job's own scheduledStartTime.
-      commitPlacement(employeeId, minutesFromDragEvent(event));
+      const minutes = dragMinutesRef.current;
+      dragMinutesRef.current = null;
+      if (minutes === null) {
+        setWarning("Drop the job inside a cleaner's time lane so its arrival time is clear.");
+        return;
+      }
+      commitPlacement(employeeId, minutes);
       return;
     }
+    stopDragAutoScroll();
     dropOnEmployee(event, employeeId);
   }
 
@@ -766,20 +809,40 @@ export default function Board({
     );
   }
 
+  function stopDragAutoScroll() {
+    if (dragScrollFrameRef.current !== null) {
+      cancelAnimationFrame(dragScrollFrameRef.current);
+      dragScrollFrameRef.current = null;
+    }
+  }
+
   function scrollBoardWhileDragging(event: React.DragEvent<HTMLDivElement>) {
     if (!event.dataTransfer.types.includes("text/plain")) return;
     const board = gridScrollRef.current;
     if (!board) return;
-    const rect = board.getBoundingClientRect();
-    const edgeSize = 80;
-    const scrollStep = 28;
-    if (axis === "vertical") {
-      if (event.clientX < rect.left + edgeSize) board.scrollLeft -= scrollStep;
-      if (event.clientX > rect.right - edgeSize) board.scrollLeft += scrollStep;
-    } else {
-      if (event.clientY < rect.top + edgeSize) board.scrollTop -= scrollStep;
-      if (event.clientY > rect.bottom - edgeSize) board.scrollTop += scrollStep;
-    }
+    dragPointRef.current = { x: event.clientX, y: event.clientY };
+    if (dragScrollFrameRef.current !== null) return;
+    const edgeSize = 140;
+    const tick = () => {
+      const currentBoard = gridScrollRef.current;
+      if (!currentBoard) return stopDragAutoScroll();
+      const rect = currentBoard.getBoundingClientRect();
+      const { x, y } = dragPointRef.current;
+      const laneUnderPointer = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-calendar-time-lane]");
+      if (laneUnderPointer) dragMinutesRef.current = minutesFromCoordinates(laneUnderPointer.getBoundingClientRect(), x, y);
+      const horizontalEdge = Math.max(0, edgeSize - Math.min(x - rect.left, rect.right - x));
+      const verticalEdge = Math.max(0, edgeSize - Math.min(y - rect.top, rect.bottom - y));
+      const speed = (distance: number) => Math.min(44, Math.max(5, Math.round(distance / 2.5)));
+      if (axis === "vertical") {
+        if (x < rect.left + edgeSize) currentBoard.scrollLeft -= speed(horizontalEdge);
+        else if (x > rect.right - edgeSize) currentBoard.scrollLeft += speed(horizontalEdge);
+      } else {
+        if (y < rect.top + edgeSize) currentBoard.scrollTop -= speed(verticalEdge);
+        else if (y > rect.bottom - edgeSize) currentBoard.scrollTop += speed(verticalEdge);
+      }
+      dragScrollFrameRef.current = requestAnimationFrame(tick);
+    };
+    dragScrollFrameRef.current = requestAnimationFrame(tick);
   }
 
   function laneKeyDown(event: React.KeyboardEvent<HTMLDivElement>, employeeId: string) {
@@ -873,6 +936,7 @@ export default function Board({
           const lane = laneOwnerId ?? job.assignedUserIds.find((id) => laneData.has(id));
           if (lane) event.dataTransfer.setData("application/x-cleanops-source-employee", lane);
           event.dataTransfer.effectAllowed = "move";
+          dragMinutesRef.current = null;
         }}
         onDragEnd={() => {
           // Safety net: a drag cancelled outside any drop target (Escape,
@@ -908,8 +972,8 @@ export default function Board({
           {clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime))} – {clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime) + jobWallClockDuration(job))}
         </div>
         {!compact ? (
-          <div className="mt-px truncate text-[10.5px] text-[var(--co-faint)]">
-            {TYPE_LABELS[job.type] ?? job.type} · {job.customerAddress ?? job.customerCity ?? "No address"}
+          <div className="mt-px break-words text-[10.5px] leading-4 text-[var(--co-faint)]" title={formatCustomerAddress(job)}>
+            {job.recurringSeriesId ? "↻ " : ""}{jobTypeLabel(job)} · {formatCustomerAddress(job)}
           </div>
         ) : null}
         {overflowCount > 0 ? (
@@ -1149,7 +1213,7 @@ export default function Board({
   const untimedTrayJobs = noTimeJobs;
 
   return (
-    <div className="grid grid-cols-1 items-start gap-3.5 min-[1180px]:grid-cols-[286px_minmax(0,1fr)]">
+    <div className={`grid grid-cols-1 items-start gap-3.5 ${attentionRailOpen ? "min-[1180px]:grid-cols-[286px_minmax(0,1fr)]" : "min-[1180px]:grid-cols-1"}`}>
       {/* -------------------------------------------------------------- */}
       {/* Attention rail — always visible, four groups in priority order */}
       {/* -------------------------------------------------------------- */}
@@ -1157,7 +1221,7 @@ export default function Board({
         id="calendar-attention-rail"
         tabIndex={-1}
         aria-label="Needs attention"
-        className="co-card sticky top-3 overflow-hidden outline-none"
+        className={`co-card sticky top-3 overflow-hidden outline-none ${attentionRailOpen ? "" : "hidden"}`}
         onDragOver={(event) => {
           if (!event.dataTransfer.types.includes("application/x-cleanops-source-employee")) return;
           event.preventDefault();
@@ -1181,7 +1245,15 @@ export default function Board({
         ) : null}
         <div className="border-b border-[var(--co-line-soft)] px-[15px] py-[13px] pb-[11px]">
           <div className="flex items-center gap-2 text-[13px] font-bold text-[var(--co-ink)]">
-            <AlertCircle className="h-[13px] w-[13px] text-[var(--co-warning)]" aria-hidden strokeWidth={1.75} />
+            <button
+              type="button"
+              onClick={() => setAttentionRailOpen(false)}
+              aria-label="Hide needs attention"
+              title="Hide needs attention"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[var(--co-warning)] transition hover:bg-[color-mix(in_srgb,var(--co-warning)_10%,var(--co-tint-base))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--co-accent-fill)]"
+            >
+              <AlertCircle className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />
+            </button>
             Needs attention
             <span className="ml-auto flex h-5 min-w-[22px] items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--co-warning)_30%,var(--co-tint-base))] bg-[color-mix(in_srgb,var(--co-warning)_15%,var(--co-tint-base))] px-1.5 text-[11.5px] font-bold text-[var(--co-warning)] tabular-nums">
               {attentionTotal}
@@ -1318,7 +1390,7 @@ export default function Board({
           </div>
         ) : null}
 
-        <div ref={gridScrollRef} onDragOver={scrollBoardWhileDragging} className="max-h-[calc(100dvh-232px)] overflow-auto overscroll-contain [scrollbar-gutter:stable]">
+        <div ref={gridScrollRef} onDragEnter={scrollBoardWhileDragging} onDragOver={scrollBoardWhileDragging} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) stopDragAutoScroll(); }} className="max-h-[calc(100dvh-232px)] overflow-auto overscroll-contain [scrollbar-gutter:stable]">
           {sortedEmployees.length === 0 ? (
             <div className="flex items-center justify-center px-4 py-16 text-sm text-[var(--co-muted)]">Create or activate a technician to use the dispatch board.</div>
           ) : axis === "vertical" ? (
@@ -1365,6 +1437,7 @@ export default function Board({
                     <div
                       key={employee.id}
                       data-lane-slot
+                      data-calendar-time-lane
                       role="group"
                       tabIndex={0}
                       aria-label={laneAriaLabel(employee)}
@@ -1376,9 +1449,12 @@ export default function Board({
                       onDragLeave={() => setDragOverEmployeeId(null)}
                       onDrop={(event) => laneDrop(event, employee.id)}
                       className={`relative border-r border-[var(--co-line-soft)] outline-none ${dragOverEmployeeId === employee.id ? "bg-[var(--co-accent-tint)]" : ""} ${selectedJob ? "cursor-copy" : ""}`}
-                      style={{ height: hours * HOUR_HEIGHT, backgroundImage: "repeating-linear-gradient(to bottom, var(--co-line-soft) 0 1px, transparent 1px 100%)", backgroundSize: `100% ${HOUR_HEIGHT}px` }}
+                      style={{ height: hours * HOUR_HEIGHT, backgroundImage: "repeating-linear-gradient(to bottom, color-mix(in srgb, var(--co-line-soft) 58%, transparent) 0 1px, transparent 1px 16px), repeating-linear-gradient(to bottom, var(--co-line-soft) 0 1px, transparent 1px 100%)", backgroundSize: `100% ${HOUR_HEIGHT / 4}px, 100% ${HOUR_HEIGHT}px` }}
                     >
                       {renderPto(employee.id)}
+                      {dayAllDayAppointments
+                        .filter((appointment) => appointment.attendeeUserIds.includes(employee.id))
+                        .map((appointment) => renderAppointment(appointment, { left: 4, right: 4, top: 4, bottom: 4 }))}
                       {dayAppointments
                         .filter((appointment) => appointment.attendeeUserIds.includes(employee.id))
                         .map((appointment) => {
@@ -1435,6 +1511,7 @@ export default function Board({
                     <div key={employee.id} data-lane-row className="grid border-b border-[var(--co-line-soft)] last:border-b-0" style={{ gridTemplateColumns: `${LANE_HEADER_WIDTH}px ${hours * HOUR_WIDTH}px` }}>
                       <div className="sticky left-0 z-[4] flex flex-col justify-center border-r border-[var(--co-line)] bg-[var(--co-surface)]">{renderLaneHeader(employee)}</div>
                       <div
+                        data-calendar-time-lane
                         role="group"
                         tabIndex={0}
                         aria-label={laneAriaLabel(employee)}
@@ -1446,9 +1523,12 @@ export default function Board({
                         onDragLeave={() => setDragOverEmployeeId(null)}
                         onDrop={(event) => laneDrop(event, employee.id)}
                         className={`relative outline-none ${dragOverEmployeeId === employee.id ? "bg-[var(--co-accent-tint)]" : ""} ${selectedJob ? "cursor-copy" : ""}`}
-                        style={{ width: hours * HOUR_WIDTH, height: rowHeight, backgroundImage: "repeating-linear-gradient(to right, var(--co-line-soft) 0 1px, transparent 1px 100%)", backgroundSize: `${HOUR_WIDTH}px 100%` }}
+                        style={{ width: hours * HOUR_WIDTH, height: rowHeight, backgroundImage: "repeating-linear-gradient(to right, color-mix(in srgb, var(--co-line-soft) 58%, transparent) 0 1px, transparent 1px 16px), repeating-linear-gradient(to right, var(--co-line-soft) 0 1px, transparent 1px 100%)", backgroundSize: `${HOUR_WIDTH / 4}px 100%, ${HOUR_WIDTH}px 100%` }}
                       >
                         {renderPto(employee.id)}
+                        {dayAllDayAppointments
+                          .filter((appointment) => appointment.attendeeUserIds.includes(employee.id))
+                          .map((appointment) => renderAppointment(appointment, { left: 4, right: 4, top: 4, bottom: 4 }))}
                         {dayAppointments
                           .filter((appointment) => appointment.attendeeUserIds.includes(employee.id))
                           .map((appointment) => {
@@ -1589,11 +1669,11 @@ function RailCard({
             {crewLabel}
           </>
         ) : (
-          <>{job.customerAddress ?? job.customerCity ?? "No address"}</>
+          <>{formatCustomerAddress(job)}</>
         )}
       </div>
       <div className="mt-[7px] flex flex-wrap gap-1">
-        <span className="co-badge-muted inline-flex h-[19px] items-center rounded px-1.5 text-[10.5px] font-bold">{TYPE_LABELS[job.type] ?? job.type}</span>
+        <span className="co-badge-muted inline-flex h-[19px] items-center rounded px-1.5 text-[10.5px] font-bold">{job.recurringSeriesId ? "↻ " : ""}{jobTypeLabel(job)}</span>
         <span className="co-badge-muted inline-flex h-[19px] items-center rounded px-1.5 text-[10.5px] font-bold tabular-nums">{formatDuration(jobDuration(job))}</span>
         {job.petNotes ? (
           <span className="co-badge-spark inline-flex h-[19px] items-center gap-1 rounded px-1.5 text-[10.5px] font-bold">

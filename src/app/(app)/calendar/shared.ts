@@ -13,6 +13,7 @@ export const TYPE_LABELS: Record<string, string> = {
 // seventh hue.
 export const APPOINTMENT_COLOR = "co-badge-spark";
 export const APPOINTMENT_COLOR_CANCELLED = "co-badge-muted line-through";
+export const ATTENTION_RAIL_TOGGLE_EVENT = "cleanops:toggle-calendar-attention-rail";
 
 export function clockLabelFromMinutes(totalMinutes: number) {
   const hour24 = Math.floor(totalMinutes / 60) % 24;
@@ -186,7 +187,16 @@ export function employeeCardStyle(id: string | null | undefined) {
 }
 
 export function displayCustomer(job: { customerFirstName: string; customerLastName: string; companyName?: string | null }) {
-  return job.companyName?.trim() || `${job.customerFirstName} ${job.customerLastName}`;
+  return job.companyName?.trim() || `${job.customerLastName}, ${job.customerFirstName}`;
+}
+
+export function formatCustomerAddress(job: {
+  customerAddress?: string | null;
+  customerCity?: string | null;
+  customerState?: string | null;
+  customerZip?: string | null;
+}) {
+  return [job.customerAddress, job.customerCity, job.customerState, job.customerZip].filter(Boolean).join(", ") || "No address";
 }
 
 export function recurrenceLabel(value: string | null | undefined) {

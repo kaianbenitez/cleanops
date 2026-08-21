@@ -14,6 +14,9 @@ type AppointmentForm = {
   scheduledDate: string;
   startTime: string;
   durationMinutes: number;
+  durationMode: "full" | "half" | "custom";
+  customHours: string;
+  timeOffType: "paid" | "unpaid";
   employeeIds: string[];
   note: string;
 };
@@ -26,7 +29,7 @@ const DURATION_OPTIONS = [
 ];
 
 function emptyForm(defaultDate: string): AppointmentForm {
-  return { title: "", scheduledDate: defaultDate, startTime: "09:00", durationMinutes: 60, employeeIds: [], note: "" };
+  return { title: "", scheduledDate: defaultDate, startTime: "09:00", durationMinutes: 60, durationMode: "custom", customHours: "1", timeOffType: "paid", employeeIds: [], note: "" };
 }
 
 export default function AppointmentPanel({
@@ -71,6 +74,9 @@ export default function AppointmentPanel({
           scheduledDate: data.event.scheduledDate,
           startTime: data.event.startTime?.slice(0, 5) ?? "09:00",
           durationMinutes: data.event.durationMinutes ?? 60,
+          durationMode: data.event.isAllDay ? "full" : data.event.durationMinutes === 240 ? "half" : "custom",
+          customHours: data.event.durationMinutes ? String(data.event.durationMinutes / 60) : "1",
+          timeOffType: data.event.timeOffType ?? "paid",
           employeeIds: data.event.employeeIds ?? [],
           note: data.event.note ?? "",
         });
@@ -105,12 +111,15 @@ export default function AppointmentPanel({
     setSaving(true);
     setError(null);
     try {
+      const isFullDayBlock = appointmentKind === "blocker" && form.durationMode === "full";
+      const blockerDuration = form.durationMode === "half" ? 240 : Math.round(customHours * 60);
       const body = {
         title: form.title.trim(),
         scheduledDate: form.scheduledDate,
-        isAllDay: false,
-        startTime: form.startTime,
-        durationMinutes: form.durationMinutes,
+        isAllDay: isFullDayBlock,
+        startTime: isFullDayBlock ? null : form.startTime,
+        durationMinutes: appointmentKind === "blocker" ? (isFullDayBlock ? null : blockerDuration) : form.durationMinutes,
+        timeOffType: appointmentKind === "blocker" ? form.timeOffType : null,
         employeeIds: form.employeeIds,
         note: form.note.trim() || null,
         ...(mode === "create"
@@ -201,34 +210,30 @@ export default function AppointmentPanel({
               />
             </label>
 
-            <div className="grid grid-cols-2 gap-3">
-              <DateInput
-                label="Date"
-                value={form.scheduledDate}
-                onChange={(value) => setForm((current) => ({ ...current, scheduledDate: value }))}
-              />
-              <TimeInput
-                label="Start time"
-                value={form.startTime}
-                onChange={(value) => setForm((current) => ({ ...current, startTime: value }))}
-              />
-            </div>
+            <DateInput
+              label="Date"
+              value={form.scheduledDate}
+              onChange={(value) => setForm((current) => ({ ...current, scheduledDate: value }))}
+            />
 
-            <label className="block text-xs font-semibold text-[var(--co-muted)]">
-              Duration
-              <select
-                value={form.durationMinutes}
-                onChange={(event) => setForm((current) => ({ ...current, durationMinutes: Number(event.target.value) }))}
-                className="co-input mt-1 w-full"
-              >
-                {DURATION_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <span className="mt-1 block text-[11px] font-normal normal-case text-[var(--co-muted)]">Every attendee is automatically paid for this much time.</span>
-            </label>
+            {appointmentKind === "blocker" ? (
+              <>
+                <fieldset>
+                  <legend className="text-xs font-semibold text-[var(--co-muted)]">Duration</legend>
+                  <div className="mt-1 grid grid-cols-3 gap-1 rounded-lg bg-[var(--co-surface-muted)] p-1">
+                    {(["full", "half", "custom"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        aria-pressed={form.durationMode === mode}
+                        onClick={() => setForm((current) => ({ ...current, durationMode: mode }))}
+                        className={`rounded-md px-2 py-2 text-xs font-semibold transition ${form.durationMode === mode ? "bg-[var(--co-surface)] text-[var(--co-accent-text)] shadow-sm" : "text-[var(--co-muted)] hover:text-[var(--co-ink)]"}`}
+                      >
+                        {mode === "full" ? "Full day" : mode === "half" ? "Half day" : "Custom"}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
 
             {appointmentKind === "meeting" ? (
               <div className="block text-xs font-semibold text-[var(--co-muted)]">

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { displayCustomer, employeeCardStyle, employeeColor, formatClockLabel, formatEstimatedTime, isPlainClick, jobTypeLabel } from "./shared";
+import { displayCustomer, employeeCardStyle, employeeColor, formatClockLabel, formatCustomerAddress, formatEstimatedTime, isPlainClick, jobTypeLabel } from "./shared";
 import { statusLabel } from "@/components/ui/status-pill";
 import { cleanNoteText } from "@/lib/format";
 import ClientHomeSymbols from "./client-home-symbols";
@@ -21,6 +21,9 @@ export type CardJob = {
   companyName: string | null;
   clientType: string;
   customerZip: string | null;
+  customerCity: string | null;
+  customerState: string | null;
+  customerAddress: string | null;
   customerHomeDetails: Record<string, unknown>;
   roomCounts: { name: string; count: number }[];
   customerNotes: string | null;
@@ -79,7 +82,7 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
       >
         <div className={`flex items-center justify-between gap-2 font-semibold text-[var(--co-muted)] ${isList ? "text-xs" : "text-[11px]"}`}><span className="flex items-center gap-1">{formatClockLabel(job.scheduledStartTime)}{ordinalLabel ? <span className="rounded bg-[var(--co-accent-tint)] px-1 py-0.5 text-[10px] font-semibold text-[var(--co-accent-text)]">{ordinalLabel}</span> : null}</span><span className="flex items-center gap-1.5"><ClientHomeSymbols roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} /><span className="rounded bg-[var(--co-surface)]/60 px-1.5 py-0.5 text-[10px]">{job.clientType === "commercial" ? "Commercial" : "Residential"}</span></span></div>
         <p className={`mt-1 truncate font-semibold text-[var(--co-ink)] ${isList ? "text-sm" : "text-[13px]"}`}>{label}</p>
-        <p className={`mt-0.5 truncate text-[var(--co-muted)] ${isList ? "text-xs" : "text-[11px]"}`}>{job.recurringSeriesId ? "↻ " : ""}{jobTypeLabel(job)} · {job.customerZip ?? "No ZIP"} · {formatEstimatedTime(job.estimatedDurationMinutes)}</p>
+        <p className={`mt-0.5 break-words text-[var(--co-muted)] ${isList ? "text-xs" : "text-[11px]"}`} title={formatCustomerAddress(job)}>{job.recurringSeriesId ? "↻ " : ""}{jobTypeLabel(job)} · {formatCustomerAddress(job)} · {formatEstimatedTime(job.estimatedDurationMinutes)}</p>
         <div className={`mt-1.5 flex items-center justify-between gap-2 ${isList ? "text-xs" : "text-[11px]"}`}>
           <span className="flex min-w-0 items-center gap-1 truncate text-[var(--co-muted)]">
             {crewIds.length ? (

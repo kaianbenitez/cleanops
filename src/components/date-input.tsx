@@ -18,6 +18,7 @@ interface DateInputProps {
   max?: string;
   showCapacity?: boolean;
   neededHours?: number | null;
+  ariaLabel?: string;
 }
 
 export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
@@ -53,6 +54,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
             disabled={disabled}
             onClick={() => setIsOpen(!isOpen)}
             className="co-date-input w-full text-left"
+            aria-label={ariaLabel ?? label}
           >
             <span className={`whitespace-nowrap ${displayValue ? "text-[var(--co-ink)]" : "text-[var(--co-input-placeholder)]"}`}>
               {displayValue ? formatDisplay(displayValue) : placeholder}

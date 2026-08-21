@@ -10,10 +10,10 @@ export default function MyDayError({ error, reset }: { error: Error & { digest?:
 
   return (
     <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center">
-      <h1 className="page-title !text-2xl">Something went wrong</h1>
+      <h1 className="page-title !text-2xl">My Day couldn&apos;t load</h1>
       <p className="text-sm text-[var(--co-muted)]">
-        This screen hit an unexpected error — your clock-in/out and photos already saved are safe.
-        Try again, or call the office if a button keeps not working.
+        This screen is unavailable right now. Work already saved remains safe. Check My Day before trying another action,
+        then try again. If it still will not load, contact the office.
       </p>
       <div className="flex gap-2">
         <button type="button" onClick={reset} className="co-button-primary">
