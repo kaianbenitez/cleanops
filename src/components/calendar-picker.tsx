@@ -169,12 +169,14 @@ export function CalendarPicker({ value, onChange, onClose, anchorRef, min, max, 
       ref={containerRef}
       className="co-date-popover fixed z-50 w-80 max-w-[calc(100vw-1rem)] p-3"
       style={{ top: position.top, left: position.left }}
+      role="dialog"
+      aria-label="Choose a date"
     >
       <div className="flex items-center justify-between border-b border-[var(--co-line-soft)] pb-2">
         <button type="button" aria-label="Previous month" onClick={() => setDate(new Date(year, month - 1, 1))} className="co-date-nav">
           <ChevronLeft className="h-4 w-4" aria-hidden />
         </button>
-        <p className="text-sm font-semibold text-[var(--co-ink)]">{formatDate(date)}</p>
+        <p className="text-sm font-semibold text-[var(--co-ink)]" aria-live="polite">{formatDate(date)}</p>
         <button type="button" aria-label="Next month" onClick={() => setDate(new Date(year, month + 1, 1))} className="co-date-nav">
           <ChevronRight className="h-4 w-4" aria-hidden />
         </button>
@@ -207,6 +209,8 @@ export function CalendarPicker({ value, onChange, onClose, anchorRef, min, max, 
               disabled={isOutOfRange}
               onClick={() => handleDateClick(d, isOutOfRange)}
               aria-pressed={isSelected}
+              aria-current={isToday ? "date" : undefined}
+              aria-label={`${d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}${isSelected ? ", selected" : ""}${isOutOfRange ? ", unavailable" : ""}${dayCapacity ? `, ${formatHours(dayCapacity.freeHours)} free` : ""}`}
               title={
                 dayCapacity
                   ? `${formatHours(dayCapacity.freeHours)} free of ${formatHours(dayCapacity.availableHours)}${dayCapacity.hasIncompleteEstimates ? " (some jobs use an estimated duration)" : ""}`

@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { Sparkles, Droplet, Star, Truck, PanelsTopLeft, Flame, Refrigerator, Ruler, LayoutGrid, Shirt, type LucideIcon } from "lucide-react";
 import { ADD_ONS, MOVE_IN_OUT_DEFAULT_ADD_ONS, type AddOnKey } from "@/lib/pricing/add-ons";
 import { formatDisplayDate } from "@/lib/scheduling/dates";
@@ -118,21 +119,6 @@ function addOnPriceLabel(item: (typeof ADD_ONS)[number]) {
 
 function formatValidUntil(value: string | null) {
   return value ? formatDisplayDate(value) : null;
-}
-
-function expectedCrewSize(laborHours: number) {
-  // Plan around a roughly six-hour in-home visit, then add team members for
-  // larger homes so the proposal describes the customer's experience instead
-  // of exposing internal job-ticket hours.
-  return Math.max(1, Math.ceil(laborHours / 6));
-}
-
-function formatVisitDuration(laborHours: number, crewSize: number) {
-  const totalMinutes = Math.max(60, Math.round((laborHours / crewSize) * 2) * 30);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  const hourLabel = `${hours} hr${hours === 1 ? "" : "s"}`;
-  return minutes ? `${hourLabel} ${minutes} min` : hourLabel;
 }
 
 const ESTIMATE_DISCLAIMER =
@@ -355,7 +341,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
             <div className="flex min-w-0 items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[var(--co-accent-fill)]">
                 {data.companyLogoUrl ? (
-                  <img src={data.companyLogoUrl} alt={`${data.companyName} logo`} width={48} height={48} decoding="async" className="h-full w-full object-contain p-1.5" />
+                  <Image src={data.companyLogoUrl} alt={`${data.companyName} logo`} width={48} height={48} sizes="48px" className="h-full w-full object-contain p-1.5" />
                 ) : (
                   <span className="font-bold text-white">CO</span>
                 )}
@@ -529,6 +515,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                       key={item.key}
                       type="button"
                       disabled={locked}
+                      aria-pressed={checked}
                       onClick={() =>
                         setSelectedAddOns((current) => (checked ? current.filter((key) => key !== item.key) : [...current, item.key]))
                       }
@@ -759,7 +746,7 @@ function PhotoPanel({ title, url, fallback }: { title: string; url: string; fall
   return (
     <div className="min-w-0 overflow-hidden border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]">
       <div className="h-36 overflow-hidden bg-[var(--co-surface-muted)]">
-        {hasUrl ? <img src={url} alt={title} width={600} height={400} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : null}
+        {hasUrl ? <Image src={url} alt={title} width={600} height={400} sizes="(min-width: 768px) 33vw, 100vw" loading="lazy" className="h-full w-full object-cover" /> : null}
       </div>
       <div className="min-w-0 px-3 py-2">
         <p className="eyebrow">{title}</p>
