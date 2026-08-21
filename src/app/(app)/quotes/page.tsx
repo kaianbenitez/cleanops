@@ -6,6 +6,7 @@ import { customers, quotes, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { StatusPill, statusOptions } from "@/components/ui/status-pill";
 import { LocalDateTime } from "@/components/local-date-time";
+import { formatDisplayDate } from "@/lib/scheduling/dates";
 
 type SearchParams = { q?: string; status?: string };
 
@@ -163,7 +164,31 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
             <p className="mt-1 text-sm text-[var(--co-muted)]">Create a quote when a GHL prospect is ready for pricing.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="space-y-3 p-4 md:hidden">
+            {rows.map((quote) => (
+              <article key={quote.id} className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link href={`/quotes/${quote.id}`} className="font-semibold text-[var(--co-ink)]">{quote.customerFirstName} {quote.customerLastName}</Link>
+                    <p className="mt-1 text-xs text-[var(--co-muted)]">Q-{quote.id.slice(0, 6).toUpperCase()}</p>
+                  </div>
+                  <StatusPill domain="quote" status={quote.status} />
+                </div>
+                <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                  <div><dt className="text-xs text-[var(--co-muted)]">Service</dt><dd className="mt-1 font-medium">{SERVICE_LABELS[quote.acceptedServiceType ?? quote.requestedServiceType ?? ""] ?? "Not selected"}</dd></div>
+                  <div><dt className="text-xs text-[var(--co-muted)]">Total</dt><dd className="mt-1 font-semibold">{quote.acceptedServiceType || quote.requestedServiceType ? dollars(quote.totalCents) : "—"}</dd></div>
+                  <div><dt className="text-xs text-[var(--co-muted)]">Requested date</dt><dd className="mt-1 font-medium">{quote.desiredCleaningDate ? formatDisplayDate(quote.desiredCleaningDate) : "—"}</dd></div>
+                  <div><dt className="text-xs text-[var(--co-muted)]">Created</dt><dd className="mt-1 font-medium"><LocalDateTime value={quote.createdAt} options={{ month: "short", day: "numeric" }} /></dd></div>
+                </dl>
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--co-line-soft)] pt-3">
+                  <Link href={`/quotes/${quote.id}`} className="inline-flex min-h-11 items-center rounded-lg border border-[var(--co-line)] px-3 py-2 text-xs font-medium text-[var(--co-accent-text)]">{quote.status === "accepted" && !quote.bookedAt ? "Call and schedule" : "Open"}</Link>
+                  <Link href={`/quote/${quote.publicToken}`} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-lg border border-[var(--co-line)] px-3 py-2 text-xs font-medium text-[var(--co-ink)]">Proposal</Link>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[1080px] text-left text-sm">
               <thead className="bg-[var(--co-surface-muted)] text-xs uppercase tracking-[0.1em] text-[var(--co-muted)]">
                 <tr>
@@ -181,7 +206,6 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
               <tbody className="divide-y divide-[var(--co-line-soft)]">
                 {rows.map((quote) => (
                   <tr key={quote.id} className="hover:bg-[var(--co-surface-muted)]/50">
-                    <td className="px-5 py-4 whitespace-nowrap text-xs text-[var(--co-muted)]">{quote.desiredCleaningDate ?? "—"}</td>
                     <td className="px-5 py-4">
                       <Link href={`/quotes/${quote.id}`} className="font-semibold text-[var(--co-ink)] hover:text-[var(--co-accent-text)]">
                         {quote.customerFirstName} {quote.customerLastName}
@@ -191,6 +215,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
                     <td className="px-5 py-4 text-[var(--co-muted)]">{SERVICE_LABELS[quote.requestedServiceType ?? ""] ?? "Not selected"}</td>
                     <td className="px-5 py-4 text-[var(--co-muted)]">{SERVICE_LABELS[quote.acceptedServiceType ?? ""] ?? "—"}</td>
                     <td className="px-5 py-4 font-semibold">{quote.acceptedServiceType || quote.requestedServiceType ? dollars(quote.totalCents) : "—"}</td>
+                    <td className="px-5 py-4 whitespace-nowrap text-xs text-[var(--co-muted)]">{quote.desiredCleaningDate ? formatDisplayDate(quote.desiredCleaningDate) : "—"}</td>
                     <td className="px-5 py-4">
                       <StatusPill domain="quote" status={quote.status} />
                     </td>
@@ -202,10 +227,10 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
                     </td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <Link href={`/quotes/${quote.id}`} className="rounded-lg border border-[var(--co-line)] px-3 py-2 text-xs font-medium text-[var(--co-accent-text)]">
+                        <Link href={`/quotes/${quote.id}`} className="inline-flex min-h-11 items-center rounded-lg border border-[var(--co-line)] px-3 py-2 text-xs font-medium text-[var(--co-accent-text)]">
                           {quote.status === "accepted" && !quote.bookedAt ? "Call and schedule" : "Open"}
                         </Link>
-                        <Link href={`/quote/${quote.publicToken}`} target="_blank" className="rounded-lg border border-[var(--co-line)] px-3 py-2 text-xs font-medium text-[var(--co-ink)]">
+                        <Link href={`/quote/${quote.publicToken}`} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-lg border border-[var(--co-line)] px-3 py-2 text-xs font-medium text-[var(--co-ink)]">
                           Proposal
                         </Link>
                       </div>
@@ -215,6 +240,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         <div className="border-t border-[var(--co-line-soft)] px-5 py-3 text-xs text-[var(--co-muted)]">Showing {rows.length} quote{rows.length === 1 ? "" : "s"}</div>

@@ -8,12 +8,19 @@ import { ADD_ONS } from "@/lib/pricing/add-ons";
 
 const RECURRING_SERVICE_TYPES = ["weekly", "biweekly", "four_weeks"] as const;
 
+const desiredDateSchema = z.string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Choose a valid desired date")
+  .refine((value) => {
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value && value >= new Date().toISOString().slice(0, 10);
+  }, "Choose today or a future date");
+
 const acceptSchema = z.object({
   serviceType: z.enum(SERVICE_TYPES),
   signatureName: z.string().trim().min(1, "Signature name is required"),
   addOns: z.array(z.string().trim().min(1)).default([]),
   recurringServiceType: z.enum(RECURRING_SERVICE_TYPES).nullable().optional(),
-  desiredCleaningDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Choose a valid desired date").nullable().optional(),
+  desiredCleaningDate: desiredDateSchema.nullable().optional(),
 });
 
 /** POST /api/public/quotes/[token]/accept — unauthenticated customer-facing accept action.

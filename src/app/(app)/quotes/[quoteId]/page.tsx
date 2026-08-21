@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { ADD_ONS } from "@/lib/pricing/add-ons";
 import { LocalDateTime } from "@/components/local-date-time";
 import { BookJobPanel } from "@/components/scheduling/book-job-panel";
+import { StatusPill } from "@/components/ui/status-pill";
+import { formatDisplayDate } from "@/lib/scheduling/dates";
 
 type Tier = {
   roomSubtotalCents: number;
@@ -182,7 +184,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
             Back to quotes
           </Link>
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <span className="rounded-full border border-[var(--co-line)] bg-[var(--co-surface-muted)] px-2.5 py-1 text-xs font-medium">{quote.status}</span>
+            <StatusPill domain="quote" status={quote.status} />
             {bookingOverride ? <span className="co-badge-warning rounded-full px-2.5 py-1 text-xs font-medium">Staff override — customer did not sign</span> : null}
             {quote.status === "accepted" && !quote.bookedAt ? <span className="co-badge-success rounded-full px-2.5 py-1 text-xs font-medium">Approved — not scheduled</span> : null}
             {quote.bookedAt ? <span className="co-badge-success rounded-full px-2.5 py-1 text-xs font-medium">Scheduled</span> : null}
@@ -198,7 +200,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
               Customer profile
             </Link>
           ) : null}
-          <Link href={publicLink} target="_blank" className="co-button-secondary">
+          <Link href={publicLink} target="_blank" rel="noreferrer" className="co-button-secondary">
             Open proposal
           </Link>
           {quote.status === "draft" ? (
@@ -285,7 +287,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
             ) : null}
             <div className="mb-4 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Customer&apos;s desired cleaning date</p>
-              <p className="mt-2 text-sm font-medium">{quote.desiredCleaningDate ?? "No preference provided"}</p>
+              <p className="mt-2 text-sm font-medium">{quote.desiredCleaningDate ? formatDisplayDate(quote.desiredCleaningDate) : "No preference provided"}</p>
               {quote.desiredCleaningDate && !quote.bookedAt ? <p className="mt-1 text-xs text-[var(--co-muted)]">Requested date only — availability still needs to be confirmed.</p> : null}
             </div>
             <div className="grid gap-3 md:grid-cols-2">

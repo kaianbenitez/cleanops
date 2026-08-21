@@ -86,6 +86,14 @@ export function CalendarPicker({ value, onChange, onClose, anchorRef, min, max, 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose, anchorRef]);
 
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   // Recompute on every render while open (scroll/resize included) so the
   // popover tracks its trigger even inside scrollable panels.
   useLayoutEffect(() => {
@@ -159,7 +167,7 @@ export function CalendarPicker({ value, onChange, onClose, anchorRef, min, max, 
   return createPortal(
     <div
       ref={containerRef}
-      className="co-date-popover fixed z-50 w-72 p-3"
+      className="co-date-popover fixed z-50 w-80 max-w-[calc(100vw-1rem)] p-3"
       style={{ top: position.top, left: position.left }}
     >
       <div className="flex items-center justify-between border-b border-[var(--co-line-soft)] pb-2">

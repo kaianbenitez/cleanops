@@ -21,6 +21,7 @@ type PublicQuote = {
     notesToCustomer: string | null;
     validUntil: string | null;
     signatureName: string | null;
+    acceptedAddOns: string[];
     desiredCleaningDate: string | null;
     acceptedAt: string | null;
     bookedAt: string | null;
@@ -220,6 +221,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
       .then((body: PublicQuote) => {
         setData(body);
         setDesiredCleaningDate(body.quote.desiredCleaningDate ?? "");
+        setSelectedAddOns(body.quote.acceptedAddOns ?? []);
         const initialType = body.quote.acceptedServiceType ?? body.quote.requestedServiceType;
         if (initialType && (RECURRING_TYPES as readonly string[]).includes(initialType)) {
           setRecurringInterest(true);
@@ -263,7 +265,12 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
         }),
       });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) setError(typeof body.error === "string" ? body.error : "This proposal could not be accepted.");
+      if (!response.ok) {
+        const validationMessage = body.error?.fieldErrors
+          ? Object.values(body.error.fieldErrors).flat().filter(Boolean).join(" ")
+          : null;
+        setError(typeof body.error === "string" ? body.error : validationMessage || "This proposal could not be approved. Check the highlighted details and try again.");
+      }
       else {
         setDesiredCleaningDate(body.desiredCleaningDate ?? desiredCleaningDate);
         setData((current) => current ? { ...current, quote: { ...current.quote, status: "accepted", desiredCleaningDate: body.desiredCleaningDate ?? desiredCleaningDate } } : current);
@@ -328,6 +335,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
   const selectedTotalCents = selectedBreakdown?.finalCents ?? data?.quote.totalCents ?? 0;
   const selectedAddOnTotalCents = selectedAddOns.reduce((sum, key) => sum + (ADD_ONS.find((item) => item.key === key)?.priceCents ?? 0), 0);
   const quotedTotalCents = selectedTotalCents + selectedAddOnTotalCents;
+  const displayedTotalCents = isAccepted ? data?.quote.totalCents ?? quotedTotalCents : quotedTotalCents;
   const depositCents = requiresDeposit ? Math.round(quotedTotalCents * 0.5) : 0;
   const remainingCents = requiresDeposit ? Math.max(0, quotedTotalCents - depositCents) : 0;
 
@@ -340,14 +348,14 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[var(--co-bg)] px-4 py-6 text-[var(--co-ink)] sm:px-6 lg:px-8">
+    <div className="min-h-[100dvh] bg-[var(--co-bg)] px-4 py-6 pb-24 text-[var(--co-ink)] sm:px-6 lg:px-8 lg:pb-6">
       <div className="mx-auto max-w-7xl">
         <header className="mb-6 rounded-[32px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-5 shadow-[0_12px_40px_rgba(15,23,42,0.05)] sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex min-w-0 items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[var(--co-accent-fill)]">
                 {data.companyLogoUrl ? (
-                  <img src={data.companyLogoUrl} alt={`${data.companyName} logo`} className="h-full w-full object-contain p-1.5" />
+                  <img src={data.companyLogoUrl} alt={`${data.companyName} logo`} width={48} height={48} decoding="async" className="h-full w-full object-contain p-1.5" />
                 ) : (
                   <span className="font-bold text-white">CO</span>
                 )}
@@ -405,7 +413,9 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                   return (
                     <button
                       key={type}
+                      type="button"
                       disabled={locked}
+                      aria-pressed={selected}
                       onClick={() => {
                         setSelectedType(type);
                         applyTierAddOnDefaults(type);
@@ -600,12 +610,19 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                   {FAQS.map((faq) => {
                     const open = openFaq === faq.q;
                     return (
-                      <button key={faq.q} onClick={() => setOpenFaq(open ? null : faq.q)} className="block w-full min-w-0 rounded-2xl border border-[var(--co-line-soft)] px-4 py-3 text-left">
+                      <button
+                        key={faq.q}
+                        type="button"
+                        aria-expanded={open}
+                        aria-controls={`faq-answer-${FAQS.indexOf(faq)}`}
+                        onClick={() => setOpenFaq(open ? null : faq.q)}
+                        className="block min-h-11 w-full min-w-0 rounded-2xl border border-[var(--co-line-soft)] px-4 py-3 text-left"
+                      >
                         <div className="flex min-w-0 items-center justify-between gap-4">
                           <span className="min-w-0 break-words text-sm font-medium text-[var(--co-ink)]">{faq.q}</span>
                           <span className="shrink-0 text-lg text-[var(--co-muted)]">{open ? "-" : "+"}</span>
                         </div>
-                        {open ? <p className="mt-3 text-sm leading-6 text-[var(--co-muted)]">{faq.a}</p> : null}
+                        {open ? <p id={`faq-answer-${FAQS.indexOf(faq)}`} className="mt-3 text-sm leading-6 text-[var(--co-muted)]">{faq.a}</p> : null}
                       </button>
                     );
                   })}
@@ -665,9 +682,10 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                     onChange={setDesiredCleaningDate}
                     min={new Date().toISOString().slice(0, 10)}
                     disabled={locked}
+                    ariaDescribedBy="desired-date-help"
                     className="text-sm"
                   />
-                  <p className="-mt-2 text-xs leading-5 text-[var(--co-muted)]">Tell us which date you prefer. This is a request only and is not confirmed until our office contacts you.</p>
+                  <p id="desired-date-help" className="-mt-2 text-xs leading-5 text-[var(--co-muted)]">Tell us which date you prefer. This is a request only and is not confirmed until our office contacts you.</p>
                   <div className="rounded-2xl border border-[var(--co-accent-text)]/30 bg-[var(--co-accent-tint)] p-4 text-sm leading-6 text-[var(--co-muted)]">
                     Approving this proposal confirms that you would like to move forward with the selected service and price. Our office will contact you with availability and confirm your cleaning date.
                   </div>
@@ -685,13 +703,17 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                   <label className="block text-sm font-medium text-[var(--co-ink)]">
                     Type your full name to sign
                     <input
+                      id="signature-name"
+                      name="signatureName"
+                      aria-invalid={Boolean(error)}
+                      aria-describedby={error ? "proposal-approval-error" : undefined}
                       value={signatureName}
                       onChange={(event) => setSignatureName(event.target.value)}
                       placeholder="Full name"
                       className="co-input mt-2 w-full"
                     />
                   </label>
-                  {error ? <p className="mt-3 text-sm text-[var(--co-danger)]">{error}</p> : null}
+                  {error ? <p id="proposal-approval-error" role="alert" className="mt-3 text-sm text-[var(--co-danger)]">{error}</p> : null}
                   <button onClick={accept} disabled={accepting} className="co-button-primary mt-4 w-full">
                     {accepting ? "Approving..." : "Approve proposal"}
                   </button>
@@ -717,7 +739,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
         {!locked ? (
           <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--co-line-soft)] bg-[var(--co-surface)]/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden">
             <div className="mx-auto flex max-w-7xl items-center gap-3">
-              <div className="min-w-0 flex-1"><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Current total</p><p className="truncate text-lg font-semibold">{dollars(quotedTotalCents)}</p></div>
+              <div className="min-w-0 flex-1"><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Current total</p><p className="truncate text-lg font-semibold">{dollars(displayedTotalCents)}</p></div>
               <button onClick={accept} disabled={accepting} className="co-button-primary min-h-11 shrink-0">{accepting ? "Approving..." : "Approve proposal"}</button>
             </div>
           </div>
@@ -737,7 +759,7 @@ function PhotoPanel({ title, url, fallback }: { title: string; url: string; fall
   return (
     <div className="min-w-0 overflow-hidden border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]">
       <div className="h-36 overflow-hidden bg-[var(--co-surface-muted)]">
-        {hasUrl ? <img src={url} alt={title} className="h-full w-full object-cover" /> : null}
+        {hasUrl ? <img src={url} alt={title} width={600} height={400} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : null}
       </div>
       <div className="min-w-0 px-3 py-2">
         <p className="eyebrow">{title}</p>

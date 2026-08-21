@@ -83,6 +83,7 @@ export async function GET(
       requestedServiceType: row.quote.requestedServiceType, acceptedServiceType: row.quote.acceptedServiceType,
       notesToCustomer: row.quote.notesToCustomer, validUntil: row.quote.validUntil,
       signatureName: row.quote.signatureName,
+      acceptedAddOns: row.quote.acceptedAddOns,
       acceptedAt: row.quote.acceptedAt,
       bookedAt: row.quote.bookedAt,
       desiredCleaningDate: row.quote.desiredCleaningDate,

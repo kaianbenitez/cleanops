@@ -19,10 +19,11 @@ interface DateInputProps {
   showCapacity?: boolean;
   neededHours?: number | null;
   ariaLabel?: string;
+  ariaDescribedBy?: string;
 }
 
 export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
-  ({ value, defaultValue, onChange, onBlur, label, required, disabled, className = "", name, placeholder = "Select a date", min, max, showCapacity, neededHours, ariaLabel }, ref) => {
+  ({ value, defaultValue, onChange, onBlur, label, required, disabled, className = "", name, placeholder = "Select a date", min, max, showCapacity, neededHours, ariaLabel, ariaDescribedBy }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
     const [displayValue, setDisplayValue] = useState(value ?? defaultValue ?? "");
     const triggerRef = useRef<HTMLButtonElement>(null);
@@ -55,6 +56,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
             onClick={() => setIsOpen(!isOpen)}
             className="co-date-input w-full text-left"
             aria-label={ariaLabel ?? label}
+            aria-describedby={ariaDescribedBy}
           >
             <span className={`whitespace-nowrap ${displayValue ? "text-[var(--co-ink)]" : "text-[var(--co-input-placeholder)]"}`}>
               {displayValue ? formatDisplay(displayValue) : placeholder}
