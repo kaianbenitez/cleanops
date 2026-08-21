@@ -22,7 +22,7 @@ interface DateInputProps {
 }
 
 export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
-  ({ value, defaultValue, onChange, onBlur, label, required, disabled, className = "", name, placeholder = "Select a date", min, max, showCapacity, neededHours }, ref) => {
+  ({ value, defaultValue, onChange, onBlur, label, required, disabled, className = "", name, placeholder = "Select a date", min, max, showCapacity, neededHours, ariaLabel }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
     const [displayValue, setDisplayValue] = useState(value ?? defaultValue ?? "");
     const triggerRef = useRef<HTMLButtonElement>(null);
