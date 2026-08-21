@@ -542,6 +542,13 @@ button:active { transform: translateY(1px); }
 .co-route-node.is-done { background: var(--co-success); border-color: var(--co-success); }
 .co-route-node.is-flagged { border-color: var(--co-spark-fill); }
 
+/* Hybrid admin users retain the mobile app header above the field surface.
+   Keep the field "Now" region below that header while ordinary field users,
+   who have no top header, continue to pin it at the viewport edge. */
+@media (max-width: 1279px) {
+  body:has([data-app-nav="mobile"]) .co-my-day-now { top: calc(64px + env(safe-area-inset-top)); }
+}
+
 /* Calendar focus mode: hides the app nav (desktop aside + mobile top bar)
    and the sticky top bar, and zeroes the content frame's nav gutter, so the
    calendar grid gets the full viewport. Toggled by calendar-toolbar.tsx's

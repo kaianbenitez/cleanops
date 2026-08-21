@@ -598,7 +598,7 @@ export default function MyDayClient({
           ) : null}
 
           {primaryAction.id !== "none" ? (
-            <div className="mt-4">
+            <div className="sticky bottom-[calc(76px+env(safe-area-inset-bottom))] z-10 -mx-1 mt-4 rounded-full bg-[var(--co-surface)]/95 p-1 backdrop-blur xl:static xl:mx-0 xl:bg-transparent xl:p-0 xl:backdrop-blur-none">
               <button
                 type="button"
                 onClick={onPrimaryAction}

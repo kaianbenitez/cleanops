@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { dateLabel, formatEstimatedTime, groupNotes, jobAddress, jobTypeLabel, PAYMENT_METHOD_OPTIONS, timeLabel } from "@/lib/my-day/job-format";
@@ -579,7 +580,7 @@ export default function JobExecutionClient({
                       <div key={slot} className="flex flex-col gap-2">
                         {photo ? (
                           <div className="relative aspect-square overflow-hidden rounded-xl border border-[var(--co-line-soft)]">
-                            {photo.url ? <img src={photo.url} alt={`${slot === "before" ? "Before" : "After"} photo at ${address}`} className="h-full w-full object-cover" /> : null}
+                            {photo.url ? <Image src={photo.url} alt={`${slot === "before" ? "Before" : "After"} photo at ${address}`} fill sizes="(max-width: 640px) 50vw, 25vw" className="object-cover" /> : null}
                           </div>
                         ) : (
                           <button
@@ -602,7 +603,7 @@ export default function JobExecutionClient({
                   {extraPhotos.map((photo) => (
                     <div key={photo.id} className="flex flex-col gap-2">
                       <div className="relative aspect-square overflow-hidden rounded-xl border border-[var(--co-line-soft)]">
-                        {photo.url ? <img src={photo.url} alt={`Additional photo at ${address}`} className="h-full w-full object-cover" /> : null}
+                        {photo.url ? <Image src={photo.url} alt={`Additional photo at ${address}`} fill sizes="(max-width: 640px) 50vw, 25vw" className="object-cover" /> : null}
                       </div>
                       <span className="text-center type-field-meta font-medium text-[var(--co-muted)]">Additional</span>
                     </div>

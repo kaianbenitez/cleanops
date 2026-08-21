@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -118,7 +119,11 @@ function SidebarLinks({ items, pathname, navCollapsed }: { items: readonly (read
 function ProfileAvatar({ profilePhotoUrl, userName, size = "h-10 w-10" }: { profilePhotoUrl: string | null; userName: string; size?: string }) {
   const initial = userName.trim().charAt(0).toUpperCase();
   if (profilePhotoUrl) {
-    return <img src={profilePhotoUrl} alt="" aria-hidden="true" className={`${size} shrink-0 rounded-full object-cover`} />;
+    return (
+      <span className={`relative ${size} shrink-0 overflow-hidden rounded-full`}>
+        <Image src={profilePhotoUrl} alt="" aria-hidden="true" fill sizes="40px" className="object-cover" />
+      </span>
+    );
   }
   return <span aria-hidden="true" className={`${size} flex shrink-0 items-center justify-center rounded-full bg-[var(--co-accent-tint)] text-sm font-bold text-[var(--co-accent-text)]`}>{initial}</span>;
 }
@@ -149,6 +154,10 @@ export default function AppNav({
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const menuDialogRef = useRef<HTMLDivElement>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const meDialogRef = useRef<HTMLDivElement>(null);
+  const meTriggerRef = useRef<HTMLButtonElement>(null);
 
   function setDesktopNavCollapsed(collapsed: boolean) {
     document.documentElement.style.setProperty("--app-nav-width", collapsed ? "76px" : "260px");
@@ -177,14 +186,46 @@ export default function AppNav({
       if (event.key === "Escape") {
         setMenuOpen(false);
         setMeOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const activeDialog = meOpen ? meDialogRef.current : menuOpen ? menuDialogRef.current : null;
+      if (!activeDialog) return;
+      const focusable = Array.from(
+        activeDialog.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
       }
     }
     document.addEventListener("keydown", handleKey);
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const trigger = meOpen ? meTriggerRef.current : menuOpen ? menuTriggerRef.current : null;
+    let focusFrame: number | undefined;
+    const activeDialog = meOpen ? meDialogRef.current : menuOpen ? menuDialogRef.current : null;
+    if (activeDialog) {
+      focusFrame = window.requestAnimationFrame(() => {
+        const firstFocusable = activeDialog.querySelector<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])',
+        );
+        firstFocusable?.focus();
+      });
+    }
     return () => {
       document.removeEventListener("keydown", handleKey);
       document.body.style.overflow = previousOverflow;
+      if (focusFrame !== undefined) window.cancelAnimationFrame(focusFrame);
+      if (trigger && document.contains(trigger)) trigger.focus();
     };
   }, [menuOpen, meOpen]);
 
@@ -199,13 +240,14 @@ export default function AppNav({
             onClick={() => setMenuOpen((open) => !open)}
             aria-label="Menu"
             aria-expanded={menuOpen}
+            ref={menuTriggerRef}
             className="rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]"
           >
             <Menu aria-hidden="true" strokeWidth={1.75} className="h-5 w-5 text-[var(--co-ink)]" />
           </button>
 
           <Link href={logoHref} className="flex items-center gap-2">
-            <img src="/brand/logo-mark.png" alt="" aria-hidden="true" className="h-7 w-7 object-contain" />
+            <Image src="/brand/logo-mark.png" alt="" aria-hidden="true" width={28} height={28} priority className="h-7 w-7 object-contain" />
             <span className="text-base font-bold text-[var(--co-accent-text)]">Shimmer</span>
           </Link>
 
@@ -214,7 +256,7 @@ export default function AppNav({
             <ThemeToggle />
             {isAdmin ? <NotificationsMenu initialNotifications={initialNotifications} /> : null}
             {showFieldGroup ? <SurfaceSwitcher onFieldSurface={onFieldSurface} variant="icon" /> : null}
-            <Link href="/account" aria-label="Account" className="rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]">
+            <Link href="/account" aria-label="Account" className="flex min-h-11 min-w-11 items-center justify-center rounded-full transition-colors hover:bg-[var(--co-surface-muted)]">
               <CircleUserRound aria-hidden="true" strokeWidth={1.75} className="h-5 w-5 text-[var(--co-muted)]" />
             </Link>
           </div>
@@ -236,16 +278,20 @@ export default function AppNav({
       />
 
       <div
+        ref={menuDialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Navigation menu"
+        aria-hidden={!menuOpen}
+        inert={!menuOpen}
+        tabIndex={-1}
         className={`fixed inset-y-0 left-0 z-50 flex w-[280px] max-w-[82vw] flex-col border-r border-[var(--co-line-soft)] bg-[var(--co-surface)] text-[var(--co-ink)] shadow-[0_0_40px_rgba(18,24,19,0.18)] transition-transform duration-300 ease-out xl:hidden ${
           menuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex items-center justify-between gap-3 border-b border-[var(--co-line-soft)] px-4 py-4">
           <Link href={logoHref} onClick={() => setMenuOpen(false)} className="flex items-center gap-2">
-            <img src="/brand/logo-mark.png" alt="" aria-hidden="true" className="h-8 w-8 object-contain" />
+            <Image src="/brand/logo-mark.png" alt="" aria-hidden="true" width={32} height={32} priority className="h-8 w-8 object-contain" />
             <span className="text-base font-bold text-[var(--co-accent-text)]">Shimmer</span>
           </Link>
           <button
@@ -266,7 +312,7 @@ export default function AppNav({
                 key={href}
                 href={href}
                 onClick={() => setMenuOpen(false)}
-                className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
+                className={`flex min-h-11 items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
                   active
                     ? "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]"
                     : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
@@ -283,7 +329,7 @@ export default function AppNav({
               <Link
                 href="/sync-issues"
                 onClick={() => setMenuOpen(false)}
-                className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
+                className={`flex min-h-11 items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
                   pathname.startsWith("/sync-issues")
                     ? "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]"
                     : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
@@ -295,7 +341,7 @@ export default function AppNav({
               <Link
                 href="/leads"
                 onClick={() => setMenuOpen(false)}
-                className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
+                className={`flex min-h-11 items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
                   pathname.startsWith("/leads")
                     ? "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]"
                     : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
@@ -307,7 +353,7 @@ export default function AppNav({
               <Link
                 href="/settings"
                 onClick={() => setMenuOpen(false)}
-                className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
+                className={`flex min-h-11 items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
                   pathname.startsWith("/settings")
                     ? "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]"
                     : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
@@ -322,7 +368,7 @@ export default function AppNav({
           <Link
             href="/help-center"
             onClick={() => setMenuOpen(false)}
-            className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
+            className={`flex min-h-11 items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium transition ${
               pathname.startsWith("/help-center")
                 ? "bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]"
                 : "text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
@@ -362,7 +408,7 @@ export default function AppNav({
                 key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`flex flex-1 flex-col items-center gap-1 py-1.5 text-[11px] font-medium transition-colors ${
+                className={`flex min-h-11 flex-1 flex-col items-center gap-1 py-1.5 text-[11px] font-medium transition-colors ${
                   active ? "text-[var(--co-accent-text)]" : "text-[var(--co-muted)]"
                 }`}
               >
@@ -376,7 +422,8 @@ export default function AppNav({
             onClick={() => setMeOpen(true)}
             aria-haspopup="dialog"
             aria-expanded={meOpen}
-            className={`flex flex-1 flex-col items-center gap-1 py-1.5 text-[11px] font-medium transition-colors ${
+            ref={meTriggerRef}
+            className={`flex min-h-11 flex-1 flex-col items-center gap-1 py-1.5 text-[11px] font-medium transition-colors ${
               meOpen ? "text-[var(--co-accent-text)]" : "text-[var(--co-muted)]"
             }`}
           >
@@ -394,9 +441,13 @@ export default function AppNav({
         />
 
         <div
+          ref={meDialogRef}
           role="dialog"
           aria-modal="true"
           aria-label="Account menu"
+          aria-hidden={!meOpen}
+          inert={!meOpen}
+          tabIndex={-1}
           className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col overflow-y-auto rounded-t-[24px] border-t border-[var(--co-line-soft)] bg-[var(--co-surface)] pb-[calc(16px+env(safe-area-inset-bottom))] text-[var(--co-ink)] shadow-[0_-10px_40px_rgba(18,24,19,0.18)] transition-transform duration-300 ease-out xl:hidden ${
             meOpen ? "translate-y-0" : "translate-y-full"
           }`}
@@ -413,7 +464,7 @@ export default function AppNav({
               type="button"
               onClick={() => setMeOpen(false)}
               aria-label="Close"
-              className="rounded-full p-2 text-[var(--co-muted)] transition-colors hover:bg-[var(--co-surface-muted)]"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-[var(--co-muted)] transition-colors hover:bg-[var(--co-surface-muted)]"
             >
               <X aria-hidden="true" strokeWidth={1.75} className="h-5 w-5" />
             </button>
@@ -423,7 +474,7 @@ export default function AppNav({
             <Link
               href="/account"
               onClick={() => setMeOpen(false)}
-              className="flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+              className="flex min-h-11 items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
             >
               <CircleUserRound aria-hidden="true" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0 opacity-90" />
               Account
@@ -431,7 +482,7 @@ export default function AppNav({
             <Link
               href="/my-day/pto"
               onClick={() => setMeOpen(false)}
-              className="flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+              className="flex min-h-11 items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
             >
               <CalendarCheck aria-hidden="true" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0 opacity-90" />
               Time off
@@ -439,7 +490,7 @@ export default function AppNav({
             <Link
               href="/help-center"
               onClick={() => setMeOpen(false)}
-              className="flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+              className="flex min-h-11 items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
             >
               <NavIcon href="/help-center" />
               Help Center
@@ -447,7 +498,7 @@ export default function AppNav({
             <Link
               href="/privacy-policy"
               onClick={() => setMeOpen(false)}
-              className="flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
+              className="flex min-h-11 items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium text-[var(--co-muted)] transition hover:bg-[var(--co-surface-muted)] hover:text-[var(--co-ink)]"
             >
               <FileText aria-hidden="true" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0 opacity-90" />
               Privacy Policy
@@ -482,7 +533,7 @@ export default function AppNav({
             title={navCollapsed ? "Shimmer home" : undefined}
             className={`flex items-center rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] ${navCollapsed ? "h-12 w-12 justify-center" : "flex-1 gap-3 px-3 py-3"}`}
           >
-          <img src="/brand/logo-mark.png" alt="" aria-hidden="true" className="h-10 w-10 object-contain" />
+          <Image src="/brand/logo-mark.png" alt="" aria-hidden="true" width={40} height={40} priority className="h-10 w-10 object-contain" />
           {navCollapsed ? null : <span>
             <span className="block text-[15px] font-semibold tracking-tight">Shimmer</span>
             <span className="block text-[11px] text-[var(--co-faint)]">operations desk</span>
@@ -630,9 +681,7 @@ export default function AppNav({
               title={navCollapsed ? "Account menu" : undefined}
               className={`flex items-center rounded-[18px] border border-[var(--co-line-soft)] bg-[var(--co-surface)] py-2.5 text-left transition hover:border-[var(--co-line)] ${navCollapsed ? "w-12 justify-center px-0" : "w-full gap-3 px-3"}`}
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--co-accent-tint)] text-sm font-bold text-[var(--co-accent-text)]">
-                {userName.slice(0, 1).toUpperCase()}
-              </span>
+              <ProfileAvatar profilePhotoUrl={profilePhotoUrl} userName={userName} size="h-9 w-9" />
               {navCollapsed ? null : <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13px] font-semibold text-[var(--co-ink)]">{userName}</span>
                 <span className="block truncate text-[11px] text-[var(--co-faint)]">{userEmail}</span>

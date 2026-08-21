@@ -36,7 +36,7 @@ export default function NowRegion({ now }: { now: WorkdayNow }) {
   return (
     <section
       aria-label="Right now"
-      className="sticky top-0 z-20 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)]/95 px-4 py-3 backdrop-blur sm:px-5"
+      className="co-my-day-now sticky top-0 z-20 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)]/95 px-4 py-3 backdrop-blur sm:px-5"
     >
       <div className="flex items-center gap-2.5">
         {isRecording ? (
