@@ -108,6 +108,15 @@ export default function AppointmentPanel({
       setError(`Enter a ${appointmentKind === "blocker" ? "reason" : "title"} for this appointment.`);
       return;
     }
+    if (appointmentKind === "blocker" && form.employeeIds.length !== 1) {
+      setError("Choose the cleaner whose day should be blocked.");
+      return;
+    }
+    const customHours = Number(form.customHours);
+    if (appointmentKind === "blocker" && form.durationMode === "custom" && (!Number.isFinite(customHours) || customHours < 0.5 || customHours > 24)) {
+      setError("Custom duration must be between 0.5 and 24 hours.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -235,6 +244,74 @@ export default function AppointmentPanel({
                   </div>
                 </fieldset>
 
+                {form.durationMode !== "full" ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <TimeInput
+                      label="Start time"
+                      value={form.startTime}
+                      onChange={(value) => setForm((current) => ({ ...current, startTime: value }))}
+                    />
+                    {form.durationMode === "custom" ? (
+                      <label className="block text-xs font-semibold text-[var(--co-muted)]">
+                        How many hours?
+                        <input
+                          type="number"
+                          min="0.5"
+                          max="24"
+                          step="0.5"
+                          value={form.customHours}
+                          onChange={(event) => setForm((current) => ({ ...current, customHours: event.target.value }))}
+                          className="co-input mt-1 w-full"
+                        />
+                      </label>
+                    ) : (
+                      <p className="self-end pb-2 text-xs text-[var(--co-muted)]">4 hours</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-[var(--co-muted)]">The cleaner will be unavailable for the whole day.</p>
+                )}
+
+                <fieldset>
+                  <legend className="text-xs font-semibold text-[var(--co-muted)]">Time off type</legend>
+                  <div className="mt-1 grid grid-cols-2 gap-2">
+                    {(["paid", "unpaid"] as const).map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        aria-pressed={form.timeOffType === type}
+                        onClick={() => setForm((current) => ({ ...current, timeOffType: type }))}
+                        className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${form.timeOffType === type ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]" : "border-[var(--co-line)] text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]"}`}
+                      >
+                        {type === "paid" ? "Paid Time Off" : "Unpaid"}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+              </>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <TimeInput
+                  label="Start time"
+                  value={form.startTime}
+                  onChange={(value) => setForm((current) => ({ ...current, startTime: value }))}
+                />
+                <label className="block text-xs font-semibold text-[var(--co-muted)]">
+                  Duration
+                  <select
+                    value={form.durationMinutes}
+                    onChange={(event) => setForm((current) => ({ ...current, durationMinutes: Number(event.target.value) }))}
+                    className="co-input mt-1 w-full"
+                  >
+                    {DURATION_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                  <span className="mt-1 block text-[11px] font-normal normal-case text-[var(--co-muted)]">Every attendee is automatically paid for this much time.</span>
+                </label>
+              </div>
+            )}
+
             {appointmentKind === "meeting" ? (
               <div className="block text-xs font-semibold text-[var(--co-muted)]">
                 Attendees
@@ -243,9 +320,25 @@ export default function AppointmentPanel({
                 </div>
               </div>
             ) : (
-              <p className="text-xs leading-5 text-[var(--co-muted)]">
-                This marks the time unavailable on the calendar. It does not create a job or affect payroll.
-              </p>
+              <div className="block text-xs font-semibold text-[var(--co-muted)]">
+                Cleaner
+                <div className="mt-1">
+                  <AttendeePicker
+                    staff={staffRoster}
+                    selectedIds={form.employeeIds}
+                    onChange={(ids) =>
+                      setForm((current) => ({
+                        ...current,
+                        employeeIds: ids.slice(-1),
+                      }))
+                    }
+                    placeholder="Search cleaner by name…"
+                  />
+                </div>
+                <span className="mt-1 block text-[11px] font-normal normal-case text-[var(--co-muted)]">
+                  This marks the selected cleaner&apos;s time unavailable. It does not create a job or affect payroll.
+                </span>
+              </div>
             )}
 
             <label className="block text-xs font-semibold text-[var(--co-muted)]">
