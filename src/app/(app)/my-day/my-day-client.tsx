@@ -15,6 +15,7 @@ import {
   PawPrint,
   CircleSlash,
   TriangleAlert,
+  KeyRound,
   Sparkles,
   Repeat,
   Clock3,
@@ -112,6 +113,10 @@ function roleLabel(role: StopCard["role"]) {
 
 function serviceLabel(job: { type: string; recurrenceFrequency?: string | null }) {
   return job.type === "recurring" ? recurringFrequencyLabel(job.recurrenceFrequency) ?? jobTypeLabel(job.type) : jobTypeLabel(job.type);
+}
+
+function serverErrorMessage(value: unknown, fallback: string) {
+  return typeof value === "string" && value.trim() ? `${value} No change was recorded. Check your current status before trying again.` : fallback;
 }
 
 function formatNameList(names: string[]): string {
@@ -255,6 +260,7 @@ export default function MyDayClient({
     { mop: 0, rag: 0, vacuum: 0 }
   );
   const hasLoadout = loadout.mop > 0 || loadout.rag > 0 || loadout.vacuum > 0;
+  const hasAccessInfo = Boolean(currentStop?.accessInstructions || currentStop?.keyNumber || currentStop?.garageCode || currentStop?.gateCode || currentStop?.alarmCode);
   // The day's first stop is the earliest of ALL today's stops — not the
   // earliest of the ones left. Deriving it from `routeStops` (which excludes
   // the current stop) made the header name the SECOND stop while the Now
@@ -282,7 +288,7 @@ export default function MyDayClient({
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(typeof body.error === "string" ? body.error : "That didn't save. Call the office if it keeps happening.");
+        setError(serverErrorMessage(body.error, "The server rejected this change, so it was not recorded. Check your current status before trying again."));
         return;
       }
       // `idempotent: true` means the transition was already recorded — that is
@@ -317,7 +323,7 @@ export default function MyDayClient({
       const res = await fetch(`/api/jobs/${jobId}/clock-in`, { method: "DELETE" });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(typeof body.error === "string" ? body.error : "Could not discard this start.");
+        setError(serverErrorMessage(body.error, "Your travel start was not discarded. Check your current status before trying again."));
         return;
       }
       setReceipt("Start discarded · this stop is back on your route");
@@ -341,7 +347,7 @@ export default function MyDayClient({
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(typeof body.error === "string" ? body.error : "Could not save mileage.");
+        setError(serverErrorMessage(body.error, "Your mileage was not saved. Check your current status before trying again."));
         return;
       }
       setEditingMileage((current) => ({ ...current, [stop.jobId]: false }));
@@ -399,9 +405,14 @@ export default function MyDayClient({
       ) : null}
 
       {uncertain ? (
-        <div role="alert" className="mx-4 mt-3 rounded-xl border border-[var(--co-line)] bg-[var(--co-surface-muted)] px-3.5 py-3 sm:mx-5">
-          <p className="type-field-body font-semibold text-[var(--co-ink)]">We couldn&apos;t confirm whether that was saved.</p>
-          <p className="mt-1 type-field-meta text-[var(--co-muted)]">Check before trying again — it may already be recorded.</p>
+        <div role="alert" className="co-badge-warning mx-4 mt-3 rounded-xl px-3.5 py-3 sm:mx-5">
+          <div className="flex items-start gap-2">
+            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden strokeWidth={2} />
+            <div>
+              <p className="type-field-body font-semibold">We couldn&apos;t confirm whether that was saved.</p>
+              <p className="mt-1 type-field-meta">Check before trying again — it may already be recorded.</p>
+            </div>
+          </div>
           <div className="mt-2.5 flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -424,20 +435,34 @@ export default function MyDayClient({
       ) : null}
 
       {error ? (
-        <p role="alert" className="co-badge-danger mx-4 mt-3 rounded-xl px-4 py-3 type-field-body sm:mx-5">
-          {error}
-        </p>
+        <div role="alert" className="co-badge-danger mx-4 mt-3 rounded-xl px-4 py-3 sm:mx-5">
+          <div className="flex items-start gap-2">
+            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden strokeWidth={2} />
+            <p className="type-field-body font-semibold">{error}</p>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => { setError(null); startTransition(() => router.refresh()); }} className="co-button-secondary min-h-11 px-3 type-field-meta">
+              Check status
+            </button>
+            {officePhone ? <a href={`tel:${officePhone}`} className="inline-flex min-h-11 items-center type-field-meta font-semibold">Call the office</a> : null}
+          </div>
+        </div>
       ) : null}
 
-      {isStale && officePhone ? (
-        <div className="mx-4 mt-3 rounded-xl border border-[var(--co-line)] bg-[var(--co-spark-tint)] px-3.5 py-3 sm:mx-5">
-          <p className="type-field-meta text-[var(--co-spark-text)]">
-            Call the office to get this closed at the right time — starting a new stop isn&apos;t possible until it is.
-          </p>
-          <a href={`tel:${officePhone}`} className="mt-2 inline-flex min-h-11 items-center gap-1.5 type-field-meta font-semibold text-[var(--co-spark-text)]">
-            <Phone className="h-3.5 w-3.5" aria-hidden />
-            Call the office
-          </a>
+      {isStale ? (
+        <div className="co-badge-warning mx-4 mt-3 rounded-xl px-3.5 py-3 sm:mx-5">
+          <div className="flex items-start gap-2">
+            <Clock3 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden strokeWidth={2} />
+            <div>
+              <p className="type-field-body font-semibold">
+                This stop is still recording from {workdayNow.recordedLine.replace(/^Still recording · /, "")}.
+              </p>
+              <p className="mt-1 type-field-meta">
+                A new stop is blocked until the office closes that earlier entry at the correct time.
+              </p>
+            </div>
+          </div>
+          {officePhone ? <a href={`tel:${officePhone}`} className="mt-2 inline-flex min-h-11 items-center gap-1.5 type-field-meta font-semibold"><Phone className="h-3.5 w-3.5" aria-hidden />Call the office</a> : <p className="mt-2 type-field-meta font-semibold">Contact your manager before starting another stop.</p>}
         </div>
       ) : null}
 
@@ -503,14 +528,14 @@ export default function MyDayClient({
               {address}
             </a>
           ) : officePhone ? (
-            <a href={`tel:${officePhone}`} className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[var(--co-spark-tint)] px-2.5 py-1.5 type-field-meta font-semibold text-[var(--co-spark-text)]">
+            <a href={`tel:${officePhone}`} className="co-badge-danger mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 py-1.5 type-field-meta font-semibold">
               <TriangleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
-              Address not set · call the office
+              Address missing · call the office
             </a>
           ) : (
-            <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--co-spark-tint)] px-2.5 py-1 type-field-meta font-semibold text-[var(--co-spark-text)]">
+            <p className="co-badge-danger mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 type-field-meta font-semibold">
               <TriangleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
-              Address not set
+              Address missing
             </p>
           )}
 
@@ -519,18 +544,18 @@ export default function MyDayClient({
             {serviceLabel(currentStop)} · {shortDuration(currentStop.estimatedDurationMinutes) ?? "Est. pending"} · {roleLabel(currentStop.role)}
           </p>
 
-          {currentStop.petNotes || currentStop.doNotClean || currentStop.accessInstructions || currentStop.keyNumber || currentStop.garageCode || currentStop.gateCode || currentStop.alarmCode ? (
+          {currentStop.petNotes || currentStop.doNotClean || hasAccessInfo ? (
             <div className="mt-3">
               {currentStop.petNotes || currentStop.doNotClean ? (
                 <div className="flex flex-wrap gap-1.5">
                   {currentStop.petNotes ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2.5 py-1 type-field-micro font-semibold text-[var(--co-muted)]">
+                    <span className="co-badge-warning inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 type-field-micro font-semibold">
                       <PawPrint className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
                       {currentStop.petNotes}
                     </span>
                   ) : null}
                   {currentStop.doNotClean ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2.5 py-1 type-field-micro font-semibold text-[var(--co-muted)]">
+                    <span className="co-badge-danger inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 type-field-micro font-semibold">
                       <CircleSlash className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
                       {currentStop.doNotClean}
                     </span>
@@ -556,6 +581,19 @@ export default function MyDayClient({
                   </div>
                 </details>
               ) : null}
+            </div>
+          ) : null}
+
+          {!hasAccessInfo ? (
+            <div className="co-badge-warning mt-3 rounded-[10px] px-3.5 py-3">
+              <div className="flex items-start gap-2">
+                <KeyRound className="mt-0.5 h-4 w-4 shrink-0" aria-hidden strokeWidth={2} />
+                <div>
+                  <p className="type-field-meta font-semibold">No entry instructions are on file for this stop.</p>
+                  <p className="mt-1 type-field-micro">Confirm access before you leave.</p>
+                </div>
+              </div>
+              {officePhone ? <a href={`tel:${officePhone}`} className="mt-1 inline-flex min-h-11 items-center type-field-meta font-semibold">Call the office</a> : null}
             </div>
           ) : null}
 

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { dateLabel, formatEstimatedTime, groupNotes, jobAddress, jobTypeLabel, PAYMENT_METHOD_OPTIONS, timeLabel } from "@/lib/my-day/job-format";
 import { cleanNoteText } from "@/lib/format";
 import { MaskedCode } from "@/components/ui/masked-code";
-import { Cat, Check, CircleAlert, Phone, Sparkles, Send } from "lucide-react";
+import { Cat, Check, CircleAlert, KeyRound, Phone, Sparkles, Send, TriangleAlert } from "lucide-react";
 import { deriveJobState, deriveWorkdayNow, type StopInput } from "@/lib/my-day/workday-state";
 import NowRegion from "../now-region";
 import {
@@ -60,7 +60,11 @@ type Photo = { id: string; slot: "before" | "after" | "extra"; url: string | nul
 
 type Coworker = { firstName: string; lastName: string; done: boolean };
 
-const OFFLINE_ERROR = "Couldn't reach the office — check your signal and try again.";
+const PHOTO_OFFLINE_ERROR = "We couldn't reach the server, so this photo was not uploaded. Check your signal and try again.";
+
+function serverErrorMessage(value: unknown, fallback: string) {
+  return typeof value === "string" && value.trim() ? `${value} No change was recorded. Check your current status before trying again.` : fallback;
+}
 
 const DOWNSCALE_MAX_EDGE = 1600;
 const DOWNSCALE_QUALITY = 0.8;
@@ -193,7 +197,9 @@ export default function JobExecutionClient({
   const otherRecording = effectiveStops.find((stop) => stop.jobId !== job.jobId && stop.myOpenEntry) ?? null;
   const nextStop = receipt ? nextStopAfter(effectiveStops, job.jobId, todayIso) : null;
 
-  const address = jobAddress(job) || "Address not set";
+  const actualAddress = jobAddress(job);
+  const address = actualAddress || "Address not set";
+  const hasAccessInfo = Boolean(job.accessInstructions || job.keyNumber || job.garageCode || job.gateCode || job.alarmCode);
   const notes = groupNotes(job);
   const clientNote = cleanNoteText(job.generalNotes);
   const instructions = [
@@ -239,7 +245,7 @@ export default function JobExecutionClient({
       }
       setPhotos((current) => [result.photo, ...current]);
     } catch {
-      setError(OFFLINE_ERROR);
+      setError(PHOTO_OFFLINE_ERROR);
     } finally {
       setUploading(false);
     }
@@ -266,14 +272,14 @@ export default function JobExecutionClient({
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(typeof body.error === "string" ? body.error : "That didn't save. Call the office if it keeps happening.");
+        setError(serverErrorMessage(body.error, "The server rejected your saved work, so it was not recorded. Check your current status before trying again."));
         return;
       }
       // A duplicate tap answers `{ idempotent: true }` with the same persisted
       // values — a receipt, not an error.
       const savedWork = savedWorkFromResponse(body);
       if (!savedWork) {
-        setError("That didn't save. Call the office if it keeps happening.");
+        setError("The server did not return a saved work record. Check your current status before trying again.");
         return;
       }
       saveRequestIdRef.current = null;
@@ -305,7 +311,7 @@ export default function JobExecutionClient({
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(typeof body.error === "string" ? body.error : "That didn't save. Call the office if it keeps happening.");
+        setError(serverErrorMessage(body.error, "Travel to the next stop was not recorded. Check your current status before trying again."));
         return;
       }
       router.push("/my-day");
@@ -322,12 +328,12 @@ export default function JobExecutionClient({
       const response = await fetch(`/api/jobs/${job.jobId}/feedback-link`, { method: "POST" });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(typeof body.error === "string" ? body.error : "Could not create feedback link.");
+        setError(typeof body.error === "string" ? `Your work was saved, but the customer link could not be created: ${body.error}` : "Your work was saved, but the customer link is not ready. Refresh or call the office.");
         return;
       }
       setFeedbackUrl(body.feedbackUrl ?? null);
     } catch {
-      setError(OFFLINE_ERROR);
+      setError("Your work was saved, but the customer link could not be reached. Refresh or call the office.");
     } finally {
       setSendingFeedback(false);
     }
@@ -374,10 +380,11 @@ export default function JobExecutionClient({
             </div>
             <div className="flex shrink-0 gap-2">
               <a
-                href={`https://maps.google.com/?q=${encodeURIComponent(address)}`}
+                href={actualAddress ? `https://maps.google.com/?q=${encodeURIComponent(actualAddress)}` : undefined}
                 target="_blank"
                 rel="noreferrer"
-                className="co-button-secondary min-h-11"
+                aria-disabled={!actualAddress}
+                className={`co-button-secondary min-h-11 ${actualAddress ? "" : "pointer-events-none opacity-50"}`}
               >
                 View map
               </a>
@@ -389,9 +396,14 @@ export default function JobExecutionClient({
         </section>
 
         {uncertain ? (
-          <div role="alert" className="mb-4 rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface-muted)] px-4 py-3">
-            <p className="type-field-body font-semibold text-[var(--co-ink)]">We couldn&apos;t confirm whether that was saved.</p>
-            <p className="mt-1 type-field-meta text-[var(--co-muted)]">Check before trying again — it may already be recorded.</p>
+          <div role="alert" className="co-badge-warning mb-4 rounded-2xl px-4 py-3">
+            <div className="flex items-start gap-2">
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden strokeWidth={2} />
+              <div>
+                <p className="type-field-body font-semibold">We couldn&apos;t confirm whether that was saved.</p>
+                <p className="mt-1 type-field-meta">Check before trying again — it may already be recorded.</p>
+              </div>
+            </div>
             <div className="mt-2.5 flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -414,12 +426,34 @@ export default function JobExecutionClient({
         ) : null}
 
         {error ? (
-          <p role="alert" className="co-badge-danger mb-4 rounded-2xl px-4 py-3 text-sm">
-            {error}
-          </p>
+          <div role="alert" className="co-badge-danger mb-4 rounded-2xl px-4 py-3">
+            <div className="flex items-start gap-2">
+              <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden strokeWidth={2} />
+              <p className="type-field-body font-semibold">{error}</p>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <button type="button" onClick={() => { setError(null); startTransition(() => router.refresh()); }} className="co-button-secondary min-h-11 px-3 type-field-meta">
+                Check status
+              </button>
+              {officePhone ? <a href={`tel:${officePhone}`} className="inline-flex min-h-11 items-center type-field-meta font-semibold">Call the office</a> : null}
+            </div>
+          </div>
         ) : null}
 
         <div className="space-y-4">
+          {!actualAddress || !hasAccessInfo ? (
+            <section className={`${!actualAddress ? "co-badge-danger" : "co-badge-warning"} rounded-2xl px-4 py-3`}>
+              <div className="flex items-start gap-2">
+                {!actualAddress ? <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden strokeWidth={2} /> : <KeyRound className="mt-0.5 h-4 w-4 shrink-0" aria-hidden strokeWidth={2} />}
+                <div>
+                  <p className="type-field-body font-semibold">{!actualAddress ? "This stop has no address on file." : "No entry instructions are on file for this stop."}</p>
+                  <p className="mt-1 type-field-meta">{!actualAddress ? "Do not leave until the office confirms where to go." : "Confirm how to enter before you leave."}</p>
+                </div>
+              </div>
+              {officePhone ? <a href={`tel:${officePhone}`} className="mt-2 inline-flex min-h-11 items-center type-field-meta font-semibold">Call the office</a> : <p className="mt-2 type-field-meta font-semibold">Contact your manager before heading out.</p>}
+            </section>
+          ) : null}
+
           {receipt ? (
             <section role="status" className="co-card p-5">
               <p className="text-base font-semibold text-[var(--co-ink)]">{receipt.receiptLine}</p>
