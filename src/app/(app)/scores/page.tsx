@@ -7,9 +7,6 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasFieldAccess } from "@/lib/auth/field-staff";
 import { resolveRange } from "@/lib/dashboard/range";
 import { getEmployeeQualityReport } from "@/lib/reports/queries";
-import { ReportsFilters } from "../reports/reports-controls";
-
-type SearchParams = Promise<{ from?: string; preset?: string; to?: string }>;
 
 function dateLabel(value: string | null) {
   if (!value) return "—";
@@ -29,29 +26,28 @@ function statusClass(status: string) {
   return "bg-[var(--co-surface-muted)] text-[var(--co-muted)]";
 }
 
-export default async function MyScoresPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function MyScoresPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!hasFieldAccess(user)) redirect("/quality");
-  const params = await searchParams;
   const [company] = await db.select({ timezone: companies.timezone }).from(companies).where(eq(companies.id, user.companyId)).limit(1);
   if (!company) redirect("/my-day");
-  const range = resolveRange({ preset: params.preset ?? "all_time", from: params.from, to: params.to }, company.timezone);
+  // Fixed period — no admin date-range controls on this phone-first employee
+  // view (WP-D §8.2). "all_time" mirrors the range this page used before.
+  const range = resolveRange({ preset: "all_time" }, company.timezone);
   const quality = await getEmployeeQualityReport(user.companyId, user.id, range);
 
   return <div className="max-w-4xl space-y-6">
-    <header className="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <div className="flex items-center gap-2 text-[var(--co-accent-text)]"><Star className="h-5 w-5" /><p className="eyebrow">Customer feedback</p></div>
-        <h1 className="page-title mt-2">My scores</h1>
-        <p className="page-subtitle">See how customers have rated your completed jobs.</p>
-      </div>
-      <ReportsFilters areas={[]} fromIso={range.fromIso} toIso={range.toIso} preset={range.preset} />
+    <header>
+      <div className="flex items-center gap-2 text-[var(--co-accent-text)]"><Star className="h-5 w-5" /><p className="eyebrow">Customer feedback</p></div>
+      <h1 className="page-title mt-2">My scores</h1>
+      <p className="page-subtitle type-field-body">See how customers have rated your completed jobs.</p>
+      <p className="mt-1 type-field-meta text-[var(--co-muted)]">{range.label}</p>
     </header>
 
-    <div className="grid gap-3 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       <div className="co-card p-4"><p className="eyebrow">Completed jobs</p><p className="mt-2 text-2xl font-semibold">{quality.completedJobs}</p></div>
-      <div className="co-card p-4"><p className="eyebrow">Responses</p><p className="mt-2 text-2xl font-semibold">{quality.responses}</p><p className="mt-1 text-xs text-[var(--co-muted)]">{quality.responseRate}% response rate</p></div>
+      <div className="co-card p-4"><p className="eyebrow">Responses</p><p className="mt-2 text-2xl font-semibold">{quality.responses}</p><p className="mt-1 type-field-micro text-[var(--co-muted)]">{quality.responseRate}% response rate</p></div>
       <div className="co-card p-4"><p className="eyebrow">Average rating</p><p className="mt-2 text-2xl font-semibold text-[var(--co-accent-text)]">{quality.responses ? `${quality.averageRating}/5` : "—"}</p></div>
       <div className="co-card p-4"><p className="eyebrow">5-star ratings</p><p className="mt-2 text-2xl font-semibold text-[var(--co-accent-text)]">{quality.fiveStars}</p></div>
     </div>
@@ -59,27 +55,25 @@ export default async function MyScoresPage({ searchParams }: { searchParams: Sea
     <section className="co-card overflow-hidden">
       <div className="border-b border-[var(--co-line-soft)] p-5">
         <h2 className="font-semibold">Your completed jobs</h2>
-        <p className="mt-1 text-sm text-[var(--co-muted)]">Includes jobs you were assigned to as lead, helper, or trainer.</p>
+        <p className="mt-1 type-field-body text-[var(--co-muted)]">Includes jobs you were assigned to as lead, helper, or trainer.</p>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-[var(--co-surface-muted)] text-[var(--co-muted)]">
-            <tr>{["Service date", "Customer", "Status", "Rating", "Comment"].map((label) => <th key={label} className="whitespace-nowrap px-5 py-3 font-medium">{label}</th>)}</tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--co-line-soft)]">
-            {quality.entries.map((entry) => (
-              <tr key={entry.jobId}>
-                <td className="whitespace-nowrap px-5 py-4">{dateLabel(entry.serviceDate)}</td>
-                <td className="px-5 py-4 font-semibold">{entry.customerName}</td>
-                <td className="whitespace-nowrap px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(entry.feedbackStatus)}`}>{feedbackLabel(entry.feedbackStatus)}</span></td>
-                <td className="whitespace-nowrap px-5 py-4">{entry.rating ? <span className="font-semibold text-[var(--co-warning)]">{"★".repeat(entry.rating)}<span className="text-[var(--co-faint)]">{"★".repeat(5 - entry.rating)}</span></span> : "—"}</td>
-                <td className="min-w-64 max-w-md px-5 py-4 text-[var(--co-muted)]">{entry.comment ? `“${entry.comment}”` : "—"}</td>
-              </tr>
-            ))}
-            {quality.entries.length === 0 ? <tr><td colSpan={5} className="px-5 py-8 text-center text-[var(--co-muted)]">No completed jobs in this period.</td></tr> : null}
-          </tbody>
-        </table>
-      </div>
+      {quality.entries.length === 0 ? (
+        <p className="px-5 py-8 text-center type-field-body text-[var(--co-muted)]">No completed jobs in this period.</p>
+      ) : (
+        <ul className="divide-y divide-[var(--co-line-soft)]">
+          {quality.entries.map((entry) => (
+            <li key={entry.jobId} className="space-y-2 px-4 py-4 sm:px-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="type-field-body font-semibold text-[var(--co-ink)]">{entry.customerName}</p>
+                <span className={`type-field-micro rounded-full px-2.5 py-1 font-semibold ${statusClass(entry.feedbackStatus)}`}>{feedbackLabel(entry.feedbackStatus)}</span>
+              </div>
+              <p className="type-field-meta text-[var(--co-muted)]">{dateLabel(entry.serviceDate)}</p>
+              <p>{entry.rating ? <span className="font-semibold text-[var(--co-warning)]">{"★".repeat(entry.rating)}<span className="text-[var(--co-faint)]">{"★".repeat(5 - entry.rating)}</span></span> : <span className="type-field-meta text-[var(--co-faint)]">No rating yet</span>}</p>
+              {entry.comment ? <p className="type-field-body text-[var(--co-muted)]">“{entry.comment}”</p> : null}
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   </div>;
 }

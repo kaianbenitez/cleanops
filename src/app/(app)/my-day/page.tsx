@@ -1,50 +1,20 @@
-import { and, desc, eq, gt, gte, isNull, isNotNull, lt } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNull, lt } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { companies, customerLocations, customers, jobs, jobAssignments, recurringSeries, roomTypes, timeEntries } from "@/db/schema";
+import { companies, customerLocations, customers, jobs, jobAssignments, recurringSeries, roomTypes, timeEntries, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasFieldAccess } from "@/lib/auth/field-staff";
 import { payrollWeekRangeForDate } from "@/lib/payroll/periods";
-import MyDayClient from "./my-day-client";
 import { rotationalTaskForDate } from "@/lib/scheduling/rotational-tasks";
-
-type JobCard = {
-  jobId: string;
-  customerId: string;
-  role: "lead" | "helper" | "trainer";
-  mileageMiles: string;
-  status: string;
-  scheduledDate: string;
-  scheduledStartTime: string | null;
-  type: string;
-  recurrenceFrequency: string | null;
-  estimatedDurationMinutes: number | null;
-  addressLine1: string | null;
-  city: string | null;
-  state: string | null;
-  zip: string | null;
-  customerFirstName: string;
-  customerLastName: string;
-  customerPhone: string | null;
-  accessInstructions: string | null;
-  keyNumber: string | null;
-  garageCode: string | null;
-  gateCode: string | null;
-  alarmCode: string | null;
-  vacuumLocation: string | null;
-  mopHeadsNeeded: string | null;
-  trashBags: string | null;
-  generalNotes: string | null;
-  preferredDays: string[] | null;
-  preferredTimeOfDay: string | null;
-  subdivision: string | null;
-  mopHeadCount?: number | null;
-  ragCount?: number | null;
-  vacuumCount?: number | null;
-  mopHeadEstimate?: number | null;
-  petNotes: string | null;
-  doNotClean: string | null;
-};
+import {
+  buildLedger,
+  deriveJobState,
+  deriveWorkdayNow,
+  primaryActionFor,
+  type StopInput,
+  type WorkdayInput,
+} from "@/lib/my-day/workday-state";
+import MyDayClient from "./my-day-client";
 
 const HARD_FLOOR_ROOM_NAMES = new Set(["Master Bathroom", "Full Bathroom", "Half Bathroom", "Kitchen Large", "Kitchen Medium", "Kitchen Small", "Laundry Room", "Hallway"]);
 
@@ -63,34 +33,50 @@ function equipmentForStop(
   return { mopHeadCount: customer.mopHeadCount, ragCount: customer.ragCount, vacuumCount: customer.vacuumCount, mopHeadEstimate: Math.round(hardFloorRooms + 3) };
 }
 
-type TimeEntryCard = {
-  id: string;
-  jobId: string;
-  clockIn: string;
-  clockOut: string | null;
-  minutesWorked: number | null;
-  notes: string | null;
-  scheduledDate: string;
-  scheduledStartTime: string | null;
-  type: string;
-  status: string;
-  customerFirstName: string;
-  customerLastName: string;
-};
-
 function addDaysISO(value: string, days: number) {
   const date = new Date(`${value}T00:00:00.000Z`);
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
 }
 
-function todayInTimezone(timezone: string) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
+/** The UTC instant for local midnight of `dateIso` in `timeZone`. Used only
+ * for the weekly-hours range below — `time_entries.clock_in` is an absolute
+ * instant, so a range built from bare UTC midnight (D9) puts hours recorded
+ * near midnight company time into the wrong pay week. */
+export function startOfDayInstant(dateIso: string, timeZone: string): Date {
+  const utcGuess = new Date(`${dateIso}T00:00:00.000Z`);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   })
+    .formatToParts(utcGuess)
+    .reduce(
+      (acc, part) => {
+        if (part.type !== "literal") acc[part.type] = part.value;
+        return acc;
+      },
+      {} as Record<string, string>
+    );
+  const wallClockAsUtc = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second)
+  );
+  const offsetMs = wallClockAsUtc - utcGuess.getTime();
+  return new Date(utcGuess.getTime() - offsetMs);
+}
+
+function todayInTimezone(timezone: string) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" })
     .formatToParts(new Date())
     .reduce(
       (acc, part) => {
@@ -102,118 +88,191 @@ function todayInTimezone(timezone: string) {
 }
 
 function formatDayLabel(value: string, timezone: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  }).format(new Date(`${value}T12:00:00.000Z`));
+  return new Intl.DateTimeFormat("en-US", { timeZone: timezone, weekday: "short", month: "short", day: "numeric" }).format(new Date(`${value}T12:00:00.000Z`));
 }
+
+/** Display fields for one stop. Deliberately excludes every price column —
+ * employees must never receive price data, including in payloads they never
+ * render (state model, Invariant 5). */
+const stopColumns = {
+  role: jobAssignments.role,
+  mileageMiles: jobAssignments.mileageMiles,
+  travelStartedAt: jobAssignments.travelStartedAt,
+  arrivedAt: jobAssignments.arrivedAt,
+  workStartedAt: jobAssignments.workStartedAt,
+  jobId: jobs.id,
+  customerId: customers.id,
+  status: jobs.status,
+  completedAt: jobs.completedAt,
+  scheduledDate: jobs.scheduledDate,
+  recurrenceStartDate: recurringSeries.startDate,
+  recurrenceFrequency: recurringSeries.frequency,
+  scheduledStartTime: jobs.scheduledStartTime,
+  type: jobs.type,
+  estimatedDurationMinutes: jobs.estimatedDurationMinutes,
+  addressLine1: customerLocations.addressLine1,
+  city: customerLocations.city,
+  state: customerLocations.state,
+  zip: customerLocations.zip,
+  customerFirstName: customers.firstName,
+  customerLastName: customers.lastName,
+  customerPhone: customers.phone,
+  accessInstructions: customerLocations.accessInstructions,
+  keyNumber: customerLocations.keyNumber,
+  garageCode: customerLocations.garageCode,
+  gateCode: customerLocations.gateCode,
+  alarmCode: customerLocations.alarmCode,
+  vacuumLocation: customerLocations.vacuumLocation,
+  mopHeadsNeeded: customerLocations.mopHeadsNeeded,
+  trashBags: customerLocations.trashBags,
+  generalNotes: customers.generalNotes,
+  preferredDays: customers.preferredDays,
+  preferredTimeOfDay: customers.preferredTimeOfDay,
+  subdivision: customers.subdivision,
+  petNotes: customers.petNotes,
+  doNotClean: customers.doNotClean,
+} as const;
 
 export default async function MyDayPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!hasFieldAccess(user)) redirect("/dashboard");
 
-  const company = await db.select({ name: companies.name, timezone: companies.timezone, settings: companies.settings }).from(companies).where(eq(companies.id, user.companyId)).limit(1).then((rows) => rows[0] ?? null);
+  const company = await db
+    .select({ name: companies.name, timezone: companies.timezone, settings: companies.settings })
+    .from(companies)
+    .where(eq(companies.id, user.companyId))
+    .limit(1)
+    .then((rows) => rows[0] ?? null);
   if (!company) redirect("/login");
-  const branding = ((company.settings as { branding?: { logoUrl?: string | null; phone?: string | null; brandColor?: string | null } } | null)?.branding ?? null) as {
-    logoUrl?: string | null;
-    phone?: string | null;
-    brandColor?: string | null;
-  } | null;
+
+  const branding = ((company.settings as { branding?: { phone?: string | null } } | null)?.branding ?? null) as { phone?: string | null } | null;
   const officePhone = branding?.phone ?? null;
 
   const today = todayInTimezone(company.timezone);
   const todayIso = `${today.year}-${today.month}-${today.day}`;
   const period = payrollWeekRangeForDate(new Date());
 
-  const todayJobs = await db
-    .select({
-      role: jobAssignments.role,
-      mileageMiles: jobAssignments.mileageMiles,
-      jobId: jobs.id,
-      customerId: customers.id,
-      status: jobs.status,
-      scheduledDate: jobs.scheduledDate,
-      recurrenceStartDate: recurringSeries.startDate,
-      recurrenceFrequency: recurringSeries.frequency,
-      scheduledStartTime: jobs.scheduledStartTime,
-      type: jobs.type,
-      estimatedDurationMinutes: jobs.estimatedDurationMinutes,
-      addressLine1: customerLocations.addressLine1,
-      city: customerLocations.city,
-      state: customerLocations.state,
-      zip: customerLocations.zip,
-      customerFirstName: customers.firstName,
-      customerLastName: customers.lastName,
-      customerPhone: customers.phone,
-      accessInstructions: customerLocations.accessInstructions,
-      keyNumber: customerLocations.keyNumber,
-      garageCode: customerLocations.garageCode,
-      gateCode: customerLocations.gateCode,
-      alarmCode: customerLocations.alarmCode,
-      vacuumLocation: customerLocations.vacuumLocation,
-      mopHeadsNeeded: customerLocations.mopHeadsNeeded,
-      trashBags: customerLocations.trashBags,
-      generalNotes: customers.generalNotes,
-      preferredDays: customers.preferredDays,
-      preferredTimeOfDay: customers.preferredTimeOfDay,
-      subdivision: customers.subdivision,
-      petNotes: customers.petNotes,
-      doNotClean: customers.doNotClean,
-      homeDetails: customers.homeDetails,
-      mopHeadCount: customers.mopHeadCount,
-      ragCount: customers.ragCount,
-      vacuumCount: customers.vacuumCount,
-    })
+  // Today's route. Completed stops are deliberately NOT filtered out any more:
+  // a stop this employee finished while a coworker is still working keeps
+  // `jobs.completed_at` null, and excluding it used to let it reappear as an
+  // untouched stop offering travel to a house she had just finished.
+  // `deriveJobState` classifies each stop instead.
+  const todayRows = await db
+    .select({ ...stopColumns, homeDetails: customers.homeDetails, mopHeadCount: customers.mopHeadCount, ragCount: customers.ragCount, vacuumCount: customers.vacuumCount })
     .from(jobAssignments)
     .innerJoin(jobs, eq(jobAssignments.jobId, jobs.id))
     .innerJoin(customers, eq(jobs.customerId, customers.id))
     .leftJoin(recurringSeries, eq(jobs.recurringSeriesId, recurringSeries.id))
     .leftJoin(customerLocations, and(eq(customerLocations.customerId, customers.id), eq(customerLocations.isPrimary, true), eq(customerLocations.isActive, true)))
-    .where(and(eq(jobAssignments.userId, user.id), eq(jobs.companyId, user.companyId), eq(jobs.scheduledDate, todayIso), isNull(jobs.completedAt)))
+    .where(and(eq(jobAssignments.userId, user.id), eq(jobs.companyId, user.companyId), eq(jobs.scheduledDate, todayIso)))
     .orderBy(jobs.scheduledStartTime);
 
   const companyRoomTypes = await db.select({ id: roomTypes.id, name: roomTypes.name }).from(roomTypes).where(eq(roomTypes.companyId, user.companyId));
   const roomTypeNameById = new Map(companyRoomTypes.map((roomType) => [roomType.id, roomType.name]));
-  const todayJobsWithEquipment = todayJobs.map((job) => ({ ...job, ...equipmentForStop(job, roomTypeNameById), rotationalTaskReminder: rotationalTaskForDate(job.recurrenceStartDate, job.scheduledDate) }));
 
-  const upcomingJobs = await db
-    .select({
-      role: jobAssignments.role,
-      mileageMiles: jobAssignments.mileageMiles,
-      jobId: jobs.id,
-      customerId: customers.id,
-      status: jobs.status,
-      scheduledDate: jobs.scheduledDate,
-      recurrenceStartDate: recurringSeries.startDate,
-      recurrenceFrequency: recurringSeries.frequency,
-      scheduledStartTime: jobs.scheduledStartTime,
-      type: jobs.type,
-      estimatedDurationMinutes: jobs.estimatedDurationMinutes,
-      addressLine1: customerLocations.addressLine1,
-      city: customerLocations.city,
-      state: customerLocations.state,
-      zip: customerLocations.zip,
-      customerFirstName: customers.firstName,
-      customerLastName: customers.lastName,
-      customerPhone: customers.phone,
-      accessInstructions: customerLocations.accessInstructions,
-      keyNumber: customerLocations.keyNumber,
-      garageCode: customerLocations.garageCode,
-      gateCode: customerLocations.gateCode,
-      alarmCode: customerLocations.alarmCode,
-      vacuumLocation: customerLocations.vacuumLocation,
-      mopHeadsNeeded: customerLocations.mopHeadsNeeded,
-      trashBags: customerLocations.trashBags,
-      generalNotes: customers.generalNotes,
-      preferredDays: customers.preferredDays,
-      preferredTimeOfDay: customers.preferredTimeOfDay,
-      subdivision: customers.subdivision,
-      petNotes: customers.petNotes,
-      doNotClean: customers.doNotClean,
-    })
+  // An entry left open on an earlier day. Surfaced as its own stop so it is
+  // classified `stale_entry` rather than masquerading as today's current stop
+  // with a counter reading nineteen hours.
+  const staleRow = await db
+    .select(stopColumns)
+    .from(timeEntries)
+    .innerJoin(jobs, eq(timeEntries.jobId, jobs.id))
+    .innerJoin(jobAssignments, and(eq(jobAssignments.jobId, jobs.id), eq(jobAssignments.userId, user.id)))
+    .innerJoin(customers, eq(jobs.customerId, customers.id))
+    .leftJoin(recurringSeries, eq(jobs.recurringSeriesId, recurringSeries.id))
+    .leftJoin(customerLocations, and(eq(customerLocations.customerId, customers.id), eq(customerLocations.isPrimary, true), eq(customerLocations.isActive, true)))
+    .where(and(eq(timeEntries.userId, user.id), isNull(timeEntries.clockOut), lt(jobs.scheduledDate, todayIso)))
+    .orderBy(desc(timeEntries.clockIn))
+    .limit(1)
+    .then((rows) => rows[0] ?? null);
+
+  const stopRows = [
+    ...todayRows,
+    ...(staleRow ? [{ ...staleRow, homeDetails: null, mopHeadCount: null, ragCount: null, vacuumCount: null }] : []),
+  ];
+  const stopJobIds = stopRows.map((row) => row.jobId);
+
+  const myEntries = stopJobIds.length
+    ? await db
+        .select({ jobId: timeEntries.jobId, clockIn: timeEntries.clockIn, clockOut: timeEntries.clockOut, minutesWorked: timeEntries.minutesWorked })
+        .from(timeEntries)
+        .where(and(eq(timeEntries.userId, user.id), inArray(timeEntries.jobId, stopJobIds)))
+        .orderBy(desc(timeEntries.clockIn))
+    : [];
+
+  const crewRows = stopJobIds.length
+    ? await db
+        .select({ jobId: jobAssignments.jobId, userId: jobAssignments.userId, firstName: users.firstName })
+        .from(jobAssignments)
+        .innerJoin(users, eq(jobAssignments.userId, users.id))
+        .where(inArray(jobAssignments.jobId, stopJobIds))
+    : [];
+
+  const crewEntries = stopJobIds.length
+    ? await db
+        .select({ jobId: timeEntries.jobId, userId: timeEntries.userId, clockOut: timeEntries.clockOut })
+        .from(timeEntries)
+        .where(inArray(timeEntries.jobId, stopJobIds))
+    : [];
+
+  const closedByJobUser = new Set(crewEntries.filter((entry) => entry.clockOut).map((entry) => `${entry.jobId}|${entry.userId}`));
+
+  const openEntryByJob = new Map<string, { clockIn: string }>();
+  const closedEntryByJob = new Map<string, { clockIn: string; clockOut: string; minutesWorked: number | null }>();
+  for (const entry of myEntries) {
+    if (!entry.clockOut) {
+      if (!openEntryByJob.has(entry.jobId)) openEntryByJob.set(entry.jobId, { clockIn: entry.clockIn.toISOString() });
+    } else if (!closedEntryByJob.has(entry.jobId)) {
+      closedEntryByJob.set(entry.jobId, { clockIn: entry.clockIn.toISOString(), clockOut: entry.clockOut.toISOString(), minutesWorked: entry.minutesWorked });
+    }
+  }
+
+  const coworkersFor = (jobId: string) =>
+    crewRows
+      .filter((crew) => crew.jobId === jobId && crew.userId !== user.id)
+      .map((crew) => ({ firstName: crew.firstName, done: closedByJobUser.has(`${crew.jobId}|${crew.userId}`) }));
+
+  const stops: StopInput[] = stopRows.map((row) => ({
+    jobId: row.jobId,
+    customerFirstName: row.customerFirstName,
+    customerLastName: row.customerLastName,
+    scheduledDate: row.scheduledDate,
+    scheduledStartTime: row.scheduledStartTime,
+    status: row.status,
+    completedAt: row.completedAt ? row.completedAt.toISOString() : null,
+    travelStartedAt: row.travelStartedAt ? row.travelStartedAt.toISOString() : null,
+    arrivedAt: row.arrivedAt ? row.arrivedAt.toISOString() : null,
+    workStartedAt: row.workStartedAt ? row.workStartedAt.toISOString() : null,
+    myOpenEntry: openEntryByJob.get(row.jobId) ?? null,
+    myClosedEntry: closedEntryByJob.get(row.jobId) ?? null,
+    coworkers: coworkersFor(row.jobId),
+  }));
+
+  const workdayInput: WorkdayInput = { stops, todayIso, timeZone: company.timezone };
+  const workdayNow = deriveWorkdayNow(workdayInput);
+  const primaryAction = primaryActionFor(workdayInput);
+  const ledger = buildLedger(workdayInput);
+
+  const stopCards = stopRows.map((row) => {
+    const { homeDetails, mopHeadCount, ragCount, vacuumCount, recurrenceStartDate, ...rest } = row;
+    void homeDetails;
+    return {
+      ...rest,
+      ...equipmentForStop({ homeDetails, mopHeadCount, ragCount, vacuumCount }, roomTypeNameById),
+      rotationalTaskReminder: rotationalTaskForDate(recurrenceStartDate, row.scheduledDate),
+      workState: deriveJobState(stops.find((stop) => stop.jobId === row.jobId)!, todayIso),
+      completedAt: row.completedAt ? row.completedAt.toISOString() : null,
+      travelStartedAt: row.travelStartedAt ? row.travelStartedAt.toISOString() : null,
+      arrivedAt: row.arrivedAt ? row.arrivedAt.toISOString() : null,
+      workStartedAt: row.workStartedAt ? row.workStartedAt.toISOString() : null,
+      myClosedEntry: closedEntryByJob.get(row.jobId) ?? null,
+      coworkers: coworkersFor(row.jobId),
+    };
+  });
+
+  const upcomingRows = await db
+    .select(stopColumns)
     .from(jobAssignments)
     .innerJoin(jobs, eq(jobAssignments.jobId, jobs.id))
     .innerJoin(customers, eq(jobs.customerId, customers.id))
@@ -223,250 +282,39 @@ export default async function MyDayPage() {
     .orderBy(jobs.scheduledDate, jobs.scheduledStartTime)
     .limit(5);
 
-  const completedJobs = await db
-    .select({
-      role: jobAssignments.role,
-      mileageMiles: jobAssignments.mileageMiles,
-      jobId: jobs.id,
-      customerId: customers.id,
-      status: jobs.status,
-      scheduledDate: jobs.scheduledDate,
-      recurrenceStartDate: recurringSeries.startDate,
-      recurrenceFrequency: recurringSeries.frequency,
-      scheduledStartTime: jobs.scheduledStartTime,
-      type: jobs.type,
-      estimatedDurationMinutes: jobs.estimatedDurationMinutes,
-      addressLine1: customerLocations.addressLine1,
-      city: customerLocations.city,
-      state: customerLocations.state,
-      zip: customerLocations.zip,
-      customerFirstName: customers.firstName,
-      customerLastName: customers.lastName,
-      customerPhone: customers.phone,
-      accessInstructions: customerLocations.accessInstructions,
-      keyNumber: customerLocations.keyNumber,
-      garageCode: customerLocations.garageCode,
-      gateCode: customerLocations.gateCode,
-      alarmCode: customerLocations.alarmCode,
-      vacuumLocation: customerLocations.vacuumLocation,
-      mopHeadsNeeded: customerLocations.mopHeadsNeeded,
-      trashBags: customerLocations.trashBags,
-      generalNotes: customers.generalNotes,
-      preferredDays: customers.preferredDays,
-      preferredTimeOfDay: customers.preferredTimeOfDay,
-      subdivision: customers.subdivision,
-      petNotes: customers.petNotes,
-      doNotClean: customers.doNotClean,
-    })
-    .from(jobAssignments)
-    .innerJoin(jobs, eq(jobAssignments.jobId, jobs.id))
-    .innerJoin(customers, eq(jobs.customerId, customers.id))
-    .leftJoin(recurringSeries, eq(jobs.recurringSeriesId, recurringSeries.id))
-    .leftJoin(customerLocations, and(eq(customerLocations.customerId, customers.id), eq(customerLocations.isPrimary, true), eq(customerLocations.isActive, true)))
-    .where(and(eq(jobAssignments.userId, user.id), eq(jobs.companyId, user.companyId), eq(jobs.scheduledDate, todayIso), isNotNull(jobs.completedAt)))
-    .orderBy(desc(jobs.completedAt))
-    .limit(10);
-
-  const upcomingJobsWithRotation = upcomingJobs.map((job) => ({ ...job, rotationalTaskReminder: rotationalTaskForDate(job.recurrenceStartDate, job.scheduledDate) }));
-  const completedJobsWithRotation = completedJobs.map((job) => ({ ...job, rotationalTaskReminder: rotationalTaskForDate(job.recurrenceStartDate, job.scheduledDate) }));
-  const currentJob = todayJobsWithEquipment[0] ?? upcomingJobsWithRotation[0] ?? null;
-
-  const openEntry = await db
-    .select({
-      role: jobAssignments.role,
-      mileageMiles: jobAssignments.mileageMiles,
-      id: timeEntries.id,
-      jobId: timeEntries.jobId,
-      clockIn: timeEntries.clockIn,
-      clockOut: timeEntries.clockOut,
-      minutesWorked: timeEntries.minutesWorked,
-      notes: timeEntries.notes,
-      scheduledDate: jobs.scheduledDate,
-      scheduledStartTime: jobs.scheduledStartTime,
-      type: jobs.type,
-      recurrenceFrequency: recurringSeries.frequency,
-      estimatedDurationMinutes: jobs.estimatedDurationMinutes,
-      status: jobs.status,
-      customerId: customers.id,
-      customerFirstName: customers.firstName,
-      customerLastName: customers.lastName,
-      customerPhone: customers.phone,
-      addressLine1: customerLocations.addressLine1,
-      city: customerLocations.city,
-      state: customerLocations.state,
-      zip: customerLocations.zip,
-      accessInstructions: customerLocations.accessInstructions,
-      keyNumber: customerLocations.keyNumber,
-      garageCode: customerLocations.garageCode,
-      gateCode: customerLocations.gateCode,
-      alarmCode: customerLocations.alarmCode,
-      vacuumLocation: customerLocations.vacuumLocation,
-      mopHeadsNeeded: customerLocations.mopHeadsNeeded,
-      trashBags: customerLocations.trashBags,
-      generalNotes: customers.generalNotes,
-      preferredDays: customers.preferredDays,
-      preferredTimeOfDay: customers.preferredTimeOfDay,
-      subdivision: customers.subdivision,
-      petNotes: customers.petNotes,
-      doNotClean: customers.doNotClean,
-    })
-    .from(timeEntries)
-    .innerJoin(jobs, eq(timeEntries.jobId, jobs.id))
-    .innerJoin(jobAssignments, and(eq(jobAssignments.jobId, jobs.id), eq(jobAssignments.userId, user.id)))
-    .innerJoin(customers, eq(jobs.customerId, customers.id))
-    .leftJoin(recurringSeries, eq(jobs.recurringSeriesId, recurringSeries.id))
-    .leftJoin(customerLocations, and(eq(customerLocations.customerId, customers.id), eq(customerLocations.isPrimary, true), eq(customerLocations.isActive, true)))
-    .where(and(eq(timeEntries.userId, user.id), isNull(timeEntries.clockOut)))
-    .orderBy(desc(timeEntries.clockIn))
-    .limit(1)
-    .then((rows) => rows[0] ?? null);
-
-  const recentTimeEntries = await db
-    .select({
-      role: jobAssignments.role,
-      id: timeEntries.id,
-      jobId: timeEntries.jobId,
-      clockIn: timeEntries.clockIn,
-      clockOut: timeEntries.clockOut,
-      minutesWorked: timeEntries.minutesWorked,
-      notes: timeEntries.notes,
-      scheduledDate: jobs.scheduledDate,
-      scheduledStartTime: jobs.scheduledStartTime,
-      type: jobs.type,
-      status: jobs.status,
-      customerId: customers.id,
-      customerFirstName: customers.firstName,
-      customerLastName: customers.lastName,
-      customerPhone: customers.phone,
-      addressLine1: customerLocations.addressLine1,
-      city: customerLocations.city,
-      state: customerLocations.state,
-      zip: customerLocations.zip,
-      accessInstructions: customerLocations.accessInstructions,
-      keyNumber: customerLocations.keyNumber,
-      garageCode: customerLocations.garageCode,
-      gateCode: customerLocations.gateCode,
-      alarmCode: customerLocations.alarmCode,
-      vacuumLocation: customerLocations.vacuumLocation,
-      mopHeadsNeeded: customerLocations.mopHeadsNeeded,
-      trashBags: customerLocations.trashBags,
-      generalNotes: customers.generalNotes,
-      preferredDays: customers.preferredDays,
-      preferredTimeOfDay: customers.preferredTimeOfDay,
-      subdivision: customers.subdivision,
-      petNotes: customers.petNotes,
-      doNotClean: customers.doNotClean,
-    })
-    .from(timeEntries)
-    .innerJoin(jobs, eq(timeEntries.jobId, jobs.id))
-    .innerJoin(jobAssignments, and(eq(jobAssignments.jobId, jobs.id), eq(jobAssignments.userId, user.id)))
-    .innerJoin(customers, eq(jobs.customerId, customers.id))
-    .leftJoin(customerLocations, and(eq(customerLocations.customerId, customers.id), eq(customerLocations.isPrimary, true), eq(customerLocations.isActive, true)))
-    .where(eq(timeEntries.userId, user.id))
-    .orderBy(desc(timeEntries.clockIn))
-    .limit(6);
+  const upcomingJobs = upcomingRows.map(({ recurrenceStartDate, completedAt, travelStartedAt, arrivedAt, workStartedAt, ...rest }) => {
+    void completedAt;
+    void travelStartedAt;
+    void arrivedAt;
+    void workStartedAt;
+    return { ...rest, rotationalTaskReminder: rotationalTaskForDate(recurrenceStartDate, rest.scheduledDate) };
+  });
 
   const weeklyMinutes = await db
-    .select({
-      minutesWorked: timeEntries.minutesWorked,
-    })
+    .select({ minutesWorked: timeEntries.minutesWorked })
     .from(timeEntries)
     .where(
       and(
         eq(timeEntries.userId, user.id),
-        gte(timeEntries.clockIn, new Date(`${period.startDate}T00:00:00.000Z`)),
-        lt(timeEntries.clockIn, new Date(`${addDaysISO(period.endDate, 1)}T00:00:00.000Z`))
+        gte(timeEntries.clockIn, startOfDayInstant(period.startDate, company.timezone)),
+        lt(timeEntries.clockIn, startOfDayInstant(addDaysISO(period.endDate, 1), company.timezone))
       )
     )
-    .orderBy(desc(timeEntries.clockIn))
     .then((rows) => rows.reduce((sum, row) => sum + Number(row.minutesWorked ?? 0), 0));
-
-  const hoursThisPeriod = Math.round((weeklyMinutes / 60) * 100) / 100;
-  const currentPeriodLabel = `${period.startDate} to ${period.endDate}`;
-
-  const currentJobData: JobCard | null = openEntry
-    ? {
-        jobId: openEntry.jobId,
-        customerId: openEntry.customerId,
-        role: openEntry.role,
-        mileageMiles: openEntry.mileageMiles,
-        status: openEntry.status,
-        scheduledDate: openEntry.scheduledDate,
-        scheduledStartTime: openEntry.scheduledStartTime,
-        type: openEntry.type,
-        recurrenceFrequency: openEntry.recurrenceFrequency,
-        estimatedDurationMinutes: openEntry.estimatedDurationMinutes,
-        addressLine1: openEntry.addressLine1,
-        city: openEntry.city,
-        state: openEntry.state,
-        zip: openEntry.zip,
-        customerFirstName: openEntry.customerFirstName,
-        customerLastName: openEntry.customerLastName,
-        customerPhone: openEntry.customerPhone,
-        accessInstructions: openEntry.accessInstructions,
-        keyNumber: openEntry.keyNumber,
-        garageCode: openEntry.garageCode,
-        gateCode: openEntry.gateCode,
-        alarmCode: openEntry.alarmCode,
-        vacuumLocation: openEntry.vacuumLocation,
-        mopHeadsNeeded: openEntry.mopHeadsNeeded,
-        trashBags: openEntry.trashBags,
-        generalNotes: openEntry.generalNotes,
-        preferredDays: openEntry.preferredDays,
-        preferredTimeOfDay: openEntry.preferredTimeOfDay,
-        subdivision: openEntry.subdivision,
-        petNotes: openEntry.petNotes,
-        doNotClean: openEntry.doNotClean,
-      }
-    : currentJob
-      ? {
-          jobId: currentJob.jobId,
-          customerId: currentJob.customerId,
-          role: currentJob.role,
-          mileageMiles: currentJob.mileageMiles,
-          status: currentJob.status,
-          scheduledDate: currentJob.scheduledDate,
-          scheduledStartTime: currentJob.scheduledStartTime,
-          type: currentJob.type,
-          recurrenceFrequency: currentJob.recurrenceFrequency,
-          estimatedDurationMinutes: currentJob.estimatedDurationMinutes,
-          addressLine1: currentJob.addressLine1,
-          city: currentJob.city,
-          state: currentJob.state,
-          zip: currentJob.zip,
-          customerFirstName: currentJob.customerFirstName,
-          customerLastName: currentJob.customerLastName,
-          customerPhone: currentJob.customerPhone,
-          accessInstructions: currentJob.accessInstructions,
-          keyNumber: currentJob.keyNumber,
-          garageCode: currentJob.garageCode,
-          gateCode: currentJob.gateCode,
-          alarmCode: currentJob.alarmCode,
-          vacuumLocation: currentJob.vacuumLocation,
-          mopHeadsNeeded: currentJob.mopHeadsNeeded,
-          trashBags: currentJob.trashBags,
-          generalNotes: currentJob.generalNotes,
-          preferredDays: currentJob.preferredDays,
-          preferredTimeOfDay: currentJob.preferredTimeOfDay,
-          subdivision: currentJob.subdivision,
-          petNotes: currentJob.petNotes,
-          doNotClean: currentJob.doNotClean,
-        }
-      : null;
 
   return (
     <MyDayClient
       employeeName={`${user.firstName} ${user.lastName}`}
       officePhone={officePhone}
       companyTimezone={company.timezone}
-      weeklyHours={hoursThisPeriod}
-      currentJob={currentJobData}
-      openEntry={openEntry ? { ...openEntry, clockIn: openEntry.clockIn.toISOString(), clockOut: openEntry.clockOut ? openEntry.clockOut.toISOString() : null } : null}
-      todayJobs={todayJobsWithEquipment}
-      upcomingJobs={upcomingJobsWithRotation.map((job) => ({ ...job }))}
-      completedJobs={completedJobsWithRotation.map((job) => ({ ...job }))}
-      currentYear={new Date().getFullYear()}
+      weeklyHours={Math.round((weeklyMinutes / 60) * 100) / 100}
+      workdayNow={workdayNow}
+      primaryAction={primaryAction}
+      ledger={ledger}
+      stops={stopCards}
+      upcomingJobs={upcomingJobs}
       dayLabel={formatDayLabel(todayIso, company.timezone)}
+      currentYear={new Date().getFullYear()}
       isAdmin={user.role === "admin"}
     />
   );

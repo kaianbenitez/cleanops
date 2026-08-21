@@ -1,11 +1,11 @@
-# CleanOps
+# Shimmer
 
 Full plan: [PLAN.md](./PLAN.md). Deviations from the plan: [DECISIONS.md](./DECISIONS.md).
 **Current status and open items: [HANDOFF.md](./HANDOFF.md) — read this first.**
 
 ## Current beta status
 
-CleanOps v1 is a functional internal operations beta, live on Vercel, with real customer/job
+Shimmer is a functional multi-tenant operations beta, live on Vercel, with real customer/job
 data imported (692 jobs, 209 recurring series backfilled from TheCustomerFactor):
 
 - Dashboard KPIs, schedule, revenue, overdue invoices, attention queues, and inventory snapshot
@@ -18,7 +18,7 @@ data imported (692 jobs, 209 recurring series backfilled from TheCustomerFactor)
   invoices are real**
 - Friday-morning payroll periods, employee detail, Job Ticket Hours calculations, manual adjustments, audit logs, and Gusto CSV export
 - GHL workflow tag mapping, inbound/outbound sync boundaries, retry logs, and webhook replay protection
-- Responsive CleanOps frontend matching the approved evergreen/cream operations-desk mockups
+- Responsive Shimmer frontend matching the approved evergreen/cream operations-desk mockups
 - Sentry error monitoring wired in production
 
 The beta is intended for internal operations/pilot use. Employees do not need to use the app; an admin can enter job hours on their behalf. See [HANDOFF.md](./HANDOFF.md) for what's

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Phone,
@@ -20,17 +20,21 @@ import {
   Clock3,
   Star,
   Package,
+  Users,
 } from "lucide-react";
-import { timeLabel, jobAddress, formatElapsed, jobTypeLabel, recurringFrequencyLabel } from "@/lib/my-day/job-format";
-import { pickMyDayActiveJob } from "@/lib/my-day/active-job";
+import { timeLabel, timestampLabel, jobAddress, jobTypeLabel, recurringFrequencyLabel } from "@/lib/my-day/job-format";
+import type { LedgerEvent, PrimaryAction, WorkdayNow, WorkState } from "@/lib/my-day/workday-state";
 import { MaskedCode } from "@/components/ui/masked-code";
+import NowRegion from "./now-region";
+import Ledger from "./ledger";
 
-type JobCard = {
+type StopCard = {
   jobId: string;
   customerId: string;
   role: "lead" | "helper" | "trainer";
   mileageMiles: string;
   status: string;
+  workState: WorkState;
   scheduledDate: string;
   scheduledStartTime: string | null;
   type: string;
@@ -61,6 +65,12 @@ type JobCard = {
   ragCount?: number | null;
   vacuumCount?: number | null;
   mopHeadEstimate?: number | null;
+  completedAt: string | null;
+  travelStartedAt: string | null;
+  arrivedAt: string | null;
+  workStartedAt: string | null;
+  myClosedEntry: { clockIn: string; clockOut: string; minutesWorked: number | null } | null;
+  coworkers: Array<{ firstName: string; done: boolean }>;
   rotationalTaskReminder?: {
     currentWeek: number;
     everyTime: string;
@@ -96,31 +106,31 @@ function weekdayLabel(dateIso: string, timezone: string) {
   return new Intl.DateTimeFormat("en-US", { timeZone: timezone, weekday: "short" }).format(date);
 }
 
-function relativeTime(scheduledStartTime: string | null, now: number) {
-  if (!scheduledStartTime || !now) return null;
-  const target = new Date(scheduledStartTime).getTime();
-  if (Number.isNaN(target)) return null;
-  const diffMin = Math.round((target - now) / 60000);
-  if (diffMin > 90 || diffMin < -90) return null;
-  if (diffMin > 1) return `in ${diffMin} min`;
-  if (diffMin >= -1) return "now";
-  return `${Math.abs(diffMin)} min ago`;
-}
-
-function roleLabel(role: JobCard["role"]) {
+function roleLabel(role: StopCard["role"]) {
   return role === "lead" ? "You're driving" : role === "trainer" ? "Training" : "Helping";
 }
 
-function serviceLabel(job: JobCard) {
+function serviceLabel(job: { type: string; recurrenceFrequency?: string | null }) {
   return job.type === "recurring" ? recurringFrequencyLabel(job.recurrenceFrequency) ?? jobTypeLabel(job.type) : jobTypeLabel(job.type);
 }
 
-/** Current week's rotation only — folded into the job card it belongs to. Full history stays on the job-detail page. */
-function RotationChecklist({ reminder }: { reminder: NonNullable<JobCard["rotationalTaskReminder"]> }) {
+function formatNameList(names: string[]): string {
+  if (names.length === 0) return "";
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+}
+
+const ACTION_ICON: Partial<Record<PrimaryAction["id"], typeof Car>> = {
+  start_travel: Car,
+  arrived: CheckCircle2,
+  start_work: Play,
+  wrap_up: CheckCircle2,
+};
+
+function RotationChecklist({ reminder }: { reminder: NonNullable<StopCard["rotationalTaskReminder"]> }) {
   const current = reminder.weeks.find((week) => week.week === reminder.currentWeek);
-  const items = [reminder.everyTime, current?.weekly, current?.biweekly, current?.monthly].filter(
-    (item): item is string => Boolean(item)
-  );
+  const items = [reminder.everyTime, current?.weekly, current?.biweekly, current?.monthly].filter((item): item is string => Boolean(item));
   if (!items.length) return null;
   return (
     <div className="mt-3 rounded-[10px] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-3 py-2.5">
@@ -142,61 +152,51 @@ function RouteRow({
   done,
   flagged,
 }: {
-  href: string;
+  href?: string;
   time: string;
   name: string;
   meta: React.ReactNode;
   done?: boolean;
   flagged?: boolean;
 }) {
-  return (
-    <Link
-      href={href}
-      className="co-route-row grid min-h-[64px] grid-cols-[50px_18px_minmax(0,1fr)_16px] items-center gap-2.5 border-t border-[var(--co-line-soft)] px-4 py-2.5 transition-colors hover:bg-[var(--co-surface-muted)] sm:px-5"
-    >
-      <span
-        className={`type-field-meta font-semibold tabular-nums ${
-          flagged ? "text-[var(--co-spark-text)]" : done ? "text-[var(--co-success)]" : "text-[var(--co-ink)]"
-        }`}
-      >
+  const inner = (
+    <>
+      <span className={`type-field-meta font-semibold tabular-nums ${flagged ? "text-[var(--co-spark-text)]" : done ? "text-[var(--co-success)]" : "text-[var(--co-ink)]"}`}>
         {time}
       </span>
       <span className="co-route-rail flex items-center justify-center">
         <span className={`co-route-node ${done ? "is-done" : ""} ${flagged ? "is-flagged" : ""}`} />
       </span>
       <span className="min-w-0">
-        <p className={`type-field-body font-medium ${done ? "text-[var(--co-muted)]" : "text-[var(--co-ink)]"}`}>{name}</p>
+        <p className={`truncate type-field-body font-medium ${done ? "text-[var(--co-muted)]" : "text-[var(--co-ink)]"}`}>{name}</p>
         <span className="mt-0.5 flex items-center gap-1.5 type-field-meta text-[var(--co-muted)]">{meta}</span>
       </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-[var(--co-faint)]" aria-hidden />
+      {href ? <ChevronRight className="h-4 w-4 shrink-0 text-[var(--co-faint)]" aria-hidden /> : <span aria-hidden />}
+    </>
+  );
+  const className =
+    "co-route-row grid min-h-[64px] grid-cols-[50px_18px_minmax(0,1fr)_16px] items-center gap-2.5 border-t border-[var(--co-line-soft)] px-4 py-2.5 sm:px-5";
+  return href ? (
+    <Link href={href} className={`${className} transition-colors hover:bg-[var(--co-surface-muted)]`}>
+      {inner}
     </Link>
+  ) : (
+    <div className={className}>{inner}</div>
   );
 }
 
-type TimeEntry = {
-  id: string;
-  jobId: string;
-  clockIn: string;
-  clockOut: string | null;
-  minutesWorked: number | null;
-  notes: string | null;
-};
-
-type UndoAction = {
-  label: string;
-  onUndo: () => void | Promise<void>;
-};
+type UndoAction = { label: string; onUndo: () => void | Promise<void> };
 
 export default function MyDayClient({
   employeeName,
   companyTimezone,
   weeklyHours,
   officePhone,
-  currentJob,
-  openEntry,
-  todayJobs,
+  workdayNow,
+  primaryAction,
+  ledger,
+  stops,
   upcomingJobs,
-  completedJobs,
   dayLabel,
   currentYear,
   isAdmin,
@@ -205,40 +205,25 @@ export default function MyDayClient({
   officePhone: string | null;
   companyTimezone: string;
   weeklyHours: number;
-  currentJob: JobCard | null;
-  openEntry: TimeEntry | null;
-  todayJobs: JobCard[];
-  upcomingJobs: JobCard[];
-  completedJobs: JobCard[];
+  workdayNow: WorkdayNow;
+  primaryAction: PrimaryAction;
+  ledger: LedgerEvent[];
+  stops: StopCard[];
+  upcomingJobs: Array<Omit<StopCard, "workState" | "completedAt" | "travelStartedAt" | "arrivedAt" | "workStartedAt" | "myClosedEntry" | "coworkers">>;
   dayLabel: string;
   currentYear: number;
   isAdmin: boolean;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(currentJob?.jobId ?? todayJobs[0]?.jobId ?? upcomingJobs[0]?.jobId ?? null);
-  const [localTodayJobs, setLocalTodayJobs] = useState<JobCard[]>(todayJobs);
-  const [localUpcomingJobs, setLocalUpcomingJobs] = useState<JobCard[]>(upcomingJobs);
-  const [localCompletedJobs, setLocalCompletedJobs] = useState<JobCard[]>(completedJobs);
-  const [now, setNow] = useState(0);
-  const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [arrivedJobId, setArrivedJobId] = useState<string | null>(null);
+  const [uncertain, setUncertain] = useState(false);
+  const [receipt, setReceipt] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [mileageDraft, setMileageDraft] = useState<Record<string, string>>({});
   const [editingMileage, setEditingMileage] = useState<Record<string, boolean>>({});
-  const [busy, setBusyState] = useState<Record<string, boolean>>({});
-
-  function setBusy(key: string, value: boolean) {
-    setBusyState((current) => ({ ...current, [key]: value }));
-  }
-
-  useEffect(() => {
-    // Initialize the client-only clock after hydration, then keep it current.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setNow(Date.now());
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(id);
-  }, []);
+  const [mileageBusy, setMileageBusy] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!undoAction) return;
@@ -247,164 +232,143 @@ export default function MyDayClient({
   }, [undoAction]);
 
   useEffect(() => {
-    // This state mirrors fresh server data after an action or manual refresh.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocalTodayJobs(todayJobs);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocalUpcomingJobs(upcomingJobs);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocalCompletedJobs(completedJobs);
-  }, [todayJobs, upcomingJobs, completedJobs]);
+    if (!receipt) return;
+    const id = window.setTimeout(() => setReceipt(null), 6000);
+    return () => window.clearTimeout(id);
+  }, [receipt]);
 
-  useEffect(() => {
-    if (!selectedJobId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelectedJobId(currentJob?.jobId ?? todayJobs[0]?.jobId ?? upcomingJobs[0]?.jobId ?? null);
-      return;
-    }
-    const present =
-      todayJobs.some((job) => job.jobId === selectedJobId) ||
-      upcomingJobs.some((job) => job.jobId === selectedJobId);
-    if (!present) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelectedJobId(currentJob?.jobId ?? todayJobs[0]?.jobId ?? upcomingJobs[0]?.jobId ?? null);
-    }
-  }, [currentJob?.jobId, selectedJobId, todayJobs, upcomingJobs]);
-
-  const activeJob = useMemo(() => pickMyDayActiveJob({
-    currentJob,
-    openEntryJobId: openEntry?.jobId ?? null,
-    selectedJobId,
-    todayJobs: localTodayJobs,
-    upcomingJobs: localUpcomingJobs,
-  }), [currentJob, localTodayJobs, localUpcomingJobs, openEntry?.jobId, selectedJobId]);
-
-  const activeTimerLabel = formatElapsed(openEntry?.clockIn ?? null, now);
-  const routeJobs = [...localTodayJobs].sort((a, b) => (a.scheduledStartTime ?? "").localeCompare(b.scheduledStartTime ?? ""));
-  const restOfToday = routeJobs.filter((job) => job.jobId !== activeJob?.jobId);
-  const restOfWeekUpcoming = localUpcomingJobs.filter((job) => job.jobId !== activeJob?.jobId);
-  const weekRows = [...localCompletedJobs, ...restOfWeekUpcoming];
-  const dayStarted = Boolean(openEntry) || localCompletedJobs.length > 0;
-  const loadout = routeJobs.reduce(
-    (acc, job) => {
-      acc.mop += job.mopHeadCount ?? job.mopHeadEstimate ?? 0;
-      acc.rag += job.ragCount ?? 0;
-      acc.vacuum += job.vacuumCount ?? 0;
+  const currentStop = workdayNow.currentStopId ? stops.find((stop) => stop.jobId === workdayNow.currentStopId) ?? null : null;
+  const isStale = workdayNow.state === "stale_entry";
+  const todayStops = stops.filter((stop) => stop.workState !== "stale_entry");
+  const routeStops = todayStops
+    .filter((stop) => stop.jobId !== currentStop?.jobId && !stop.myClosedEntry)
+    .sort((a, b) => (a.scheduledStartTime ?? "~").localeCompare(b.scheduledStartTime ?? "~"));
+  const waitingStops = todayStops.filter((stop) => stop.jobId !== currentStop?.jobId && stop.myClosedEntry && !stop.completedAt);
+  const dayStarted = todayStops.some((stop) => stop.travelStartedAt);
+  const loadout = todayStops.reduce(
+    (acc, stop) => {
+      acc.mop += stop.mopHeadCount ?? stop.mopHeadEstimate ?? 0;
+      acc.rag += stop.ragCount ?? 0;
+      acc.vacuum += stop.vacuumCount ?? 0;
       return acc;
     },
     { mop: 0, rag: 0, vacuum: 0 }
   );
   const hasLoadout = loadout.mop > 0 || loadout.rag > 0 || loadout.vacuum > 0;
+  // The day's first stop is the earliest of ALL today's stops — not the
+  // earliest of the ones left. Deriving it from `routeStops` (which excludes
+  // the current stop) made the header name the SECOND stop while the Now
+  // region named the first, putting two different times on one screen.
+  const firstStopToday = [...todayStops].sort((a, b) => (a.scheduledStartTime ?? "~").localeCompare(b.scheduledStartTime ?? "~"))[0];
 
-  const isWorking = Boolean(activeJob) && openEntry?.jobId === activeJob?.jobId;
-  const hasArrived = Boolean(activeJob) && arrivedJobId === activeJob?.jobId;
-  const hasAddress = Boolean(activeJob && jobAddress(activeJob));
-  const heroTime = activeJob ? timeLabel(activeJob.scheduledStartTime) : null;
-  const hasTime = Boolean(heroTime) && heroTime !== "—" && heroTime !== "Time not set";
-  const rel = activeJob ? relativeTime(activeJob.scheduledStartTime, now) : null;
-
-  async function clockIn(jobId: string, options?: { undoLabel?: string; undoAction?: () => void | Promise<void>; onSuccess?: () => void }) {
-    setError(null);
-    setBusy(`clock:${jobId}`, true);
-    try {
-      const res = await fetch(`/api/jobs/${jobId}/clock-in`, { method: "POST" });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(typeof body.error === "string" ? body.error : "Could not clock in.");
-        return;
-      }
-      setSelectedJobId(jobId);
-      if (options?.undoAction) setUndoAction({ label: options.undoLabel ?? "Clock in saved", onUndo: options.undoAction });
-      if (options?.onSuccess) {
-        options.onSuccess();
-      } else {
-        startTransition(() => router.refresh());
-      }
-    } catch {
-      setError("Couldn't reach the office — check your signal and try again.");
-    } finally {
-      setBusy(`clock:${jobId}`, false);
-    }
+  /** One request id per user tap, reused across retries of that same tap so a
+   * repeat can be recognised as the same intent rather than a new one. */
+  function newRequestId() {
+    return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
   }
 
-  async function clockOut(jobId: string, options?: { undoLabel?: string; undoAction?: () => void | Promise<void> }) {
+  async function runTransition(action: PrimaryAction) {
+    if (!action.jobId || !action.transitionTo || busy) return;
     setError(null);
-    setBusy(`clock:${jobId}`, true);
+    setUncertain(false);
+    setBusy(true);
+    const stop = stops.find((item) => item.jobId === action.jobId);
+    const name = stop ? `${stop.customerFirstName} ${stop.customerLastName}` : "this stop";
     try {
-      const res = await fetch(`/api/jobs/${jobId}/clock-out`, { method: "POST" });
+      const res = await fetch(`/api/jobs/${action.jobId}/transition`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: action.transitionTo, clientRequestId: newRequestId() }),
+      });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(typeof body.error === "string" ? body.error : "Could not clock out.");
+        setError(typeof body.error === "string" ? body.error : "That didn't save. Call the office if it keeps happening.");
         return;
       }
-      if (arrivedJobId === jobId) setArrivedJobId(null);
-      if (options?.undoAction) setUndoAction({ label: options.undoLabel ?? "Action saved", onUndo: options.undoAction });
+      // `idempotent: true` means the transition was already recorded — that is
+      // success, not an error. Showing a red message here is what made a
+      // double-tap look like a failure.
+      const stamp =
+        action.transitionTo === "traveling"
+          ? body.travelStartedAt
+          : action.transitionTo === "arrived"
+            ? body.arrivedAt
+            : body.workStartedAt;
+      const verb = action.transitionTo === "traveling" ? "Travel started" : action.transitionTo === "arrived" ? "Arrival recorded" : "Cleaning started";
+      setReceipt(stamp ? `${verb} · ${timestampLabel(stamp, companyTimezone)}` : `${verb} · saved`);
+      if (action.transitionTo === "traveling") {
+        setUndoAction({ label: `${verb} at ${name}`, onUndo: () => discardStart(action.jobId!) });
+      }
       startTransition(() => router.refresh());
     } catch {
-      setError("Couldn't reach the office — check your signal and try again.");
+      // The request may well have succeeded before the connection dropped.
+      // Never invite a blind repeat of a mutation that might already be saved.
+      setUncertain(true);
     } finally {
-      setBusy(`clock:${jobId}`, false);
+      setBusy(false);
     }
   }
 
-  function onMyWay(jobId: string) {
-    clockIn(jobId, {
-      undoLabel: "Travel started · you’re clocked in",
-      undoAction: () => clockOut(jobId),
-    });
-  }
-
-  function markArrived(jobId: string) {
-    setArrivedJobId(jobId);
-  }
-
-  function beginJob(jobId: string) {
-    router.push(`/my-day/${jobId}`);
-  }
-
-  async function saveMileage(job: JobCard) {
+  async function discardStart(jobId: string) {
     setError(null);
-    setBusy(`mileage:${job.jobId}`, true);
+    setUncertain(false);
+    setBusy(true);
     try {
-      const value = Number(mileageDraft[job.jobId] ?? job.mileageMiles ?? 0);
-      const res = await fetch(`/api/jobs/${job.jobId}/mileage`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mileageMiles: value }) });
+      const res = await fetch(`/api/jobs/${jobId}/clock-in`, { method: "DELETE" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof body.error === "string" ? body.error : "Could not discard this start.");
+        return;
+      }
+      setReceipt("Start discarded · this stop is back on your route");
+      startTransition(() => router.refresh());
+    } catch {
+      setUncertain(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveMileage(stop: StopCard) {
+    setError(null);
+    setMileageBusy((current) => ({ ...current, [stop.jobId]: true }));
+    try {
+      const value = Number(mileageDraft[stop.jobId] ?? stop.mileageMiles ?? 0);
+      const res = await fetch(`/api/jobs/${stop.jobId}/mileage`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mileageMiles: value }),
+      });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(typeof body.error === "string" ? body.error : "Could not save mileage.");
         return;
       }
-      setEditingMileage((current) => ({ ...current, [job.jobId]: false }));
+      setEditingMileage((current) => ({ ...current, [stop.jobId]: false }));
       startTransition(() => router.refresh());
     } catch {
-      setError("Couldn't reach the office — check your signal and try again.");
+      setUncertain(true);
     } finally {
-      setBusy(`mileage:${job.jobId}`, false);
+      setMileageBusy((current) => ({ ...current, [stop.jobId]: false }));
     }
   }
 
-  function discardJob(jobId: string) {
-    void undoClockIn(jobId);
-  }
-
-  async function undoClockIn(jobId: string) {
-    setError(null);
-    setBusy(`clock:${jobId}`, true);
-    try {
-      const res = await fetch(`/api/jobs/${jobId}/clock-in`, { method: "DELETE" });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(typeof body.error === "string" ? body.error : "Could not discard this clock-in.");
-        return;
-      }
-      if (arrivedJobId === jobId) setArrivedJobId(null);
-      setUndoAction({ label: "Clock in discarded", onUndo: () => onMyWay(jobId) });
+  function onPrimaryAction() {
+    if (primaryAction.transitionTo) {
+      void runTransition(primaryAction);
+      return;
+    }
+    if (primaryAction.id === "wrap_up" && primaryAction.jobId) {
+      router.push(`/my-day/${primaryAction.jobId}`);
+      return;
+    }
+    if (primaryAction.id === "back_to_my_day" || primaryAction.id === "review_day") {
       startTransition(() => router.refresh());
-    } catch {
-      setError("Couldn't reach the office — check your signal and try again.");
-    } finally {
-      setBusy(`clock:${jobId}`, false);
     }
   }
+
+  const ActionIcon = ACTION_ICON[primaryAction.id];
+  const address = currentStop ? jobAddress(currentStop) : "";
 
   return (
     <div className="mx-auto max-w-[560px] pb-16">
@@ -412,47 +376,73 @@ export default function MyDayClient({
         <div className="min-w-0">
           <p className="type-field-title font-bold tracking-[-0.01em] text-[var(--co-ink)]">{dayLabel}</p>
           <p className="mt-0.5 type-field-meta tabular-nums text-[var(--co-muted)]">
-            {routeJobs.length > 0
-              ? `${routeJobs.length} ${routeJobs.length === 1 ? "stop" : "stops"} · first at ${timeLabel(routeJobs[0].scheduledStartTime)} · ${weeklyHours.toFixed(1)}h this week`
-              : `No stops today · ${weeklyHours.toFixed(1)}h this week`}
+            {todayStops.length > 0
+              ? `${todayStops.length} ${todayStops.length === 1 ? "stop" : "stops"}${firstStopToday ? ` · first at ${timeLabel(firstStopToday.scheduledStartTime)}` : ""} · ${weeklyHours.toFixed(1)}h recorded this week`
+              : `No stops today · ${weeklyHours.toFixed(1)}h recorded this week`}
           </p>
           <p className="sr-only">{employeeName}</p>
         </div>
         {isAdmin ? (
-          <Link
-            href="/my-day/pto"
-            className="flex min-h-11 shrink-0 items-center gap-1.5 type-field-meta font-medium text-[var(--co-muted)] hover:text-[var(--co-ink)]"
-          >
+          <Link href="/my-day/pto" className="flex min-h-11 shrink-0 items-center gap-1.5 type-field-meta font-medium text-[var(--co-muted)] hover:text-[var(--co-ink)]">
             <CalendarCheck className="h-4 w-4" aria-hidden strokeWidth={1.75} />
             Time off
           </Link>
         ) : null}
       </div>
 
+      <NowRegion now={workdayNow} />
+
+      {receipt ? (
+        <p role="status" className="mx-4 mt-3 rounded-xl border px-3.5 py-2.5 type-field-meta font-medium sm:mx-5" style={{ background: "color-mix(in srgb, var(--co-success) 10%, var(--co-surface))", borderColor: "color-mix(in srgb, var(--co-success) 26%, transparent)", color: "var(--co-ink)" }}>
+          {receipt}
+        </p>
+      ) : null}
+
+      {uncertain ? (
+        <div role="alert" className="mx-4 mt-3 rounded-xl border border-[var(--co-line)] bg-[var(--co-surface-muted)] px-3.5 py-3 sm:mx-5">
+          <p className="type-field-body font-semibold text-[var(--co-ink)]">We couldn&apos;t confirm whether that was saved.</p>
+          <p className="mt-1 type-field-meta text-[var(--co-muted)]">Check before trying again — it may already be recorded.</p>
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setUncertain(false);
+                startTransition(() => router.refresh());
+              }}
+              className="co-button-secondary min-h-11 px-3 type-field-meta"
+            >
+              Check status
+            </button>
+            {officePhone ? (
+              <a href={`tel:${officePhone}`} className="inline-flex min-h-11 items-center gap-1.5 type-field-meta font-medium text-[var(--co-muted)] hover:text-[var(--co-ink)]">
+                <Phone className="h-3.5 w-3.5" aria-hidden />
+                Call the office
+              </a>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
       {error ? (
-        <p role="alert" className="co-badge-danger mx-4 mb-3 rounded-xl px-4 py-3 type-field-body sm:mx-5">
+        <p role="alert" className="co-badge-danger mx-4 mt-3 rounded-xl px-4 py-3 type-field-body sm:mx-5">
           {error}
         </p>
       ) : null}
 
-      {openEntry ? (
-        <Link
-          href={`/my-day/${openEntry.jobId}`}
-          aria-label={`Clocked in, continue ${activeJob ? `${activeJob.customerFirstName} ${activeJob.customerLastName}'s job` : "your job"}`}
-          className="mx-4 mb-3 flex items-baseline gap-2.5 rounded-[var(--co-radius-card)] border px-3.5 py-2.5 sm:mx-5"
-          style={{ background: "color-mix(in srgb, var(--co-success) 12%, var(--co-surface))", borderColor: "color-mix(in srgb, var(--co-success) 26%, transparent)" }}
-        >
-          <span className="h-2 w-2 shrink-0 animate-pulse self-center rounded-full" style={{ background: "var(--co-success)" }} aria-hidden />
-          <span className="font-mono text-[20px] font-semibold tabular-nums tracking-[-0.01em]" style={{ color: "var(--co-success)" }}>
-            {activeTimerLabel}
-          </span>
-          <span className="type-field-meta font-medium text-[var(--co-muted)]">clocked in · travel included</span>
-          <span className="ml-auto type-field-meta font-medium tabular-nums text-[var(--co-muted)]">since {timeLabel(openEntry.clockIn)}</span>
-        </Link>
+      {isStale && officePhone ? (
+        <div className="mx-4 mt-3 rounded-xl border border-[var(--co-line)] bg-[var(--co-spark-tint)] px-3.5 py-3 sm:mx-5">
+          <p className="type-field-meta text-[var(--co-spark-text)]">
+            Call the office to get this closed at the right time — starting a new stop isn&apos;t possible until it is.
+          </p>
+          <a href={`tel:${officePhone}`} className="mt-2 inline-flex min-h-11 items-center gap-1.5 type-field-meta font-semibold text-[var(--co-spark-text)]">
+            <Phone className="h-3.5 w-3.5" aria-hidden />
+            Call the office
+          </a>
+        </div>
       ) : null}
 
       {!dayStarted && hasLoadout ? (
-        <div className="mx-4 mb-3.5 rounded-[var(--co-radius-card)] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-3.5 py-3 sm:mx-5">
+        <div className="mx-4 mb-3.5 mt-3 rounded-[var(--co-radius-card)] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-3.5 py-3 sm:mx-5">
           <p className="type-field-meta font-semibold text-[var(--co-muted)]">Load out for today</p>
           <div className="mt-2 grid grid-cols-3 gap-1.5">
             <div className="flex items-center gap-2">
@@ -492,34 +482,28 @@ export default function MyDayClient({
         </div>
       ) : null}
 
-      {activeJob ? (
-        <div className="border-y border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-5 sm:px-5">
-          <div className="flex flex-wrap items-baseline gap-2.5">
-            <p className={`type-field-hero tabular-nums ${hasTime ? "text-[var(--co-ink)]" : "text-[var(--co-spark-text)]"}`}>
-              {hasTime ? heroTime : "Time not set"}
-            </p>
-            {rel ? <span className="type-field-meta font-semibold text-[var(--co-muted)]">{rel}</span> : null}
-          </div>
-          <p className="type-field-display mt-1.5 font-semibold text-[var(--co-ink)]">
-            {activeJob.customerFirstName} {activeJob.customerLastName}
+      {currentStop && !isStale ? (
+        <div className="mt-3 border-y border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-5 sm:px-5">
+          <p className="type-field-display font-semibold text-[var(--co-ink)]">
+            {currentStop.customerFirstName} {currentStop.customerLastName}
+          </p>
+          <p className="mt-0.5 type-field-meta tabular-nums text-[var(--co-muted)]">
+            Scheduled {timeLabel(currentStop.scheduledStartTime)}
           </p>
 
-          {hasAddress ? (
+          {address ? (
             <a
-              href={`https://maps.google.com/?q=${encodeURIComponent(jobAddress(activeJob))}`}
+              href={`https://maps.google.com/?q=${encodeURIComponent(address)}`}
               target="_blank"
               rel="noreferrer"
-              className="mt-2 inline-flex items-center gap-1.5 border-b type-field-body font-medium text-[var(--co-accent-text)]"
+              className="mt-2 inline-flex min-h-11 items-center gap-1.5 border-b type-field-body font-medium text-[var(--co-accent-text)]"
               style={{ borderColor: "color-mix(in srgb, var(--co-accent-text) 35%, transparent)" }}
             >
               <MapPin className="h-4 w-4 shrink-0" aria-hidden strokeWidth={1.75} />
-              {jobAddress(activeJob)}
+              {address}
             </a>
           ) : officePhone ? (
-            <a
-              href={`tel:${officePhone}`}
-              className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[var(--co-spark-tint)] px-2.5 py-1.5 type-field-meta font-semibold text-[var(--co-spark-text)]"
-            >
+            <a href={`tel:${officePhone}`} className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[var(--co-spark-tint)] px-2.5 py-1.5 type-field-meta font-semibold text-[var(--co-spark-text)]">
               <TriangleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
               Address not set · call the office
             </a>
@@ -531,101 +515,91 @@ export default function MyDayClient({
           )}
 
           <p className="mt-2.5 flex items-center gap-1.5 type-field-meta text-[var(--co-muted)]">
-            <ServiceTypeIcon type={activeJob.type} className="h-[17px] w-[17px] shrink-0 text-[var(--co-ink)]" />
-            {serviceLabel(activeJob)} · {shortDuration(activeJob.estimatedDurationMinutes) ?? "Est. pending"} · {roleLabel(activeJob.role)}
+            <ServiceTypeIcon type={currentStop.type} className="h-[17px] w-[17px] shrink-0 text-[var(--co-ink)]" />
+            {serviceLabel(currentStop)} · {shortDuration(currentStop.estimatedDurationMinutes) ?? "Est. pending"} · {roleLabel(currentStop.role)}
           </p>
 
-          {activeJob.petNotes || activeJob.doNotClean ? (
-            <div className="mt-2.5 flex flex-wrap gap-1.5">
-              {activeJob.petNotes ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2.5 py-1 type-field-micro font-semibold text-[var(--co-muted)]">
-                  <PawPrint className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
-                  {activeJob.petNotes}
-                </span>
+          {currentStop.petNotes || currentStop.doNotClean || currentStop.accessInstructions || currentStop.keyNumber || currentStop.garageCode || currentStop.gateCode || currentStop.alarmCode ? (
+            <div className="mt-3">
+              {currentStop.petNotes || currentStop.doNotClean ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {currentStop.petNotes ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2.5 py-1 type-field-micro font-semibold text-[var(--co-muted)]">
+                      <PawPrint className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
+                      {currentStop.petNotes}
+                    </span>
+                  ) : null}
+                  {currentStop.doNotClean ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2.5 py-1 type-field-micro font-semibold text-[var(--co-muted)]">
+                      <CircleSlash className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
+                      {currentStop.doNotClean}
+                    </span>
+                  ) : null}
+                </div>
               ) : null}
-              {activeJob.doNotClean ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2.5 py-1 type-field-micro font-semibold text-[var(--co-muted)]">
-                  <CircleSlash className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
-                  {activeJob.doNotClean}
-                </span>
+
+              {currentStop.accessInstructions || currentStop.keyNumber || currentStop.garageCode || currentStop.gateCode || currentStop.alarmCode ? (
+                <details className={currentStop.petNotes || currentStop.doNotClean ? "mt-2" : ""} open>
+                  <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 type-field-body font-semibold text-[var(--co-ink)] [&::-webkit-details-marker]:hidden">
+                    <ChevronRight className="h-[15px] w-[15px] shrink-0 transition-transform [details[open]_&]:rotate-90" aria-hidden />
+                    Entry instructions
+                  </summary>
+                  <div className="mt-1 space-y-2 rounded-[10px] bg-[var(--co-surface-muted)] px-3.5 py-3 type-field-meta text-[var(--co-ink)]">
+                    {currentStop.accessInstructions ? <p className="whitespace-pre-line">{currentStop.accessInstructions}</p> : null}
+                    {currentStop.keyNumber || currentStop.garageCode || currentStop.gateCode || currentStop.alarmCode ? (
+                      <MaskedCode className="max-w-full text-left type-field-meta">
+                        {[currentStop.keyNumber && `Key #${currentStop.keyNumber}`, currentStop.garageCode && `Garage ${currentStop.garageCode}`, currentStop.gateCode && `Gate ${currentStop.gateCode}`, currentStop.alarmCode && `Alarm ${currentStop.alarmCode}`]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </MaskedCode>
+                    ) : null}
+                  </div>
+                </details>
               ) : null}
             </div>
           ) : null}
 
-          <div className="mt-4">
-            {isWorking ? (
-              hasArrived ? (
-                <button type="button" onClick={() => beginJob(activeJob.jobId)} className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full bg-[var(--co-accent-fill)] px-5 text-[17px] font-semibold text-white transition-colors hover:bg-[var(--co-accent-fill-hover)]">
-                  <Play className="h-[19px] w-[19px]" aria-hidden />
-                  Start cleaning
-                </button>
-              ) : (
-                <button type="button" onClick={() => markArrived(activeJob.jobId)} className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full bg-[var(--co-accent-fill)] px-5 text-[17px] font-semibold text-white transition-colors hover:bg-[var(--co-accent-fill-hover)]">
-                  <CheckCircle2 className="h-[19px] w-[19px]" aria-hidden />
-                  I&apos;ve arrived
-                </button>
-              )
-            ) : (
+          {primaryAction.id !== "none" ? (
+            <div className="mt-4">
               <button
                 type="button"
-                onClick={() => onMyWay(activeJob.jobId)}
-                disabled={busy[`clock:${activeJob.jobId}`]}
+                onClick={onPrimaryAction}
+                disabled={busy}
                 className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full bg-[var(--co-accent-fill)] px-5 text-[17px] font-semibold text-white transition-colors hover:bg-[var(--co-accent-fill-hover)] disabled:opacity-60"
               >
-                <Car className="h-[19px] w-[19px]" aria-hidden />
-                {busy[`clock:${activeJob.jobId}`] ? "Clocking in…" : "Start travel & clock in"}
+                {ActionIcon ? <ActionIcon className="h-[19px] w-[19px]" aria-hidden /> : null}
+                {busy ? "Saving…" : primaryAction.label}
               </button>
-            )}
-          </div>
-
-          {activeJob.accessInstructions || activeJob.keyNumber || activeJob.garageCode || activeJob.gateCode || activeJob.alarmCode ? (
-            <details className="mt-3.5">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 type-field-body font-semibold text-[var(--co-muted)] [&::-webkit-details-marker]:hidden">
-                <ChevronRight className="h-[15px] w-[15px] shrink-0 transition-transform [details[open]_&]:rotate-90" aria-hidden />
-                Entry instructions
-              </summary>
-              <div className="mt-1 space-y-2 rounded-[10px] bg-[var(--co-surface-muted)] px-3.5 py-3 type-field-meta text-[var(--co-ink)]">
-                {activeJob.accessInstructions ? <p className="whitespace-pre-line">{activeJob.accessInstructions}</p> : null}
-                {activeJob.keyNumber || activeJob.garageCode || activeJob.gateCode || activeJob.alarmCode ? (
-                  <MaskedCode className="max-w-full text-left type-field-meta">
-                    {[activeJob.keyNumber && `Key #${activeJob.keyNumber}`, activeJob.garageCode && `Garage ${activeJob.garageCode}`, activeJob.gateCode && `Gate ${activeJob.gateCode}`, activeJob.alarmCode && `Alarm ${activeJob.alarmCode}`].filter(Boolean).join(" · ")}
-                  </MaskedCode>
-                ) : null}
-              </div>
-            </details>
+            </div>
           ) : null}
 
-          {activeJob.rotationalTaskReminder ? <RotationChecklist reminder={activeJob.rotationalTaskReminder} /> : null}
-
           <div className="mt-3.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-            <Link href={`/my-day/${activeJob.jobId}`} className="flex min-h-11 items-center border-b border-[var(--co-line)] type-field-meta font-semibold text-[var(--co-muted)] hover:text-[var(--co-ink)]">
+            <Link href={`/my-day/${currentStop.jobId}`} className="flex min-h-11 items-center border-b border-[var(--co-line)] type-field-meta font-semibold text-[var(--co-muted)] hover:text-[var(--co-ink)]">
               Job details
             </Link>
-            {activeJob.role === "lead" ? (
-              !editingMileage[activeJob.jobId] ? (
-                <button
-                  type="button"
-                  onClick={() => setEditingMileage((current) => ({ ...current, [activeJob.jobId]: true }))}
-                  className="flex min-h-11 items-center border-b border-[var(--co-line)] type-field-meta font-semibold text-[var(--co-muted)] hover:text-[var(--co-ink)]"
-                >
-                  {Number(activeJob.mileageMiles) > 0 ? `${activeJob.mileageMiles} mi logged` : "Log mileage"}
-                </button>
-              ) : null
-            ) : null}
-            {isWorking ? (
+            {currentStop.role === "lead" && !editingMileage[currentStop.jobId] ? (
               <button
                 type="button"
-                onClick={() => discardJob(activeJob.jobId)}
-                disabled={busy[`clock:${activeJob.jobId}`]}
-                className="flex min-h-11 items-center border-b border-[var(--co-danger)]/40 type-field-meta font-semibold text-[var(--co-danger)] hover:border-[var(--co-danger)]"
+                onClick={() => setEditingMileage((current) => ({ ...current, [currentStop.jobId]: true }))}
+                className="flex min-h-11 items-center border-b border-[var(--co-line)] type-field-meta font-semibold text-[var(--co-muted)] hover:text-[var(--co-ink)]"
+              >
+                {Number(currentStop.mileageMiles) > 0 ? `${currentStop.mileageMiles} mi logged` : "Log mileage"}
+              </button>
+            ) : null}
+            {currentStop.travelStartedAt && !currentStop.myClosedEntry ? (
+              <button
+                type="button"
+                onClick={() => void discardStart(currentStop.jobId)}
+                disabled={busy}
+                className="flex min-h-11 items-center border-b border-[var(--co-danger)]/40 type-field-meta font-semibold text-[var(--co-danger)] hover:border-[var(--co-danger)] disabled:opacity-60"
               >
                 <X className="mr-1 h-3.5 w-3.5" aria-hidden />
-                Discard
+                Discard start
               </button>
             ) : null}
           </div>
 
-          {editingMileage[activeJob.jobId] ? (
+          {editingMileage[currentStop.jobId] ? (
             <div className="mt-2 flex items-center gap-2">
               <input
                 aria-label="Mileage miles"
@@ -633,105 +607,118 @@ export default function MyDayClient({
                 min="0"
                 step="0.1"
                 autoFocus
-                value={mileageDraft[activeJob.jobId] ?? activeJob.mileageMiles}
-                onChange={(event) => setMileageDraft((current) => ({ ...current, [activeJob.jobId]: event.target.value }))}
+                value={mileageDraft[currentStop.jobId] ?? currentStop.mileageMiles}
+                onChange={(event) => setMileageDraft((current) => ({ ...current, [currentStop.jobId]: event.target.value }))}
                 className="co-input w-28 text-sm"
               />
               <span className="type-field-meta text-[var(--co-muted)]">miles</span>
-              <button type="button" onClick={() => saveMileage(activeJob)} className="co-button-secondary px-2.5 py-1.5 type-field-meta" disabled={busy[`mileage:${activeJob.jobId}`]}>
-                {busy[`mileage:${activeJob.jobId}`] ? "Saving…" : "Save"}
+              <button type="button" onClick={() => void saveMileage(currentStop)} className="co-button-secondary px-2.5 py-1.5 type-field-meta" disabled={mileageBusy[currentStop.jobId]}>
+                {mileageBusy[currentStop.jobId] ? "Saving…" : "Save"}
               </button>
             </div>
           ) : null}
+
+          {currentStop.rotationalTaskReminder ? <RotationChecklist reminder={currentStop.rotationalTaskReminder} /> : null}
         </div>
-      ) : (
-        <div className="flex flex-col items-center border-y border-[var(--co-line-soft)] px-4 py-10 text-center sm:px-5">
+      ) : !currentStop ? (
+        <div className="mt-3 flex flex-col items-center border-y border-[var(--co-line-soft)] px-4 py-10 text-center sm:px-5">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--co-surface-muted)]">
             <CalendarCheck className="h-7 w-7 text-[var(--co-muted)]" aria-hidden />
           </div>
-          <p className="mt-4 type-field-body font-medium text-[var(--co-ink)]">That&apos;s everything for today.</p>
-        </div>
-      )}
-
-      {restOfToday.length > 0 ? (
-        <div>
-          <p className="px-4 pb-2 pt-5 type-field-meta font-semibold text-[var(--co-muted)] sm:px-5">Rest of today</p>
-          <div>
-            {restOfToday.map((job) => {
-              const flagged = !jobAddress(job);
-              return (
-                <RouteRow
-                  key={job.jobId}
-                  href={`/my-day/${job.jobId}`}
-                  time={timeLabel(job.scheduledStartTime)}
-                  name={`${job.customerFirstName} ${job.customerLastName}`}
-                  flagged={flagged}
-                  meta={
-                    flagged ? (
-                      <>
-                        <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-[var(--co-spark-text)]" aria-hidden strokeWidth={1.75} />
-                        <span className="text-[var(--co-spark-text)]">No address · call office</span>
-                      </>
-                    ) : (
-                      <>
-                        <ServiceTypeIcon type={job.type} className="h-[15px] w-[15px] shrink-0" />
-                        {serviceLabel(job)} · {job.city ?? "No city"} · {shortDuration(job.estimatedDurationMinutes) ?? "Est. pending"}
-                      </>
-                    )
-                  }
-                />
-              );
-            })}
-          </div>
+          <p className="mt-4 type-field-body font-medium text-[var(--co-ink)]">
+            {todayStops.length === 0 ? "No stops today." : "That's everything for today."}
+          </p>
         </div>
       ) : null}
 
-      {weekRows.length > 0 ? (
+      {waitingStops.length > 0 ? (
         <div>
-          <p className="px-4 pb-2 pt-5 type-field-meta font-semibold text-[var(--co-muted)] sm:px-5">Rest of the week</p>
-          <div>
-            {localCompletedJobs.map((job) => (
+          <p className="px-4 pb-2 pt-5 type-field-meta font-semibold text-[var(--co-muted)] sm:px-5">Waiting on your crew</p>
+          {waitingStops.map((stop) => (
+            <RouteRow
+              key={stop.jobId}
+              time={timeLabel(stop.scheduledStartTime)}
+              name={`${stop.customerFirstName} ${stop.customerLastName}`}
+              done
+              meta={
+                <>
+                  <Users className="h-[15px] w-[15px] shrink-0" aria-hidden strokeWidth={1.75} />
+                  Your work is saved · waiting on {formatNameList(stop.coworkers.filter((coworker) => !coworker.done).map((coworker) => coworker.firstName)) || "the rest of the crew"}
+                </>
+              }
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {routeStops.length > 0 ? (
+        <section aria-labelledby="rest-of-today-heading" className="mt-5">
+          <div className="border-t border-[var(--co-line-soft)] px-4 pb-2 pt-4 sm:px-5">
+            <h2 id="rest-of-today-heading" className="type-field-meta font-semibold text-[var(--co-ink)]">Rest of today</h2>
+            <p className="mt-0.5 type-field-micro text-[var(--co-muted)]">Upcoming stops</p>
+          </div>
+          {routeStops.map((stop) => {
+            const flagged = !jobAddress(stop);
+            return (
               <RouteRow
-                key={job.jobId}
-                href={`/my-day/${job.jobId}`}
-                time="Today"
-                name={`${job.customerFirstName} ${job.customerLastName}`}
-                done
+                key={stop.jobId}
+                href={`/my-day/${stop.jobId}`}
+                time={timeLabel(stop.scheduledStartTime)}
+                name={`${stop.customerFirstName} ${stop.customerLastName}`}
+                flagged={flagged}
                 meta={
-                  <>
-                    <ServiceTypeIcon type={job.type} className="h-[15px] w-[15px] shrink-0" />
-                    {serviceLabel(job)} · Completed
-                  </>
+                  flagged ? (
+                    <>
+                      <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-[var(--co-spark-text)]" aria-hidden strokeWidth={1.75} />
+                      <span className="text-[var(--co-spark-text)]">No address · call office</span>
+                    </>
+                  ) : (
+                    <>
+                      <ServiceTypeIcon type={stop.type} className="h-[15px] w-[15px] shrink-0" />
+                      {serviceLabel(stop)} · {stop.city ?? "No city"} · {shortDuration(stop.estimatedDurationMinutes) ?? "Est. pending"}
+                    </>
+                  )
                 }
               />
-            ))}
-            {restOfWeekUpcoming.map((job) => {
-              const flagged = !jobAddress(job);
-              return (
-                <RouteRow
-                  key={job.jobId}
-                  href={`/my-day/${job.jobId}`}
-                  time={weekdayLabel(job.scheduledDate, companyTimezone)}
-                  name={`${job.customerFirstName} ${job.customerLastName}`}
-                  flagged={flagged}
-                  meta={
-                    flagged ? (
-                      <>
-                        <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-[var(--co-spark-text)]" aria-hidden strokeWidth={1.75} />
-                        <span className="text-[var(--co-spark-text)]">No address · call office</span>
-                      </>
-                    ) : (
-                      <>
-                        <ServiceTypeIcon type={job.type} className="h-[15px] w-[15px] shrink-0" />
-                        {serviceLabel(job)} · {job.city ?? "No city"} · {timeLabel(job.scheduledStartTime)}
-                      </>
-                    )
-                  }
-                />
-              );
-            })}
+            );
+          })}
+        </section>
+      ) : null}
+
+      <Ledger events={ledger} timeZone={companyTimezone} />
+
+      {upcomingJobs.length > 0 ? (
+        <section aria-labelledby="rest-of-week-heading" className="mt-5">
+          <div className="border-t border-[var(--co-line-soft)] px-4 pb-2 pt-4 sm:px-5">
+            <h2 id="rest-of-week-heading" className="type-field-meta font-semibold text-[var(--co-ink)]">Rest of the week</h2>
+            <p className="mt-0.5 type-field-micro text-[var(--co-muted)]">Upcoming beyond today</p>
           </div>
-        </div>
+          {upcomingJobs.map((stop) => {
+            const flagged = !jobAddress(stop);
+            return (
+              <RouteRow
+                key={stop.jobId}
+                href={`/my-day/${stop.jobId}`}
+                time={weekdayLabel(stop.scheduledDate, companyTimezone)}
+                name={`${stop.customerFirstName} ${stop.customerLastName}`}
+                flagged={flagged}
+                meta={
+                  flagged ? (
+                    <>
+                      <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-[var(--co-spark-text)]" aria-hidden strokeWidth={1.75} />
+                      <span className="text-[var(--co-spark-text)]">No address · call office</span>
+                    </>
+                  ) : (
+                    <>
+                      <ServiceTypeIcon type={stop.type} className="h-[15px] w-[15px] shrink-0" />
+                      {serviceLabel(stop)} · {stop.city ?? "No city"} · {timeLabel(stop.scheduledStartTime)}
+                    </>
+                  )
+                }
+              />
+            );
+          })}
+        </section>
       ) : null}
 
       <footer className="mt-8 border-t border-[var(--co-line-soft)] px-4 pt-4 text-center sm:px-5">

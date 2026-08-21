@@ -115,17 +115,27 @@ function SidebarLinks({ items, pathname, navCollapsed }: { items: readonly (read
   );
 }
 
+function ProfileAvatar({ profilePhotoUrl, userName, size = "h-10 w-10" }: { profilePhotoUrl: string | null; userName: string; size?: string }) {
+  const initial = userName.trim().charAt(0).toUpperCase();
+  if (profilePhotoUrl) {
+    return <img src={profilePhotoUrl} alt="" aria-hidden="true" className={`${size} shrink-0 rounded-full object-cover`} />;
+  }
+  return <span aria-hidden="true" className={`${size} flex shrink-0 items-center justify-center rounded-full bg-[var(--co-accent-tint)] text-sm font-bold text-[var(--co-accent-text)]`}>{initial}</span>;
+}
+
 export default function AppNav({
   isAdmin,
   isFieldStaff,
   userName,
   userEmail,
+  profilePhotoUrl,
   initialNotifications,
 }: {
   isAdmin: boolean;
   isFieldStaff: boolean;
   userName: string;
   userEmail: string;
+  profilePhotoUrl: string | null;
   initialNotifications: Notification[];
 }) {
   const pathname = usePathname();
@@ -182,7 +192,7 @@ export default function AppNav({
     <>
       {isAdmin ? (
       <>
-      <div data-app-nav="mobile" className="sticky top-0 z-40 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] text-[var(--co-ink)] backdrop-blur xl:hidden">
+      <div data-app-nav="mobile" className="sticky top-0 z-40 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] pt-[env(safe-area-inset-top)] text-[var(--co-ink)] backdrop-blur xl:hidden">
         <div className="flex h-16 items-center justify-between px-4">
           <button
             type="button"
@@ -370,7 +380,7 @@ export default function AppNav({
               meOpen ? "text-[var(--co-accent-text)]" : "text-[var(--co-muted)]"
             }`}
           >
-            <CircleUserRound aria-hidden="true" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0 opacity-90" />
+            <ProfileAvatar profilePhotoUrl={profilePhotoUrl} userName={userName} size="h-[22px] w-[22px]" />
             Me
           </button>
         </nav>
@@ -393,9 +403,7 @@ export default function AppNav({
         >
           <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-4">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--co-accent-tint)] text-sm font-bold text-[var(--co-accent-text)]">
-                {userName.slice(0, 1).toUpperCase()}
-              </span>
+              <ProfileAvatar profilePhotoUrl={profilePhotoUrl} userName={userName} />
               <div className="min-w-0">
                 <p className="truncate text-[14px] font-semibold text-[var(--co-ink)]">{userName}</p>
                 <p className="truncate text-[12px] text-[var(--co-faint)]">{userEmail}</p>

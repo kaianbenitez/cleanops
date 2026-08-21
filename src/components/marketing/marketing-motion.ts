@@ -1,46 +1,57 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger);
-}
-
-export { gsap, ScrollTrigger };
 
 export function prefersReducedMotion() {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
 }
 
-type RevealOptions = { y?: number; duration?: number; stagger?: number; start?: string };
+type RevealOptions = {
+  y?: number;
+  duration?: number;
+  stagger?: number;
+  start?: string;
+};
 const defaults = { y: 24, duration: 0.35, stagger: 0.04, start: "top 85%" };
 
 /** One ScrollTrigger per element matching `rowSelector`; items matching `itemSelector` inside each row stagger in together. */
-export function useRowReveal(rowSelector: string, itemSelector: string, options?: RevealOptions) {
+export function useRowReveal(
+  rowSelector: string,
+  itemSelector: string,
+  options?: RevealOptions,
+) {
   const scope = useRef<HTMLDivElement>(null);
-  const { y, duration, stagger, start } = { ...defaults, ...options };
+  const { stagger } = { ...defaults, ...options };
 
   useEffect(() => {
     if (prefersReducedMotion()) return;
     const root = scope.current;
     if (!root) return;
 
-    const ctx = gsap.context(() => {
-      root.querySelectorAll<HTMLElement>(rowSelector).forEach((row) => {
-        const items = row.querySelectorAll<HTMLElement>(itemSelector);
-        const targets = items.length ? Array.from(items) : [row];
-        gsap.fromTo(
-          targets,
-          { autoAlpha: 0, y },
-          { autoAlpha: 1, y: 0, duration, stagger, ease: "power2.out", scrollTrigger: { trigger: row, start, toggleActions: "play none none reverse" } },
-        );
+    const observer = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        }),
+      { threshold: 0.16 },
+    );
+    root.querySelectorAll<HTMLElement>(rowSelector).forEach((row) => {
+      const items = row.querySelectorAll<HTMLElement>(itemSelector);
+      const targets = items.length ? Array.from(items) : [row];
+      targets.forEach((target, index) => {
+        target.classList.add("marketing-reveal", "is-pending");
+        target.style.transitionDelay = `${index * stagger}s`;
+        observer.observe(target);
       });
-    }, root);
-
-    return () => ctx.revert();
-  }, [rowSelector, itemSelector, y, duration, stagger, start]);
+    });
+    return () => observer.disconnect();
+  }, [rowSelector, itemSelector, stagger]);
 
   return scope;
 }
@@ -48,25 +59,32 @@ export function useRowReveal(rowSelector: string, itemSelector: string, options?
 /** A single ScrollTrigger on the scope container; items matching `itemSelector` stagger in together. */
 export function useGroupReveal(itemSelector: string, options?: RevealOptions) {
   const scope = useRef<HTMLDivElement>(null);
-  const { y, duration, stagger, start } = { ...defaults, ...options };
+  const { stagger } = { ...defaults, ...options };
 
   useEffect(() => {
     if (prefersReducedMotion()) return;
     const root = scope.current;
     if (!root) return;
 
-    const ctx = gsap.context(() => {
-      const items = root.querySelectorAll<HTMLElement>(itemSelector);
-      if (!items.length) return;
-      gsap.fromTo(
-        Array.from(items),
-        { autoAlpha: 0, y },
-        { autoAlpha: 1, y: 0, duration, stagger, ease: "power2.out", scrollTrigger: { trigger: root, start, toggleActions: "play none none reverse" } },
-      );
-    }, root);
-
-    return () => ctx.revert();
-  }, [itemSelector, y, duration, stagger, start]);
+    const items = root.querySelectorAll<HTMLElement>(itemSelector);
+    if (!items.length) return;
+    const observer = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        }),
+      { threshold: 0.16 },
+    );
+    items.forEach((item, index) => {
+      item.classList.add("marketing-reveal", "is-pending");
+      item.style.transitionDelay = `${index * stagger}s`;
+      observer.observe(item);
+    });
+    return () => observer.disconnect();
+  }, [itemSelector, stagger]);
 
   return scope;
 }

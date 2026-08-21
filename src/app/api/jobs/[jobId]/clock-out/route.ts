@@ -3,13 +3,14 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth/current-user";
 import { db } from "@/db";
 import { auditLog, customers, jobPaymentMethodEnum, jobs, jobAssignments, timeEntries } from "@/db/schema";
-import { and, eq, isNull, desc } from "drizzle-orm";
+import { and, eq, isNull, isNotNull, desc } from "drizzle-orm";
 import { syncToGhl } from "@/lib/ghl/sync";
 import { generatePayrollForPeriod } from "@/lib/payroll/calculate";
 import { refreshPayrollPeriodsForDates } from "@/lib/payroll/periods";
 import { notifyAdmins } from "@/lib/notifications/create";
 import { paymentMethodLabel } from "@/lib/my-day/job-format";
 import { ensureFeedbackRequest } from "@/lib/feedback/ensure-feedback-request";
+import { isJobFullyComplete } from "@/lib/my-day/job-completion";
 
 const closeOutSchema = z.object({
   paymentMethodCollected: z.enum(jobPaymentMethodEnum).optional(),
@@ -44,7 +45,29 @@ export async function POST(
     .limit(1);
 
   if (!openEntry) {
-    return NextResponse.json({ error: "No open time entry for this job" }, { status: 400 });
+    // Idempotent: a duplicate tap after this already succeeded should return
+    // the receipt that was saved, not an error for a request that already
+    // worked.
+    const [closedEntry] = await db
+      .select()
+      .from(timeEntries)
+      .where(and(eq(timeEntries.jobId, jobId), eq(timeEntries.userId, user.id), isNotNull(timeEntries.clockOut)))
+      .orderBy(desc(timeEntries.clockOut))
+      .limit(1);
+
+    if (!closedEntry) {
+      return NextResponse.json({ error: "No open time entry for this job" }, { status: 400 });
+    }
+
+    const [existingJob] = await db.select({ status: jobs.status }).from(jobs).where(eq(jobs.id, jobId)).limit(1);
+    return NextResponse.json({
+      ok: true,
+      idempotent: true,
+      clockIn: closedEntry.clockIn.toISOString(),
+      clockOut: closedEntry.clockOut!.toISOString(),
+      minutesWorked: closedEntry.minutesWorked,
+      jobCompleted: existingJob?.status === "completed",
+    });
   }
 
   const clockOut = new Date();
@@ -73,10 +96,7 @@ export async function POST(
       .select({ userId: timeEntries.userId, clockOut: timeEntries.clockOut })
       .from(timeEntries)
       .where(eq(timeEntries.jobId, jobId));
-    const hasOpenEntries = entries.some((entry) => !entry.clockOut);
-    const completedUsers = new Set(entries.filter((entry) => entry.clockOut).map((entry) => entry.userId));
-    const allAssignedEmployeesFinished = assigned.length > 0 && assigned.every((assignment) => completedUsers.has(assignment.userId));
-    const shouldComplete = !hasOpenEntries && allAssignedEmployeesFinished;
+    const shouldComplete = isJobFullyComplete(assigned, entries);
     await tx.update(jobs).set({
       ...(shouldComplete ? { status: "completed" as const, completedAt: clockOut } : { status: "in_progress" as const }),
       ...(paymentMethodCollected !== undefined ? { paymentMethodCollected } : {}),
@@ -128,5 +148,11 @@ export async function POST(
     for (const periodId of refreshedPeriods) await generatePayrollForPeriod(periodId);
   }
 
-  return NextResponse.json({ ok: true, minutesWorked, jobCompleted: completion });
+  return NextResponse.json({
+    ok: true,
+    clockIn: openEntry.clockIn.toISOString(),
+    clockOut: clockOut.toISOString(),
+    minutesWorked,
+    jobCompleted: completion,
+  });
 }

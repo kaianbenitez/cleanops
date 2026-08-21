@@ -4,7 +4,7 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
-## CleanOps working rules
+## Shimmer working rules
 
 These are process rules for daily work. Blanket invariants that apply to every task
 regardless of what you're doing (auth scoping, secrets, migration safety, product naming)
@@ -18,6 +18,7 @@ live once in the Invariants section of `AI-CONTEXT.md` — don't restate them he
   gotchas specific to this repo. `npm run smoke:auth -- <baseUrl>` is the highest-value
   runtime check and is not in the release sequence below — run it anyway.
 - By user preference, always commit and push each completed, verified feature before handoff.
+- Explain completed work in the simplest possible language for a non-code developer: lead with what changed and what it means, keep reports short, avoid jargon, and clearly call out anything unfinished or blocked.
   Before staging, inspect `git status` and the per-file diff. If unrelated/shared changes are
   present, stage only the completed feature's explicit paths; do not include them in the commit.
   Stop only for a merge state or an unapproved production migration. Never use `git add -A` or

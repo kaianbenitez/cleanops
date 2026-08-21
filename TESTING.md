@@ -165,6 +165,59 @@ Learned the hard way while testing `/recurring/new`:
   `toHaveCount(0)` on a page's error banner fails even when no banner is shown.
   Filter to your own element: `getByRole("alert").filter({ hasText: /…/ })`.
 
+## My Day
+
+Most of My Day's logic (`src/lib/my-day/workday-state.ts`, `job-completion.ts`,
+`close-out.ts`) is pure and unit-tested directly — run `npm run test:my-day`
+for just that suite, or `npm run test:unit` for everything. Prefer adding a
+unit test there over a browser spec; reach for Playwright only when rendering
+itself is the thing under test.
+
+- **`BROWSER_ADMIN_USERNAME` is not reliably a hybrid.** The WP-F packet
+  assumed that account (`kaianbenitez`) was `role: admin, isFieldStaff: true`.
+  Verified directly against the database on 2026-08-20: it is
+  `isFieldStaff: false` — a genuinely office-only admin, correctly bounced off
+  `/my-day` to `/dashboard`. **Use `BROWSER_HYBRID_USERNAME`/`PASSWORD` for
+  any My Day browser spec** — verified the same way to be a real hybrid
+  (`brittneyriggs`, `role: admin, isFieldStaff: true`). This can drift again;
+  re-check with a one-off query before trusting either account's role for a
+  new spec:
+  ```
+  env -u DATABASE_URL npx tsx -e '
+  import { db } from "./src/db";
+  import { users } from "./src/db/schema";
+  import { eq } from "drizzle-orm";
+  db.select({ role: users.role, isFieldStaff: users.isFieldStaff })
+    .from(users).where(eq(users.email, "<username>@cleanops.local")).limit(1)
+    .then((r) => { console.log(r); process.exit(0); });
+  '
+  ```
+- **`tests/browser/my-day-field.spec.ts` is read-only on purpose.** This
+  session's `DATABASE_URL` resolves to the *hosted* Supabase project, so any
+  authenticated My Day spec here runs against real production data through a
+  real account. Never click a primary action or submit a close-out form from
+  a spec that might run against the hosted DB — that mutates a real
+  employee's real day. Assertions that require an actual state transition
+  (aria-live text changing, a receipt after a real clock-out) need
+  `scripts/seed-field-test.ts` fixtures against a **local** Supabase instance
+  instead (`npm run supabase:start`, point `DATABASE_URL` at it, confirm the
+  script prints "target host is local" before it writes anything).
+- **Magic-link auth rate-limits fast.** Supabase Auth throttles
+  `auth.admin.generateLink({ type: "magiclink" })` for the same email in quick
+  succession — re-authenticating in every test's own `beforeEach` (as
+  `hybrid-access.spec.ts` does, fine for 2 tests) hit "Email link is invalid
+  or has expired" partway through an 8-test file. For more than a couple of
+  authenticated tests in one file, authenticate once in `test.beforeAll`,
+  cache the resulting cookies, and `context.addCookies(...)` them into each
+  test — and add `test.describe.configure({ mode: "serial" })`, since
+  `beforeAll` runs once *per worker*, not once per file, so parallel workers
+  will otherwise each fire their own login and collide with the same limit.
+- `scripts/seed-field-test.ts` is idempotent and local-only — it refuses to
+  run (checks the `DATABASE_URL` host) against anything but `localhost` /
+  `127.0.0.1`. Run it with `npx tsx scripts/seed-field-test.ts` after
+  `npm run supabase:start`; it prints the usernames and a shared password for
+  the three accounts it creates or reuses.
+
 ## Never do this
 
 - **Do not submit a form that writes to the hosted database.** There is no local

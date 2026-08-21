@@ -1,15 +1,39 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { createClient } from "@/lib/supabase/client";
 import { usernameToEmail } from "@/lib/auth/username";
+import { loginReasonMessage } from "@/lib/supabase/login-reason";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+const DEFAULT_REASON_MESSAGE = loginReasonMessage(null);
 
 export default function LoginPage() {
+  // `reason` only resolves via useSearchParams, which forces this subtree to
+  // client-render past the Suspense boundary — see the WP-E note on
+  // ReasonAwareLoginForm below. Falling back to the same generic copy the
+  // hook would resolve to for a missing/unknown reason keeps the initial
+  // HTML and the hydrated result visually identical (no flash of new text).
+  return (
+    <Suspense fallback={<LoginForm reasonMessage={DEFAULT_REASON_MESSAGE} />}>
+      <ReasonAwareLoginForm />
+    </Suspense>
+  );
+}
+
+/** Split out only so `useSearchParams` (a Client Component hook that forces
+ * CSR past its own Suspense boundary — see node_modules/next/dist/docs/…
+ * /use-search-params.md) doesn't force the whole login page to skip
+ * prerendering. */
+function ReasonAwareLoginForm() {
+  const searchParams = useSearchParams();
+  return <LoginForm reasonMessage={loginReasonMessage(searchParams.get("reason"))} />;
+}
+
+function LoginForm({ reasonMessage }: { reasonMessage: string }) {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -40,7 +64,11 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    // Let "/" resolve the destination (root-redirect.ts's already-tested
+    // resolveLandingSurface) instead of hardcoding /dashboard and relying on
+    // that page to bounce field employees to /my-day — sends them there
+    // directly (WP-E §8.2).
+    router.push("/");
     router.refresh();
   }
 
@@ -57,6 +85,10 @@ export default function LoginPage() {
         </div>
 
         <h1 className="mt-8 text-2xl font-semibold tracking-[-0.02em] text-[var(--co-ink)]">Welcome back</h1>
+
+        <p role="status" className="mt-2 text-sm text-[var(--co-muted)]">
+          {reasonMessage}
+        </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-5">
           <label className="block text-sm">
@@ -88,7 +120,10 @@ export default function LoginPage() {
               placeholder="Your password"
             />
             <span className="mt-2 block text-xs leading-5 text-[var(--co-muted)]">
-              You&apos;ll stay signed in on this device until you choose Sign out. On iPhone, open Shimmer from the same Safari tab or Home Screen icon each day.
+              Open Shimmer from the same Home Screen icon or Safari tab each day.
+            </span>
+            <span className="mt-1 block text-xs leading-5 text-[var(--co-muted)]">
+              Only use this on a phone that&apos;s yours. On a shared phone, sign out when you&apos;re done so nobody else can open your day.
             </span>
           </label>
 

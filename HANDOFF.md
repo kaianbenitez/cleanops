@@ -719,15 +719,15 @@ Last updated: 2026-08-13 (job PATCH scheduling warnings surfaced in the UI — s
   pass next time someone's logged in: open Settings → Square & Google Maps, save a
   throwaway value, confirm it shows "Configured" and the field stays blank on reload.
 
-- **CleanOps renamed to Shimmer (user-facing branding only) + real Privacy Policy
+- **The product was renamed to Shimmer (user-facing branding only) + a real Privacy Policy
   published (2026-08-04).** User's call: rename the product, but scope deliberately limited
-  to what a logged-in admin/employee sees — nav, page titles, Help Center, footer, user-facing
+  to what a logged-in admin/employee saw — nav, page titles, Help Center, footer, user-facing
   error messages (28 spots across 17 files, delegated to Codex, each one individually
   specified and diffed rather than a blind find-replace). Explicitly **not** renamed, by the
   user's own choice: the GitHub repo (`kaianbenitez/cleanops`), local worktree folders
   (`cleanops-v1`/`cleanops-claude`/`cleanops-codex`), the Supabase project name, or any
   project docs (`AGENTS.md`/`HANDOFF.md`/`CLAUDE.md`/`DECISIONS.md`/`TESTING.md`,
-  `package.json`) — those still say CleanOps on purpose, see
+  `package.json`) — those were left unchanged at the time, see
   [[project_shimmer_rename]] memory. Also left alone: code comments (grepped and
   confirmed after the fact — every remaining "CleanOps" hit in `src/` is a comment or the
   seed script's console output), the `@cleanops.local` synthetic auth email domain (backend
@@ -737,7 +737,7 @@ Last updated: 2026-08-13 (job PATCH scheduling warnings surfaced in the UI — s
   own history as a real pre-launch gap) with an actual policy — sourced from Simply Maid
   LLC's real website privacy policy for entity/legal boilerplate, but substantively rewritten
   since that policy is for the public ecommerce website (purchases, sweepstakes, GA cookies)
-  and this page is for the internal, auth-gated ops tool with entirely different data (customer
+  and this page was for the internal, auth-gated ops tool with entirely different data (customer
   gate/alarm codes, job photos, employee payroll). Names actual subprocessors: Supabase,
   Vercel, Square, Google, Sentry, GoHighLevel. Deliberately did **not** invent a specific
   numeric retention period or a mailing address — used defensible general retention language
@@ -761,6 +761,11 @@ Last updated: 2026-08-13 (job PATCH scheduling warnings surfaced in the UI — s
   **Not click-through-tested in a real browser** — build/type/grep-verified only. Worth a
   visual pass next time someone's logged in: confirm the new privacy policy page reads well
   and the Shimmer branding shows correctly on the login screen and nav.
+  **Follow-up 2026-08-18:** R2 subsequently reframed both legal pages for Shimmer as
+  multi-tenant operations software provided by Kaian Benitez, added the real sub-processors,
+  and updated the contact details (`25ac33f`). R5 then refreshed the current product-facing
+  root documentation and the linked vault notes; the `cleanops` technical identifiers and
+  historical references above remain intentionally preserved.
 
 - **Hosted DB was openly readable by anyone with the public anon key — found and fixed
   2026-08-04.** A prior side-finding (2026-07-28, see the old Blocked entry this replaces)
