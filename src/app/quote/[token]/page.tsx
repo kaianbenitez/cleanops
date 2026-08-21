@@ -417,6 +417,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                       ) : null}
                       <span
                         className={`absolute top-5 right-5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-sm ${selected ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-fill)] text-white" : "border-[var(--co-line)] text-transparent"}`}
+                        aria-hidden="true"
                       >
                         ✓
                       </span>
@@ -534,6 +535,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-[11px] ${
                           checked ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-fill)] text-white" : "border-[var(--co-line)] text-transparent"
                         }`}
+                        aria-hidden="true"
                       >
                         ✓
                       </span>
