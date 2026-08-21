@@ -109,17 +109,18 @@ function Metric({ label, value, hint }: { label: string; value: string; hint: st
   );
 }
 
-function EditableCell({ value, onSave, prefix, suffix }: { value: string; onSave: (value: number) => void; prefix?: string; suffix?: string }) {
+function EditableCell({ value, onSave, prefix, suffix, label }: { value: string; onSave: (value: number) => void; prefix?: string; suffix?: string; label: string }) {
   return (
     <div className="flex items-center justify-end gap-0.5">
       <span className="text-[var(--co-muted)]">{prefix}</span>
       <input
+        aria-label={label}
         type="number"
         step="0.01"
         min="0"
         defaultValue={value}
         onBlur={(event) => onSave(Number(event.target.value || 0))}
-        className="w-20 border-b border-dashed border-[var(--co-line)] bg-transparent text-right outline-none focus:border-[var(--co-accent-text)]"
+        className="min-h-11 w-20 border-b border-dashed border-[var(--co-line)] bg-transparent text-right outline-none focus:border-[var(--co-accent-text)]"
       />
       <span className="text-[var(--co-muted)]">{suffix}</span>
     </div>
@@ -278,7 +279,10 @@ function PayrollTable({
         <p className="text-sm text-[var(--co-muted)]">Manual office hours, mileage, tips, bonuses, and adjustments are logged while the period is open.</p>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="divide-y divide-[var(--co-line-soft)] border-t border-[var(--co-line-soft)] sm:hidden">
+        {lines.map((line) => <article key={line.id} className="space-y-4 p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><button type="button" onClick={() => setExpandedLineId(expandedLineId === line.id ? null : line.id)} className="min-h-11 text-left font-semibold text-[var(--co-ink)]">{line.firstName} {line.lastName}</button><p className="mt-1 text-sm text-[var(--co-muted)]">{line.title || "Team member"} · {line.jobsCount} job{line.jobsCount === 1 ? "" : "s"}</p></div><p className="text-right text-lg font-semibold">{dollars(line.finalCents)}</p></div><p className="text-sm text-[var(--co-muted)]">{line.payType === "commission_jth" ? "Job ticket hours" : "Office hourly"} · {line.calculation.length} job details</p><button type="button" onClick={() => setExpandedLineId(expandedLineId === line.id ? null : line.id)} className="min-h-11 w-full rounded-[var(--co-radius-control)] border border-[var(--co-line)] px-3 text-sm font-semibold text-[var(--co-accent-text)]">{expandedLineId === line.id ? "Hide job details" : "View job details"}</button>{expandedLineId === line.id ? <div className="overflow-x-auto"><PayrollDetail line={line} /></div> : null}</article>)}
+      </div>
+      <div className="hidden overflow-x-auto sm:block">
         <table className="w-full min-w-[1320px] text-left text-sm">
           <thead className="bg-[var(--co-accent-fill)] text-xs uppercase tracking-[0.08em] text-white">
             <tr>
@@ -321,7 +325,7 @@ function PayrollTable({
                     <td className="px-5 py-4 text-right font-medium">{clockedHours.toFixed(2)}</td>
                     <td className="px-5 py-4 text-right">
                       {line.role === "admin" && line.payType === "office_hourly" ? (
-                        <EditableCell value={line.manualOfficeHours} onSave={(value) => updateLine(line.id, { manualOfficeHours: value })} suffix=" hrs" />
+                        <EditableCell label={`${line.firstName} ${line.lastName} manual office hours`} value={line.manualOfficeHours} onSave={(value) => updateLine(line.id, { manualOfficeHours: value })} suffix=" hrs" />
                       ) : (
                         <span className="text-[var(--co-muted)]">—</span>
                       )}
@@ -331,7 +335,7 @@ function PayrollTable({
                     <td className="px-5 py-4 text-right font-medium">{dollars(commission)}</td>
                     <td className="px-5 py-4 text-right">
                       {mileageEligible ? (
-                        <EditableCell value={line.mileageMiles} onSave={(value) => updateLine(line.id, { mileageMiles: value })} suffix=" mi" />
+                        <EditableCell label={`${line.firstName} ${line.lastName} mileage miles`} value={line.mileageMiles} onSave={(value) => updateLine(line.id, { mileageMiles: value })} suffix=" mi" />
                       ) : (
                         <div className="text-right">
                           <div className="font-medium text-[var(--co-ink)]">{line.mileageMiles} mi</div>
@@ -346,18 +350,18 @@ function PayrollTable({
                       </div>
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <EditableCell value={dollars(bonuses)} onSave={(value) => updateLine(line.id, { bonusCents: Math.round(value * 100) })} prefix="$" />
+                      <EditableCell label={`${line.firstName} ${line.lastName} bonuses`} value={dollars(bonuses)} onSave={(value) => updateLine(line.id, { bonusCents: Math.round(value * 100) })} prefix="$" />
                     </td>
                     <td className="px-5 py-4 text-right font-semibold">{dollars(line.finalCents)}</td>
                     <td className="px-5 py-4 text-right">
-                      <button className="text-xs font-medium text-[var(--co-accent-text)]" onClick={() => setExpandedLineId(expanded ? null : line.id)}>
+                      <button type="button" className="min-h-11 min-w-11 px-2 text-xs font-medium text-[var(--co-accent-text)]" onClick={() => setExpandedLineId(expanded ? null : line.id)}>
                         {expanded ? "Hide" : "Details"}
                       </button>
                     </td>
                   </tr>
                   {expanded ? (
                     <tr>
-                      <td colSpan={10} className="bg-[var(--co-surface-muted)]/60 px-5 py-5">
+                      <td colSpan={12} className="bg-[var(--co-surface-muted)]/60 px-5 py-5">
                         <PayrollDetail line={line} />
                       </td>
                     </tr>

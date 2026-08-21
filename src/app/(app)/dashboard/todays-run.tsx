@@ -36,7 +36,23 @@ export default async function TodaysRun({
         </p>
       </div>
       {run.jobs.length ? (
-        <div className="overflow-x-auto border-t border-[var(--co-line-soft)]">
+        <>
+        <div className="divide-y divide-[var(--co-line-soft)] border-t border-[var(--co-line-soft)] sm:hidden">
+          {run.jobs.map((job) => (
+            <Link key={job.id} href={`/jobs/${job.id}`} className="block px-4 py-4 focus-visible:bg-[var(--co-surface-muted)]">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-[var(--co-ink)]">{job.customerName}</p>
+                  <p className="mt-1 text-sm text-[var(--co-muted)]">{formatTime(job.scheduledStartTime)} · {formatCleaningType(job.type)}</p>
+                </div>
+                <StatusPill domain="job" status={job.status} />
+              </div>
+              <p className="mt-2 truncate text-sm text-[var(--co-muted)]">{job.address}</p>
+              <p className="mt-1 text-sm text-[var(--co-muted)]">{job.assignedTo.join(", ") || "Unassigned"}</p>
+            </Link>
+          ))}
+        </div>
+        <div className="hidden overflow-x-auto border-t border-[var(--co-line-soft)] sm:block">
           <table className="w-full min-w-[840px] text-left text-sm">
             <caption className="sr-only">Today&apos;s scheduled jobs</caption>
             <thead className="bg-[var(--co-surface-muted)] text-xs font-medium text-[var(--co-muted)]">
@@ -99,6 +115,7 @@ export default async function TodaysRun({
             </tbody>
           </table>
         </div>
+        </>
       ) : (
         <p className="border-t border-[var(--co-line-soft)] px-4 py-6 text-sm">
           No jobs are scheduled for today.

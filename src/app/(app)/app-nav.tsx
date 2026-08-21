@@ -237,7 +237,7 @@ export default function AppNav({
             aria-label="Menu"
             aria-expanded={menuOpen}
             ref={menuTriggerRef}
-            className="rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]"
+            className="min-h-11 min-w-11 rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]"
           >
             <Menu aria-hidden="true" strokeWidth={1.75} className="h-5 w-5 text-[var(--co-ink)]" />
           </button>
@@ -294,7 +294,7 @@ export default function AppNav({
             type="button"
             onClick={() => setMenuOpen(false)}
             aria-label="Close menu"
-            className="rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]"
+            className="min-h-11 min-w-11 rounded-full p-2 transition-colors hover:bg-[var(--co-surface-muted)]"
           >
             <Menu aria-hidden="true" strokeWidth={1.75} className="h-5 w-5 text-[var(--co-ink)]" />
           </button>

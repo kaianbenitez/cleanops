@@ -160,7 +160,29 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
             <p className="mt-1 text-sm text-[var(--co-muted)]">Create an invoice from a completed job.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="divide-y divide-[var(--co-line-soft)] border-t border-[var(--co-line-soft)] sm:hidden">
+            {rows.map((invoice) => {
+              const overdue = isOverdue(invoice.status, invoice.createdAt);
+              return (
+                <article key={invoice.id} className="space-y-3 px-4 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link href={`/invoices/${invoice.id}`} className="font-semibold text-[var(--co-accent-text)]">INV-{invoice.id.slice(0, 6).toUpperCase()}</Link>
+                      <p className="mt-1 truncate font-medium">{invoice.customerFirstName} {invoice.customerLastName}</p>
+                    </div>
+                    <StatusPill domain="invoice" status={invoice.status} label={overdue ? "Overdue" : undefined} />
+                  </div>
+                  <div className="flex items-end justify-between gap-3 text-sm">
+                    <div className="text-[var(--co-muted)]"><p>{invoice.jobType?.replaceAll("_", " ") ?? "—"}</p><p className="mt-1 text-xs">{formatDisplayDate(invoice.jobScheduledDate)}</p></div>
+                    <p className="font-semibold">{dollars(invoice.totalCents)}</p>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 text-sm"><span className="text-[var(--co-muted)]">{invoice.method ?? "No payment method"}</span><Link href={`/invoices/${invoice.id}`} className="inline-flex min-h-11 items-center font-medium text-[var(--co-accent-text)]">Open invoice</Link></div>
+                </article>
+              );
+            })}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[960px] text-left text-sm">
               <thead className="bg-[var(--co-surface-muted)] text-xs uppercase tracking-[0.1em] text-[var(--co-muted)]">
                 <tr>
@@ -214,6 +236,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         <PaginationControls page={page} pageSize={PAGE_SIZE} total={total} itemLabel="invoice" hrefForPage={(target) => hrefForPage(sp, target)} />

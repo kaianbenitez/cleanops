@@ -216,10 +216,20 @@ function ReportPreviewModal({
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortState | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const dialog = dialogRef.current;
+    dialog?.querySelector<HTMLElement>("[data-modal-close]")?.focus();
     function handleKey(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
+      if (event.key !== "Tab" || !dialog) return;
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     }
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
@@ -247,19 +257,20 @@ function ReportPreviewModal({
 
   return createPortal(
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={`${name} preview`}
+        aria-labelledby="report-preview-title"
         className="co-card flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden p-0"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-[var(--co-line-soft)] p-5">
           <div>
-            <h3 className="font-semibold text-[var(--co-ink)]">{name}</h3>
+            <h3 id="report-preview-title" className="font-semibold text-[var(--co-ink)]">{name}</h3>
             <p className="mt-1 text-sm text-[var(--co-muted)]">
               {preview.summary ?? `${preview.rows.length} rows`}
             </p>
@@ -271,7 +282,8 @@ function ReportPreviewModal({
             </a>
             <button
               type="button"
-              className="co-button-secondary p-2"
+              data-modal-close
+              className="co-button-secondary min-h-11 min-w-11 p-2"
               onClick={onClose}
               aria-label="Close preview"
             >
@@ -299,11 +311,13 @@ function ReportPreviewModal({
                     <th
                       key={column}
                       className="whitespace-nowrap px-4 py-3 font-medium"
+                      aria-sort={active ? (sort?.direction === "asc" ? "ascending" : "descending") : "none"}
                     >
                       <button
                         type="button"
                         className="inline-flex items-center gap-1 hover:text-[var(--co-ink)]"
                         onClick={() => toggleSort(index)}
+                        aria-label={`Sort by ${column}${active ? `, currently ${sort?.direction === "asc" ? "ascending" : "descending"}` : ""}`}
                       >
                         {column}
                         {active && sort?.direction === "asc" ? (
@@ -366,11 +380,13 @@ export function ReportActions({
   preview: PreviewTable;
 }) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   return (
     <>
       <div className="flex items-center gap-2">
         <button
           type="button"
+          ref={triggerRef}
           className="co-button-secondary gap-1.5"
           onClick={() => setOpen(true)}
         >
@@ -386,7 +402,7 @@ export function ReportActions({
         <ReportPreviewModal
           exportHref={exportHref}
           name={name}
-          onClose={() => setOpen(false)}
+          onClose={() => { setOpen(false); requestAnimationFrame(() => triggerRef.current?.focus()); }}
           preview={preview}
         />
       ) : null}

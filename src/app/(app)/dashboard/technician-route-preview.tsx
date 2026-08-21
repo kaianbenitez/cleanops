@@ -86,15 +86,15 @@ export default function TechnicianRoutePreview({
 
           <div className="mt-4 grid flex-1 gap-2 sm:grid-cols-3">
             <div className="rounded-[0.875rem] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 px-3 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Stops</p>
+              <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Stops</p>
               <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{totalStops}</p>
             </div>
             <div className="rounded-[0.875rem] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 px-3 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">First stop</p>
+              <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">First stop</p>
               <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{firstStop ?? "—"}</p>
             </div>
             <div className="rounded-[0.875rem] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 px-3 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Last stop</p>
+              <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Last stop</p>
               <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{lastStop ?? "—"}</p>
             </div>
           </div>
