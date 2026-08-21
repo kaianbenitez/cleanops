@@ -413,6 +413,8 @@ export const quotes = pgTable("quotes", {
 
   signatureName: text("signature_name"), // typed-name e-signature, set on accept
   signatureAt: timestamp("signature_at", { withTimezone: true }),
+  // Customer preference only. This never creates or reserves a job.
+  desiredCleaningDate: date("desired_cleaning_date"),
 
   acceptedAddOns: jsonb("accepted_add_ons").notNull().default([]), // AddOnKey[] the customer picked on accept — see lib/pricing/add-ons.ts
   totalCents: integer("total_cents").notNull().default(0),

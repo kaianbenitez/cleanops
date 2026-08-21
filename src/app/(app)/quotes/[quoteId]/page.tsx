@@ -25,6 +25,7 @@ type Quote = {
   signatureName: string | null;
   acceptedAt: string | null;
   bookedAt: string | null;
+  desiredCleaningDate: string | null;
   acceptedAddOns: string[];
   sentAt: string | null;
   allTierPricing: Record<string, Tier> | null;
@@ -41,6 +42,8 @@ type BookingOverride = {
   bookedAt: string;
   staffName: string | null;
 };
+
+type AcceptanceActivity = { after: { desiredCleaningDate?: string | null; scheduled?: boolean } | null; createdAt: string };
 
 const LABELS: Record<string, string> = {
   supreme_deep: "Supreme Deep",
@@ -89,6 +92,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [bookingOverride, setBookingOverride] = useState<BookingOverride | null>(null);
+  const [acceptanceActivity, setAcceptanceActivity] = useState<AcceptanceActivity | null>(null);
 
   const load = useCallback(async () => {
     const response = await fetch(`/api/quotes/${quoteId}`, { cache: "no-store" });
@@ -108,6 +112,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
     setLocationName(body.locationName ?? "");
     setHourlyRateCents(typeof body.hourlyRateCents === "number" ? body.hourlyRateCents : null);
     setBookingOverride(body.bookingOverride ?? null);
+    setAcceptanceActivity(body.acceptanceActivity ?? null);
     setLoaded(true);
   }, [quoteId]);
 
@@ -179,6 +184,8 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <span className="rounded-full border border-[var(--co-line)] bg-[var(--co-surface-muted)] px-2.5 py-1 text-xs font-medium">{quote.status}</span>
             {bookingOverride ? <span className="co-badge-warning rounded-full px-2.5 py-1 text-xs font-medium">Staff override — customer did not sign</span> : null}
+            {quote.status === "accepted" && !quote.bookedAt ? <span className="co-badge-success rounded-full px-2.5 py-1 text-xs font-medium">Approved — not scheduled</span> : null}
+            {quote.bookedAt ? <span className="co-badge-success rounded-full px-2.5 py-1 text-xs font-medium">Scheduled</span> : null}
           </div>
           <h1 className="page-title mt-2">{customerName}</h1>
           <p className="page-subtitle">
@@ -270,6 +277,17 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
           </PageCard>
 
           <PageCard title="Service status">
+            {quote.status === "accepted" && !quote.bookedAt ? (
+              <div className="mb-4 rounded-2xl border border-[var(--co-accent-text)]/30 bg-[var(--co-accent-tint)] p-4 text-sm">
+                <p className="font-semibold">Approved, not scheduled</p>
+                <p className="mt-1 text-[var(--co-muted)]">The customer approved the service and price. Contact them with availability and confirm a cleaning date before booking.</p>
+              </div>
+            ) : null}
+            <div className="mb-4 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Customer&apos;s desired cleaning date</p>
+              <p className="mt-2 text-sm font-medium">{quote.desiredCleaningDate ?? "No preference provided"}</p>
+              {quote.desiredCleaningDate && !quote.bookedAt ? <p className="mt-1 text-xs text-[var(--co-muted)]">Requested date only — availability still needs to be confirmed.</p> : null}
+            </div>
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Requested service</p>
@@ -313,6 +331,13 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
                 <p className="font-semibold">Accepted by staff — no customer signature</p>
                 <p className="mt-1">{bookingOverride.reason}</p>
                 <p className="mt-1 text-xs">Scheduled <LocalDateTime value={bookingOverride.bookedAt} />{bookingOverride.staffName ? ` by ${bookingOverride.staffName}` : ""}.</p>
+              </div>
+            ) : null}
+            {acceptanceActivity ? (
+              <div className="co-badge-success mb-3 px-4 py-3 text-sm">
+                <p className="font-semibold">Customer approved the proposal</p>
+                <p className="mt-1">{acceptanceActivity.after?.desiredCleaningDate ? `Preferred date: ${acceptanceActivity.after.desiredCleaningDate}. ` : "No preferred date was provided. "}Approval does not schedule a cleaning.</p>
+                <p className="mt-1 text-xs"><LocalDateTime value={acceptanceActivity.createdAt} /></p>
               </div>
             ) : null}
             <div className="grid gap-3 sm:grid-cols-2">

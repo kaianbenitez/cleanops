@@ -62,6 +62,12 @@ export async function GET(
     .where(and(eq(auditLog.companyId, admin.companyId), eq(auditLog.entityType, "quote"), eq(auditLog.entityId, quoteId), eq(auditLog.action, "quote.booked_without_acceptance")))
     .orderBy(desc(auditLog.createdAt))
     .limit(1);
+  const [acceptanceActivity] = await db
+    .select({ after: auditLog.after, createdAt: auditLog.createdAt })
+    .from(auditLog)
+    .where(and(eq(auditLog.companyId, admin.companyId), eq(auditLog.entityType, "quote"), eq(auditLog.entityId, quoteId), eq(auditLog.action, "quote.accepted")))
+    .orderBy(desc(auditLog.createdAt))
+    .limit(1);
 
   return NextResponse.json({
     quote: row.quote,
@@ -84,6 +90,9 @@ export async function GET(
           bookedAt: bookingOverride.bookedAt,
           staffName: [bookingOverride.staffFirstName, bookingOverride.staffLastName].filter(Boolean).join(" ") || null,
         }
+      : null,
+    acceptanceActivity: acceptanceActivity
+      ? { after: acceptanceActivity.after, createdAt: acceptanceActivity.createdAt }
       : null,
   });
 }

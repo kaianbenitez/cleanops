@@ -13,6 +13,16 @@ function dollars(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+const SERVICE_LABELS: Record<string, string> = {
+  supreme_deep: "Supreme Deep",
+  deep: "Deep Clean",
+  first_time: "First Time",
+  weekly: "Weekly",
+  biweekly: "Bi-Weekly",
+  four_weeks: "Every 4 Weeks",
+  move_in_out: "Move In / Out",
+};
+
 function hrefWith(params: SearchParams, key: keyof SearchParams, value: string) {
   const next = new URLSearchParams();
   Object.entries(params).forEach(([name, current]) => {
@@ -64,6 +74,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
         sentAt: quotes.sentAt,
         viewedAt: quotes.viewedAt,
         acceptedAt: quotes.acceptedAt,
+        desiredCleaningDate: quotes.desiredCleaningDate,
         bookedAt: quotes.bookedAt,
         publicToken: quotes.publicToken,
         createdByFirstName: users.firstName,
@@ -160,6 +171,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
                   <th className="px-5 py-3">Suggested service</th>
                   <th className="px-5 py-3">Accepted option</th>
                   <th className="px-5 py-3">Total</th>
+                  <th className="px-5 py-3">Requested date</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3">Created</th>
                   <th className="px-5 py-3">Quoted by</th>
@@ -169,14 +181,15 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
               <tbody className="divide-y divide-[var(--co-line-soft)]">
                 {rows.map((quote) => (
                   <tr key={quote.id} className="hover:bg-[var(--co-surface-muted)]/50">
+                    <td className="px-5 py-4 whitespace-nowrap text-xs text-[var(--co-muted)]">{quote.desiredCleaningDate ?? "—"}</td>
                     <td className="px-5 py-4">
                       <Link href={`/quotes/${quote.id}`} className="font-semibold text-[var(--co-ink)] hover:text-[var(--co-accent-text)]">
                         {quote.customerFirstName} {quote.customerLastName}
                       </Link>
                       <span className="mt-1 block text-xs text-[var(--co-muted)]">Q-{quote.id.slice(0, 6).toUpperCase()}</span>
                     </td>
-                    <td className="px-5 py-4 text-[var(--co-muted)]">{quote.requestedServiceType?.replaceAll("_", " ") ?? "Not selected"}</td>
-                    <td className="px-5 py-4 text-[var(--co-muted)]">{quote.acceptedServiceType?.replaceAll("_", " ") ?? "—"}</td>
+                    <td className="px-5 py-4 text-[var(--co-muted)]">{SERVICE_LABELS[quote.requestedServiceType ?? ""] ?? "Not selected"}</td>
+                    <td className="px-5 py-4 text-[var(--co-muted)]">{SERVICE_LABELS[quote.acceptedServiceType ?? ""] ?? "—"}</td>
                     <td className="px-5 py-4 font-semibold">{quote.acceptedServiceType || quote.requestedServiceType ? dollars(quote.totalCents) : "—"}</td>
                     <td className="px-5 py-4">
                       <StatusPill domain="quote" status={quote.status} />

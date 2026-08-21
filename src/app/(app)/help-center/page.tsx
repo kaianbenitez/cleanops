@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.74",
+    date: "August 21, 2026",
+    title: "Proposal approvals now keep scheduling separate",
+    changes: [
+      "Customers can optionally share a preferred cleaning date, clearly marked as a request until the office confirms availability.",
+      "Proposal approval now says Approve proposal and never creates or reserves a cleaning appointment by itself.",
+      "Office staff can see the requested date, the approved-but-not-scheduled state, and the approval event from the quote list and detail page.",
+    ],
+  },
+  {
     version: "v0.2.73",
     date: "August 21, 2026",
     title: "Fixed layout on the job screen and near the top of the phone",

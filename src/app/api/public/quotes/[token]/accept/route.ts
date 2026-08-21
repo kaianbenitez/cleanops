@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
-import { appNotifications, quotes } from "@/db/schema";
+import { appNotifications, auditLog, quotes } from "@/db/schema";
 import { and, eq, inArray } from "drizzle-orm";
 import { SERVICE_TYPES, type PricingBreakdown, type ServiceType } from "@/lib/pricing/calculate";
 import { ADD_ONS } from "@/lib/pricing/add-ons";
@@ -13,6 +13,7 @@ const acceptSchema = z.object({
   signatureName: z.string().trim().min(1, "Signature name is required"),
   addOns: z.array(z.string().trim().min(1)).default([]),
   recurringServiceType: z.enum(RECURRING_SERVICE_TYPES).nullable().optional(),
+  desiredCleaningDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Choose a valid desired date").nullable().optional(),
 });
 
 /** POST /api/public/quotes/[token]/accept — unauthenticated customer-facing accept action.
@@ -33,9 +34,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     return NextResponse.json({ error: "Quote not found" }, { status: 404 });
   }
   if (quote.status === "accepted") {
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, desiredCleaningDate: quote.desiredCleaningDate });
   }
-  if (quote.status === "declined" || quote.status === "expired") {
+  if (quote.status === "declined" || quote.status === "expired" || quote.bookedAt) {
     return NextResponse.json({ error: "This quote can no longer be accepted" }, { status: 400 });
   }
   if (quote.validUntil && quote.validUntil < new Date().toISOString().slice(0, 10)) {
@@ -76,6 +77,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       totalCents: finalTotalCents,
       signatureName: parsed.data.signatureName,
       signatureAt: new Date(),
+      desiredCleaningDate: parsed.data.desiredCleaningDate ?? null,
     })
     .where(and(eq(quotes.id, quote.id), inArray(quotes.status, ["draft", "sent", "viewed"])))
     .returning({ id: quotes.id });
@@ -86,6 +88,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       ? NextResponse.json({ ok: true })
       : NextResponse.json({ error: "This quote can no longer be accepted" }, { status: 409 });
   }
+
+  await db.insert(auditLog).values({
+    companyId: quote.companyId,
+    action: "quote.accepted",
+    entityType: "quote",
+    entityId: quote.id,
+    before: { status: quote.status },
+    after: {
+      status: "accepted",
+      serviceType: parsed.data.serviceType,
+      addOns: addOnEntries.map((addon) => addon.key),
+      desiredCleaningDate: parsed.data.desiredCleaningDate ?? null,
+      scheduled: false,
+    },
+  });
 
   // Delivery to GHL is intentionally deferred until the production API setup is
   // available. The internal notification is idempotent via quote_id's unique index.
@@ -99,5 +116,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     customerId: quote.customerId,
   }).onConflictDoNothing();
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, desiredCleaningDate: parsed.data.desiredCleaningDate ?? null });
 }

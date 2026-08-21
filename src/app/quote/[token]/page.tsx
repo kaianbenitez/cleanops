@@ -4,6 +4,7 @@ import { use, useEffect, useMemo, useState } from "react";
 import { Sparkles, Droplet, Star, Truck, PanelsTopLeft, Flame, Refrigerator, Ruler, LayoutGrid, Shirt, type LucideIcon } from "lucide-react";
 import { ADD_ONS, MOVE_IN_OUT_DEFAULT_ADD_ONS, type AddOnKey } from "@/lib/pricing/add-ons";
 import { formatDisplayDate } from "@/lib/scheduling/dates";
+import { DateInput } from "@/components/date-input";
 
 type TierBreakdown = {
   roomLines: Array<{ roomTypeName: string; count: number }>;
@@ -20,6 +21,9 @@ type PublicQuote = {
     notesToCustomer: string | null;
     validUntil: string | null;
     signatureName: string | null;
+    desiredCleaningDate: string | null;
+    acceptedAt: string | null;
+    bookedAt: string | null;
   };
   customerFirstName: string;
   customerLastName: string;
@@ -196,6 +200,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
   const [notFound, setNotFound] = useState(false);
   const [openFaq, setOpenFaq] = useState<string | null>(FAQS[0].q);
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [desiredCleaningDate, setDesiredCleaningDate] = useState("");
 
   // Move In/Out bundles oven/fridge/window cleaning by default — the customer can
   // still uncheck any of them, this just saves them from having to remember to ask.
@@ -214,6 +219,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
       })
       .then((body: PublicQuote) => {
         setData(body);
+        setDesiredCleaningDate(body.quote.desiredCleaningDate ?? "");
         const initialType = body.quote.acceptedServiceType ?? body.quote.requestedServiceType;
         if (initialType && (RECURRING_TYPES as readonly string[]).includes(initialType)) {
           setRecurringInterest(true);
@@ -253,11 +259,16 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
           signatureName,
           addOns: selectedAddOns,
           recurringServiceType: selectedType && recurringInterest ? recurringFrequency : undefined,
+          desiredCleaningDate: desiredCleaningDate || null,
         }),
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) setError(typeof body.error === "string" ? body.error : "This proposal could not be accepted.");
-      else setAccepted(true);
+      else {
+        setDesiredCleaningDate(body.desiredCleaningDate ?? desiredCleaningDate);
+        setData((current) => current ? { ...current, quote: { ...current.quote, status: "accepted", desiredCleaningDate: body.desiredCleaningDate ?? desiredCleaningDate } } : current);
+        setAccepted(true);
+      }
     } catch {
       setError("We could not reach the server. Your proposal was not accepted; please try again.");
     } finally {
@@ -631,7 +642,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
               {requiresDeposit ? (
                 <div className="mt-4 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-accent-tint)] p-4">
                   <p className="eyebrow">Deposit required</p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--co-muted)]">First-time and deep clean appointments require a 50% deposit to reserve the booking.</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--co-muted)]">First-time and deep clean visits may require a 50% deposit before the office confirms and schedules the appointment.</p>
                   <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                     <div className="min-w-0 rounded-2xl bg-[var(--co-surface)] p-3">
                       <p className="eyebrow">Due today</p>
@@ -645,9 +656,27 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                 </div>
               ) : null}
 
+              {!locked ? (
+                <div className="mt-6 space-y-4 border-t border-[var(--co-line-soft)] pt-5">
+                  <DateInput
+                    label="Desired cleaning date (optional)"
+                    placeholder="Choose a preferred date"
+                    value={desiredCleaningDate}
+                    onChange={setDesiredCleaningDate}
+                    min={new Date().toISOString().slice(0, 10)}
+                    disabled={locked}
+                    className="text-sm"
+                  />
+                  <p className="-mt-2 text-xs leading-5 text-[var(--co-muted)]">Tell us which date you prefer. This is a request only and is not confirmed until our office contacts you.</p>
+                  <div className="rounded-2xl border border-[var(--co-accent-text)]/30 bg-[var(--co-accent-tint)] p-4 text-sm leading-6 text-[var(--co-muted)]">
+                    Approving this proposal confirms that you would like to move forward with the selected service and price. Our office will contact you with availability and confirm your cleaning date.
+                  </div>
+                </div>
+              ) : null}
+
               {isAccepted ? (
                 <div className="mt-6 rounded-2xl bg-[var(--co-accent-tint)] p-4 text-center text-sm text-[var(--co-accent-text)]">
-                  Accepted{data.quote.signatureName ? ` by ${data.quote.signatureName}` : ""}. We&apos;ll be in touch to confirm scheduling.
+                  {data.quote.bookedAt ? `Your cleaning has been scheduled. ` : "Proposal approved. "}Thank you, {data.customerFirstName}. {data.quote.desiredCleaningDate ? `We received your preferred date (${formatDisplayDate(data.quote.desiredCleaningDate)}) and will contact you with availability to confirm your cleaning appointment.` : `Our office will contact you with available dates to confirm your cleaning appointment.`}
                 </div>
               ) : isExpired ? (
                 <div className="mt-6 rounded-2xl bg-[var(--co-surface-muted)] p-4 text-center text-sm text-[var(--co-muted)]">This proposal is no longer available.</div>
@@ -664,9 +693,9 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                   </label>
                   {error ? <p className="mt-3 text-sm text-[var(--co-danger)]">{error}</p> : null}
                   <button onClick={accept} disabled={accepting} className="co-button-primary mt-4 w-full">
-                    {accepting ? "Accepting..." : requiresDeposit ? "Accept and reserve →" : "Accept proposal →"}
+                    {accepting ? "Approving..." : "Approve proposal"}
                   </button>
-                  <p className="mt-3 text-center text-xs text-[var(--co-muted)]">By accepting, you agree to the service policies shown by the team.</p>
+                  <p className="mt-3 text-center text-xs text-[var(--co-muted)]">By approving, you agree to the service policies shown by the team.</p>
                 </div>
               )}
             </section>
@@ -684,6 +713,15 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
             </section>
           </aside>
         </div>
+
+        {!locked ? (
+          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--co-line-soft)] bg-[var(--co-surface)]/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden">
+            <div className="mx-auto flex max-w-7xl items-center gap-3">
+              <div className="min-w-0 flex-1"><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Current total</p><p className="truncate text-lg font-semibold">{dollars(quotedTotalCents)}</p></div>
+              <button onClick={accept} disabled={accepting} className="co-button-primary min-h-11 shrink-0">{accepting ? "Approving..." : "Approve proposal"}</button>
+            </div>
+          </div>
+        ) : null}
 
         <footer className="py-8 text-center text-xs text-[var(--co-muted)]">
           Prepared by {data.quoteTemplate?.ownerName || data.companyName}

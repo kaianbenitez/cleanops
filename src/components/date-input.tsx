@@ -13,6 +13,7 @@ interface DateInputProps {
   disabled?: boolean;
   className?: string;
   name?: string;
+  placeholder?: string;
   min?: string;
   max?: string;
   showCapacity?: boolean;
@@ -20,7 +21,7 @@ interface DateInputProps {
 }
 
 export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
-  ({ value, defaultValue, onChange, onBlur, label, required, disabled, className = "", name, min, max, showCapacity, neededHours }, ref) => {
+  ({ value, defaultValue, onChange, onBlur, label, required, disabled, className = "", name, placeholder = "Select a date", min, max, showCapacity, neededHours }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
     const [displayValue, setDisplayValue] = useState(value ?? defaultValue ?? "");
     const triggerRef = useRef<HTMLButtonElement>(null);
@@ -54,7 +55,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
             className="co-date-input w-full text-left"
           >
             <span className={`whitespace-nowrap ${displayValue ? "text-[var(--co-ink)]" : "text-[var(--co-input-placeholder)]"}`}>
-              {displayValue ? formatDisplay(displayValue) : "Select a date"}
+              {displayValue ? formatDisplay(displayValue) : placeholder}
             </span>
           </button>
           <svg
