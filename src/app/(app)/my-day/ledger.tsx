@@ -30,14 +30,15 @@ export default function Ledger({ events, timeZone }: { events: LedgerEvent[]; ti
   const recent = events.slice(-VISIBLE_TAIL);
 
   return (
-    <section className="px-4 pt-5 sm:px-5" aria-label="Today's record">
-      <h2 className="pb-1.5 type-field-meta font-semibold text-[var(--co-muted)]">Today&apos;s record</h2>
+    <section className="border-y border-[var(--co-line-soft)] bg-[color-mix(in_srgb,var(--co-surface-muted)_38%,transparent)] px-4 py-3.5 sm:px-5" aria-label="What you've recorded today">
+      <h2 className="type-field-meta font-semibold text-[var(--co-ink)]">What you&apos;ve recorded</h2>
+      <p className="mt-0.5 type-field-micro text-[var(--co-muted)]">Confirmed updates from today</p>
 
       {earlier.length > 0 ? (
         <details className="mb-1">
           <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 type-field-meta font-medium text-[var(--co-muted)] [&::-webkit-details-marker]:hidden">
             <ChevronRight className="h-[15px] w-[15px] shrink-0 transition-transform [details[open]_&]:rotate-90" aria-hidden />
-            Earlier today ({earlier.length})
+            Earlier updates ({earlier.length})
           </summary>
           <ul className="mt-1">
             {earlier.map((event) => (

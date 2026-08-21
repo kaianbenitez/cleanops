@@ -519,19 +519,42 @@ export default function MyDayClient({
             {serviceLabel(currentStop)} · {shortDuration(currentStop.estimatedDurationMinutes) ?? "Est. pending"} · {roleLabel(currentStop.role)}
           </p>
 
-          {currentStop.petNotes || currentStop.doNotClean ? (
-            <div className="mt-2.5 flex flex-wrap gap-1.5">
-              {currentStop.petNotes ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2.5 py-1 type-field-micro font-semibold text-[var(--co-muted)]">
-                  <PawPrint className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
-                  {currentStop.petNotes}
-                </span>
+          {currentStop.petNotes || currentStop.doNotClean || currentStop.accessInstructions || currentStop.keyNumber || currentStop.garageCode || currentStop.gateCode || currentStop.alarmCode ? (
+            <div className="mt-3">
+              {currentStop.petNotes || currentStop.doNotClean ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {currentStop.petNotes ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2.5 py-1 type-field-micro font-semibold text-[var(--co-muted)]">
+                      <PawPrint className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
+                      {currentStop.petNotes}
+                    </span>
+                  ) : null}
+                  {currentStop.doNotClean ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2.5 py-1 type-field-micro font-semibold text-[var(--co-muted)]">
+                      <CircleSlash className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
+                      {currentStop.doNotClean}
+                    </span>
+                  ) : null}
+                </div>
               ) : null}
-              {currentStop.doNotClean ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-2.5 py-1 type-field-micro font-semibold text-[var(--co-muted)]">
-                  <CircleSlash className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
-                  {currentStop.doNotClean}
-                </span>
+
+              {currentStop.accessInstructions || currentStop.keyNumber || currentStop.garageCode || currentStop.gateCode || currentStop.alarmCode ? (
+                <details className={currentStop.petNotes || currentStop.doNotClean ? "mt-2" : ""} open>
+                  <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 type-field-body font-semibold text-[var(--co-ink)] [&::-webkit-details-marker]:hidden">
+                    <ChevronRight className="h-[15px] w-[15px] shrink-0 transition-transform [details[open]_&]:rotate-90" aria-hidden />
+                    Entry instructions
+                  </summary>
+                  <div className="mt-1 space-y-2 rounded-[10px] bg-[var(--co-surface-muted)] px-3.5 py-3 type-field-meta text-[var(--co-ink)]">
+                    {currentStop.accessInstructions ? <p className="whitespace-pre-line">{currentStop.accessInstructions}</p> : null}
+                    {currentStop.keyNumber || currentStop.garageCode || currentStop.gateCode || currentStop.alarmCode ? (
+                      <MaskedCode className="max-w-full text-left type-field-meta">
+                        {[currentStop.keyNumber && `Key #${currentStop.keyNumber}`, currentStop.garageCode && `Garage ${currentStop.garageCode}`, currentStop.gateCode && `Gate ${currentStop.gateCode}`, currentStop.alarmCode && `Alarm ${currentStop.alarmCode}`]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </MaskedCode>
+                    ) : null}
+                  </div>
+                </details>
               ) : null}
             </div>
           ) : null}
@@ -549,27 +572,6 @@ export default function MyDayClient({
               </button>
             </div>
           ) : null}
-
-          {currentStop.accessInstructions || currentStop.keyNumber || currentStop.garageCode || currentStop.gateCode || currentStop.alarmCode ? (
-            <details className="mt-3.5">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 type-field-body font-semibold text-[var(--co-muted)] [&::-webkit-details-marker]:hidden">
-                <ChevronRight className="h-[15px] w-[15px] shrink-0 transition-transform [details[open]_&]:rotate-90" aria-hidden />
-                Entry instructions
-              </summary>
-              <div className="mt-1 space-y-2 rounded-[10px] bg-[var(--co-surface-muted)] px-3.5 py-3 type-field-meta text-[var(--co-ink)]">
-                {currentStop.accessInstructions ? <p className="whitespace-pre-line">{currentStop.accessInstructions}</p> : null}
-                {currentStop.keyNumber || currentStop.garageCode || currentStop.gateCode || currentStop.alarmCode ? (
-                  <MaskedCode className="max-w-full text-left type-field-meta">
-                    {[currentStop.keyNumber && `Key #${currentStop.keyNumber}`, currentStop.garageCode && `Garage ${currentStop.garageCode}`, currentStop.gateCode && `Gate ${currentStop.gateCode}`, currentStop.alarmCode && `Alarm ${currentStop.alarmCode}`]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </MaskedCode>
-                ) : null}
-              </div>
-            </details>
-          ) : null}
-
-          {currentStop.rotationalTaskReminder ? <RotationChecklist reminder={currentStop.rotationalTaskReminder} /> : null}
 
           <div className="mt-3.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
             <Link href={`/my-day/${currentStop.jobId}`} className="flex min-h-11 items-center border-b border-[var(--co-line)] type-field-meta font-semibold text-[var(--co-muted)] hover:text-[var(--co-ink)]">
@@ -615,6 +617,8 @@ export default function MyDayClient({
               </button>
             </div>
           ) : null}
+
+          {currentStop.rotationalTaskReminder ? <RotationChecklist reminder={currentStop.rotationalTaskReminder} /> : null}
         </div>
       ) : !currentStop ? (
         <div className="mt-3 flex flex-col items-center border-y border-[var(--co-line-soft)] px-4 py-10 text-center sm:px-5">
@@ -648,8 +652,11 @@ export default function MyDayClient({
       ) : null}
 
       {routeStops.length > 0 ? (
-        <div>
-          <p className="px-4 pb-2 pt-5 type-field-meta font-semibold text-[var(--co-muted)] sm:px-5">Rest of today</p>
+        <section aria-labelledby="rest-of-today-heading" className="mt-5">
+          <div className="border-t border-[var(--co-line-soft)] px-4 pb-2 pt-4 sm:px-5">
+            <h2 id="rest-of-today-heading" className="type-field-meta font-semibold text-[var(--co-ink)]">Rest of today</h2>
+            <p className="mt-0.5 type-field-micro text-[var(--co-muted)]">Upcoming stops</p>
+          </div>
           {routeStops.map((stop) => {
             const flagged = !jobAddress(stop);
             return (
@@ -675,14 +682,17 @@ export default function MyDayClient({
               />
             );
           })}
-        </div>
+        </section>
       ) : null}
 
       <Ledger events={ledger} timeZone={companyTimezone} />
 
       {upcomingJobs.length > 0 ? (
-        <div>
-          <p className="px-4 pb-2 pt-5 type-field-meta font-semibold text-[var(--co-muted)] sm:px-5">Rest of the week</p>
+        <section aria-labelledby="rest-of-week-heading" className="mt-5">
+          <div className="border-t border-[var(--co-line-soft)] px-4 pb-2 pt-4 sm:px-5">
+            <h2 id="rest-of-week-heading" className="type-field-meta font-semibold text-[var(--co-ink)]">Rest of the week</h2>
+            <p className="mt-0.5 type-field-micro text-[var(--co-muted)]">Upcoming beyond today</p>
+          </div>
           {upcomingJobs.map((stop) => {
             const flagged = !jobAddress(stop);
             return (
@@ -708,7 +718,7 @@ export default function MyDayClient({
               />
             );
           })}
-        </div>
+        </section>
       ) : null}
 
       <footer className="mt-8 border-t border-[var(--co-line-soft)] px-4 pt-4 text-center sm:px-5">
