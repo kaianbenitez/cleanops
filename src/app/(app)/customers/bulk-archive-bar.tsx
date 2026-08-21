@@ -79,7 +79,16 @@ export function BulkArchiveTable({ rows }: { rows: EligibleCustomerRow[] }) {
           </button>
         </div>
       </div>
-      <div className="overflow-x-auto">
+      <div className="divide-y divide-[var(--co-line-soft)] border-t border-[var(--co-line-soft)] sm:hidden">
+        {rows.map((row) => (
+          <div key={row.id} className="space-y-3 px-4 py-4">
+            <div className="flex items-start gap-3"><input aria-label={`Select ${row.name}`} type="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} className="mt-1 h-5 w-5 accent-[var(--co-accent-fill)]" /><div className="min-w-0 flex-1"><p className="font-semibold text-[var(--co-ink)]">{row.name}</p><p className="mt-1 text-sm text-[var(--co-muted)]">{row.clientTypeLabel} · {row.statusLabel}</p></div></div>
+            <p className="truncate text-sm text-[var(--co-muted)]">{row.address}</p>
+            <Link href={`/customers/${row.id}`} className="inline-flex min-h-11 items-center font-medium text-[var(--co-accent-text)]">Open customer</Link>
+          </div>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto sm:block">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-[var(--co-surface-muted)] text-xs uppercase tracking-[0.1em] text-[var(--co-muted)]">
             <tr>
@@ -94,7 +103,7 @@ export function BulkArchiveTable({ rows }: { rows: EligibleCustomerRow[] }) {
             {rows.map((row) => (
               <tr key={row.id} className="hover:bg-[var(--co-surface-muted)]/50">
                 <td className="px-5 py-4">
-                  <input type="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} className="accent-[var(--co-accent-fill)]" />
+                  <input aria-label={`Select ${row.name}`} type="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} className="h-5 w-5 accent-[var(--co-accent-fill)]" />
                 </td>
                 <td className="px-5 py-4">
                   <p className="font-semibold text-[var(--co-ink)]">{row.name}</p>

@@ -713,17 +713,17 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                     setActiveLocationIndex(index);
                     jumpToAddressFields();
                   }}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
+                  className={`inline-flex min-h-11 items-center rounded-full border px-3 py-1.5 text-xs font-medium ${
                     index === activeLocationIndex ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-fill)] text-white" : "border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)]"
                   }`}
                 >
                   {item.label}
                 </button>
               ))}
-              <button className="rounded-full border border-dashed border-[var(--co-line)] px-3 py-1.5 text-xs text-[var(--co-muted)]" onClick={addLocation}>
+              <button className="inline-flex min-h-11 items-center rounded-full border border-dashed border-[var(--co-line)] px-3 py-1.5 text-xs text-[var(--co-muted)]" onClick={addLocation}>
                 + Address
               </button>
-              <button onClick={jumpToAddressFields} className="ml-auto text-xs font-medium text-[var(--co-accent-text)] hover:underline">
+              <button onClick={jumpToAddressFields} className="ml-auto inline-flex min-h-11 items-center text-xs font-medium text-[var(--co-accent-text)] hover:underline">
                 Edit address details ↑
               </button>
             </div>
@@ -898,7 +898,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
                       key={value}
                       type="button"
                       onClick={() => togglePreferredDay(value)}
-                      className={`rounded-lg border px-3 py-2 text-xs font-semibold ${selected ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-fill)] text-white" : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)]"}`}
+                      className={`min-h-11 rounded-lg border px-3 py-2 text-xs font-semibold ${selected ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-fill)] text-white" : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)]"}`}
                       aria-pressed={selected}
                     >
                       {label}
@@ -919,7 +919,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <div className="grid grid-cols-2 gap-2">
                 {["AM", "PM"].map((period) => {
                   const selected = customer.preferredTimeOfDay === period;
-                  return <button key={period} type="button" onClick={() => updateCustomer("preferredTimeOfDay", selected ? null : period)} className={`rounded-lg border px-3 py-2 text-sm font-semibold ${selected ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-fill)] text-white" : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)]"}`} aria-pressed={selected}>{period}</button>;
+                  return <button key={period} type="button" onClick={() => updateCustomer("preferredTimeOfDay", selected ? null : period)} className={`min-h-11 rounded-lg border px-3 py-2 text-sm font-semibold ${selected ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-fill)] text-white" : "border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)]"}`} aria-pressed={selected}>{period}</button>;
                 })}
               </div>
             </div>
@@ -928,7 +928,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <div className="flex flex-wrap gap-2">
                 {PAYMENT_METHOD_OPTIONS.map((method) => {
                   const selected = customer.paymentMethods?.includes(method) ?? false;
-                  return <button key={method} type="button" onClick={() => togglePaymentMethod(method)} className={`rounded-lg px-3 py-2 text-xs font-semibold ${selected ? "co-badge-info" : "border border-[var(--co-line-soft)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)]"}`} aria-pressed={selected}>{method}</button>;
+                  return <button key={method} type="button" onClick={() => togglePaymentMethod(method)} className={`min-h-11 rounded-lg px-3 py-2 text-xs font-semibold ${selected ? "co-badge-info" : "border border-[var(--co-line-soft)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)]"}`} aria-pressed={selected}>{method}</button>;
                 })}
               </div>
             </div>

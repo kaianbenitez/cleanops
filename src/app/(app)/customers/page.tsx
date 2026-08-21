@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { customers, invoices, jobs } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -92,32 +92,18 @@ type CustomerRow = {
   createdAt: Date;
   isArchived: boolean;
   tags: unknown;
-};
-
-type JobRow = {
-  customerId: string;
-  id: string;
-  status: string;
-  scheduledDate: string;
-  scheduledStartTime: string | null;
-  type: string;
-};
-
-type InvoiceRow = {
-  customerId: string;
-  status: string;
-  totalCents: number;
-  amountPaidCents: number;
+  nextServiceDate: string | null;
+  lastServiceDate: string | null;
+  invoiceCount: number;
+  outstandingCents: number;
 };
 
 function money(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-function paymentStatus(invoices: InvoiceRow[]) {
-  const billable = invoices.filter((invoice) => invoice.status !== "void");
-  if (!billable.length) return { label: "No invoices", className: "text-[var(--co-muted)]" };
-  const outstandingCents = billable.reduce((total, invoice) => total + Math.max(invoice.totalCents - invoice.amountPaidCents, 0), 0);
+function paymentStatus(invoiceCount: number, outstandingCents: number) {
+  if (!invoiceCount) return { label: "No invoices", className: "text-[var(--co-muted)]" };
   if (outstandingCents > 0) return { label: `${money(outstandingCents)} due`, className: "text-[var(--co-warning)]" };
   return { label: "Paid", className: "text-[var(--co-success)]" };
 }
@@ -254,6 +240,10 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         createdAt: customers.createdAt,
         isArchived: customers.isArchived,
         tags: customers.tags,
+        nextServiceDate: sql<string | null>`(select min(${jobs.scheduledDate}) from ${jobs} where ${jobs.customerId} = ${customers.id} and ${jobs.status} not in ('completed', 'cancelled', 'no_show'))`,
+        lastServiceDate: sql<string | null>`(select max(${jobs.scheduledDate}) from ${jobs} where ${jobs.customerId} = ${customers.id} and ${jobs.status} = 'completed')`,
+        invoiceCount: sql<number>`(select count(*) from ${invoices} where ${invoices.customerId} = ${customers.id} and ${invoices.status} <> 'void')`,
+        outstandingCents: sql<number>`coalesce((select sum(greatest(${invoices.totalCents} - ${invoices.amountPaidCents}, 0)) from ${invoices} where ${invoices.customerId} = ${customers.id} and ${invoices.status} <> 'void'), 0)`,
       })
       .from(customers)
       .where(and(...conditions))
@@ -289,55 +279,6 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
       .where(and(eq(customers.companyId, admin.companyId), isNotNull(customers.zip), ne(customers.zip, "")))
       .orderBy(customers.zip),
   ]);
-
-  const customerIds = rows.map((row) => row.id);
-  const [customerJobs, customerInvoices]: [JobRow[], InvoiceRow[]] = customerIds.length
-    ? await Promise.all([
-        db
-          .select({
-            customerId: jobs.customerId,
-            id: jobs.id,
-            status: jobs.status,
-            scheduledDate: jobs.scheduledDate,
-            scheduledStartTime: jobs.scheduledStartTime,
-            type: jobs.type,
-          })
-          .from(jobs)
-          .where(inArray(jobs.customerId, customerIds)),
-        db
-          .select({
-            customerId: invoices.customerId,
-            status: invoices.status,
-            totalCents: invoices.totalCents,
-            amountPaidCents: invoices.amountPaidCents,
-          })
-          .from(invoices)
-          .where(inArray(invoices.customerId, customerIds)),
-      ])
-    : [[], []];
-
-  const nextJobByCustomer = new Map<string, JobRow>();
-  customerJobs
-    .filter((job) => !["completed", "cancelled", "no_show"].includes(job.status))
-    .sort((a, b) => `${a.scheduledDate}${a.scheduledStartTime ?? ""}`.localeCompare(`${b.scheduledDate}${b.scheduledStartTime ?? ""}`))
-    .forEach((job) => {
-      if (!nextJobByCustomer.has(job.customerId)) nextJobByCustomer.set(job.customerId, job);
-    });
-
-  const lastJobByCustomer = new Map<string, JobRow>();
-  customerJobs
-    .filter((job) => job.status === "completed")
-    .sort((a, b) => `${b.scheduledDate}${b.scheduledStartTime ?? ""}`.localeCompare(`${a.scheduledDate}${a.scheduledStartTime ?? ""}`))
-    .forEach((job) => {
-      if (!lastJobByCustomer.has(job.customerId)) lastJobByCustomer.set(job.customerId, job);
-    });
-
-  const invoicesByCustomer = new Map<string, InvoiceRow[]>();
-  customerInvoices.forEach((invoice) => {
-    const entries = invoicesByCustomer.get(invoice.customerId) ?? [];
-    entries.push(invoice);
-    invoicesByCustomer.set(invoice.customerId, entries);
-  });
 
   const recurringCount = Number(stats.recurring);
   const attentionCount = Number(stats.attention);
@@ -382,7 +323,8 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         </Link>
       ) : null}
 
-      <section className="co-card flex flex-wrap items-center gap-3 px-4 py-3">
+      <section className="co-card grid gap-3 px-4 py-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
         {isEligibleView ? (
           <>
             <p className="text-sm text-[var(--co-muted)]">Customers eligible for archive</p>
@@ -390,34 +332,35 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           </>
         ) : (
           <>
-          <Link href={hrefWith(sp, "recurrence", sp.recurrence === "recurring" ? "" : "recurring")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.recurrence === "recurring" ? "bg-[var(--co-accent-fill)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "recurrence", sp.recurrence === "recurring" ? "" : "recurring")} className={`inline-flex min-h-11 items-center rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.recurrence === "recurring" ? "bg-[var(--co-accent-fill)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-ink)]"}`}>
             Recurring <span className="ml-1 opacity-80">{recurringCount}</span>
           </Link>
-          <Link href={hrefWith(sp, "attention", sp.attention === "yes" ? "" : "yes")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.attention === "yes" ? "bg-[var(--co-warning)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-warning)] hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "attention", sp.attention === "yes" ? "" : "yes")} className={`inline-flex min-h-11 items-center rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.attention === "yes" ? "bg-[var(--co-warning)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-warning)] hover:text-[var(--co-ink)]"}`}>
             Needs attention <span className="ml-1 opacity-80">{attentionCount}</span>
           </Link>
-          <Link href={hrefWith(sp, "status", sp.status === "lead" ? "" : "lead")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.status === "lead" ? "bg-[var(--co-accent-fill)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "status", sp.status === "lead" ? "" : "lead")} className={`inline-flex min-h-11 items-center rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.status === "lead" ? "bg-[var(--co-accent-fill)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-ink)]"}`}>
             Leads <span className="ml-1 opacity-80">{leadCount}</span>
           </Link>
-          <Link href={hrefWith(sp, "cancelled", sp.cancelled === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.cancelled === "1" ? "bg-[var(--co-danger)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-danger)] hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "cancelled", sp.cancelled === "1" ? "" : "1")} className={`inline-flex min-h-11 items-center rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.cancelled === "1" ? "bg-[var(--co-danger)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-danger)] hover:text-[var(--co-ink)]"}`}>
             Cancelled job <span className="ml-1 opacity-80">{cancelledCount}</span>
           </Link>
-          <Link href={hrefWith(sp, "repeat", sp.repeat === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.repeat === "1" ? "bg-[var(--co-accent-fill)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "repeat", sp.repeat === "1" ? "" : "1")} className={`inline-flex min-h-11 items-center rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.repeat === "1" ? "bg-[var(--co-accent-fill)] text-white shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-ink)]"}`}>
             Repeat customer <span className="ml-1 opacity-80">{repeatCount}</span>
           </Link>
-          <Link href={hrefWith(sp, "archived", sp.archived === "1" ? "" : "1")} className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.archived === "1" ? "bg-[var(--co-faint)] text-[var(--co-surface)] shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-faint)] hover:text-[var(--co-ink)]"}`}>
+          <Link href={hrefWith(sp, "archived", sp.archived === "1" ? "" : "1")} className={`inline-flex min-h-11 items-center rounded-full px-3.5 py-2 text-xs font-semibold transition ${sp.archived === "1" ? "bg-[var(--co-faint)] text-[var(--co-surface)] shadow-sm" : "border border-[var(--co-line)] bg-[var(--co-surface)] text-[var(--co-muted)] hover:border-[var(--co-faint)] hover:text-[var(--co-ink)]"}`}>
             {sp.archived === "1" ? "Hide archived" : "Show archived"}
           </Link>
           </>
         )}
-        <div className="ml-auto flex flex-wrap items-center gap-3">
+        </div>
+        <div className="flex flex-wrap items-center gap-3 lg:justify-self-end">
           <div className="flex items-center gap-4 rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)]/40 px-3 py-2 text-sm">
             <div>
-              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--co-muted)]">Managed</p>
+              <p className="text-xs font-medium uppercase tracking-[0.08em] text-[var(--co-muted)]">Managed</p>
               <p className="font-semibold">{totalManaged.toLocaleString()}{trendPct !== null ? <span className={`ml-1 text-xs font-medium ${trendPct >= 0 ? "text-[var(--co-success)]" : "text-[var(--co-danger)]"}`}>{trendPct >= 0 ? "↑" : "↓"}{Math.abs(trendPct)}%</span> : null}</p>
             </div>
             <div className="border-l border-[var(--co-line-soft)] pl-4" title="Active clients as a share of everyone pursued past lead/quote">
-              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--co-muted)]">Retention</p>
+              <p className="text-xs font-medium uppercase tracking-[0.08em] text-[var(--co-muted)]">Retention</p>
               <p className="font-semibold">{retentionRate !== null ? `${retentionRate.toFixed(1)}%` : "—"}</p>
             </div>
           </div>
@@ -428,8 +371,8 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
       <section className="co-card overflow-hidden">
         {!isEligibleView ? (
           <form className="flex flex-wrap gap-3 border-b border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 p-4">
-            <input name="q" defaultValue={sp.q} placeholder="Search name, email, phone, or address" className="co-input min-w-[240px] flex-1" />
-            <select name="status" defaultValue={sp.status ?? "all"} className="co-input w-full sm:w-auto">
+            <input id="customer-search" aria-label="Search customers" name="q" defaultValue={sp.q} placeholder="Search name, email, phone, or address" className="co-input min-w-[240px] flex-1" />
+            <select aria-label="Customer status" name="status" defaultValue={sp.status ?? "all"} className="co-input w-full sm:w-auto">
               <option value="all">All statuses</option>
               {statusOptions("customer").map(({ value, label }) => (
                 <option key={value} value={value}>
@@ -437,11 +380,11 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                 </option>
               ))}
             </select>
-            <select name="zip" defaultValue={sp.zip ?? ""} className="co-input w-full sm:w-auto">
+            <select aria-label="ZIP code" name="zip" defaultValue={sp.zip ?? ""} className="co-input w-full sm:w-auto">
               <option value="">All zip codes</option>
               {zipRows.map((row) => (row.zip ? <option key={row.zip} value={row.zip}>{row.zip}</option> : null))}
             </select>
-            <select name="type" defaultValue={sp.type ?? ""} className="co-input w-full sm:w-auto">
+            <select aria-label="Service type" name="type" defaultValue={sp.type ?? ""} className="co-input w-full sm:w-auto">
               <option value="">Any service type</option>
               {Object.entries(TYPE_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -449,16 +392,16 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                 </option>
               ))}
             </select>
-            <select name="clientType" defaultValue={sp.clientType ?? "all"} className="co-input w-full sm:w-auto">
+            <select aria-label="Client type" name="clientType" defaultValue={sp.clientType ?? "all"} className="co-input w-full sm:w-auto">
               <option value="all">Residential + commercial</option>
               <option value="residential">Residential</option>
               <option value="commercial">Commercial</option>
             </select>
-            <select name="payment" defaultValue={sp.payment ?? ""} className="co-input w-full sm:w-auto">
+            <select aria-label="Payment method" name="payment" defaultValue={sp.payment ?? ""} className="co-input w-full sm:w-auto">
               <option value="">All payment methods</option>
               <option value="missing">Payment method missing</option>
             </select>
-            <select name="history" defaultValue={isHistoryKey(sp.history) ? sp.history : ""} className="co-input w-full sm:w-auto">
+            <select aria-label="Service history" name="history" defaultValue={isHistoryKey(sp.history) ? sp.history : ""} className="co-input w-full sm:w-auto">
               <option value="">Any service history</option>
               {Object.entries(HISTORY_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -466,7 +409,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                 </option>
               ))}
             </select>
-            <select name="sort" defaultValue={sortKey} className="co-input w-full sm:w-auto">
+            <select aria-label="Sort customers" name="sort" defaultValue={sortKey} className="co-input w-full sm:w-auto">
               {Object.entries(SORT_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
@@ -482,7 +425,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
               Filter customers
             </button>
             {Object.keys(sp).length ? (
-              <Link href="/customers" className="self-center text-sm font-medium text-[var(--co-accent-text)]">
+              <Link href="/customers" className="inline-flex min-h-11 items-center self-center text-sm font-medium text-[var(--co-accent-text)]">
                 Clear
               </Link>
             ) : null}
@@ -497,7 +440,19 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
             <p className="mt-1 text-sm text-[var(--co-muted)]">GHL imports will appear here when contacts are available.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="divide-y divide-[var(--co-line-soft)] border-t border-[var(--co-line-soft)] sm:hidden">
+            {rows.map((row) => {
+              const payment = paymentStatus(Number(row.invoiceCount), Number(row.outstandingCents));
+              const planLabel = row.recurrence && row.recurrence !== "none" ? RECURRENCE_LABELS[row.recurrence] ?? row.recurrence : "One-time";
+              return <Link key={row.id} href={`/customers/${row.id}`} className="block space-y-3 px-4 py-4 focus-visible:bg-[var(--co-surface-muted)]">
+                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-semibold text-[var(--co-ink)]">{row.companyName || `${row.firstName} ${row.lastName}`}</p><p className="mt-1 text-sm text-[var(--co-muted)]">{row.clientType === "commercial" ? "Commercial" : "Residential"} · {planLabel}</p></div><StatusPill domain="customer" status={row.status} /></div>
+                <p className="truncate text-sm text-[var(--co-muted)]">{row.addressLine1 || "Address missing"}{row.city ? ` · ${row.city}` : ""}</p>
+                <div className="flex items-center justify-between gap-3 text-sm"><span className="text-[var(--co-muted)]">Next: {row.nextServiceDate ? formatDate(row.nextServiceDate) : "No visit scheduled"}</span><span className={`font-semibold ${payment.className}`}>{payment.label}</span></div>
+              </Link>;
+            })}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[1040px] text-left text-sm">
               <thead className="bg-[var(--co-surface-muted)] text-xs uppercase tracking-[0.1em] text-[var(--co-muted)]">
                 <tr>
@@ -511,9 +466,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
               </thead>
               <tbody className="divide-y divide-[var(--co-line-soft)]">
                 {rows.map((row) => {
-                  const nextJob = nextJobByCustomer.get(row.id);
-                  const lastJob = lastJobByCustomer.get(row.id);
-                  const payment = paymentStatus(invoicesByCustomer.get(row.id) ?? []);
+                  const payment = paymentStatus(Number(row.invoiceCount), Number(row.outstandingCents));
                   const planLabel = row.recurrence && row.recurrence !== "none" ? RECURRENCE_LABELS[row.recurrence] ?? row.recurrence : "One-time";
                   const clientTypeLabel = row.clientType === "commercial" ? "Commercial" : "Residential";
 
@@ -552,18 +505,17 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                         {row.zip ? <span className="block text-xs">Area: {row.zip}</span> : null}
                       </td>
                       <td className="px-5 py-4">
-                        {lastJob ? (
+                        {row.lastServiceDate ? (
                           <>
-                            <p className="font-medium">{formatDate(lastJob.scheduledDate)}</p>
-                            <p className="text-xs text-[var(--co-muted)]">{TYPE_LABELS[lastJob.type] ?? lastJob.type}</p>
+                            <p className="font-medium">{formatDate(row.lastServiceDate)}</p>
                           </>
                         ) : (
                           <span className="text-[var(--co-muted)]">—</span>
                         )}
                       </td>
                       <td className="px-5 py-4">
-                        {nextJob ? (
-                          <span className="font-medium text-[var(--co-accent-text)]">{formatDate(nextJob.scheduledDate)}</span>
+                        {row.nextServiceDate ? (
+                          <span className="font-medium text-[var(--co-accent-text)]">{formatDate(row.nextServiceDate)}</span>
                         ) : (
                           <span className="text-[var(--co-muted)]">—</span>
                         )}
@@ -575,6 +527,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
               </tbody>
             </table>
           </div>
+          </>
         )}
         {!isEligibleView ? (
           <PaginationControls page={page} pageSize={PAGE_SIZE} total={totalCount} itemLabel="customer" variant="pills" hrefForPage={(target) => hrefForPage(sp, target)} />
