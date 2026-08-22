@@ -226,7 +226,7 @@ export default async function CalendarPage({
     axis = "vertical";
   } else if (effectiveView === "staff_vertical") {
     view = "board";
-    axis = "horizontal";
+    axis = "vertical";
   } else if (
     effectiveView === "week" ||
     effectiveView === "month" ||
@@ -872,7 +872,7 @@ export default async function CalendarPage({
   return (
     <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
       <CalendarStateSync view={view} axis={axis} anchor={stateAnchor} />
-      <section className="co-card mx-3 mt-3 overflow-hidden sm:mx-4 lg:mx-5">
+      <section className="co-card mx-3 mt-3 overflow-visible sm:mx-4 lg:mx-5">
       <header className="border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-3 lg:px-5">
         <CalendarToolbar
           view={view}
