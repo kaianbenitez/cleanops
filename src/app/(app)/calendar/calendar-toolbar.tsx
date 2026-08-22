@@ -31,7 +31,7 @@ function CalendarDaySummary({
   discountCents: number;
 }) {
   return (
-    <div className="hidden min-w-0 flex-1 items-center justify-center gap-3 overflow-hidden px-2 lg:flex lg:gap-4" aria-label="Selected day summary">
+    <div className="hidden min-w-0 flex-1 items-center justify-center gap-3 overflow-hidden px-2 2xl:flex 2xl:gap-4" aria-label="Selected day summary">
       <div className="min-w-0 text-center">
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-faint)]">Employees working</p>
         <p className="mt-0.5 text-sm font-bold tabular-nums text-[var(--co-ink)]">{workingEmployees}/{totalEmployees}</p>
@@ -65,7 +65,7 @@ function CompactDaySummary({
   discountCents: number;
 }) {
   return (
-    <details className="order-last w-full rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/45 px-3 py-2 lg:hidden">
+    <details className="order-last w-full rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/45 px-3 py-2 2xl:hidden">
       <summary className="flex min-h-8 cursor-pointer list-none items-center justify-between text-xs font-semibold text-[var(--co-body)] [&::-webkit-details-marker]:hidden">
         <span>Day summary</span>
         <span className="tabular-nums text-[var(--co-muted)]">{workingEmployees}/{totalEmployees} working</span>
@@ -226,7 +226,7 @@ export default function CalendarToolbar({
   }
 
   return (
-    <div className="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap lg:justify-between">
+    <div className="flex w-full min-w-0 flex-wrap items-center gap-2 2xl:flex-nowrap 2xl:justify-between">
       <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
         <button
           type="button"
