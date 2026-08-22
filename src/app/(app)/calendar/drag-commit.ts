@@ -16,7 +16,7 @@ export async function commitJobPatch(
     onOptimistic: () => void;
     onSuccess?: () => void;
     onWarning?: (message: string) => void;
-    onError: (message: string) => void;
+    onError: (message: string, retry: () => void) => void;
     onSettled?: () => void;
   }
 ): Promise<boolean> {
@@ -36,7 +36,10 @@ export async function commitJobPatch(
     handlers.onSuccess?.();
     return true;
   } catch (err) {
-    handlers.onError(err instanceof Error ? err.message : "Couldn't save that move.");
+    const message = err instanceof Error ? err.message : "Couldn't save that move.";
+    handlers.onError(message, () => {
+      void commitJobPatch(jobId, patch, handlers);
+    });
     return false;
   } finally {
     handlers.onSettled?.();

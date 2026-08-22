@@ -12,6 +12,7 @@ import AssigneePicker from "./assignee-picker";
 import ClientHomeSymbols from "./client-home-symbols";
 import { cleanNoteText } from "@/lib/format";
 import { ExternalLink } from "lucide-react";
+import { useDialogFocus } from "./dialog-focus";
 
 type Employee = { id: string; firstName: string; lastName: string };
 
@@ -73,6 +74,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
   const [saving, setSaving] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
+  const dialogRef = useDialogFocus(Boolean(jobId));
 
   async function loadJob(id: string, isCancelled: () => boolean) {
     setLoading(true);
@@ -188,8 +190,8 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4 sm:p-6">
-      <button type="button" aria-label="Close job details" onClick={requestClose} className="absolute inset-0 bg-black/30" />
-      <aside role="dialog" aria-modal="true" aria-labelledby="calendar-job-detail-title" className="calendar-detail-panel relative flex h-[min(720px,calc(100dvh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] shadow-[0_20px_70px_rgba(15,23,20,0.25)] sm:h-[min(720px,calc(100dvh-3rem))]">
+      <button type="button" aria-label="Close job details" onClick={requestClose} className="absolute inset-0 bg-[var(--co-overlay)]" />
+      <aside ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="calendar-job-detail-title" className="calendar-detail-panel relative flex h-[min(720px,calc(100dvh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] shadow-[var(--co-shadow-panel)] sm:h-[min(720px,calc(100dvh-3rem))]">
         <div className="flex items-start justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
           <div>
             <p className="eyebrow">Job details</p>
@@ -198,8 +200,8 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
           <div className="flex shrink-0 items-center gap-2">
             {job ? <button type="button" disabled={saving || !isDirty} onClick={saveChanges} className="co-button-primary px-3 py-2 text-xs disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button> : null}
             {job && job.status !== "cancelled" ? <button type="button" disabled={saving} onClick={() => setConfirmingCancel(true)} className="co-button-secondary px-3 py-2 text-xs text-[var(--co-danger)]">Cancel job</button> : null}
-            {job ? <Link href={`/jobs/${job.id}`} target="_blank" rel="noreferrer" aria-label="Open full job page in a new tab" title="Open full job page in a new tab" className="co-button-secondary flex h-9 w-9 items-center justify-center !p-0"><ExternalLink className="h-4 w-4" aria-hidden /></Link> : null}
-            <button type="button" onClick={requestClose} className="rounded-full p-1 text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]" aria-label="Close">
+            {job ? <Link href={`/jobs/${job.id}`} target="_blank" rel="noreferrer" aria-label="Open full job page in a new tab" title="Open full job page in a new tab" className="co-button-secondary flex h-11 w-11 items-center justify-center !p-0"><ExternalLink className="h-4 w-4" aria-hidden /></Link> : null}
+            <button type="button" onClick={requestClose} className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]" aria-label="Close">
               ✕
             </button>
           </div>

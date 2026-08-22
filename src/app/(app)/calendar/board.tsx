@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { CalendarAppointment, CalendarEmployee, CalendarJob, StaffRosterMember } from "./page";
 import { commitJobPatch } from "./drag-commit";
+import { useDialogFocus } from "./dialog-focus";
 import { UndoToast, useUndoToast } from "./undo-toast";
 import JobDetailPanel from "./job-detail-panel";
 import AppointmentPanel from "./appointment-panel";
@@ -182,7 +183,7 @@ function CapacityMeter({ usedMinutes, availableMinutes, isOver, onLeave }: { use
       <div className="h-1 min-w-[26px] flex-1 overflow-hidden rounded-full bg-[var(--co-surface-muted-2)]">
         <div
           className="h-full rounded-full"
-          style={{ width: `${percent}%`, background: fillColor, transition: "width 550ms cubic-bezier(.16,1,.3,1)" }}
+          style={{ width: `${percent}%`, background: fillColor }}
         />
       </div>
       <span className={`whitespace-nowrap text-[10.5px] font-bold ${isOver ? "text-[var(--co-warning)]" : "text-[var(--co-faint)]"}`}>
@@ -271,8 +272,16 @@ export default function Board({
   const [railDropActive, setRailDropActive] = useState(false);
   const [attentionRailOpen, setAttentionRailOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorJobId, setErrorJobId] = useState<string | null>(null);
+  const [errorRetry, setErrorRetry] = useState<(() => void) | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const { toast, showUndo, dismiss } = useUndoToast();
+
+  function showJobError(jobId: string, message: string, retry?: () => void) {
+    setErrorJobId(jobId);
+    setErrorRetry(() => retry ?? null);
+    setError(message);
+  }
 
   const gridScrollRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -552,12 +561,12 @@ export default function Board({
           commitJobPatch(job.id, previous, {
             onOptimistic: () => setJobs((current) => current.map((entry) => (entry.id === job.id ? { ...entry, ...previous } : entry))),
             onSuccess: () => router.refresh(),
-            onError: setError,
+        onError: (message) => showJobError(job.id, message),
           }),
         );
       },
       onWarning: setWarning,
-      onError: setError,
+      onError: (message, retry) => showJobError(job.id, message, retry),
     });
   }
 
@@ -630,8 +639,8 @@ export default function Board({
           );
         },
         onWarning: setWarning,
-        onError: (message) => {
-          setError(message);
+        onError: (message, retry) => {
+          showJobError(job.id, message, retry);
           setJobs((current) => current.map((entry) => (entry.id === job.id ? { ...entry, assignedUserIds: previousAssigned, scheduledStartTime: previousTime } : entry)));
         },
       },
@@ -706,8 +715,8 @@ export default function Board({
           );
         },
         onWarning: setWarning,
-        onError: (message) => {
-          setError(message);
+        onError: (message, retry) => {
+          showJobError(jobId, message, retry);
           setJobs((current) => current.map((entry) => (entry.id === job.id ? { ...entry, assignedUserIds: previousEmployees, scheduledStartTime: previousTime } : entry)));
         },
       },
@@ -801,8 +810,8 @@ export default function Board({
           );
         },
         onWarning: setWarning,
-        onError: (message) => {
-          setError(message);
+        onError: (message, retry) => {
+          showJobError(job.id, message, retry);
           setJobs((current) => current.map((entry) => (entry.id === job.id ? { ...entry, assignedUserIds: previousAssigned } : entry)));
         },
       },
@@ -968,11 +977,11 @@ export default function Board({
           <span className="min-w-0 truncate text-xs font-bold text-[var(--co-ink)]">{displayCustomer(job)}</span>
           <JobMarks job={job} warn={isConflict || isOnLeave} />
         </div>
-        <div className="mt-px truncate text-[10.5px] font-semibold text-[var(--co-body)]">
+        <div className="mt-px truncate text-xs font-semibold text-[var(--co-body)]">
           {clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime))} – {clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime) + jobWallClockDuration(job))}
         </div>
         {!compact ? (
-          <div className="mt-px break-words text-[10.5px] leading-4 text-[var(--co-faint)]" title={formatCustomerAddress(job)}>
+          <div className="mt-px break-words text-xs leading-4 text-[var(--co-faint)]" title={formatCustomerAddress(job)}>
             {job.recurringSeriesId ? "↻ " : ""}{jobTypeLabel(job)} · {formatCustomerAddress(job)}
           </div>
         ) : null}
@@ -986,14 +995,21 @@ export default function Board({
         {card}
         {resize && !isLocked ? (
           <div
-            role="presentation"
-            aria-label="Drag to extend job duration"
+            role="button"
+            tabIndex={0}
+            aria-label={`Adjust duration for ${displayCustomer(job)} in job details`}
             data-job-id={job.id}
             onPointerDown={resize.onPointerDown}
             onPointerMove={resize.onPointerMove}
             onPointerUp={resize.onPointerUp}
             onPointerCancel={resize.onPointerUp}
-            className={`absolute inset-x-0 bottom-0 z-20 flex h-3 cursor-ns-resize touch-none items-end justify-center pb-0.5 transition-opacity ${resize.isResizing ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                setDetailJobId(job.id);
+              }
+            }}
+            className={`absolute inset-x-0 bottom-0 z-20 flex h-11 cursor-ns-resize touch-none items-end justify-center pb-0.5 transition-opacity focus-visible:opacity-100 ${resize.isResizing ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
           >
             <span className="h-1 w-8 rounded-full bg-[var(--co-ink)]/40" />
           </div>
@@ -1120,7 +1136,7 @@ export default function Board({
         <CapacityMeter usedMinutes={data?.capacity.usedMinutes ?? 0} availableMinutes={data?.capacity.availableMinutes ?? 0} isOver={data?.capacity.isOver ?? false} onLeave={hasLeave} />
         {hasLeave ? (
           <div className="mt-1">
-            <span className="co-badge-muted inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold">
+            <span className="co-badge-muted inline-flex min-h-6 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-bold">
               <Ban className="h-[11px] w-[11px]" aria-hidden strokeWidth={1.75} />
               {(data?.capacity.availableMinutes ?? 0) === 0 ? "Off today" : "Half day"}
             </span>
@@ -1190,8 +1206,8 @@ export default function Board({
           );
         },
         onWarning: setWarning,
-        onError: (message) => {
-          setError(message);
+        onError: (message, retry) => {
+          showJobError(jobId, message, retry);
           setJobs((current) => current.map((entry) => (entry.id === jobId ? { ...entry, estimatedDurationMinutes: initialDuration } : entry)));
         },
       },
@@ -1250,7 +1266,7 @@ export default function Board({
               onClick={() => setAttentionRailOpen(false)}
               aria-label="Hide needs attention"
               title="Hide needs attention"
-              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[var(--co-warning)] transition hover:bg-[color-mix(in_srgb,var(--co-warning)_10%,var(--co-tint-base))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--co-accent-fill)]"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-md text-[var(--co-warning)] transition hover:bg-[color-mix(in_srgb,var(--co-warning)_10%,var(--co-tint-base))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--co-accent-fill)]"
             >
               <AlertCircle className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />
             </button>
@@ -1262,6 +1278,7 @@ export default function Board({
           <p className="mt-[5px] text-xs leading-[1.4] text-[var(--co-faint)]">
             {attentionTotal ? "Pick a job, then choose a crew. The board shows you where it fits before you commit." : "Every job today has a crew and a time."}
           </p>
+          {attentionTotal ? <p className="mt-1 text-[11px] leading-[1.35] text-[var(--co-muted)]">Use <strong className="font-semibold text-[var(--co-body)]">Assign crew &amp; time</strong> for the guided path. Dragging is optional on desktop.</p> : null}
         </div>
         <div className="max-h-[calc(100vh-190px)] overflow-y-auto">
           <RailGroup icon={<Users className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />} label="No crew yet" jobs={noCrewJobs} collapsible defaultCollapsed>
@@ -1353,9 +1370,11 @@ export default function Board({
         </div>
 
         {error ? (
-          <p role="alert" className="border-b border-[var(--co-danger)]/30 bg-[var(--co-danger)]/10 px-4 py-2 text-xs font-medium text-[var(--co-danger)]">
-            {error}
-          </p>
+          <div role="alert" className="flex flex-wrap items-center gap-3 border-b border-[var(--co-danger)]/30 bg-[var(--co-danger)]/10 px-4 py-2 text-xs font-medium text-[var(--co-danger)]">
+            <span>{error}</span>
+            {errorRetry ? <button type="button" onClick={() => { const retry = errorRetry; setError(null); setErrorJobId(null); setErrorRetry(null); retry(); }} className="min-h-11 rounded-md border border-[var(--co-danger)]/30 px-3 py-2 font-semibold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/10">Try again</button> : null}
+            {errorJobId ? <button type="button" onClick={() => { setDetailJobId(errorJobId); setError(null); setErrorJobId(null); setErrorRetry(null); }} className="min-h-11 rounded-md border border-[var(--co-danger)]/30 px-3 py-2 font-semibold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/10">Open job details</button> : null}
+          </div>
         ) : null}
         {warning ? (
           <p role="status" className="border-b border-[var(--co-warning)]/30 bg-[var(--co-warning)]/10 px-4 py-2 text-xs font-medium text-[var(--co-warning)]">
@@ -1662,7 +1681,7 @@ function RailCard({
         <span className="text-[13.5px] font-bold leading-[1.3] text-[var(--co-ink)]">{displayCustomer(job)}</span>
         <span className="ml-auto text-xs font-bold text-[var(--co-body)] tabular-nums">{job.scheduledStartTime ? clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime)) : "—"}</span>
       </div>
-      <div className="mt-[3px] flex items-center gap-[5px] text-[11.5px] leading-[1.35] text-[var(--co-faint)]">
+      <div className="mt-[3px] flex items-center gap-[5px] text-xs leading-[1.35] text-[var(--co-faint)]">
         {crewLabel ? (
           <>
             <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: crewColor ?? "var(--co-faint)" }} />
@@ -1673,24 +1692,24 @@ function RailCard({
         )}
       </div>
       <div className="mt-[7px] flex flex-wrap gap-1">
-        <span className="co-badge-muted inline-flex h-[19px] items-center rounded px-1.5 text-[10.5px] font-bold">{job.recurringSeriesId ? "↻ " : ""}{jobTypeLabel(job)}</span>
-        <span className="co-badge-muted inline-flex h-[19px] items-center rounded px-1.5 text-[10.5px] font-bold tabular-nums">{formatDuration(jobDuration(job))}</span>
+        <span className="co-badge-muted inline-flex min-h-6 items-center rounded px-1.5 text-xs font-bold">{job.recurringSeriesId ? "↻ " : ""}{jobTypeLabel(job)}</span>
+        <span className="co-badge-muted inline-flex min-h-6 items-center rounded px-1.5 text-xs font-bold tabular-nums">{formatDuration(jobDuration(job))}</span>
         {job.petNotes ? (
-          <span className="co-badge-spark inline-flex h-[19px] items-center gap-1 rounded px-1.5 text-[10.5px] font-bold">
+          <span className="co-badge-spark inline-flex min-h-6 items-center gap-1 rounded px-1.5 text-xs font-bold">
             <PawPrint className="h-[11px] w-[11px]" aria-hidden strokeWidth={1.75} />
             Pets
           </span>
         ) : null}
       </div>
       {selected ? (
-        <div className="mt-2 flex items-center gap-[5px] border-t border-dashed border-[var(--co-line)] pt-[7px] text-[11.5px] font-semibold text-[var(--co-accent-text)]">Choose a crew lane on the board</div>
+        <div className="mt-2 flex items-center gap-[5px] border-t border-dashed border-[var(--co-line)] pt-[7px] text-xs font-semibold text-[var(--co-accent-text)]">Choose a crew lane on the board</div>
       ) : null}
       </button>
       {onBump || onSkip || onAssignAtTime ? (
         <div className="mt-2 flex gap-1.5 border-t border-[var(--co-line-soft)] pt-2">
-          {onAssignAtTime ? <button type="button" onClick={(event) => { event.stopPropagation(); onAssignAtTime(); }} className="rounded-md border border-[var(--co-accent-fill)] bg-[var(--co-accent-tint)] px-2 py-1 text-[10.5px] font-bold text-[var(--co-accent-text)] hover:border-[var(--co-accent-text)]">Assign at time</button> : null}
-          {onBump ? <button type="button" onClick={(event) => { event.stopPropagation(); onBump(); }} className="rounded-md border border-[var(--co-line)] px-2 py-1 text-[10.5px] font-bold text-[var(--co-body)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-accent-text)]">Bump date</button> : null}
-          {onSkip ? <button type="button" onClick={(event) => { event.stopPropagation(); onSkip(); }} className="rounded-md border border-[var(--co-danger)]/30 px-2 py-1 text-[10.5px] font-bold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/10">Skip visit</button> : null}
+          {onAssignAtTime ? <button type="button" onClick={(event) => { event.stopPropagation(); onAssignAtTime(); }} className="min-h-11 rounded-md border border-[var(--co-accent-fill)] bg-[var(--co-accent-tint)] px-3 py-2 text-xs font-bold text-[var(--co-accent-text)] hover:border-[var(--co-accent-text)]">Assign crew &amp; time</button> : null}
+          {onBump ? <button type="button" onClick={(event) => { event.stopPropagation(); onBump(); }} className="min-h-11 rounded-md border border-[var(--co-line)] px-3 py-2 text-xs font-bold text-[var(--co-body)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-accent-text)]">Bump date</button> : null}
+          {onSkip ? <button type="button" onClick={(event) => { event.stopPropagation(); onSkip(); }} className="min-h-11 rounded-md border border-[var(--co-danger)]/30 px-3 py-2 text-xs font-bold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/10">Skip visit</button> : null}
         </div>
       ) : null}
     </div>
@@ -1702,10 +1721,11 @@ function AssignAtTimeDialog({ job, employees, initialMinutes, getVerdict, onClos
   const minutes = Math.max(0, Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5)));
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const selectedVerdict = selectedEmployeeId ? getVerdict(selectedEmployeeId, minutes) : null;
+  const dialogRef = useDialogFocus<HTMLDivElement>(true);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/30" />
-      <div role="dialog" aria-modal="true" aria-labelledby="assign-at-time-title" className="relative flex max-h-[min(760px,calc(100dvh-2rem))] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] shadow-[0_20px_70px_rgba(15,23,20,.25)]">
+      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-[var(--co-overlay)]" />
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="assign-at-time-title" className="relative flex max-h-[min(760px,calc(100dvh-2rem))] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] shadow-[var(--co-shadow-panel)]">
         <div className="border-b border-[var(--co-line-soft)] px-5 py-4"><h2 id="assign-at-time-title" className="text-lg font-semibold">Assign {displayCustomer(job)} at a time</h2><p className="mt-1 text-sm text-[var(--co-muted)]">Cleaner colors are calculated for this exact arrival time, including their other houses and time off.</p></div>
         <div className="min-h-0 overflow-y-auto p-5">
           <div className="flex flex-wrap items-end gap-3"><label className="text-sm font-semibold">Arrival time<input type="time" value={time} onChange={(event) => setTime(event.target.value)} className="co-input mt-1 block" /></label><div className="flex gap-2"><button type="button" onClick={() => setTime("09:00")} className="co-button-secondary py-2 text-xs">Morning · 9 AM</button><button type="button" onClick={() => setTime("13:00")} className="co-button-secondary py-2 text-xs">Afternoon · 1 PM</button><button type="button" onClick={() => setTime("14:00")} className="co-button-secondary py-2 text-xs">Second house · 2 PM</button></div></div>
@@ -1725,10 +1745,11 @@ function RailActionDialog({ job, mode, policy, onClose, onConfirm }: { job: Cale
   const [fee, setFee] = useState<"50" | "100" | "0">("50");
   const startTime = period === "afternoon" ? "13:00:00" : "09:00:00";
   const canSubmit = mode === "bump" ? Boolean(date) : Boolean(reason.trim());
+  const dialogRef = useDialogFocus<HTMLDivElement>(true);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/30" />
-      <div role="dialog" aria-modal="true" aria-labelledby="rail-action-title" className="relative w-full max-w-md rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-5 shadow-[0_20px_70px_rgba(15,23,20,.25)]">
+      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-[var(--co-overlay)]" />
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="rail-action-title" className="relative w-full max-w-md rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-5 shadow-[var(--co-shadow-panel)]">
         <h2 id="rail-action-title" className="text-lg font-semibold">{mode === "bump" ? "Bump this visit" : "Skip this visit"}</h2>
         <p className="mt-1 text-sm text-[var(--co-muted)]">{displayCustomer(job)} · {job.scheduledDate}</p>
         {mode === "bump" ? (

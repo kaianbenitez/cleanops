@@ -70,7 +70,7 @@ export default function MonthBoard({
         {workingDays.map((weekday) => (
           <div
             key={weekday}
-            className="bg-[var(--co-surface-muted)] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-faint)]"
+            className="bg-[var(--co-surface-muted)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--co-faint)]"
           >
             {weekdayLabels[weekday]}
           </div>
@@ -107,7 +107,7 @@ export default function MonthBoard({
                 </span>
               </div>
               {appointmentCountByDate[iso] ? (
-                <span className="co-badge-spark mt-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold">
+                <span className="co-badge-spark mt-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-semibold">
                   <CalendarDays className="h-3 w-3" strokeWidth={1.75} aria-hidden />
                   {appointmentCountByDate[iso]} {appointmentCountByDate[iso] === 1 ? "meeting" : "meetings"}
                 </span>

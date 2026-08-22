@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useDialogFocus } from "./dialog-focus";
 import { commitJobPatch } from "./drag-commit";
 import TeamSearchPicker from "@/components/team-search-picker";
 import { formatDisplayDate } from "@/lib/scheduling/dates";
@@ -53,6 +54,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
   const [assigned, setAssigned] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
+  const dialogRef = useDialogFocus(Boolean(jobId));
 
   async function load(id: string, isCancelled: () => boolean) {
     setLoading(true);
@@ -130,8 +132,8 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4 sm:p-6">
-      <button type="button" aria-label="Close assign panel" onClick={onClose} className="absolute inset-0 bg-black/30" />
-      <aside role="dialog" aria-modal="true" aria-labelledby="calendar-assign-title" className="relative flex h-[min(720px,calc(100dvh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] shadow-[0_20px_70px_rgba(15,23,20,0.25)] sm:h-[min(720px,calc(100dvh-3rem))]">
+      <button type="button" aria-label="Close assign panel" onClick={onClose} className="absolute inset-0 bg-[var(--co-overlay)]" />
+      <aside ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="calendar-assign-title" className="relative flex h-[min(720px,calc(100dvh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] shadow-[var(--co-shadow-panel)] sm:h-[min(720px,calc(100dvh-3rem))]">
         <div className="flex items-start justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
           <div>
             <p className="eyebrow">Assign cleaner</p>
@@ -143,7 +145,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
               </p>
             ) : null}
           </div>
-          <button type="button" onClick={onClose} className="rounded-full p-1 text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]" aria-label="Close">
+          <button type="button" onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]" aria-label="Close">
             ✕
           </button>
         </div>

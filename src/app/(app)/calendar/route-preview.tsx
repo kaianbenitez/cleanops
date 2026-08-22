@@ -163,15 +163,15 @@ export default function RoutePreview({
       {showTopStats && (
         <div className="mt-3 grid gap-2 sm:grid-cols-3">
           <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Stops</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Stops</p>
             <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{totalStops}</p>
           </div>
           <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">First stop</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">First stop</p>
             <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{firstStop ?? "—"}</p>
           </div>
           <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Last stop</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Last stop</p>
             <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{lastStop ?? "—"}</p>
           </div>
         </div>
@@ -192,14 +192,14 @@ export default function RoutePreview({
                     href={`/jobs/${job.id}`}
                     className="flex w-full items-center gap-3 rounded-2xl border border-white/90 bg-[var(--co-surface)] px-3 py-2 text-xs shadow-[0_8px_22px_rgba(27,41,37,0.08)]"
                   >
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--co-accent-fill)] text-[11px] font-semibold text-white">{index + 1}</span>
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--co-accent-fill)] text-xs font-semibold text-white">{index + 1}</span>
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="font-semibold text-[var(--co-ink)]">
                         {job.firstName} {job.lastName}
                       </span>
-                      <span className="truncate text-[11px] text-[var(--co-muted)]">{job.address}</span>
+                      <span className="truncate text-xs text-[var(--co-muted)]">{job.address}</span>
                     </span>
-                    <span className="rounded-full bg-[var(--co-surface-muted)] px-2 py-1 text-[11px] font-medium text-[var(--co-accent-text)]">{job.time}</span>
+                    <span className="rounded-full bg-[var(--co-surface-muted)] px-2 py-1 text-xs font-medium text-[var(--co-accent-text)]">{job.time}</span>
                   </Link>
                 ))}
               </div>
@@ -212,15 +212,15 @@ export default function RoutePreview({
 
       {!embedded ? <div className="mt-4 grid gap-2 sm:grid-cols-3">
         <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Stops</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Stops</p>
           <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{orderedJobs.length}</p>
         </div>
         <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Route mode</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Route mode</p>
           <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{hasStops ? "Manual order" : "Awaiting assignment"}</p>
         </div>
         <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 px-3 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Source</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--co-muted)]">Source</p>
           <p className="mt-1 text-sm font-semibold text-[var(--co-ink)]">{apiKey && !mapError ? "Google Maps" : "Static preview"}</p>
         </div>
       </div> : null}

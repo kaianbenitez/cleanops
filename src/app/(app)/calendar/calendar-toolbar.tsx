@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { ChevronLeft, ChevronRight, PanelLeft } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import DatePicker, { CalendarAxisToggle, CalendarViewSelector } from "./date-picker";
 import FilterBar from "./filter-bar";
 import GlobalSearch from "../global-search";
@@ -31,23 +31,51 @@ function CalendarDaySummary({
   discountCents: number;
 }) {
   return (
-    <div className="flex min-w-0 flex-1 items-center justify-center gap-3 overflow-hidden px-2 lg:gap-4" aria-label="Selected day summary">
+    <div className="hidden min-w-0 flex-1 items-center justify-center gap-3 overflow-hidden px-2 lg:flex lg:gap-4" aria-label="Selected day summary">
       <div className="min-w-0 text-center">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-faint)]">Employees working</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-faint)]">Employees working</p>
         <p className="mt-0.5 text-sm font-bold tabular-nums text-[var(--co-ink)]">{workingEmployees}/{totalEmployees}</p>
-        <p className="truncate text-[10px] text-[var(--co-muted)]">{recurringClients} recurring client{recurringClients === 1 ? "" : "s"}</p>
+        <p className="truncate text-xs text-[var(--co-muted)]">{recurringClients} recurring client{recurringClients === 1 ? "" : "s"}</p>
       </div>
       <div className="h-8 w-px bg-[var(--co-line-soft)]" aria-hidden />
       <div className="min-w-0 text-center">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-faint)]">Projected revenue</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-faint)]">Projected revenue</p>
         <p className="mt-0.5 text-sm font-bold tabular-nums text-[var(--co-ink)]">{money(revenueCents)}</p>
       </div>
       <div className="h-8 w-px bg-[var(--co-line-soft)]" aria-hidden />
       <div className="min-w-0 text-center">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-faint)]">Discounts</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-faint)]">Discounts</p>
         <p className="mt-0.5 text-sm font-bold tabular-nums text-[var(--co-ink)]">{money(discountCents)}</p>
       </div>
     </div>
+  );
+}
+
+function CompactDaySummary({
+  totalEmployees,
+  workingEmployees,
+  recurringClients,
+  revenueCents,
+  discountCents,
+}: {
+  totalEmployees: number;
+  workingEmployees: number;
+  recurringClients: number;
+  revenueCents: number;
+  discountCents: number;
+}) {
+  return (
+    <details className="order-last w-full rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/45 px-3 py-2 lg:hidden">
+      <summary className="flex min-h-8 cursor-pointer list-none items-center justify-between text-xs font-semibold text-[var(--co-body)] [&::-webkit-details-marker]:hidden">
+        <span>Day summary</span>
+        <span className="tabular-nums text-[var(--co-muted)]">{workingEmployees}/{totalEmployees} working</span>
+      </summary>
+      <div className="grid grid-cols-3 gap-3 border-t border-[var(--co-line-soft)] pt-2 text-xs">
+        <div><span className="block text-[var(--co-faint)]">Recurring</span><span className="font-semibold text-[var(--co-ink)]">{recurringClients}</span></div>
+        <div><span className="block text-[var(--co-faint)]">Revenue</span><span className="font-semibold text-[var(--co-ink)]">{money(revenueCents)}</span></div>
+        <div><span className="block text-[var(--co-faint)]">Discounts</span><span className="font-semibold text-[var(--co-ink)]">{money(discountCents)}</span></div>
+      </div>
+    </details>
   );
 }
 
@@ -102,8 +130,12 @@ export default function CalendarToolbar({
   initialNotifications: Notification[];
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isDateNavPending, startDateNavTransition] = useTransition();
   const [focused, setFocused] = useState(true);
+  const mobileToolsRef = useRef<HTMLDetailsElement>(null);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   useEffect(() => {
     // Reading localStorage after mount, same pattern as today-list-board.tsx's clock init.
@@ -112,12 +144,67 @@ export default function CalendarToolbar({
   }, []);
 
   useEffect(() => {
+    function handleShortcut(event: KeyboardEvent) {
+      const target = event.target as HTMLElement;
+      if (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const key = event.key.toLowerCase();
+      const nextView = key === "b" ? "board" : key === "l" ? "list" : key === "w" ? "week" : key === "m" ? "month" : null;
+      if (event.key === "?" || (event.shiftKey && event.key === "/")) {
+        event.preventDefault();
+        setShortcutsOpen((current) => !current);
+        return;
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        router.push(prevHref);
+        return;
+      }
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        router.push(nextHref);
+        return;
+      }
+      if (key === "t") {
+        event.preventDefault();
+        router.push(todayHref);
+        return;
+      }
+      if (!nextView || nextView === view) return;
+      event.preventDefault();
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("view", nextView);
+      if (nextView === "board" || nextView === "list") params.set("day", focusDayIso);
+      else if (nextView === "month") params.set("month", focusDayIso.slice(0, 7));
+      else {
+        const monday = new Date(`${focusDayIso}T00:00:00.000Z`);
+        monday.setUTCDate(monday.getUTCDate() - monday.getUTCDay() + 1);
+        params.set("week", monday.toISOString().slice(0, 10));
+      }
+      router.push(`${pathname}?${params.toString()}`);
+    }
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, [focusDayIso, nextHref, pathname, prevHref, router, searchParams, todayHref, view]);
+
+  useEffect(() => {
     if (focused) document.documentElement.dataset.focusMode = "calendar";
     else delete document.documentElement.dataset.focusMode;
     return () => {
       delete document.documentElement.dataset.focusMode;
     };
   }, [focused]);
+
+  useEffect(() => {
+    function closeMobileTools(event: PointerEvent) {
+      const details = mobileToolsRef.current;
+      if (!details?.open || details.contains(event.target as Node)) return;
+      details.open = false;
+      details.querySelector("summary")?.focus();
+    }
+    document.addEventListener("pointerdown", closeMobileTools);
+    return () => document.removeEventListener("pointerdown", closeMobileTools);
+  }, []);
 
   function toggleFocus() {
     setFocused((current) => {
@@ -139,14 +226,15 @@ export default function CalendarToolbar({
   }
 
   return (
-    <div className="flex w-full min-w-0 items-center justify-between gap-2">
-      <div className="flex shrink-0 items-center gap-2">
+    <div className="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap lg:justify-between">
+      <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={toggleFocus}
           aria-pressed={!focused}
-          aria-label={focused ? "Show navigation" : "Hide navigation"}
-          className="co-button-secondary flex h-9 w-9 shrink-0 items-center justify-center !p-0"
+          aria-label={focused ? "Show full navigation" : "Focus schedule"}
+          title={focused ? "Show full navigation" : "Focus schedule"}
+          className="co-button-secondary flex h-11 w-11 shrink-0 items-center justify-center !p-0"
         >
           <PanelLeft className="h-4 w-4" aria-hidden />
         </button>
@@ -179,7 +267,7 @@ export default function CalendarToolbar({
       </div>
       <CalendarDaySummary totalEmployees={totalEmployees} {...dailySummary} />
       {focused ? (
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="hidden shrink-0 items-center gap-2 sm:flex">
           <div className="mx-1 h-6 w-px bg-[var(--co-line-soft)]" aria-hidden />
           <GlobalSearch variant="icon" />
           <NotificationsMenu initialNotifications={initialNotifications} portal />
@@ -189,8 +277,47 @@ export default function CalendarToolbar({
             leadingItem={{ href: "/jobs/new", label: "Schedule a job" }}
             appointments={{ staffRoster, defaultDate: appointmentDefaultDate }}
           />
+          <details open={shortcutsOpen} onToggle={(event) => setShortcutsOpen(event.currentTarget.open)} className="relative">
+            <summary className="co-button-secondary flex min-h-11 cursor-pointer list-none items-center px-3 text-xs font-semibold [&::-webkit-details-marker]:hidden">Shortcuts</summary>
+            <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] p-3 text-xs shadow-[var(--co-shadow-popover)]">
+              <p className="font-semibold text-[var(--co-ink)]">Calendar shortcuts</p>
+              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[var(--co-muted)]">
+                <dt className="font-semibold text-[var(--co-body)]">← / →</dt><dd>Previous / next period</dd>
+                <dt className="font-semibold text-[var(--co-body)]">T</dt><dd>Go to today</dd>
+                <dt className="font-semibold text-[var(--co-body)]">B / L</dt><dd>Board / list</dd>
+                <dt className="font-semibold text-[var(--co-body)]">W / M</dt><dd>Week / month</dd>
+                <dt className="font-semibold text-[var(--co-body)]">?</dt><dd>Show or hide this guide</dd>
+              </dl>
+            </div>
+          </details>
         </div>
       ) : null}
+      {focused ? (
+        <details ref={mobileToolsRef} className="relative shrink-0 sm:hidden" onClick={(event) => {
+          if ((event.target as HTMLElement).closest("summary")) return;
+          window.setTimeout(() => {
+            const details = mobileToolsRef.current;
+            if (!details?.open) return;
+            details.open = false;
+            details.querySelector("summary")?.focus();
+          }, 0);
+        }}>
+          <summary className="co-button-secondary flex min-h-11 cursor-pointer list-none items-center px-3 text-xs font-semibold [&::-webkit-details-marker]:hidden">More tools</summary>
+          <div className="absolute right-0 top-full z-20 mt-2 flex min-w-52 flex-col gap-2 rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] p-2 shadow-[var(--co-shadow-popover)]">
+            <GlobalSearch variant="icon" />
+            <NotificationsMenu initialNotifications={initialNotifications} portal />
+            <CreateMenu
+              compact
+              portal
+              leadingItem={{ href: "/jobs/new", label: "Schedule a job" }}
+              appointments={{ staffRoster, defaultDate: appointmentDefaultDate }}
+            />
+            <button type="button" onClick={() => setShortcutsOpen((current) => !current)} className="min-h-11 rounded-md px-3 text-left text-xs font-semibold text-[var(--co-body)] hover:bg-[var(--co-surface-muted)]">{shortcutsOpen ? "Hide shortcuts" : "Show shortcuts"}</button>
+            {shortcutsOpen ? <div className="border-t border-[var(--co-line-soft)] px-3 pt-2 text-xs text-[var(--co-muted)]">← / → periods · T today · B/L board/list · W/M week/month · ? shortcuts</div> : null}
+          </div>
+        </details>
+      ) : null}
+      <CompactDaySummary totalEmployees={totalEmployees} {...dailySummary} />
     </div>
   );
 }

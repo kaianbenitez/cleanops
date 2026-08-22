@@ -1,5 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 import { config } from "dotenv";
+import { existsSync } from "node:fs";
 
 // Authenticated specs read BROWSER_ADMIN_USERNAME / BROWSER_ADMIN_PASSWORD.
 // Without this load they are unset, every authenticated spec `test.skip`s, and
@@ -14,6 +15,8 @@ config({ path: ".env.local", quiet: true });
 const externalBaseURL = process.env.BROWSER_BASE_URL;
 const port = Number(process.env.BROWSER_PORT ?? 3100);
 const baseURL = externalBaseURL ?? `http://127.0.0.1:${port}`;
+const systemChromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const browserExecutablePath = process.env.PLAYWRIGHT_EXECUTABLE_PATH ?? (existsSync(systemChromePath) ? systemChromePath : undefined);
 
 export default defineConfig({
   testDir: "./tests/browser",
@@ -24,6 +27,9 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL,
+    ...(browserExecutablePath
+      ? { launchOptions: { executablePath: browserExecutablePath } }
+      : {}),
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { DateInput } from "@/components/date-input";
 import { TimeInput } from "@/components/time-input";
 import AttendeePicker from "./attendee-picker";
+import { useDialogFocus } from "./dialog-focus";
 
 type StaffMember = { id: string; firstName: string; lastName: string };
 
@@ -56,6 +57,7 @@ export default function AppointmentPanel({
   const [error, setError] = useState<string | null>(null);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
+  const dialogRef = useDialogFocus(true);
 
   useEffect(() => {
     if (mode !== "edit" || !eventId) return;
@@ -88,7 +90,6 @@ export default function AppointmentPanel({
         if (!cancelled) setLoading(false);
       }
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- load resolves asynchronously.
     load();
     return () => {
       cancelled = true;
@@ -182,11 +183,11 @@ export default function AppointmentPanel({
 
   return createPortal(
     <div className="fixed inset-0 z-40 flex justify-end">
-      <button type="button" aria-label="Close appointment panel" onClick={onClose} className="absolute inset-0 bg-black/30" />
-      <aside className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-[var(--co-line)] bg-[var(--co-surface)] shadow-[0_0_60px_rgba(15,23,20,0.25)]">
+      <button type="button" aria-label="Close appointment panel" onClick={onClose} className="absolute inset-0 bg-[var(--co-overlay)]" />
+      <aside ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="calendar-appointment-title" className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-[var(--co-line)] bg-[var(--co-surface)] shadow-[var(--co-shadow-panel)]">
         <div className="flex items-start justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
           <div>
-            <h2 className="text-lg font-semibold">
+            <h2 id="calendar-appointment-title" className="text-lg font-semibold">
               {mode === "create"
                 ? appointmentKind === "blocker"
                   ? "Block time"
@@ -194,7 +195,7 @@ export default function AppointmentPanel({
                 : "Edit appointment"}
             </h2>
           </div>
-          <button type="button" onClick={onClose} className="rounded-full p-1 text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]" aria-label="Close">
+          <button type="button" onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]" aria-label="Close">
             ✕
           </button>
         </div>

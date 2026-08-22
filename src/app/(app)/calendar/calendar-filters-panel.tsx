@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useDialogFocus } from "./dialog-focus";
 
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
@@ -51,6 +52,7 @@ export default function CalendarFiltersPanel({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const panelRef = useRef<HTMLDivElement>(null);
+  const dialogFocusRef = useDialogFocus<HTMLDivElement>(open);
   const zip = searchParams.get("zip") ?? "";
   const [dialogPosition, setDialogPosition] = useState({ top: 0, right: 0 });
 
@@ -111,7 +113,11 @@ export default function CalendarFiltersPanel({
 
   const panel = (
     <div
-      ref={panelRef}
+      ref={(node) => {
+        panelRef.current = node;
+        dialogFocusRef.current = node;
+      }}
+      tabIndex={-1}
       role="dialog"
       aria-label="Calendar filters"
       style={dialogPosition}

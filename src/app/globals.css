@@ -55,6 +55,11 @@
   --co-input-border-hover: var(--co-line);
   --co-input-focus: #2457ff;
   --co-focus-ring: rgba(36, 87, 255, 0.32);
+  --co-overlay: rgb(15 23 42 / 0.3);
+  --co-shadow-panel: 0 20px 70px rgb(15 23 20 / 0.25);
+  --co-shadow-popover: 0 12px 32px rgb(15 23 20 / 0.18);
+  --co-shadow-control: 0 1px 2px rgb(20 26 46 / 0.12);
+  --co-shadow-toast: 0 20px 40px rgb(15 23 20 / 0.25);
   /* Anchor color for the color-mix() tints below (badges, etc). Mixing
      against a fixed "white" made every tinted badge stay pale in dark mode
      regardless of theme — this lets the mix target the current surface. */
@@ -282,7 +287,7 @@ body {
   min-height: 2.75rem;
   border-radius: var(--co-radius-control);
   color: var(--co-ink);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .co-date-day:hover { background: var(--co-accent-tint); }
 .co-date-day-selected { background: var(--co-accent-fill); color: white; font-weight: 700; }
@@ -473,6 +478,11 @@ button:active { transform: translateY(1px); }
   --co-input-border-hover: #384268;
   --co-input-focus: #5b82ff;
   --co-focus-ring: rgba(91, 130, 255, 0.35);
+  --co-overlay: rgb(3 7 18 / 0.58);
+  --co-shadow-panel: 0 20px 70px rgb(0 0 0 / 0.55);
+  --co-shadow-popover: 0 12px 32px rgb(0 0 0 / 0.42);
+  --co-shadow-control: 0 1px 2px rgb(0 0 0 / 0.35);
+  --co-shadow-toast: 0 20px 40px rgb(0 0 0 / 0.48);
   --co-tint-base: var(--co-surface);
   --background: oklch(0.148 0.004 228.8);
   --foreground: oklch(0.987 0.002 197.1);

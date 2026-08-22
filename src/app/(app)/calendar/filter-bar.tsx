@@ -48,7 +48,7 @@ export default function FilterBar({
         aria-controls="calendar-attention-rail"
         aria-label={`Show or hide needs attention · ${attentionCount}`}
         title="Show or hide needs attention"
-        className="co-button-secondary flex h-9 items-center gap-1 px-2.5 text-xs font-semibold !text-[var(--co-warning)]"
+        className="co-button-secondary flex h-11 items-center gap-1 px-2.5 text-xs font-semibold !text-[var(--co-warning)]"
       >
         <AlertCircle className="h-3.5 w-3.5" aria-hidden />
         {attentionCount}
@@ -62,7 +62,7 @@ export default function FilterBar({
           aria-expanded={filtersOpen}
           aria-haspopup="dialog"
           aria-label={hasFilters ? `Filters · ${activeFilterCount} active` : "Filters"}
-          className={`co-button-secondary relative flex h-9 w-9 items-center justify-center !p-0 ${hasFilters ? "border-[var(--co-accent-text)] text-[var(--co-accent-text)]" : ""}`}
+          className={`co-button-secondary relative flex h-11 w-11 items-center justify-center !p-0 ${hasFilters ? "border-[var(--co-accent-text)] text-[var(--co-accent-text)]" : ""}`}
         >
           <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
           {hasFilters ? <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[var(--co-accent-fill)]" aria-hidden /> : null}
@@ -75,7 +75,7 @@ export default function FilterBar({
         />
       </div>
 
-      {hasFilters ? <button type="button" onClick={clearAll} className="whitespace-nowrap text-xs font-semibold text-[var(--co-accent-text)] hover:underline">Clear filters</button> : null}
+      {hasFilters ? <button type="button" onClick={clearAll} className="min-h-11 whitespace-nowrap px-2 text-xs font-semibold text-[var(--co-accent-text)] hover:underline">Clear filters</button> : null}
       {isPending ? <span role="status" className="text-xs text-[var(--co-muted)]">Updating…</span> : null}
     </div>
   );

@@ -87,7 +87,7 @@ export default function AssigneePicker({
       </button>
 
       {open ? (
-        <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-2 shadow-[0_12px_32px_rgba(15,23,20,0.18)]">
+        <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-2 shadow-[var(--co-shadow-popover)]">
           <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Assign crew</p>
           <input
             type="search"
@@ -116,7 +116,7 @@ export default function AssigneePicker({
                       type="button"
                       onClick={() => assignFromSearch(employee.id)}
                       aria-pressed={checked}
-                      className="flex flex-1 items-center gap-2 rounded-lg px-1 py-1 text-left text-xs"
+                      className="flex min-h-11 flex-1 items-center gap-2 rounded-lg px-2 py-2 text-left text-xs"
                     >
                       <span className="truncate">
                         {employee.firstName} {employee.lastName}
@@ -129,7 +129,7 @@ export default function AssigneePicker({
                         type="button"
                         onClick={() => makeLead(employee.id)}
                         disabled={isLead}
-                        className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                        className={`flex min-h-11 shrink-0 items-center rounded-full border px-3 py-1 text-xs font-medium ${
                           isLead
                             ? "border-[var(--co-accent-text)] bg-[var(--co-surface-muted)] text-[var(--co-accent-text)]"
                             : "border-[var(--co-line-soft)] text-[var(--co-muted)] hover:border-[var(--co-line)]"

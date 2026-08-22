@@ -80,10 +80,10 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
         style={employeeCardStyle(leadColor)}
         className={`block h-full overflow-hidden rounded-lg border text-left transition hover:-translate-y-px hover:border-[var(--co-accent-text)] hover:shadow-[0_4px_12px_rgba(15,23,42,0.1)] ${isList ? "px-3 py-2.5" : "px-2.5 py-2"} ${STATUS_TONES[job.status] ?? STATUS_TONES.scheduled}`}
       >
-        <div className={`flex items-center justify-between gap-2 font-semibold text-[var(--co-muted)] ${isList ? "text-xs" : "text-[11px]"}`}><span className="flex items-center gap-1">{formatClockLabel(job.scheduledStartTime)}{ordinalLabel ? <span className="rounded bg-[var(--co-accent-tint)] px-1 py-0.5 text-[10px] font-semibold text-[var(--co-accent-text)]">{ordinalLabel}</span> : null}</span><span className="flex items-center gap-1.5"><ClientHomeSymbols roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} /><span className="rounded bg-[var(--co-surface)]/60 px-1.5 py-0.5 text-[10px]">{job.clientType === "commercial" ? "Commercial" : "Residential"}</span></span></div>
+        <div className={`flex items-center justify-between gap-2 font-semibold text-[var(--co-muted)] ${isList ? "text-xs" : "text-xs"}`}><span className="flex items-center gap-1">{formatClockLabel(job.scheduledStartTime)}{ordinalLabel ? <span className="rounded bg-[var(--co-accent-tint)] px-1 py-0.5 text-[10px] font-semibold text-[var(--co-accent-text)]">{ordinalLabel}</span> : null}</span><span className="flex items-center gap-1.5"><ClientHomeSymbols roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} /><span className="rounded bg-[var(--co-surface)]/60 px-1.5 py-0.5 text-[10px]">{job.clientType === "commercial" ? "Commercial" : "Residential"}</span></span></div>
         <p className={`mt-1 truncate font-semibold text-[var(--co-ink)] ${isList ? "text-sm" : "text-[13px]"}`}>{label}</p>
-        <p className={`mt-0.5 break-words text-[var(--co-muted)] ${isList ? "text-xs" : "text-[11px]"}`} title={formatCustomerAddress(job)}>{job.recurringSeriesId ? "↻ " : ""}{jobTypeLabel(job)} · {formatCustomerAddress(job)} · {formatEstimatedTime(job.estimatedDurationMinutes)}</p>
-        <div className={`mt-1.5 flex items-center justify-between gap-2 ${isList ? "text-xs" : "text-[11px]"}`}>
+        <p className={`mt-0.5 break-words text-[var(--co-muted)] ${isList ? "text-xs" : "text-xs"}`} title={formatCustomerAddress(job)}>{job.recurringSeriesId ? "↻ " : ""}{jobTypeLabel(job)} · {formatCustomerAddress(job)} · {formatEstimatedTime(job.estimatedDurationMinutes)}</p>
+        <div className={`mt-1.5 flex items-center justify-between gap-2 ${isList ? "text-xs" : "text-xs"}`}>
           <span className="flex min-w-0 items-center gap-1 truncate text-[var(--co-muted)]">
             {crewIds.length ? (
               <span className="flex shrink-0 items-center gap-0.5">
@@ -96,9 +96,9 @@ export default function JobCard({ job, employees, draggable = false, onDragStart
           </span>
           <span className="shrink-0 font-medium text-[var(--co-accent-text)]">{statusLabel("job", job.status)}</span>
         </div>
-        {job.customerNotes ? <p className="mt-1 truncate text-[10px] leading-4 text-[var(--co-muted)]" title={cleanNoteText(job.customerNotes)}>Note: {cleanNoteText(job.customerNotes)}</p> : null}
+        {job.customerNotes ? <p className="mt-1 truncate text-xs leading-4 text-[var(--co-muted)]" title={cleanNoteText(job.customerNotes)}>Note: {cleanNoteText(job.customerNotes)}</p> : null}
         {job.rotationalTaskReminder ? (
-          <p className="co-badge-spark mt-2 rounded-md px-2 py-1.5 text-[10px] font-semibold">
+          <p className="co-badge-spark mt-2 rounded-md px-2 py-1.5 text-xs font-semibold">
             All-day rotation · Week {job.rotationalTaskReminder.currentWeek}
           </p>
         ) : null}

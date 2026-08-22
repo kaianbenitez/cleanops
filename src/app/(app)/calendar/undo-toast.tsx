@@ -27,7 +27,7 @@ export function useUndoToast() {
 export function UndoToast({ toast, onDismiss }: { toast: UndoToastState; onDismiss: () => void }) {
   if (!toast) return null;
   return (
-    <div role="status" aria-live="polite" className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-2xl border border-[var(--co-line)] bg-[var(--co-ink)] px-5 py-3 text-sm text-white shadow-[0_20px_40px_rgba(15,23,20,0.25)]">
+    <div role="status" aria-live="polite" className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-2xl border border-[var(--co-line)] bg-[var(--co-ink)] px-5 py-3 text-sm text-white shadow-[var(--co-shadow-toast)]">
       <span>{toast.message}</span>
       <button
         type="button"

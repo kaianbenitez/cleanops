@@ -69,7 +69,7 @@ export default function AttendeePicker({
           {selectedStaff.map((member) => (
             <span key={member.id} className="flex items-center gap-1.5 rounded-full border border-[var(--co-line)] bg-[var(--co-surface-muted)] py-1 pl-3 pr-1.5 text-xs font-medium">
               {member.firstName} {member.lastName}
-              <button type="button" onClick={() => remove(member.id)} aria-label={`Remove ${member.firstName} ${member.lastName}`} className="rounded-full p-1 text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-danger)]">
+              <button type="button" onClick={() => remove(member.id)} aria-label={`Remove ${member.firstName} ${member.lastName}`} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-danger)]">
                 ✕
               </button>
             </span>
@@ -92,7 +92,7 @@ export default function AttendeePicker({
       />
 
       {open ? (
-        <div className="absolute left-0 top-full z-30 mt-1 w-full rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-1.5 shadow-[0_12px_32px_rgba(15,23,20,0.18)]">
+        <div className="absolute left-0 top-full z-30 mt-1 w-full rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-1.5 shadow-[var(--co-shadow-popover)]">
           {matches.length ? (
             matches.map((member) => (
               <button

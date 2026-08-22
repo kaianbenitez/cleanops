@@ -4,6 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, Columns3, Rows3 } from "lucide-react";
+import { useDialogFocus } from "./dialog-focus";
 
 function iso(date: Date) { return date.toISOString().slice(0, 10); }
 function mondayIndex(date: Date) { return (date.getUTCDay() + 6) % 7; }
@@ -30,8 +31,8 @@ export default function DatePicker({ view, value, label }: { view: string; value
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const pickerRef = useRef<HTMLDivElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
   const [dialogPosition, setDialogPosition] = useState({ left: 0, top: 0 });
+  const dialogFocusRef = useDialogFocus<HTMLDivElement>(open);
   const [month, setMonth] = useState(new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), 1)));
   const daysInMonth = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 0)).getUTCDate();
   const cells = useMemo(() => Array.from({ length: mondayIndex(month) + daysInMonth }, (_, index) => index < mondayIndex(month) ? null : index - mondayIndex(month) + 1), [month, daysInMonth]);
@@ -40,7 +41,7 @@ export default function DatePicker({ view, value, label }: { view: string; value
     if (!open) return;
     function closePicker(event: MouseEvent) {
       const target = event.target as Node;
-      if (!pickerRef.current?.contains(target) && !dialogRef.current?.contains(target)) setOpen(false);
+      if (!pickerRef.current?.contains(target) && !dialogFocusRef.current?.contains(target)) setOpen(false);
     }
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape") setOpen(false);
@@ -51,7 +52,7 @@ export default function DatePicker({ view, value, label }: { view: string; value
       document.removeEventListener("mousedown", closePicker);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [open]);
+  }, [dialogFocusRef, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -88,16 +89,17 @@ export default function DatePicker({ view, value, label }: { view: string; value
   const selectedMonth = month.getUTCMonth() === value.getUTCMonth() && month.getUTCFullYear() === value.getUTCFullYear();
   const dialog = open ? (
     <div
-      ref={dialogRef}
+      ref={dialogFocusRef}
+      tabIndex={-1}
       role="dialog"
       aria-label="Choose calendar date"
       className="co-date-popover fixed z-[60] w-[min(19rem,calc(100vw-2rem))] p-3"
       style={dialogPosition}
     >
       <div className="flex items-center justify-between border-b border-[var(--co-line-soft)] pb-2">
-        <button type="button" aria-label="Previous month" onClick={() => setMonth((current) => new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth() - 1, 1)))} className="co-date-nav"><ChevronLeft className="h-4 w-4" aria-hidden /></button>
+        <button type="button" aria-label="Previous month" onClick={() => setMonth((current) => new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth() - 1, 1)))} className="co-date-nav h-11 w-11"><ChevronLeft className="h-4 w-4" aria-hidden /></button>
         <p className="text-sm font-semibold text-[var(--co-ink)]">{month.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}</p>
-        <button type="button" aria-label="Next month" onClick={() => setMonth((current) => new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth() + 1, 1)))} className="co-date-nav"><ChevronRight className="h-4 w-4" aria-hidden /></button>
+        <button type="button" aria-label="Next month" onClick={() => setMonth((current) => new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth() + 1, 1)))} className="co-date-nav h-11 w-11"><ChevronRight className="h-4 w-4" aria-hidden /></button>
       </div>
       <div className="mt-2 grid grid-cols-7 text-center text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--co-faint)]">
         {["M", "T", "W", "T", "F", "S", "S"].map((day, index) => <span key={`${day}-${index}`} className="py-1.5">{day}</span>)}
@@ -161,7 +163,7 @@ export function CalendarViewSelector({
           type="button"
           aria-pressed={view === entry.value}
           onClick={() => selectView(entry.value)}
-          className={`min-h-9 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${view === entry.value ? "bg-[var(--co-accent-fill)] text-white shadow-[0_1px_2px_rgba(20,26,46,.12)]" : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"}`}
+          className={`min-h-11 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${view === entry.value ? "bg-[var(--co-accent-fill)] text-white shadow-[var(--co-shadow-control)]" : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"}`}
         >
           {entry.label}
         </button>
@@ -188,11 +190,12 @@ export function CalendarAxisToggle({ axis }: { axis: "vertical" | "horizontal" }
   }
 
   function axisButtonClass(pressed: boolean) {
-    return `grid h-7 w-[30px] place-items-center rounded-md transition-colors duration-150 ${pressed ? "bg-[var(--co-surface)] text-[var(--co-accent-text)] shadow-[0_1px_2px_rgba(20,26,46,0.1)]" : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"}`;
+    return `grid h-11 w-11 place-items-center rounded-md transition-colors duration-150 ${pressed ? "bg-[var(--co-surface)] text-[var(--co-accent-text)] shadow-[var(--co-shadow-control)]" : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"}`;
   }
 
   return (
-    <div role="group" aria-label="Board axis" className="flex gap-0.5 rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-[3px]">
+    <div role="group" aria-label="Board layout" aria-describedby="calendar-axis-help" className="flex gap-0.5 rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-[3px]">
+      <span id="calendar-axis-help" className="sr-only">Choose whether crews appear as columns or rows on the board.</span>
       <button
         type="button"
         aria-pressed={axis === "vertical"}
