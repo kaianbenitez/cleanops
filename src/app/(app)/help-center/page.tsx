@@ -7,6 +7,133 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.88",
+    date: "August 23, 2026",
+    title: "The Shimmer landing page is clearer about the beta",
+    changes: [
+      "The landing page now explains the main day-to-day outcomes, beta pricing, and one-business-day reply time near the first action.",
+      "The early-access form is shorter, with only the details needed to start the conversation.",
+      "Mobile visitors can now reach the product section quickly, and the page labels illustrative beta screens more clearly.",
+    ],
+  },
+  {
+    version: "v0.2.87",
+    date: "August 23, 2026",
+    title: "Calendar controls stay calmer on dense schedules",
+    changes: [
+      "Day metrics now stay tucked into one expandable summary until an ultra-wide screen has room for them.",
+      "The Board visual legend is now available on demand, leaving more space for the schedule itself.",
+    ],
+  },
+  {
+    version: "v0.2.86",
+    date: "August 23, 2026",
+    title: "Calendar attention and route details are easier to act on",
+    changes: [
+      "Month attention counts now explain affected jobs and route to the earliest affected day for faster follow-up.",
+      "Calendar filters now stay usable in small windows, capacity labels name labor hours clearly, and route previews include an accessible ordered stop list.",
+    ],
+  },
+  {
+    version: "v0.2.85",
+    date: "August 23, 2026",
+    title: "Calendar attention and PTO capacity now stay in sync",
+    changes: [
+      "Calendar Board, List, Week, and Month now use the same PTO-aware capacity and readiness rules.",
+      "Needs attention now includes the same overlapping jobs shown in the Board attention rail and respects the active date and filters.",
+    ],
+  },
+  {
+    version: "v0.2.84",
+    date: "August 23, 2026",
+    title: "Calendar filters now match Month readiness totals",
+    changes: [
+      "Fixed Month view so readiness counts follow the active assignment filter instead of including hidden jobs.",
+    ],
+  },
+  {
+    version: "v0.2.83",
+    date: "August 23, 2026",
+    title: "Month view now shows readiness correctly",
+    changes: [
+      "Fixed Month view readiness summaries so Needs crew, Needs time, Ready, Conflict, and Over capacity counts now match the other Calendar views.",
+    ],
+  },
+  {
+    version: "v0.2.82",
+    date: "August 23, 2026",
+    title: "Calendar shows one readiness state everywhere",
+    changes: [
+      "Board, Daily list, Week, and Month now use the same primary readiness labels: Needs crew, Needs time, Ready, Conflict, and Over capacity.",
+      "Detailed attention groups and scheduling warnings remain available underneath, so dispatchers can still see exactly what needs fixing.",
+    ],
+  },
+  {
+    version: "v0.2.81",
+    date: "August 23, 2026",
+    title: "Calendar gets its final polish pass",
+    changes: [
+      "Calendar’s mobile and desktop views now use the same crew terminology and assignment states, so ‘Crew not assigned’ means the same thing everywhere.",
+      "Appointment and meeting controls now use the same icon style and clearer touch-sized actions across the calendar.",
+      "The combined Calendar harden, adapt, optimize, clarify, and polish sweep keeps the existing scheduling behavior while making status, loading, and recovery details easier to read.",
+    ],
+  },
+  {
+    version: "v0.2.80",
+    date: "August 23, 2026",
+    title: "Calendar is easier to filter and scan",
+    changes: [
+      "Active Calendar filters are now visible, removable, and paired with clear field labels so dispatchers can see why the board is narrowed.",
+      "The daily list uses tighter spacing and clearer primary-versus-secondary text so appointments, customers, times, and notes are easier to scan.",
+      "Job details, loading feedback, and route previews now handle narrow screens and accessibility states more reliably.",
+    ],
+  },
+  {
+    version: "v0.2.79",
+    date: "August 23, 2026",
+    title: "Calendar actions use clearer language",
+    changes: [
+      "Calendar now uses plain labels such as Crew not assigned, Time not set, Overlapping jobs, and Move this visit so the next action is easier to understand.",
+      "Job, appointment, duration, and connection messages now explain what failed and what to try next.",
+    ],
+  },
+  {
+    version: "v0.2.78",
+    date: "August 23, 2026",
+    title: "Calendar dispatch stays responsive as schedules grow",
+    changes: [
+      "The dispatch board now indexes jobs and internal appointments by employee once, reducing repeated scans while rendering crew lanes and conflict states.",
+      "The optimization preserves the existing board behavior across vertical and horizontal views.",
+    ],
+  },
+  {
+    version: "v0.2.77",
+    date: "August 23, 2026",
+    title: "Calendar events handle slow or failed connections better",
+    changes: [
+      "Internal events now show loading feedback, recoverable errors, and a Try again action when the network is unavailable.",
+      "Saving an event prevents duplicate submissions, trims the title, and limits it to 120 characters so long titles do not break the calendar strip.",
+    ],
+  },
+  {
+    version: "v0.2.76",
+    date: "August 23, 2026",
+    title: "Calendar text is easier to scan",
+    changes: [
+      "Calendar headings, dates, summaries, labels, and table headers now use a consistent type scale, so primary information stands out from supporting details.",
+      "Numbers and operational metadata now use steadier sizing and tabular alignment across the dispatch, week, month, and list views.",
+    ],
+  },
+  {
+    version: "v0.2.75",
+    date: "August 23, 2026",
+    title: "A calmer Calendar layout at every width",
+    changes: [
+      "Calendar navigation now keeps its date controls, views, filters, and utility actions in clearer responsive groups instead of competing for one crowded row.",
+      "The dispatch board, attention rail, and mobile spacing now share a more consistent vertical rhythm for faster scanning.",
+    ],
+  },
+  {
     version: "v0.2.74",
     date: "August 21, 2026",
     title: "Proposal approvals now keep scheduling separate",

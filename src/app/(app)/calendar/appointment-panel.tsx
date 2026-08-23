@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { X } from "lucide-react";
 import { DateInput } from "@/components/date-input";
 import { TimeInput } from "@/components/time-input";
 import AttendeePicker from "./attendee-picker";
@@ -33,6 +34,10 @@ function emptyForm(defaultDate: string): AppointmentForm {
   return { title: "", scheduledDate: defaultDate, startTime: "09:00", durationMinutes: 60, durationMode: "custom", customHours: "1", timeOffType: "paid", employeeIds: [], note: "" };
 }
 
+function formSnapshot(form: AppointmentForm, appointmentKind: "meeting" | "blocker") {
+  return JSON.stringify({ form, appointmentKind });
+}
+
 export default function AppointmentPanel({
   mode,
   kind = "meeting",
@@ -57,7 +62,15 @@ export default function AppointmentPanel({
   const [error, setError] = useState<string | null>(null);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
+  const [initialSnapshot, setInitialSnapshot] = useState(() => formSnapshot(emptyForm(defaultDate), kind));
   const dialogRef = useDialogFocus(true);
+
+  const isDirty = formSnapshot(form, appointmentKind) !== initialSnapshot;
+
+  const requestClose = useCallback(() => {
+    if (saving) return;
+    if (!isDirty || window.confirm("Discard unsaved appointment changes? Your edits will be lost.")) onClose();
+  }, [isDirty, onClose, saving]);
 
   useEffect(() => {
     if (mode !== "edit" || !eventId) return;
@@ -68,10 +81,10 @@ export default function AppointmentPanel({
         const data = await res.json();
         if (cancelled) return;
         if (!res.ok || !data.event) {
-          setError("Couldn't load this appointment.");
+          setError("We couldn't load this appointment. Close the panel and try again.");
           return;
         }
-        setForm({
+        const loadedForm = {
           title: data.event.title,
           scheduledDate: data.event.scheduledDate,
           startTime: data.event.startTime?.slice(0, 5) ?? "09:00",
@@ -81,11 +94,14 @@ export default function AppointmentPanel({
           timeOffType: data.event.timeOffType ?? "paid",
           employeeIds: data.event.employeeIds ?? [],
           note: data.event.note ?? "",
-        });
-        setAppointmentKind(data.event.category === "reminder" ? "blocker" : "meeting");
+        } satisfies AppointmentForm;
+        const loadedKind = data.event.category === "reminder" ? "blocker" : "meeting";
+        setForm(loadedForm);
+        setAppointmentKind(loadedKind);
+        setInitialSnapshot(formSnapshot(loadedForm, loadedKind));
         setStatus(data.event.status);
       } catch {
-        if (!cancelled) setError("Couldn't load this appointment.");
+        if (!cancelled) setError("We couldn't load this appointment. Close the panel and try again.");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -98,11 +114,14 @@ export default function AppointmentPanel({
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        requestClose();
+      }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [requestClose]);
 
   async function save() {
     if (!form.title.trim()) {
@@ -110,7 +129,7 @@ export default function AppointmentPanel({
       return;
     }
     if (appointmentKind === "blocker" && form.employeeIds.length !== 1) {
-      setError("Choose the cleaner whose day should be blocked.");
+      setError("Choose the crew member whose time should be blocked.");
       return;
     }
     const customHours = Number(form.customHours);
@@ -143,13 +162,13 @@ export default function AppointmentPanel({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error?.formErrors?.[0] ?? data.error ?? "Couldn't save this appointment.");
+        setError(data.error?.formErrors?.[0] ?? data.error ?? "We couldn't save this appointment. Check your connection and try again.");
         return;
       }
       router.refresh();
       onClose();
     } catch {
-      setError("Couldn't save this appointment.");
+      setError("We couldn't save this appointment. Check your connection and try again.");
     } finally {
       setSaving(false);
     }
@@ -169,13 +188,13 @@ export default function AppointmentPanel({
         body: JSON.stringify({ status: "cancelled", note: cancellationReason.trim() }),
       });
       if (!res.ok) {
-        setError("Couldn't cancel this appointment.");
+        setError("We couldn't cancel this appointment. Check your connection and try again.");
         return;
       }
       router.refresh();
       onClose();
     } catch {
-      setError("Couldn't cancel this appointment.");
+      setError("We couldn't cancel this appointment. Check your connection and try again.");
     } finally {
       setSaving(false);
     }
@@ -183,7 +202,7 @@ export default function AppointmentPanel({
 
   return createPortal(
     <div className="fixed inset-0 z-40 flex justify-end">
-      <button type="button" aria-label="Close appointment panel" onClick={onClose} className="absolute inset-0 bg-[var(--co-overlay)]" />
+      <button type="button" aria-label="Close appointment panel" onClick={requestClose} className="absolute inset-0 bg-[var(--co-overlay)]" />
       <aside ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="calendar-appointment-title" className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-[var(--co-line)] bg-[var(--co-surface)] shadow-[var(--co-shadow-panel)]">
         <div className="flex items-start justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
           <div>
@@ -195,16 +214,16 @@ export default function AppointmentPanel({
                 : "Edit appointment"}
             </h2>
           </div>
-          <button type="button" onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]" aria-label="Close">
-            ✕
+          <button type="button" onClick={requestClose} className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]" aria-label="Close">
+            <X className="h-4 w-4" aria-hidden strokeWidth={1.75} />
           </button>
         </div>
 
         {loading ? (
-          <div className="p-5 text-sm text-[var(--co-muted)]">Loading...</div>
+          <div role="status" className="p-5 text-sm text-[var(--co-muted)]">Loading appointment details…</div>
         ) : (
           <div className="flex-1 space-y-5 px-5 py-5">
-            {error ? <p className="text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
+            {error ? <p role="alert" className="text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
             {status === "cancelled" ? (
               <p className="co-badge-neutral rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em]">Cancelled</p>
             ) : null}
@@ -237,7 +256,7 @@ export default function AppointmentPanel({
                         type="button"
                         aria-pressed={form.durationMode === mode}
                         onClick={() => setForm((current) => ({ ...current, durationMode: mode }))}
-                        className={`rounded-md px-2 py-2 text-xs font-semibold transition ${form.durationMode === mode ? "bg-[var(--co-surface)] text-[var(--co-accent-text)] shadow-sm" : "text-[var(--co-muted)] hover:text-[var(--co-ink)]"}`}
+                        className={`min-h-11 rounded-md px-2 py-2 text-xs font-semibold transition ${form.durationMode === mode ? "bg-[var(--co-surface)] text-[var(--co-accent-text)] shadow-sm" : "text-[var(--co-muted)] hover:text-[var(--co-ink)]"}`}
                       >
                         {mode === "full" ? "Full day" : mode === "half" ? "Half day" : "Custom"}
                       </button>
@@ -270,7 +289,7 @@ export default function AppointmentPanel({
                     )}
                   </div>
                 ) : (
-                  <p className="text-xs text-[var(--co-muted)]">The cleaner will be unavailable for the whole day.</p>
+                  <p className="text-xs text-[var(--co-muted)]">The selected crew member will be unavailable for the whole day.</p>
                 )}
 
                 <fieldset>
@@ -282,7 +301,7 @@ export default function AppointmentPanel({
                         type="button"
                         aria-pressed={form.timeOffType === type}
                         onClick={() => setForm((current) => ({ ...current, timeOffType: type }))}
-                        className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${form.timeOffType === type ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]" : "border-[var(--co-line)] text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]"}`}
+                        className={`min-h-11 rounded-lg border px-3 py-2 text-sm font-semibold transition ${form.timeOffType === type ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]" : "border-[var(--co-line)] text-[var(--co-muted)] hover:bg-[var(--co-surface-muted)]"}`}
                       >
                         {type === "paid" ? "Paid Time Off" : "Unpaid"}
                       </button>
@@ -308,7 +327,7 @@ export default function AppointmentPanel({
                       <option key={option.value} value={option.value}>{option.label}</option>
                     ))}
                   </select>
-                  <span className="mt-1 block text-[11px] font-normal normal-case text-[var(--co-muted)]">Every attendee is automatically paid for this much time.</span>
+                  <span className="mt-1 block text-[11px] font-normal normal-case text-[var(--co-muted)]">Each attendee is paid for this amount of time.</span>
                 </label>
               </div>
             )}
@@ -333,11 +352,11 @@ export default function AppointmentPanel({
                         employeeIds: ids.slice(-1),
                       }))
                     }
-                    placeholder="Search cleaner by name…"
+                    placeholder="Search crew member by name…"
                   />
                 </div>
                 <span className="mt-1 block text-[11px] font-normal normal-case text-[var(--co-muted)]">
-                  This marks the selected cleaner&apos;s time unavailable. It does not create a job or affect payroll.
+                  This blocks the selected crew member&apos;s time. It does not create a job or affect payroll.
                 </span>
               </div>
             )}
@@ -356,7 +375,7 @@ export default function AppointmentPanel({
             <div className="flex flex-wrap gap-2 border-t border-[var(--co-line-soft)] pt-4">
               <button type="button" disabled={saving} onClick={save} className="co-button-primary disabled:opacity-50">
                 {saving
-                  ? "Saving..."
+                  ? "Saving changes…"
                   : mode === "create"
                     ? appointmentKind === "blocker"
                       ? "Block time"

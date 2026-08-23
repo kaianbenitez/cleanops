@@ -50,7 +50,7 @@ import TodayListBoard from "./today-list-board";
 import CalendarToolbar from "./calendar-toolbar";
 import CalendarStateSync from "./state-sync";
 import WeekendOrphanBanner from "./weekend-orphan-banner";
-import { categorizeForAttention, DEFAULT_WORKDAY_END_MINUTES, DEFAULT_WORKDAY_START_MINUTES, employeeColorAt } from "./shared";
+import { aggregateCalendarAttention, DEFAULT_WORKDAY_END_MINUTES, DEFAULT_WORKDAY_START_MINUTES, deriveCalendarReadiness, deriveJobReadiness, employeeColorAt } from "./shared";
 import { rotationalTaskForDate } from "@/lib/scheduling/rotational-tasks";
 
 const CALENDAR_STATE_COOKIE = "co_calendar_state";
@@ -109,6 +109,7 @@ type SearchParams = {
   zip?: string;
   assignment?: string;
   queue?: string;
+  attention?: string;
 };
 
 export type CalendarEmployee = {
@@ -159,7 +160,11 @@ export type CalendarDaySummary = {
   jobs: number;
   unassigned: number;
   needsReview: number;
+  needsTime: number;
+  ready: number;
 };
+
+export type CalendarReadiness = ReturnType<typeof deriveJobReadiness>;
 
 export type CalendarAppointment = {
   id: string;
@@ -360,7 +365,6 @@ export default async function CalendarPage({
     eq(jobs.companyId, admin.companyId),
     gte(jobs.scheduledDate, start),
     lte(jobs.scheduledDate, end),
-    ne(jobs.status, "cancelled"),
   ];
   if (sp.type && (jobTypeEnum as readonly string[]).includes(sp.type))
     conditions.push(
@@ -370,6 +374,7 @@ export default async function CalendarPage({
     conditions.push(
       eq(jobs.status, sp.status as (typeof jobs.status.enumValues)[number]),
     );
+  else conditions.push(ne(jobs.status, "cancelled"));
   if (sp.zip) conditions.push(ilike(customers.zip, `${sp.zip}%`));
   if (sp.recurrence === "none") conditions.push(isNull(recurringSeries.id));
   if (sp.recurrence === "recurring")
@@ -431,9 +436,7 @@ export default async function CalendarPage({
       .leftJoin(recurringSeries, eq(jobs.recurringSeriesId, recurringSeries.id));
 
   const rowsQuery =
-    view === "month"
-      ? Promise.resolve([])
-      : sp.employeeId
+    sp.employeeId
         ? buildBaseQuery()
             .innerJoin(
               jobAssignments,
@@ -478,6 +481,8 @@ export default async function CalendarPage({
         jobs: sql<number>`count(*)`,
         unassigned: sql<number>`count(*) filter (where not exists (select 1 from ${jobAssignments} where ${jobAssignments.jobId} = ${jobs.id}))`,
         needsReview: sql<number>`count(*) filter (where ${jobs.status} = 'no_show')`,
+        needsTime: sql<number>`count(*) filter (where ${jobs.scheduledStartTime} is null)`,
+        ready: sql<number>`count(*) filter (where ${jobs.scheduledStartTime} is not null and exists (select 1 from ${jobAssignments} where ${jobAssignments.jobId} = ${jobs.id}) and ${jobs.status} not in ('cancelled', 'no_show'))`,
       })
       .from(jobs)
       .innerJoin(customers, eq(jobs.customerId, customers.id))
@@ -528,7 +533,7 @@ export default async function CalendarPage({
   // rowsQuery above), so there is nothing here for PTO to categorize against
   // and fetching it would be a pure-waste query.
   const ptoRowsQuery =
-    view === "board" || view === "list" || view === "week"
+    view === "board" || view === "list" || view === "week" || view === "month"
       ? listEmployeePto({
           companyId: admin.companyId,
           startDate: start,
@@ -749,6 +754,27 @@ export default async function CalendarPage({
       .filter((name): name is string => !!name),
   }));
 
+  // One shared readiness decision feeds every server-derived view. The Board
+  // runs the same pure helper against its optimistic job set after edits.
+  const activeJobs = jobsWithAssignments.filter(
+    (job) =>
+      !["cancelled", "completed", "no_show"].includes(job.status) &&
+      (effectiveAssignment !== "unassigned" || job.assignedUserIds.length === 0),
+  );
+  const readinessByJobId = deriveCalendarReadiness(activeJobs, ptoRows, {
+    workdayMinutes: workdayMinutesPerCleaner,
+    windowStart: workdayStartMinutes,
+    windowEnd: workdayEndMinutes,
+  });
+  const monthReadinessByDate = new Map<string, Record<string, number>>();
+  for (const job of activeJobs) {
+    const state = readinessByJobId.get(job.id)?.primary;
+    if (!state) continue;
+    const counts = monthReadinessByDate.get(job.scheduledDate) ?? {};
+    counts[state] = (counts[state] ?? 0) + 1;
+    monthReadinessByDate.set(job.scheduledDate, counts);
+  }
+
   const filterParams: SearchParams = {
     view: sp.view,
     axis: sp.axis,
@@ -833,31 +859,45 @@ export default async function CalendarPage({
       : view === "board" || view === "list"
         ? toISODate(dayAnchor)
         : toISODate(weekStart);
-  // Same categorization the Vertical/Horizontal boards use for their
-  // Needs-attention badge, so the toolbar's count never drifts from theirs —
-  // computed for every view now, not just Board, so the warning doesn't
-  // silently vanish on Day/Week/Month. Reuses whatever this render already
-  // fetched for its own date range; never fetches full job rows just to
-  // produce a count.
-  const attentionCount =
+  // Keep the toolbar count and the Board rail on the same categorization. An
+  // entry is an issue; a job can contribute more than one issue, so retain
+  // both totals and the first affected date for Month navigation.
+  const attentionEntries =
     view === "board" || view === "list"
-      ? categorizeForAttention(jobsWithAssignments, ptoRows, toISODate(dayAnchor)).length
+      ? aggregateCalendarAttention(displayedJobs, ptoRows, toISODate(dayAnchor), { workdayMinutes: workdayMinutesPerCleaner, windowStart: workdayStartMinutes, windowEnd: workdayEndMinutes })
       : view === "week"
-        ? weekDays.reduce((sum, day) => {
+        ? weekDays.flatMap((day) => {
             const dayIso = toISODate(day);
-            const dayJobs = jobsWithAssignments.filter(
-              (job) => job.scheduledDate === dayIso,
+            return aggregateCalendarAttention(
+              displayedJobs.filter((job) => job.scheduledDate === dayIso),
+              ptoRows,
+              dayIso,
+              { workdayMinutes: workdayMinutesPerCleaner, windowStart: workdayStartMinutes, windowEnd: workdayEndMinutes },
             );
-            return sum + categorizeForAttention(dayJobs, ptoRows, dayIso).length;
-          }, 0)
+          })
         : view === "month"
-          ? // Month never fetches full job rows (see rowsQuery above), so the
-            // closest available signal is the unassigned count already
-            // aggregated per day by monthRowsQuery — narrower than the
-            // unassigned/no-time/conflict union the other views report, but
-            // it costs no additional query.
-            monthRows.reduce((sum, day) => sum + day.unassigned, 0)
-          : 0;
+          ? [...new Set(displayedJobs.map((job) => job.scheduledDate))]
+              .sort()
+              .flatMap((dayIso) =>
+                aggregateCalendarAttention(
+                  displayedJobs.filter((job) => job.scheduledDate === dayIso),
+                  ptoRows,
+                  dayIso,
+                  { workdayMinutes: workdayMinutesPerCleaner, windowStart: workdayStartMinutes, windowEnd: workdayEndMinutes },
+                ),
+              )
+          : [];
+  const attentionCount = attentionEntries.length;
+  const attentionJobCount = new Set(attentionEntries.map((entry) => entry.job.id)).size;
+  const attentionDateIso = attentionEntries
+    .map((entry) => entry.job.scheduledDate)
+    .sort()[0];
+  const attentionIssuesByDate = Object.fromEntries(
+    attentionEntries.reduce((counts, entry) => {
+      counts.set(entry.job.scheduledDate, (counts.get(entry.job.scheduledDate) ?? 0) + 1);
+      return counts;
+    }, new Map<string, number>()),
+  );
   const dailySummaryJobs = jobsWithAssignments.filter(
     (job) => job.scheduledDate === toISODate(dayAnchor) && !["cancelled", "no_show"].includes(job.status),
   );
@@ -870,10 +910,10 @@ export default async function CalendarPage({
     discountCents: dailySummaryJobs.reduce((sum, job) => sum + job.discountCents, 0),
   };
   return (
-    <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
+    <div className="-mx-3 -mt-4 min-h-[calc(100dvh-64px)] overflow-x-hidden bg-[var(--co-bg)] sm:-mx-4 lg:-mx-5 xl:-mx-6 lg:-mt-5">
       <CalendarStateSync view={view} axis={axis} anchor={stateAnchor} />
       <section className="co-card mx-3 mt-3 overflow-visible sm:mx-4 lg:mx-5">
-      <header className="border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-3 lg:px-5">
+      <header className="border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-3 sm:px-4 lg:px-5 lg:py-3.5">
         <CalendarToolbar
           view={view}
           axis={axis}
@@ -887,6 +927,8 @@ export default async function CalendarPage({
           appointmentDefaultDate={stateAnchor.length === 10 ? stateAnchor : toISODate(dayAnchor)}
           employees={employees}
           attentionCount={attentionCount}
+          attentionJobCount={attentionJobCount}
+          attentionDateIso={attentionDateIso}
           totalEmployees={activeEmployees.length}
           dailySummary={dailySummary}
           initialNotifications={notifications}
@@ -894,7 +936,7 @@ export default async function CalendarPage({
       </header>
       </section>
 
-      <main className="p-3 sm:p-4 lg:p-5">
+      <main className="space-y-3 p-3 sm:space-y-4 sm:p-4 lg:p-5">
         {weekendOrphans?.count && weekendOrphans.firstDate ? (
           <WeekendOrphanBanner
             count={weekendOrphans.count}
@@ -911,42 +953,66 @@ export default async function CalendarPage({
               isHoliday: holidays.includes(toISODate(day)),
             }))}
             employees={employees}
+            activeEmployeeCount={activeEmployees.length}
+            workdayMinutesPerCleaner={workdayMinutesPerCleaner}
             jobs={displayedJobs}
+            readinessByJobId={readinessByJobId}
             appointments={appointments}
             staffRoster={staffRoster}
           />
         ) : null}
         {view === "board" ? (
-          <Board
-            axis={axis}
-            dayIso={toISODate(dayAnchor)}
-            todayIso={todayIso}
-            dayLabel={formatDayLabel(dayAnchor)}
-            timezone={company.timezone}
-            employees={employees}
-            savedColumnOrder={Array.isArray(
-              (company.settings as { staffColumnOrder?: unknown } | null)
-                ?.staffColumnOrder,
-            )
-              ? ((company.settings as { staffColumnOrder: unknown[] })
-                  .staffColumnOrder.filter(
-                    (id): id is string => typeof id === "string",
-                  ))
-              : []}
-            laneEmployeeId={sp.employeeId}
-            jobs={displayedJobs}
-            ptoRecords={ptoRows}
-            appointments={appointments}
-            staffRoster={staffRoster}
-            workdayStartMinutes={workdayStartMinutes}
-            workdayEndMinutes={workdayEndMinutes}
-            workdayMinutesPerCleaner={workdayMinutesPerCleaner}
-            cancellationPolicy={
-              typeof (company.settings as { cancellationPolicy?: unknown } | null)?.cancellationPolicy === "string"
-                ? (company.settings as { cancellationPolicy: string }).cancellationPolicy
-                : undefined
-            }
-          />
+          <>
+            <div className="md:hidden" aria-label="Mobile schedule view">
+              <TodayListBoard
+                dayLabel={formatDayLabel(dayAnchor)}
+                isToday={toISODate(dayAnchor) === todayIso}
+                employees={employees}
+                jobs={listJobs}
+                readinessByJobId={readinessByJobId}
+                timeEntries={clockEntries.map((entry) => ({
+                  ...entry,
+                  clockIn: entry.clockIn.toISOString(),
+                  clockOut: entry.clockOut ? entry.clockOut.toISOString() : null,
+                }))}
+                appointments={appointments.filter((appointment) => appointment.scheduledDate === toISODate(dayAnchor))}
+                staffRoster={staffRoster}
+              />
+            </div>
+            <div className="hidden md:block">
+              <Board
+                axis={axis}
+                dayIso={toISODate(dayAnchor)}
+                todayIso={todayIso}
+                dayLabel={formatDayLabel(dayAnchor)}
+                timezone={company.timezone}
+                employees={employees}
+                savedColumnOrder={Array.isArray(
+                  (company.settings as { staffColumnOrder?: unknown } | null)
+                    ?.staffColumnOrder,
+                )
+                  ? ((company.settings as { staffColumnOrder: unknown[] })
+                      .staffColumnOrder.filter(
+                        (id): id is string => typeof id === "string",
+                      ))
+                  : []}
+                laneEmployeeId={sp.employeeId}
+                initialAttentionRailOpen={sp.attention === "1"}
+                jobs={displayedJobs}
+                ptoRecords={ptoRows}
+                appointments={appointments}
+                staffRoster={staffRoster}
+                workdayStartMinutes={workdayStartMinutes}
+                workdayEndMinutes={workdayEndMinutes}
+                workdayMinutesPerCleaner={workdayMinutesPerCleaner}
+                cancellationPolicy={
+                  typeof (company.settings as { cancellationPolicy?: unknown } | null)?.cancellationPolicy === "string"
+                    ? (company.settings as { cancellationPolicy: string }).cancellationPolicy
+                    : undefined
+                }
+              />
+            </div>
+          </>
         ) : null}
         {view === "month" ? (
           <MonthBoard
@@ -956,6 +1022,8 @@ export default async function CalendarPage({
             workingDays={workingDays}
             boardAxis={axis}
             appointmentCountByDate={Object.fromEntries(appointmentCountByDate)}
+            readinessByDate={monthReadinessByDate}
+            attentionIssuesByDate={attentionIssuesByDate}
           />
         ) : null}
         {view === "list" ? (
@@ -964,6 +1032,7 @@ export default async function CalendarPage({
             isToday={toISODate(dayAnchor) === todayIso}
             employees={employees}
             jobs={listJobs}
+            readinessByJobId={readinessByJobId}
             timeEntries={clockEntries.map((entry) => ({
               ...entry,
               clockIn: entry.clockIn.toISOString(),

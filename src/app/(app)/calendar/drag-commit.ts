@@ -29,14 +29,14 @@ export async function commitJobPatch(
     });
     if (!res.ok) {
       const body = await res.json().catch(() => null);
-      throw new Error(res.status === 409 ? (body?.error ?? "That slot conflicts with another job.") : "Couldn't save that move.");
+      throw new Error(res.status === 409 ? (body?.error ?? "That time overlaps another job.") : "We couldn't save that change. Check your connection and try again.");
     }
     const body = await res.json().catch(() => null);
     if (Array.isArray(body?.warnings) && body.warnings.length) handlers.onWarning?.(body.warnings.join(" "));
     handlers.onSuccess?.();
     return true;
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Couldn't save that move.";
+    const message = err instanceof Error ? err.message : "We couldn't save that change. Check your connection and try again.";
     handlers.onError(message, () => {
       void commitJobPatch(jobId, patch, handlers);
     });

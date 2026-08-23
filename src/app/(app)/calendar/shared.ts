@@ -15,6 +15,82 @@ export const APPOINTMENT_COLOR = "co-badge-spark";
 export const APPOINTMENT_COLOR_CANCELLED = "co-badge-muted line-through";
 export const ATTENTION_RAIL_TOGGLE_EVENT = "cleanops:toggle-calendar-attention-rail";
 
+export type JobReadinessState = "Needs crew" | "Needs time" | "Ready" | "Conflict" | "Over capacity";
+
+export type JobReadiness = {
+  primary: JobReadinessState;
+  reasons: string[];
+};
+
+/**
+ * One primary operational label for a job. Detailed signals remain in
+ * `reasons` so views can keep their existing attention groups and warnings.
+ * Conflict and capacity are intentionally more urgent than missing setup;
+ * when both crew and time are missing, crew is the first actionable blocker.
+ */
+export function deriveJobReadiness({
+  hasCrew,
+  hasTime,
+  conflictReasons = [],
+  overCapacityReasons = [],
+}: {
+  hasCrew: boolean;
+  hasTime: boolean;
+  conflictReasons?: readonly string[];
+  overCapacityReasons?: readonly string[];
+}): JobReadiness {
+  const reasons = [...new Set([...conflictReasons, ...overCapacityReasons])];
+  if (conflictReasons.length) return { primary: "Conflict", reasons };
+  if (overCapacityReasons.length) return { primary: "Over capacity", reasons };
+  if (!hasCrew) return { primary: "Needs crew", reasons };
+  if (!hasTime) return { primary: "Needs time", reasons };
+  return { primary: "Ready", reasons };
+}
+
+export function readinessTone(primary: JobReadinessState) {
+  switch (primary) {
+    case "Conflict":
+      return "co-badge-danger";
+    case "Over capacity":
+      return "co-badge-warning";
+    case "Needs crew":
+    case "Needs time":
+      return "co-badge-spark";
+    case "Ready":
+      return "co-badge-success";
+  }
+}
+
+export function readinessReason(readiness: JobReadiness): string {
+  switch (readiness.primary) {
+    case "Needs crew":
+      return "Crew not assigned";
+    case "Needs time":
+      return "Time not scheduled";
+    case "Conflict":
+      return "Schedule conflict";
+    case "Over capacity":
+      return "Labor capacity exceeded";
+    case "Ready":
+      return "Ready to dispatch";
+  }
+}
+
+export function readinessAction(readiness: JobReadiness): string {
+  switch (readiness.primary) {
+    case "Needs crew":
+      return "Assign crew";
+    case "Needs time":
+      return "Set time";
+    case "Conflict":
+      return "Review conflict";
+    case "Over capacity":
+      return "Review placement";
+    case "Ready":
+      return "Open details";
+  }
+}
+
 export function clockLabelFromMinutes(totalMinutes: number) {
   const hour24 = Math.floor(totalMinutes / 60) % 24;
   const minute = Math.round(totalMinutes % 60);
@@ -68,8 +144,63 @@ export function stopOrdinals<T extends { id: string; assignedUserIds: string[]; 
   return result;
 }
 
-export type AttentionCategory = "unassigned" | "no-time" | "conflict";
+export type AttentionCategory = "unassigned" | "no-time" | "conflict" | "overlap" | "over-capacity";
 const RETAINED_JOB_STATUSES = ["cancelled", "no_show"];
+
+export type CalendarPtoRecord = {
+  userId: string;
+  startDate: string;
+  endDate: string;
+  startPeriod?: "morning" | "afternoon" | "full";
+  endPeriod?: "morning" | "afternoon" | "full";
+};
+
+export type CalendarAttentionOptions = {
+  workdayMinutes?: number;
+  windowStart?: number;
+  windowEnd?: number;
+};
+
+export function ptoPeriodForDay(pto: CalendarPtoRecord, dayIso: string): "morning" | "afternoon" | "full" {
+  if (pto.startDate === pto.endDate) return pto.startPeriod === pto.endPeriod ? (pto.startPeriod ?? "full") : "full";
+  if (pto.startDate === dayIso) return pto.startPeriod ?? "full";
+  if (pto.endDate === dayIso) return pto.endPeriod ?? "full";
+  return "full";
+}
+
+export function ptoIntervalForDay(
+  ptoRecords: CalendarPtoRecord[],
+  employeeId: string,
+  dayIso: string,
+  windowStart: number,
+  windowEnd: number,
+): { from: number; to: number } | null {
+  const periods = ptoRecords
+    .filter((pto) => pto.userId === employeeId && pto.startDate <= dayIso && pto.endDate >= dayIso)
+    .map((pto) => ptoPeriodForDay(pto, dayIso));
+  if (!periods.length) return null;
+  const period = periods.includes("full") || new Set(periods).size > 1 ? "full" : periods[0];
+  const noon = 12 * 60;
+  if (period === "morning") return { from: windowStart, to: Math.min(noon, windowEnd) };
+  if (period === "afternoon") return { from: Math.max(noon, windowStart), to: windowEnd };
+  return { from: windowStart, to: windowEnd };
+}
+
+function ptoOverlapsJob(
+  ptoRecords: CalendarPtoRecord[],
+  employeeId: string,
+  job: { scheduledStartTime: string | null; estimatedDurationMinutes?: number | null; assignedUserIds: string[] },
+  dayIso: string,
+  windowStart: number,
+  windowEnd: number,
+) {
+  if (!job.scheduledStartTime) return false;
+  const pto = ptoIntervalForDay(ptoRecords, employeeId, dayIso, windowStart, windowEnd);
+  if (!pto) return false;
+  const start = minutesFromTime(job.scheduledStartTime);
+  const end = start + jobWallClockDuration(job);
+  return start < pto.to && pto.from < end;
+}
 
 /** Categorizes a day's active jobs for the Needs-attention strip: no crew,
  * no arrival time, or an assigned cleaner on PTO that day — in that priority
@@ -78,24 +209,137 @@ const RETAINED_JOB_STATUSES = ["cancelled", "no_show"];
  * need no action). Generic so it has no dependency on the page-level
  * CalendarJob type. */
 export function categorizeForAttention<
-  T extends { id: string; status: string; assignedUserIds: string[]; scheduledStartTime: string | null },
->(jobs: T[], ptoRecords: { userId: string; startDate: string; endDate: string }[], dayIso: string): { job: T; category: AttentionCategory }[] {
+  T extends { id: string; status: string; scheduledDate?: string; assignedUserIds: string[]; scheduledStartTime: string | null },
+>(jobs: T[], ptoRecords: CalendarPtoRecord[], dayIso: string, options: CalendarAttentionOptions = {}): { job: T; category: AttentionCategory }[] {
   const entries: { job: T; category: AttentionCategory }[] = [];
+  const windowStart = options.windowStart ?? DEFAULT_WORKDAY_START_MINUTES;
+  const windowEnd = options.windowEnd ?? DEFAULT_WORKDAY_END_MINUTES;
   for (const job of jobs) {
+    if (job.scheduledDate && job.scheduledDate !== dayIso) continue;
     if (RETAINED_JOB_STATUSES.includes(job.status) || job.status === "completed") continue;
     if (!job.assignedUserIds.length) {
       entries.push({ job, category: "unassigned" });
     } else if (!job.scheduledStartTime) {
       entries.push({ job, category: "no-time" });
-    } else if (
-      job.assignedUserIds.some((employeeId) =>
-        ptoRecords.some((pto) => pto.userId === employeeId && pto.startDate <= dayIso && pto.endDate >= dayIso),
-      )
-    ) {
+    } else if (job.assignedUserIds.some((employeeId) => ptoOverlapsJob(ptoRecords, employeeId, job, dayIso, windowStart, windowEnd))) {
       entries.push({ job, category: "conflict" });
     }
   }
   return entries;
+}
+
+/** The complete attention union used by both the Board rail and toolbar.
+ * Categories intentionally remain separate so a PTO + overlap job appears in
+ * both rail groups exactly as it does on the Board. */
+export function aggregateCalendarAttention<T extends CalendarReadinessJob>(
+  jobs: T[],
+  ptoRecords: CalendarPtoRecord[],
+  dayIso: string,
+  options: CalendarAttentionOptions = {},
+): { job: T; category: AttentionCategory }[] {
+  const entries = categorizeForAttention(jobs, ptoRecords, dayIso, options);
+  const activeTimed = jobs.filter((job) =>
+    job.scheduledDate === dayIso &&
+    !RETAINED_JOB_STATUSES.includes(job.status) &&
+    job.status !== "completed" &&
+    job.assignedUserIds.length &&
+    job.scheduledStartTime,
+  );
+  const seenOverlapIds = new Set<string>();
+  for (let index = 0; index < activeTimed.length; index += 1) {
+    for (let other = index + 1; other < activeTimed.length; other += 1) {
+      const first = activeTimed[index];
+      const second = activeTimed[other];
+      if (!first.assignedUserIds.some((id) => second.assignedUserIds.includes(id))) continue;
+      if (!jobsOverlap(first, jobWallClockDuration(first), second, jobWallClockDuration(second))) continue;
+      for (const job of [first, second]) {
+        if (!seenOverlapIds.has(job.id)) {
+          entries.push({ job, category: "overlap" });
+          seenOverlapIds.add(job.id);
+        }
+      }
+    }
+  }
+  const readinessByJobId = deriveCalendarReadiness(jobs, ptoRecords, {
+    workdayMinutes: options.workdayMinutes ?? 8 * 60,
+    windowStart: options.windowStart ?? DEFAULT_WORKDAY_START_MINUTES,
+    windowEnd: options.windowEnd ?? DEFAULT_WORKDAY_END_MINUTES,
+  });
+  for (const job of jobs) {
+    if (job.scheduledDate !== dayIso) continue;
+    if (readinessByJobId.get(job.id)?.reasons.some((reason) => reason.includes(" is over capacity on "))) {
+      entries.push({ job, category: "over-capacity" });
+    }
+  }
+  return entries;
+}
+
+export type CalendarReadinessJob = {
+  id: string;
+  status: string;
+  scheduledDate: string;
+  scheduledStartTime: string | null;
+  estimatedDurationMinutes: number | null;
+  assignedUserIds: string[];
+};
+
+/** Shared server/Board readiness inputs. The Board can pass its optimistic
+ * jobs here, while server views pass the freshly queried jobs. */
+export function deriveCalendarReadiness<T extends CalendarReadinessJob>(
+  jobs: T[],
+  ptoRecords: CalendarPtoRecord[],
+  { workdayMinutes, windowStart, windowEnd }: { workdayMinutes: number; windowStart: number; windowEnd: number },
+): Map<string, JobReadiness> {
+  const activeJobs = jobs.filter((job) => !RETAINED_JOB_STATUSES.includes(job.status) && job.status !== "completed");
+  const conflicts = new Map<string, string[]>();
+  const overCapacity = new Map<string, string[]>();
+  for (const job of activeJobs) {
+    if (job.assignedUserIds.some((employeeId) => ptoOverlapsJob(ptoRecords, employeeId, job, job.scheduledDate, windowStart, windowEnd))) {
+      conflicts.set(job.id, ["Crew member is on leave"]);
+    }
+  }
+  const jobsByEmployee = new Map<string, T[]>();
+  for (const job of activeJobs) {
+    for (const employeeId of job.assignedUserIds) {
+      const key = `${job.scheduledDate}:${employeeId}`;
+      jobsByEmployee.set(key, [...(jobsByEmployee.get(key) ?? []), job]);
+    }
+  }
+  for (const [key, employeeJobs] of jobsByEmployee) {
+    for (let index = 0; index < employeeJobs.length; index += 1) {
+      for (let other = index + 1; other < employeeJobs.length; other += 1) {
+        const first = employeeJobs[index];
+        const second = employeeJobs[other];
+        if (first.scheduledStartTime && second.scheduledStartTime && jobsOverlap(first, jobWallClockDuration(first), second, jobWallClockDuration(second))) {
+          for (const job of [first, second]) conflicts.set(job.id, [...(conflicts.get(job.id) ?? []), "Overlaps another stop"]);
+        }
+      }
+    }
+    const separator = key.lastIndexOf(":");
+    const dayIso = key.slice(0, separator);
+    const employeeId = key.slice(separator + 1);
+    const capacity = capacityForCrew({
+      jobs: employeeJobs,
+      pto: ptoIntervalForDay(ptoRecords, employeeId, dayIso, windowStart, windowEnd),
+      workdayMinutes,
+      windowStart,
+      windowEnd,
+    });
+    if (capacity.isOver) {
+      for (const job of employeeJobs) {
+        const reasons = [`${employeeId} is over capacity on ${dayIso}`];
+        // Keep the first conflict reason stable while allowing multiple
+        // overlapping employees to contribute detail.
+        overCapacity.set(job.id, [...(overCapacity.get(job.id) ?? []), ...reasons]);
+      }
+    }
+  }
+  return new Map(activeJobs.map((job) => [job.id, deriveJobReadiness({
+    hasCrew: job.assignedUserIds.length > 0,
+    hasTime: Boolean(job.scheduledStartTime),
+    conflictReasons: conflicts.get(job.id) ?? [],
+    overCapacityReasons: overCapacity.get(job.id) ?? [],
+  })]));
 }
 
 export function formatAppointmentTime(startTime: string | null, durationMinutes: number | null) {
@@ -222,7 +466,7 @@ export function jobDuration(job: { estimatedDurationMinutes: number | null }) {
 }
 
 /** Calendar geometry is elapsed time, not payroll JTH per cleaner. */
-export function jobWallClockDuration(job: { estimatedDurationMinutes: number | null; assignedUserIds?: string[] }) {
+export function jobWallClockDuration(job: { estimatedDurationMinutes?: number | null; assignedUserIds?: string[] }) {
   const crewSize = Math.max(1, job.assignedUserIds?.length ?? 1);
   return Math.max(Math.ceil((job.estimatedDurationMinutes ?? 75) / crewSize), 45);
 }

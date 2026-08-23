@@ -1,9 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { CSSProperties } from "react";
+import { CalendarDays } from "lucide-react";
 import type { CalendarAppointment, CalendarEmployee, CalendarJob, StaffRosterMember } from "./page";
 import JobCard from "./job-card";
 import { APPOINTMENT_COLOR, APPOINTMENT_COLOR_CANCELLED, employeeColor, formatAppointmentTime } from "./shared";
+import type { CalendarReadiness } from "./page";
 import JobDetailPanel from "./job-detail-panel";
 import AppointmentPanel from "./appointment-panel";
 
@@ -22,20 +25,33 @@ function customerName(job: CalendarJob) {
   );
 }
 function teamName(ids: string[], employees: CalendarEmployee[]) {
-  if (!ids.length) return "Unassigned";
+  if (!ids.length) return "Crew not assigned";
   return `${ids.map((id) => employees.find((employee) => employee.id === id)?.firstName ?? "Technician").join(" + ")} team`;
+}
+
+function formatLaborMinutes(minutes: number) {
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  if (!hours) return `${remainder}m`;
+  return remainder ? `${hours}h ${remainder}m` : `${hours}h`;
 }
 
 export default function WeekBoard({
   days,
   employees,
+  activeEmployeeCount,
+  workdayMinutesPerCleaner,
   jobs,
+  readinessByJobId,
   appointments = [],
   staffRoster = [],
 }: {
   days: DayMeta[];
   employees: CalendarEmployee[];
+  activeEmployeeCount: number;
+  workdayMinutesPerCleaner: number;
   jobs: CalendarJob[];
+  readinessByJobId: Map<string, CalendarReadiness>;
   appointments?: CalendarAppointment[];
   staffRoster?: StaffRosterMember[];
 }) {
@@ -71,23 +87,21 @@ export default function WeekBoard({
     [days, jobs],
   );
   const visibleCount = 10;
-  const availableMinutes = Math.max(employees.length, 1) * 8 * 60;
+  const availableMinutes = activeEmployeeCount * workdayMinutesPerCleaner;
 
   return (
     <section className="overflow-hidden border border-[var(--co-line)] bg-[var(--co-surface)]">
       <div className="border-b border-[var(--co-line-soft)] px-4 py-3">
-        <h2 className="text-base font-semibold">Weekly capacity</h2>
-        <p className="mt-0.5 text-xs text-[var(--co-muted)]">
-          Review team workload by day. Open Staff for exact placement and
-          assignment.
+        <h2 className="type-admin-title font-semibold">Weekly labor overview</h2>
+        <p className="type-admin-meta mt-0.5 text-[var(--co-muted)]">
+          Compare scheduled labor with available labor by day. Open Board for
+          exact placement and assignment.
         </p>
       </div>
       <div className="overflow-x-auto">
         <div
-          className="grid divide-x divide-[var(--co-line-soft)]"
-          style={{
-            gridTemplateColumns: `repeat(${days.length}, minmax(200px, 1fr))`,
-          }}
+          className="grid grid-cols-1 divide-y divide-[var(--co-line-soft)] lg:min-w-[calc(var(--week-columns)*200px)] lg:divide-x lg:divide-y-0 lg:[grid-template-columns:repeat(var(--week-columns),minmax(200px,1fr))]"
+          style={{ "--week-columns": days.length } as CSSProperties}
         >
           {days.map((day) => {
             const dayJobs = byDate.get(day.iso) ?? [];
@@ -97,7 +111,11 @@ export default function WeekBoard({
             );
             const capacity = day.isHoliday
               ? 0
-              : Math.round((scheduledMinutes / availableMinutes) * 100);
+              : availableMinutes > 0
+                ? Math.round((scheduledMinutes / availableMinutes) * 100)
+                : scheduledMinutes > 0
+                  ? 100
+                  : 0;
             const tone =
               capacity > 100
                 ? "co-badge-danger"
@@ -130,18 +148,21 @@ export default function WeekBoard({
                         {day.dayNum}
                       </p>
                       <p className="mt-0.5 text-xs text-[var(--co-muted)]">
-                        {dayJobs.length} jobs today
+                        {dayJobs.length} scheduled jobs
                       </p>
                     </div>
+                    <div className="flex flex-col items-end gap-1">
                     <span
                       className={`rounded-md px-2 py-1 text-xs font-bold tabular-nums ${tone}`}
                     >
-                      {day.isHoliday ? "Closed" : `${Math.min(capacity, 999)}%`}
+                      {day.isHoliday ? "Closed" : `${formatLaborMinutes(scheduledMinutes)} scheduled`}
                     </span>
+                    {!day.isHoliday ? <span className="text-[11px] font-medium tabular-nums text-[var(--co-muted)]">of {formatLaborMinutes(availableMinutes)} available</span> : null}
+                    </div>
                   </div>
                   {day.isHoliday ? (
                     <p className="mt-3 text-xs font-medium text-[var(--co-warning)]">
-                      Holiday — no dispatch capacity
+                      Holiday — no labor capacity
                     </p>
                   ) : (
                     <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--co-line-soft)]">
@@ -160,9 +181,9 @@ export default function WeekBoard({
                           key={appointment.id}
                           type="button"
                           onClick={() => setEditingAppointmentId(appointment.id)}
-                          className={`flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[11px] font-semibold ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}
+                          className={`flex min-h-11 w-full items-center gap-1.5 rounded-md px-2 py-2 text-left text-[11px] font-semibold ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}
                         >
-                          <span aria-hidden>📅</span>
+                          <CalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
                           <span className="truncate">{formatAppointmentTime(appointment.startTime, appointment.durationMinutes)} · {appointment.title}</span>
                         </button>
                       ))}
@@ -195,7 +216,7 @@ export default function WeekBoard({
                           {visibleGroup.map((job) => (
                             <JobCard
                               key={job.id}
-                              job={job}
+                              job={{ ...job, readiness: readinessByJobId.get(job.id) }}
                               employees={employees}
                               onOpen={setDetailJobId}
                             />
@@ -212,7 +233,7 @@ export default function WeekBoard({
                           expandedDate === day.iso ? null : day.iso,
                         )
                       }
-                      className="w-full rounded-lg border border-dashed border-[var(--co-line)] px-3 py-2 text-left text-xs font-semibold text-[var(--co-accent-text)] hover:bg-[var(--co-accent-tint)]"
+                      className="min-h-11 w-full rounded-lg border border-dashed border-[var(--co-line)] px-3 py-2 text-left text-xs font-semibold text-[var(--co-accent-text)] hover:bg-[var(--co-accent-tint)]"
                     >
                       +{overflow.length} more jobs
                     </button>
@@ -220,9 +241,11 @@ export default function WeekBoard({
                   {expandedDate === day.iso ? (
                     <div className="space-y-1 rounded-lg border border-[var(--co-line)] bg-[var(--co-surface)] p-2 shadow-[0_8px_20px_rgba(18,24,19,0.12)]">
                       {overflow.map((job) => (
-                        <div
+                        <button
                           key={job.id}
-                          className="flex items-center justify-between gap-2 border-b border-[var(--co-line-soft)] py-2 text-xs last:border-0"
+                          type="button"
+                          onClick={() => setDetailJobId(job.id)}
+                          className="flex min-h-11 w-full items-center justify-between gap-2 border-b border-[var(--co-line-soft)] py-2 text-left text-xs last:border-0 hover:bg-[var(--co-surface-muted)] focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--co-focus-ring)]"
                         >
                           <span className="truncate font-medium">
                             {job.scheduledStartTime?.slice(0, 5) ?? "No time"} -{" "}
@@ -232,7 +255,7 @@ export default function WeekBoard({
                             {job.customerCity ?? "No city"} -{" "}
                             {job.customerZip ?? "No ZIP"}
                           </span>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   ) : null}

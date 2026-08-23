@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
@@ -22,14 +22,36 @@ export default function AssigneePicker({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popupId = useId();
 
   useEffect(() => {
     if (!open) return;
     function onMouseDown(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) setOpen(false);
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
     }
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+      if (event.key !== "Tab" || !containerRef.current) return;
+      const focusable = Array.from(containerRef.current.querySelectorAll<HTMLElement>("button:not([disabled]), input:not([disabled])"));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
     document.addEventListener("mousedown", onMouseDown);
     document.addEventListener("keydown", onKeyDown);
@@ -51,6 +73,7 @@ export default function AssigneePicker({
     toggle(employeeId);
     setQuery("");
     setOpen(false);
+    triggerRef.current?.focus();
   }
 
   function makeLead(employeeId: string) {
@@ -62,7 +85,7 @@ export default function AssigneePicker({
 
   const summary =
     assignedEmployees.length === 0
-      ? "Unassigned"
+      ? "Crew not assigned"
       : assignedEmployees.length === 1
         ? `${assignedEmployees[0].firstName} ${assignedEmployees[0].lastName}`
         : `${assignedEmployees[0].firstName} ${assignedEmployees[0].lastName} +${assignedEmployees.length - 1}`;
@@ -77,9 +100,13 @@ export default function AssigneePicker({
     <div ref={containerRef} className="relative inline-block">
       <button
         type="button"
+        ref={triggerRef}
         disabled={disabled}
         onClick={() => setOpen((current) => !current)}
         aria-label={ariaLabel}
+        aria-controls={popupId}
+        aria-expanded={open}
+        aria-haspopup="dialog"
         className={`co-input flex min-w-[9rem] items-center justify-between gap-2 py-1.5 text-left text-xs disabled:cursor-not-allowed disabled:opacity-60 ${className ?? ""}`}
       >
         <span className="truncate">{summary}</span>
@@ -87,7 +114,7 @@ export default function AssigneePicker({
       </button>
 
       {open ? (
-        <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-2 shadow-[var(--co-shadow-popover)]">
+        <div id={popupId} role="dialog" aria-label="Assign crew" className="absolute left-0 top-full z-50 mt-1 w-64 rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-2 shadow-[var(--co-shadow-popover)]">
           <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Assign crew</p>
           <input
             type="search"
@@ -100,8 +127,8 @@ export default function AssigneePicker({
               if (firstMatch) assignFromSearch(firstMatch.id);
               else setOpen(false);
             }}
-            placeholder="Search cleaners"
-            aria-label="Search cleaners"
+            placeholder="Search crew members"
+            aria-label="Search crew members"
             autoFocus
             className="co-input mb-2 w-full py-1.5 text-xs"
           />
@@ -142,7 +169,7 @@ export default function AssigneePicker({
                 );
               })
             ) : (
-              <p className="px-1 py-2 text-xs text-[var(--co-muted)]">No cleaners match your search.</p>
+              <p className="px-1 py-2 text-xs text-[var(--co-muted)]">No crew members match your search.</p>
             )}
           </div>
         </div>

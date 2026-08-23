@@ -15,7 +15,7 @@ export default function WeekendOrphanBanner({ count, firstDate }: { count: numbe
   return (
     <div role="status" className="co-badge-warning mb-3 flex items-center gap-3 px-3 py-2 text-sm">
       <p><strong>{count}</strong> job{count === 1 ? " is" : "s are"} scheduled on a weekend and hidden from Week and Month views.</p>
-      <Link href={`/calendar?view=staff&day=${firstDate}`} className="inline-flex min-h-11 items-center px-1 font-semibold text-[var(--co-accent-text)] hover:underline">View</Link>
+      <Link href={`/calendar?view=board&day=${firstDate}`} className="inline-flex min-h-11 items-center px-1 font-semibold text-[var(--co-accent-text)] hover:underline">Review weekend jobs</Link>
       <button type="button" onClick={dismiss} className="ml-auto inline-flex min-h-11 items-center px-1 text-sm font-semibold hover:underline" aria-label="Dismiss weekend jobs notice">Dismiss</button>
     </div>
   );

@@ -31,6 +31,9 @@ export function HeroProductVisual() {
         sizes="(min-width: 1024px) 780px, (min-width: 640px) 640px, 100vw"
         className="h-auto w-full"
       />
+      <p className="mt-3 text-center text-xs font-medium text-[var(--co-faint)]">
+        Illustrative screens from the Shimmer beta.
+      </p>
 
       <div className="marketing-hero-cards absolute -bottom-10 left-0 flex flex-col gap-2.5 sm:-bottom-12 sm:gap-3 lg:-left-4 lg:-bottom-10">
         <StatusCard

@@ -81,6 +81,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
     setError(null);
     try {
       const res = await fetch(`/api/jobs/${id}`);
+      if (!res.ok) throw new Error("Job details could not be loaded.");
       const data = await res.json();
       if (isCancelled()) return;
       setJob(data.job ?? null);
@@ -99,7 +100,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
       setDraftPrice(data.job?.priceCents == null ? "" : (data.job.priceCents / 100).toFixed(2));
       setDraftDuration(formatDurationInput(data.job?.estimatedDurationMinutes));
     } catch {
-      if (!isCancelled()) setError("Couldn't load job details.");
+      if (!isCancelled()) setError("We couldn't load this job. Close the panel and try again.");
     } finally {
       if (!isCancelled()) setLoading(false);
     }
@@ -143,6 +144,8 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
 
   function patch(fields: Parameters<typeof commitJobPatch>[1]) {
     if (!job) return;
+    const previousJob = job;
+    const previousAssignedUserIds = [...assignedUserIds];
     commitJobPatch(job.id, fields, {
       onOptimistic: () => {
         setJob((current) => (current ? { ...current, ...fields } : current));
@@ -154,6 +157,8 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
       onSuccess: () => router.refresh(),
       onWarning: setWarning,
       onError: (message) => {
+        setJob(previousJob);
+        setAssignedUserIds(previousAssignedUserIds);
         setError(message);
         router.refresh();
       },
@@ -192,12 +197,12 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4 sm:p-6">
       <button type="button" aria-label="Close job details" onClick={requestClose} className="absolute inset-0 bg-[var(--co-overlay)]" />
       <aside ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="calendar-job-detail-title" className="calendar-detail-panel relative flex h-[min(720px,calc(100dvh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] shadow-[var(--co-shadow-panel)] sm:h-[min(720px,calc(100dvh-3rem))]">
-        <div className="flex items-start justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--co-line-soft)] px-5 py-4">
+          <div className="min-w-0 flex-1">
             <p className="eyebrow">Job details</p>
-            {job ? <Link id="calendar-job-detail-title" href={`/customers/${job.customerId}`} className="mt-1 block text-lg font-semibold hover:text-[var(--co-accent-text)] hover:underline">{job.customerFirstName} {job.customerLastName}</Link> : <h2 id="calendar-job-detail-title" className="mt-1 text-lg font-semibold">Loading...</h2>}
+            {job ? <Link id="calendar-job-detail-title" href={`/customers/${job.customerId}`} className="mt-1 block break-words text-lg font-semibold hover:text-[var(--co-accent-text)] hover:underline">{job.customerFirstName} {job.customerLastName}</Link> : <h2 id="calendar-job-detail-title" className="mt-1 text-lg font-semibold">Loading...</h2>}
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex max-w-full shrink-0 flex-wrap items-center justify-end gap-2">
             {job ? <button type="button" disabled={saving || !isDirty} onClick={saveChanges} className="co-button-primary px-3 py-2 text-xs disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button> : null}
             {job && job.status !== "cancelled" ? <button type="button" disabled={saving} onClick={() => setConfirmingCancel(true)} className="co-button-secondary px-3 py-2 text-xs text-[var(--co-danger)]">Cancel job</button> : null}
             {job ? <Link href={`/jobs/${job.id}`} target="_blank" rel="noreferrer" aria-label="Open full job page in a new tab" title="Open full job page in a new tab" className="co-button-secondary flex h-11 w-11 items-center justify-center !p-0"><ExternalLink className="h-4 w-4" aria-hidden /></Link> : null}
@@ -208,21 +213,22 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
         </div>
 
         {loading && !job ? <div className="p-5 text-sm text-[var(--co-muted)]">Loading job...</div> : null}
+        {!job && error ? <p role="alert" aria-live="assertive" className="p-5 pt-0 text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
 
         {job ? (
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
-            {error ? <p className="text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
+            {error ? <p role="alert" aria-live="assertive" className="text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
             {warning ? <p role="status" className="co-badge-warning px-3 py-2 text-xs font-medium">Scheduling warning: {warning}</p> : null}
 
             <div className="flex flex-wrap items-center gap-2">
               <StatusPill domain="job" status={job.status} />
               <span className="text-xs text-[var(--co-muted)]">{jobTypeLabel(job)}</span>
-              {saving ? <span className="text-xs text-[var(--co-muted)]">Saving...</span> : null}
+              {saving ? <span className="text-xs text-[var(--co-muted)]">Saving changes…</span> : null}
             </div>
 
             <section className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-3">
               <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Schedule & status</p>
-              <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <DateInput
                   key={`date-${job.scheduledDate}`}
                   label="Date"
@@ -236,9 +242,9 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
                   onChange={setDraftTime}
                 />
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="block text-xs font-semibold text-[var(--co-muted)]">
-                  Assigned to
+                  Crew
                   <div className="mt-1"><AssigneePicker employees={employees} assignedUserIds={draftAssignedUserIds} onChange={setDraftAssignedUserIds} ariaLabel="Assign crew to this job" className="w-full" /></div>
                 </div>
                 <label className="block text-xs font-semibold text-[var(--co-muted)]">
@@ -248,11 +254,11 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
                   </select>
                 </label>
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="block text-xs font-semibold text-[var(--co-muted)]">Value<input type="number" min="0" step="0.01" value={draftPrice} onChange={(event) => setDraftPrice(event.target.value)} className="co-input mt-1 w-full" /></label>
-                <label className="block text-xs font-semibold text-[var(--co-muted)]">JTH / Duration (hh:mm)<input type="text" inputMode="numeric" pattern="[0-9]{1,2}:[0-5][0-9]" placeholder="03:01" value={draftDuration} onChange={(event) => setDraftDuration(event.target.value)} className="co-input mt-1 w-full" /></label>
+                <label className="block text-xs font-semibold text-[var(--co-muted)]">Cleaning duration (hours:minutes)<input type="text" inputMode="numeric" pattern="[0-9]{1,2}:[0-5][0-9]" placeholder="03:01" aria-describedby="calendar-duration-help" value={draftDuration} onChange={(event) => setDraftDuration(event.target.value)} className="co-input mt-1 w-full" /></label>
               </div>
-              <p className="mt-2 text-[11px] leading-4 text-[var(--co-muted)]">Use hours and minutes, for example 03:00. Duration controls the calendar block length.</p>
+              <p id="calendar-duration-help" className="mt-2 text-[11px] leading-4 text-[var(--co-muted)]">Enter hours and minutes, such as 03:00. This sets the job block length on the calendar.</p>
             </section>
 
             <div>
@@ -260,7 +266,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
               <p className="mt-1 text-sm text-[var(--co-ink)]">{location || "No address recorded"}</p>
             </div>
 
-            {(job.roomCounts.length || job.customerNotes || job.gateCodeOrKeyNotes || job.petNotes || job.doNotClean) ? <div className="border-t border-[var(--co-line-soft)] pt-4"><p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">House details</p><ClientHomeSymbols className="mt-2" roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} />{job.customerNotes ? <p className="mt-3 whitespace-pre-wrap text-sm leading-5 text-[var(--co-ink)]">{cleanNoteText(job.customerNotes)}</p> : null}</div> : null}
+            {(job.roomCounts.length || job.customerNotes || job.gateCodeOrKeyNotes || job.petNotes || job.doNotClean) ? <div className="border-t border-[var(--co-line-soft)] pt-4"><p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">House details</p><ClientHomeSymbols className="mt-2" roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} />{job.doNotClean ? <p className="mt-3 text-sm leading-5 text-[var(--co-danger)]"><strong>Don&apos;t clean:</strong> {cleanNoteText(job.doNotClean)}</p> : null}{job.customerNotes ? <p className="mt-3 whitespace-pre-wrap text-sm leading-5 text-[var(--co-ink)]">{cleanNoteText(job.customerNotes)}</p> : null}</div> : null}
 
             <div className="text-sm text-[var(--co-muted)]">{formatEstimatedTime(job.estimatedDurationMinutes)}</div>
 

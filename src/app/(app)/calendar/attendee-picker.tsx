@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { X } from "lucide-react";
 
 type StaffMember = { id: string; firstName: string; lastName: string };
 
@@ -70,7 +71,7 @@ export default function AttendeePicker({
             <span key={member.id} className="flex items-center gap-1.5 rounded-full border border-[var(--co-line)] bg-[var(--co-surface-muted)] py-1 pl-3 pr-1.5 text-xs font-medium">
               {member.firstName} {member.lastName}
               <button type="button" onClick={() => remove(member.id)} aria-label={`Remove ${member.firstName} ${member.lastName}`} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-danger)]">
-                ✕
+                <X className="h-4 w-4" aria-hidden strokeWidth={1.75} />
               </button>
             </span>
           ))}
@@ -99,7 +100,7 @@ export default function AttendeePicker({
                 key={member.id}
                 type="button"
                 onClick={() => add(member.id)}
-                className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-sm hover:bg-[var(--co-surface-muted)]"
+                className="flex min-h-11 w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-sm hover:bg-[var(--co-surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--co-focus-ring)]"
               >
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--co-surface-muted)] text-[10px] font-bold text-[var(--co-accent-text)]">
                   {member.firstName[0]}

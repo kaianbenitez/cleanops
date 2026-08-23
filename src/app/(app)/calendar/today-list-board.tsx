@@ -1,8 +1,10 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { APPOINTMENT_COLOR, APPOINTMENT_COLOR_CANCELLED, displayCustomer, formatAppointmentTime, formatClockLabel, formatEstimatedTime, jobTypeLabel, ordinalLabel, stopOrdinals } from "./shared";
+import { CalendarDays } from "lucide-react";
+import { APPOINTMENT_COLOR, APPOINTMENT_COLOR_CANCELLED, displayCustomer, formatAppointmentTime, formatClockLabel, formatEstimatedTime, jobTypeLabel, ordinalLabel, readinessTone, stopOrdinals } from "./shared";
+import type { CalendarReadiness } from "./page";
 import { commitJobPatch } from "./drag-commit";
 import { useUndoToast, UndoToast } from "./undo-toast";
 import AssigneePicker from "./assignee-picker";
@@ -41,6 +43,7 @@ type ListJob = {
   doNotClean: string | null;
   petNotes: string | null;
   assignedUserIds: string[];
+  readiness?: CalendarReadiness;
 };
 
 type TimeEntryRow = {
@@ -77,6 +80,7 @@ export default function TodayListBoard({
   isToday,
   employees,
   jobs: initialJobs,
+  readinessByJobId,
   timeEntries,
   appointments = [],
   staffRoster = [],
@@ -85,13 +89,13 @@ export default function TodayListBoard({
   isToday: boolean;
   employees: Employee[];
   jobs: ListJob[];
+  readinessByJobId: Map<string, CalendarReadiness>;
   timeEntries: TimeEntryRow[];
   appointments?: CalendarAppointment[];
   staffRoster?: StaffRosterMember[];
 }) {
   const router = useRouter();
   const [jobs, setJobs] = useState(initialJobs);
-  const [syncedJobs, setSyncedJobs] = useState(initialJobs);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
@@ -100,14 +104,21 @@ export default function TodayListBoard({
   const [detailJobId, setDetailJobId] = useState<string | null>(null);
   const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
   const [now, setNow] = useState(0);
-  const sortedAppointments = [...appointments].sort((a, b) => (a.startTime ?? "99").localeCompare(b.startTime ?? "99"));
+  const sortedAppointments = useMemo(
+    () => [...appointments].sort((a, b) => (a.startTime ?? "99").localeCompare(b.startTime ?? "99")),
+    [appointments],
+  );
   const { toast, showUndo, dismiss } = useUndoToast();
   const ordinalByJobId = stopOrdinals(jobs);
 
-  if (initialJobs !== syncedJobs) {
-    setSyncedJobs(initialJobs);
+  useEffect(() => {
+    // Sync only after commit. This keeps prop changes predictable and avoids
+    // mutating state during render while an optimistic edit is in flight.
+    // This effect intentionally mirrors server refreshes into the optimistic
+    // local list model; the lint exception prevents a false positive here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setJobs(initialJobs);
-  }
+  }, [initialJobs]);
 
   useEffect(() => {
     // Initialize the client-only clock after hydration, then keep the "clocked in" durations current.
@@ -191,10 +202,10 @@ export default function TodayListBoard({
   }
 
   function describeCrew(ids: string[]) {
-    if (ids.length === 0) return "Unassigned";
+    if (ids.length === 0) return "Crew not assigned";
     if (ids.length === 1) {
       const employee = employees.find((candidate) => candidate.id === ids[0]);
-      return employee ? `${employee.firstName} ${employee.lastName}` : "Unassigned";
+      return employee ? `${employee.firstName} ${employee.lastName}` : "Crew not assigned";
     }
     return `${ids.length} employees`;
   }
@@ -252,38 +263,127 @@ export default function TodayListBoard({
   return (
     <div className="co-card overflow-hidden">
       <div className="border-b border-[var(--co-line-soft)] px-5 py-4">
-        <p className="eyebrow">List view</p>
-        <h2 className="mt-1 text-lg font-semibold">{isToday ? "Today" : dayLabel}&apos;s jobs</h2>
-        <p className="mt-1 text-xs text-[var(--co-muted)]">Edit date, time, or crew directly — changes save as soon as you leave the field.</p>
-        {error ? <p className="mt-2 text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
+        <p className="eyebrow">Daily list</p>
+        <h2 className="type-admin-title mt-1 font-semibold">{isToday ? "Today" : dayLabel}&apos;s jobs</h2>
+        <p className="type-admin-meta mt-1 text-[var(--co-muted)]">Edit date, time, or crew directly. Changes save when you leave a field.</p>
+        {error ? <p role="alert" className="mt-2 text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
         {warning ? <p role="status" className="co-badge-warning mt-2 px-3 py-2 text-xs font-medium">Scheduling warning: {warning}</p> : null}
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1240px] text-left text-base">
-          <thead className="bg-[var(--co-surface-muted)] text-sm uppercase tracking-[0.08em] text-[var(--co-muted)]">
+      <div className="space-y-3 p-3 sm:hidden">
+        <p className="px-1 text-xs text-[var(--co-muted)]">
+          Tap a customer for details. Date, crew, and status changes save immediately. {savingId ? <span role="status" className="font-semibold text-[var(--co-accent-text)]">Saving…</span> : <span className="text-[var(--co-muted)]">Ready</span>}
+        </p>
+        {sortedAppointments.map((appointment) => (
+          <article key={appointment.id} className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-spark-tint)]/40 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[var(--co-ink)]">{formatAppointmentTime(appointment.startTime, appointment.durationMinutes)}</p>
+                <button type="button" onClick={() => setEditingAppointmentId(appointment.id)} className="mt-1 inline-flex min-h-11 max-w-full items-center truncate text-left text-sm font-semibold text-[var(--co-accent-text)] hover:underline">
+                  {appointment.title}
+                </button>
+              </div>
+              <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}>
+                {appointment.status === "cancelled" ? "Cancelled" : "Meeting"}
+              </span>
+            </div>
+            <button type="button" onClick={() => setEditingAppointmentId(appointment.id)} className="mt-3 min-h-11 w-full rounded-lg border border-[var(--co-line)] bg-[var(--co-surface)] px-3 text-left text-xs font-semibold text-[var(--co-accent-text)]">
+              Edit meeting · {appointment.attendeeUserIds.length} attendee{appointment.attendeeUserIds.length === 1 ? "" : "s"}
+            </button>
+          </article>
+        ))}
+        {jobs.map((job) => {
+          const assignedEmployees = job.assignedUserIds
+            .map((id) => employees.find((employee) => employee.id === id))
+            .filter((employee): employee is Employee => Boolean(employee));
+          const hasNotes = Boolean(job.gateCodeOrKeyNotes || job.petNotes || job.doNotClean || job.customerNotes);
+          return (
+            <article key={job.id} className={`rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-3 ${savingId === job.id ? "opacity-50" : ""}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input key={`mobile-date-${job.scheduledDate}`} type="date" defaultValue={job.scheduledDate} onBlur={(event) => commitDate(job, event.target.value)} className="co-input min-h-11 w-[9.5rem] py-1.5 text-sm" aria-label={`Date for ${job.customerFirstName} ${job.customerLastName}`} />
+                    <input key={`mobile-time-${job.scheduledStartTime}`} type="time" defaultValue={job.scheduledStartTime?.slice(0, 5) ?? ""} onBlur={(event) => commitTime(job, event.target.value)} className="co-input min-h-11 w-[7rem] py-1.5 text-sm" aria-label={`Time for ${job.customerFirstName} ${job.customerLastName}`} />
+                  </div>
+                  <button type="button" onClick={() => setDetailJobId(job.id)} className="mt-2 inline-flex min-h-11 max-w-full items-center truncate text-left text-base font-semibold text-[var(--co-accent-text)] hover:underline">
+                    {displayCustomer(job)}
+                  </button>
+                  {readinessByJobId.get(job.id) ? <span className={`${readinessTone(readinessByJobId.get(job.id)!.primary)} mt-1 inline-flex rounded px-1.5 py-0.5 text-[10px] font-bold`} title={readinessByJobId.get(job.id)!.reasons.join("; ") || undefined}>{readinessByJobId.get(job.id)!.primary}</span> : null}
+                  <p className="mt-1 text-sm text-[var(--co-muted)]">{job.serviceName ?? jobTypeLabel(job)} · {formatEstimatedTime(job.estimatedDurationMinutes)}</p>
+                </div>
+                <button type="button" onClick={() => setDetailJobId(job.id)} className="min-h-11 shrink-0 rounded-lg border border-[var(--co-line)] px-3 text-xs font-semibold text-[var(--co-body)]">Details</button>
+              </div>
+              <div className="mt-3 border-t border-[var(--co-line-soft)] pt-3">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-faint)]">Crew assignment</p>
+                <AssigneePicker employees={employees} assignedUserIds={job.assignedUserIds} onChange={(ids) => commitAssignee(job, ids)} ariaLabel={`Reassign ${job.customerFirstName} ${job.customerLastName}`} />
+              </div>
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <label className="text-xs font-semibold text-[var(--co-body)]">
+                  Status
+                  <select key={`mobile-status-${job.status}`} defaultValue={job.status} onChange={(event) => changeStatus(job, event.target.value, event.currentTarget)} className="co-input mt-1 min-h-11 w-full py-1.5 text-sm" aria-label={`Status for ${job.customerFirstName} ${job.customerLastName}`}>
+                    {STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </label>
+                <div>
+                  <p className="text-xs font-semibold text-[var(--co-body)]">Crew time</p>
+                  <div className="mt-1 space-y-1">
+                    {assignedEmployees.length ? assignedEmployees.map((employee) => {
+                      const state = clockStatus(entriesFor(job.id, employee.id), now);
+                      return <span key={employee.id} className={`mr-1 inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${state.className}`}>{employee.firstName}: {state.label}</span>;
+                    }) : <span className="text-sm text-[var(--co-faint)]">Crew not assigned</span>}
+                  </div>
+                </div>
+              </div>
+              {hasNotes ? (
+                <details className="mt-3 border-t border-[var(--co-line-soft)] pt-2">
+                  <summary className="min-h-11 cursor-pointer py-3 text-xs font-semibold text-[var(--co-accent-text)]">Show access and job notes</summary>
+                  <div className="space-y-2 text-sm leading-5 text-[var(--co-muted)]">
+                    {job.gateCodeOrKeyNotes ? <p><strong className="text-[var(--co-ink)]">Access:</strong> {job.gateCodeOrKeyNotes}</p> : null}
+                    {job.petNotes ? <p><strong className="text-[var(--co-ink)]">Pets:</strong> {job.petNotes}</p> : null}
+                    {job.doNotClean ? <p><strong className="text-[var(--co-danger)]">Don&apos;t clean:</strong> {job.doNotClean}</p> : null}
+                    {job.customerNotes ? <p><strong className="text-[var(--co-ink)]">Notes:</strong> {job.customerNotes}</p> : null}
+                  </div>
+                </details>
+              ) : null}
+              {job.status !== "completed" && job.status !== "cancelled" ? (
+                confirmingCancelId === job.id ? (
+                  <div className="mt-3 border-t border-[var(--co-line-soft)] pt-3">
+                    <p className="text-xs font-medium text-[var(--co-danger)]">Cancel this appointment?</p>
+                    <label className="mt-2 block text-xs font-semibold text-[var(--co-danger)]">Cancellation reason<textarea aria-label={`Cancellation reason for ${job.customerFirstName} ${job.customerLastName}`} value={cancellationReasons[job.id] ?? ""} onChange={(event) => setCancellationReasons((current) => ({ ...current, [job.id]: event.target.value }))} rows={2} placeholder="Why is this job being cancelled?" className="co-input mt-1 min-h-11 w-full resize-none text-sm" /></label>
+                    <div className="mt-2 flex gap-2"><button type="button" onClick={() => { setConfirmingCancelId(null); setCancellationReasons((current) => ({ ...current, [job.id]: "" })); }} className="co-button-secondary min-h-11 flex-1">Keep job</button><button type="button" disabled={!cancellationReasons[job.id]?.trim()} onClick={() => cancelJob(job)} className="min-h-11 flex-1 rounded-lg border border-[var(--co-danger)]/30 bg-[var(--co-danger)]/10 px-3 text-xs font-semibold text-[var(--co-danger)]">Cancel job</button></div>
+                  </div>
+                ) : <button type="button" onClick={() => setConfirmingCancelId(job.id)} className="mt-3 min-h-11 w-full border-t border-[var(--co-line-soft)] pt-3 text-left text-xs font-semibold text-[var(--co-danger)]">Cancel job</button>
+              ) : null}
+            </article>
+          );
+        })}
+        {!sortedAppointments.length && !jobs.length ? <p className="px-1 py-8 text-center text-sm text-[var(--co-muted)]">No jobs or appointments scheduled for this day.</p> : null}
+      </div>
+      <div className="hidden overflow-x-auto sm:block">
+        <table className="w-full min-w-[1240px] text-left type-admin-body">
+          <thead className="type-admin-micro border-b border-[var(--co-line)] bg-[var(--co-surface-muted)] font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">
             <tr>
-              <th className="px-5 py-3">Time</th>
-              <th className="px-5 py-3">Customer</th>
-              <th className="px-5 py-3">Assigned</th>
-              <th className="px-5 py-3">Status</th>
-              <th className="px-5 py-3">Cleaning time</th>
-              <th className="px-5 py-3">Actions</th>
+              <th className="w-[150px] px-4 py-3">Time</th>
+              <th className="w-[360px] px-4 py-3">Customer &amp; job</th>
+              <th className="w-[180px] px-4 py-3">Assigned</th>
+              <th className="w-[140px] px-4 py-3">Status</th>
+              <th className="w-[230px] px-4 py-3">Cleaning time</th>
+              <th className="w-[210px] px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--co-line-soft)]">
             {sortedAppointments.map((appointment) => (
               <tr key={appointment.id} className={appointment.status === "cancelled" ? "bg-[var(--co-surface-muted)]" : "bg-[var(--co-spark-tint)]/40"}>
-                <td className="px-5 py-3 font-medium">{formatAppointmentTime(appointment.startTime, appointment.durationMinutes)}</td>
-                <td className="px-5 py-3 font-medium" colSpan={4}>
-                  <button type="button" onClick={() => setEditingAppointmentId(appointment.id)} className="text-base text-[var(--co-accent-text)] hover:underline">
-                    📅 {appointment.title}
+                <td className="px-4 py-3 align-top font-semibold text-[var(--co-ink)]">{formatAppointmentTime(appointment.startTime, appointment.durationMinutes)}</td>
+                <td className="px-4 py-3 font-medium" colSpan={4}>
+                  <button type="button" onClick={() => setEditingAppointmentId(appointment.id)} className="inline-block max-w-[32rem] truncate align-middle text-sm text-[var(--co-accent-text)] hover:underline" title={appointment.title}>
+                    <CalendarDays className="mr-1 inline-block h-4 w-4 align-[-0.2em]" aria-hidden strokeWidth={1.75} />{appointment.title}
                   </button>
-                  <span className={`ml-2 inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}>
+                  <span className={`ml-2 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}>
                     {appointment.status === "cancelled" ? "Cancelled meeting" : "Meeting"}
                   </span>
-                  <span className="ml-2 text-sm text-[var(--co-muted)]">{appointment.attendeeUserIds.length} attendee{appointment.attendeeUserIds.length === 1 ? "" : "s"}</span>
+                  <span className="ml-2 text-xs text-[var(--co-muted)]">{appointment.attendeeUserIds.length} attendee{appointment.attendeeUserIds.length === 1 ? "" : "s"}</span>
                 </td>
-                <td className="px-5 py-3">
+                <td className="px-4 py-3">
                   <button type="button" onClick={() => setEditingAppointmentId(appointment.id)} className="text-xs font-semibold text-[var(--co-accent-text)] hover:underline">
                     Edit
                   </button>
@@ -299,7 +399,7 @@ export default function TodayListBoard({
               return (
                 <Fragment key={job.id}>
                 <tr className={`align-top hover:bg-[var(--co-surface-muted)]/50 ${savingId === job.id ? "opacity-50" : ""}`}>
-                  <td className="px-5 py-3">
+                  <td className="px-4 py-3 align-top">
                     <input
                       key={`date-${job.scheduledDate}`}
                       type="date"
@@ -318,34 +418,36 @@ export default function TodayListBoard({
                     />
                     <p className="mt-1.5 text-sm text-[var(--co-muted)]">{formatEstimatedTime(job.estimatedDurationMinutes)}</p>
                   </td>
-                  <td className="px-5 py-3 font-medium">
+                  <td className="max-w-[360px] px-4 py-3 font-medium">
                     <button
                       type="button"
                       onClick={() => setDetailJobId(job.id)}
-                      className="text-base text-[var(--co-accent-text)] hover:underline"
+                      className="block max-w-full truncate text-[15px] font-semibold text-[var(--co-accent-text)] hover:underline"
+                      title={displayCustomer(job)}
                     >
                       {displayCustomer(job)}
                     </button>
+                    {readinessByJobId.get(job.id) ? <span className={`${readinessTone(readinessByJobId.get(job.id)!.primary)} ml-2 rounded px-1.5 py-0.5 text-[10px] font-bold`} title={readinessByJobId.get(job.id)!.reasons.join("; ") || undefined}>{readinessByJobId.get(job.id)!.primary}</span> : null}
                     {ordinalByJobId.get(job.id) ? (
                       <span className="ml-2 rounded bg-[var(--co-accent-tint)] px-1.5 py-0.5 text-xs font-semibold text-[var(--co-accent-text)]">
                         {ordinalLabel(ordinalByJobId.get(job.id)!)}
                       </span>
                     ) : null}
                     <ClientHomeSymbols className="mt-1" roomCounts={job.roomCounts} gateCodeOrKeyNotes={job.gateCodeOrKeyNotes} petNotes={job.petNotes} />
-                    <p className="mt-1 text-sm text-[var(--co-muted)]">
+                    <p className="mt-1 max-w-[32rem] break-words text-xs leading-5 text-[var(--co-muted)]">
                       {job.customerAddress ?? "No address"}
                       {job.customerCity ? `, ${job.customerCity}` : ""} {job.customerZip ?? ""}
                     </p>
                     <p className="mt-1 text-xs uppercase tracking-[0.08em] text-[var(--co-faint)]">
                       {job.clientType === "commercial" ? "Commercial" : "Residential"}
                     </p>
-                    <p className="mt-1.5 text-sm text-[var(--co-ink)]">
-                      {job.serviceName ?? jobTypeLabel(job)}
-                      {job.addOnNames.length ? ` + ${job.addOnNames.join(", ")}` : ""}
+                    <p className="mt-1.5 max-w-[32rem] break-words text-sm leading-5 text-[var(--co-ink)]">
+                      <span className="font-medium">{job.serviceName ?? jobTypeLabel(job)}</span>
+                      {job.addOnNames.length ? <span className="text-[var(--co-muted)]"> + {job.addOnNames.join(", ")}</span> : null}
                       <span className="ml-1.5 font-medium text-[var(--co-muted)]">${(job.priceCents / 100).toFixed(2)}</span>
                     </p>
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="px-4 py-3 align-top">
                     <AssigneePicker
                       employees={employees}
                       assignedUserIds={job.assignedUserIds}
@@ -353,7 +455,7 @@ export default function TodayListBoard({
                       ariaLabel={`Reassign ${job.customerFirstName} ${job.customerLastName}`}
                     />
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="px-4 py-3 align-top">
                     <select
                       key={`status-${job.status}`}
                       defaultValue={job.status}
@@ -368,7 +470,7 @@ export default function TodayListBoard({
                       ))}
                     </select>
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="px-4 py-3 align-top">
                     {assignedEmployees.length === 0 ? (
                       <span className="text-xs text-[var(--co-faint)]">—</span>
                     ) : (
@@ -376,8 +478,8 @@ export default function TodayListBoard({
                         {assignedEmployees.map((employee) => {
                           const state = clockStatus(entriesFor(job.id, employee.id), now);
                           return (
-                            <li key={employee.id} className="text-sm">
-                              <span className="text-[var(--co-muted)]">
+                            <li key={employee.id} className="max-w-[220px] text-sm leading-5">
+                              <span className="break-words text-[var(--co-muted)]">
                                 {employee.firstName} {employee.lastName}
                                 {employee.isActive === false ? " (Inactive): " : ": "}
                               </span>
@@ -388,16 +490,13 @@ export default function TodayListBoard({
                       </ul>
                     )}
                   </td>
-                  <td className="px-5 py-3">
-                    <button type="button" disabled title="Invoice action coming soon" className="mb-3 rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)] px-3 py-1.5 text-sm font-semibold text-[var(--co-muted)] disabled:cursor-not-allowed">
-                      Invoice — coming soon
-                    </button>
+                  <td className="px-4 py-3 align-top">
                     {job.status === "cancelled" ? (
                       <StatusPill domain="job" status="cancelled" />
                     ) : confirmingCancelId === job.id ? (
                       <div className="flex flex-col items-start gap-1.5">
                         <p className="text-xs font-medium text-[var(--co-danger)]">Cancel this appointment?</p>
-                        <textarea value={cancellationReasons[job.id] ?? ""} onChange={(event) => setCancellationReasons((current) => ({ ...current, [job.id]: event.target.value }))} rows={2} placeholder="Why is this job being cancelled?" className="co-input w-full resize-none text-xs" />
+                        <label className="block text-xs font-semibold text-[var(--co-danger)]">Cancellation reason<textarea aria-label={`Cancellation reason for ${job.customerFirstName} ${job.customerLastName}`} value={cancellationReasons[job.id] ?? ""} onChange={(event) => setCancellationReasons((current) => ({ ...current, [job.id]: event.target.value }))} rows={2} placeholder="Why is this job being cancelled?" className="co-input mt-1 w-full resize-none text-xs" /></label>
                         <div className="flex gap-1.5">
                           <button type="button" disabled={savingId === job.id} onClick={() => { setConfirmingCancelId(null); setCancellationReasons((current) => ({ ...current, [job.id]: "" })); }} className="co-button-secondary py-1 text-xs disabled:opacity-50">
                             Keep job
@@ -423,7 +522,7 @@ export default function TodayListBoard({
                 </tr>
                 {hasNotes ? (
                   <tr className={savingId === job.id ? "opacity-50" : ""}>
-                    <td colSpan={6} className="border-t border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 px-5 py-3 text-sm text-[var(--co-muted)]">
+                    <td colSpan={6} className="border-t border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 px-4 py-3 text-sm leading-5 text-[var(--co-muted)]">
                       <div className="grid gap-3 sm:grid-cols-2">
                         {job.gateCodeOrKeyNotes ? (
                           <p className="whitespace-pre-wrap break-words">
@@ -458,8 +557,8 @@ export default function TodayListBoard({
             })}
             {jobs.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-5 py-6 text-sm text-[var(--co-muted)]">
-                  No jobs scheduled for this day.
+                <td colSpan={6} className="px-4 py-6 text-sm text-[var(--co-muted)]">
+                  No jobs or appointments scheduled for this day.
                 </td>
               </tr>
             ) : null}

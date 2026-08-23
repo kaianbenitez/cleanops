@@ -24,12 +24,14 @@ import {
   APPOINTMENT_COLOR,
   APPOINTMENT_COLOR_CANCELLED,
   assignDayLanes,
+  aggregateCalendarAttention,
   capacityForCrew,
-  categorizeForAttention,
   clockLabelFromMinutes,
   DEFAULT_WORKDAY_END_MINUTES,
   DEFAULT_WORKDAY_START_MINUTES,
   displayCustomer,
+  deriveCalendarReadiness,
+  deriveJobReadiness,
   employeeColor,
   formatAppointmentTime,
   formatCustomerAddress,
@@ -41,11 +43,16 @@ import {
   minuteOfDayInTimeZone,
   minutesFromTime,
   ordinalLabel,
+  readinessAction,
+  readinessReason,
+  readinessTone,
   stopOrdinals,
   jobTypeLabel,
+  ptoIntervalForDay,
+  ptoPeriodForDay,
   ATTENTION_RAIL_TOGGLE_EVENT,
 } from "./shared";
-import type { EmployeePtoRecord, PtoPeriod } from "@/lib/scheduling/pto";
+import type { EmployeePtoRecord } from "@/lib/scheduling/pto";
 import { minutesToTime } from "@/lib/scheduling/wall-clock";
 import { cleanNoteText } from "@/lib/format";
 
@@ -61,6 +68,8 @@ const LANE_HEIGHT_BASE = 78; // --lane-h, horizontal axis base row height
 const LANE_HEADER_WIDTH = 206; // horizontal axis lane header column width
 const TIME_GUTTER_WIDTH = 58; // vertical axis time gutter column width
 const CREW_COLUMN_MIN_WIDTH = 174; // vertical axis crew column minmax floor
+const VIRTUAL_ROW_HEIGHT = 92;
+const VIRTUAL_OVERSCAN = 4;
 const COMPACT_HEIGHT_VERTICAL = 60; // below this, drop the 3rd card line
 const COMPACT_HEIGHT_HORIZONTAL = 58;
 const PLACEMENT_SNAP_MINUTES = 15;
@@ -78,23 +87,6 @@ function formatDuration(totalMinutes: number) {
 
 function minutesToTimeInput(totalMinutes: number) {
   return `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
-}
-
-function ptoPeriodForDay(pto: EmployeePtoRecord, dayIso: string): PtoPeriod {
-  if (pto.startDate === pto.endDate)
-    return pto.startPeriod === pto.endPeriod ? pto.startPeriod : "full";
-  if (pto.startDate === dayIso) return pto.startPeriod;
-  if (pto.endDate === dayIso) return pto.endPeriod;
-  return "full";
-}
-
-/** Half-day PTO splits at noon — the same convention `pto.ts`'s own
- * `jobPeriod()` uses to classify a job as morning/afternoon. */
-function ptoIntervalForPeriod(period: PtoPeriod, windowStart: number, windowEnd: number): { from: number; to: number } {
-  const noon = 12 * 60;
-  if (period === "morning") return { from: windowStart, to: Math.min(noon, windowEnd) };
-  if (period === "afternoon") return { from: Math.max(noon, windowStart), to: windowEnd };
-  return { from: windowStart, to: windowEnd };
 }
 
 function prefersReducedMotion() {
@@ -138,7 +130,7 @@ function evaluatePlacement({
     return { state: "warn", message: `Runs past ${clockLabelFromMinutes(windowEnd)}` };
   }
   if (capacity.availableMinutes > 0 && capacity.usedMinutes + duration > capacity.availableMinutes) {
-    return { state: "warn", message: `Over ${formatDuration(capacity.availableMinutes)} day` };
+    return { state: "warn", message: `Over ${formatDuration(capacity.availableMinutes)} labor capacity` };
   }
   return { state: "ok", message: `Place at ${clockLabelFromMinutes(start)}` };
 }
@@ -153,7 +145,7 @@ function verdictClasses(state: Verdict["state"]) {
 
 function verdictNoteClasses(state: Verdict["state"]) {
   if (state === "blocked") return "bg-[var(--co-surface-muted-2)] text-[var(--co-muted)] border border-[var(--co-line)]";
-  if (state === "warn") return "bg-[var(--co-warning)] text-white";
+  if (state === "warn") return "bg-[var(--co-warning)] text-[var(--co-surface)]";
   return "bg-[var(--co-accent-fill)] text-white";
 }
 
@@ -186,8 +178,8 @@ function CapacityMeter({ usedMinutes, availableMinutes, isOver, onLeave }: { use
           style={{ width: `${percent}%`, background: fillColor }}
         />
       </div>
-      <span className={`whitespace-nowrap text-[10.5px] font-bold ${isOver ? "text-[var(--co-warning)]" : "text-[var(--co-faint)]"}`}>
-        {formatDuration(usedMinutes)} / {availableMinutes ? formatDuration(availableMinutes) : "off"}
+      <span className={`whitespace-nowrap text-[11px] font-bold ${isOver ? "text-[var(--co-warning)]" : "text-[var(--co-faint)]"}`}>
+        Labor hours: {formatDuration(usedMinutes)} of {availableMinutes ? formatDuration(availableMinutes) : "off"}
       </span>
     </div>
   );
@@ -210,6 +202,7 @@ export default function Board({
   workdayEndMinutes,
   workdayMinutesPerCleaner,
   cancellationPolicy,
+  initialAttentionRailOpen = false,
 }: {
   axis: "vertical" | "horizontal";
   dayIso: string;
@@ -229,6 +222,7 @@ export default function Board({
   workdayEndMinutes?: number;
   workdayMinutesPerCleaner?: number;
   cancellationPolicy?: string;
+  initialAttentionRailOpen?: boolean;
 }) {
   const router = useRouter();
   const windowStart = workdayStartMinutes ?? DEFAULT_WORKDAY_START_MINUTES;
@@ -238,19 +232,24 @@ export default function Board({
   const workdayMinutes = workdayMinutesPerCleaner ?? 8 * 60;
 
   const [jobs, setJobs] = useState(initialJobs);
-  const [syncedJobs, setSyncedJobs] = useState(initialJobs);
-  if (initialJobs !== syncedJobs) {
-    setSyncedJobs(initialJobs);
+  useEffect(() => {
+    // Keep server refreshes out of render. React only runs this when the
+    // server-provided array changes, so ordinary local state updates do not
+    // replace an optimistic edit.
+    // This effect intentionally mirrors server refreshes into the optimistic
+    // local board model; the lint exception prevents a false positive here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setJobs(initialJobs);
-  }
+  }, [initialJobs]);
   const cleanedJobs = useMemo(
-    () =>
-      jobs.map((job) => ({
-        ...job,
-        customerNotes: cleanNoteText(job.customerNotes),
-        gateCodeOrKeyNotes: cleanNoteText(job.gateCodeOrKeyNotes),
-        petNotes: cleanNoteText(job.petNotes),
-      })),
+    () => jobs.map((job) => {
+      const customerNotes = cleanNoteText(job.customerNotes);
+      const gateCodeOrKeyNotes = cleanNoteText(job.gateCodeOrKeyNotes);
+      const petNotes = cleanNoteText(job.petNotes);
+      return customerNotes === job.customerNotes && gateCodeOrKeyNotes === job.gateCodeOrKeyNotes && petNotes === job.petNotes
+        ? job
+        : { ...job, customerNotes, gateCodeOrKeyNotes, petNotes };
+    }),
     [jobs],
   );
 
@@ -268,9 +267,10 @@ export default function Board({
   const [resizing, setResizing] = useState<{ jobId: string; startY: number; initialDuration: number; previewDuration: number } | null>(null);
   const [columnOrder, setColumnOrder] = useState(savedColumnOrder);
   const [draggedEmployeeId, setDraggedEmployeeId] = useState<string | null>(null);
+  const [boardScrollTop, setBoardScrollTop] = useState(0);
   // Attention-rail drop affordance for the lane->rail unassign gesture below.
   const [railDropActive, setRailDropActive] = useState(false);
-  const [attentionRailOpen, setAttentionRailOpen] = useState(false);
+  const [attentionRailOpen, setAttentionRailOpen] = useState(initialAttentionRailOpen);
   const [error, setError] = useState<string | null>(null);
   const [errorJobId, setErrorJobId] = useState<string | null>(null);
   const [errorRetry, setErrorRetry] = useState<(() => void) | null>(null);
@@ -319,6 +319,10 @@ export default function Board({
     const rank = new Map(columnOrder.map((id, index) => [id, index]));
     return byTenure.sort((left, right) => (rank.get(left.id) ?? Number.MAX_SAFE_INTEGER) - (rank.get(right.id) ?? Number.MAX_SAFE_INTEGER));
   }, [activeEmployees, axis, columnOrder, laneEmployeeId]);
+  const virtualRowsEnabled = axis !== "vertical" && sortedEmployees.length > 20;
+  const virtualStart = virtualRowsEnabled ? Math.max(0, Math.floor(boardScrollTop / VIRTUAL_ROW_HEIGHT) - VIRTUAL_OVERSCAN) : 0;
+  const virtualEnd = virtualRowsEnabled ? Math.min(sortedEmployees.length, Math.ceil((boardScrollTop + 720) / VIRTUAL_ROW_HEIGHT) + VIRTUAL_OVERSCAN) : sortedEmployees.length;
+  const visibleEmployees = virtualRowsEnabled ? sortedEmployees.slice(virtualStart, virtualEnd) : sortedEmployees;
 
   async function saveColumnOrder(nextOrder: string[]) {
     setColumnOrder(nextOrder);
@@ -329,7 +333,7 @@ export default function Board({
     });
     if (!response.ok) {
       setColumnOrder(savedColumnOrder);
-      setError("Could not save the crew column order. Please try again.");
+      setError("We couldn't save the crew order. Check your connection and try again.");
     }
   }
 
@@ -348,18 +352,61 @@ export default function Board({
   // packing (via the existing assignDayLanes — no second algorithm), PTO
   // interval for the day, and capacity.
   const ptoByEmployee = useMemo(() => {
-    const periods = new Map<string, PtoPeriod>();
+    const periods = new Map<string, "morning" | "afternoon" | "full">();
     const notes = new Map<string, string>();
     for (const pto of ptoRecords) {
-      const next = ptoPeriodForDay(pto, dayIso);
-      const current = periods.get(pto.userId);
-      periods.set(pto.userId, current && current !== next ? "full" : next);
-      if (pto.note && !notes.has(pto.userId)) notes.set(pto.userId, pto.note);
+      if (pto.userId && pto.startDate <= dayIso && pto.endDate >= dayIso) {
+        const current = periods.get(pto.userId);
+        const next = ptoPeriodForDay(pto, dayIso);
+        periods.set(pto.userId, current && current !== next ? "full" : next);
+        if (pto.note && !notes.has(pto.userId)) notes.set(pto.userId, pto.note);
+      }
     }
     const intervals = new Map<string, { from: number; to: number }>();
-    for (const [employeeId, period] of periods) intervals.set(employeeId, ptoIntervalForPeriod(period, windowStart, windowEnd));
+    for (const employeeId of periods.keys()) {
+      const interval = ptoIntervalForDay(ptoRecords, employeeId, dayIso, windowStart, windowEnd);
+      if (interval) intervals.set(employeeId, interval);
+    }
     return { periods, notes, intervals };
   }, [dayIso, ptoRecords, windowStart, windowEnd]);
+
+  const dayAppointments = useMemo(
+    () => appointments.filter((appointment) => appointment.scheduledDate === dayIso && !appointment.isAllDay),
+    [appointments, dayIso],
+  );
+  const dayAllDayAppointments = useMemo(
+    () => appointments.filter((appointment) => appointment.scheduledDate === dayIso && appointment.isAllDay),
+    [appointments, dayIso],
+  );
+  const jobsByEmployee = useMemo(() => {
+    const map = new Map<string, CalendarJob[]>();
+    for (const job of cleanedJobs) {
+      for (const employeeId of job.assignedUserIds) {
+        const employeeJobs = map.get(employeeId);
+        if (employeeJobs) employeeJobs.push(job);
+        else map.set(employeeId, [job]);
+      }
+    }
+    return map;
+  }, [cleanedJobs]);
+  const appointmentsByEmployee = useMemo(() => {
+    const map = new Map<string, { allDay: CalendarAppointment[]; timed: CalendarAppointment[] }>();
+    for (const appointment of dayAllDayAppointments) {
+      for (const employeeId of appointment.attendeeUserIds) {
+        const employeeAppointments = map.get(employeeId) ?? { allDay: [], timed: [] };
+        employeeAppointments.allDay.push(appointment);
+        map.set(employeeId, employeeAppointments);
+      }
+    }
+    for (const appointment of dayAppointments) {
+      for (const employeeId of appointment.attendeeUserIds) {
+        const employeeAppointments = map.get(employeeId) ?? { allDay: [], timed: [] };
+        employeeAppointments.timed.push(appointment);
+        map.set(employeeId, employeeAppointments);
+      }
+    }
+    return map;
+  }, [dayAllDayAppointments, dayAppointments]);
 
   const laneData = useMemo(() => {
     const map = new Map<
@@ -372,13 +419,13 @@ export default function Board({
       }
     >();
     for (const employee of sortedEmployees) {
-      const employeeJobs = cleanedJobs
-        .filter((job) => job.assignedUserIds.includes(employee.id) && hasArrivalTime(job))
+      const employeeJobs = (jobsByEmployee.get(employee.id) ?? [])
+        .filter((job) => hasArrivalTime(job))
         .sort((a, b) => (a.scheduledStartTime ?? "").localeCompare(b.scheduledStartTime ?? ""));
       const lanes = assignDayLanes(employeeJobs, Math.max(employeeJobs.length, 1));
       const maxLanes = employeeJobs.length ? Math.max(...employeeJobs.map((job) => lanes.get(job.id)?.laneCount ?? 1)) : 1;
       const capacity = capacityForCrew({
-        jobs: cleanedJobs.filter((job) => job.assignedUserIds.includes(employee.id)),
+        jobs: jobsByEmployee.get(employee.id) ?? [],
         pto: ptoByEmployee.intervals.get(employee.id) ?? null,
         workdayMinutes,
         windowStart,
@@ -387,7 +434,7 @@ export default function Board({
       map.set(employee.id, { jobs: employeeJobs, lanes, maxLanes, capacity });
     }
     return map;
-  }, [sortedEmployees, cleanedJobs, ptoByEmployee, workdayMinutes, windowStart, windowEnd]);
+  }, [sortedEmployees, jobsByEmployee, ptoByEmployee, workdayMinutes, windowStart, windowEnd]);
 
   // Double-booked detection — jobsOverlap() is currently exported and used
   // by nothing; this is the one place that ports the prototype's
@@ -395,9 +442,8 @@ export default function Board({
   const doubleBookedJobIds = useMemo(() => {
     const ids = new Set<string>();
     for (const employee of activeEmployees) {
-      const list = cleanedJobs.filter(
+      const list = (jobsByEmployee.get(employee.id) ?? []).filter(
         (job) =>
-          job.assignedUserIds.includes(employee.id) &&
           hasArrivalTime(job) &&
           !RETAINED_STATUSES.includes(job.status) &&
           job.status !== "completed",
@@ -412,15 +458,20 @@ export default function Board({
       }
     }
     return ids;
-  }, [activeEmployees, cleanedJobs]);
+  }, [activeEmployees, jobsByEmployee]);
 
-  const attentionEntries = useMemo(() => categorizeForAttention(cleanedJobs, ptoRecords, dayIso), [cleanedJobs, ptoRecords, dayIso]);
+  const attentionEntries = useMemo(() => aggregateCalendarAttention(cleanedJobs, ptoRecords, dayIso, { workdayMinutes, windowStart, windowEnd }), [cleanedJobs, ptoRecords, dayIso, workdayMinutes, windowStart, windowEnd]);
   const noCrewJobs = attentionEntries.filter((entry) => entry.category === "unassigned").map((entry) => entry.job);
   const noTimeJobs = attentionEntries.filter((entry) => entry.category === "no-time").map((entry) => entry.job);
   const overLeaveJobs = attentionEntries.filter((entry) => entry.category === "conflict").map((entry) => entry.job);
   const overLeaveJobIds = useMemo(() => new Set(overLeaveJobs.map((job) => job.id)), [overLeaveJobs]);
-  const doubleBookedJobs = cleanedJobs.filter((job) => doubleBookedJobIds.has(job.id));
-  const attentionTotal = noCrewJobs.length + noTimeJobs.length + overLeaveJobs.length + doubleBookedJobs.length;
+  const doubleBookedJobs = attentionEntries.filter((entry) => entry.category === "overlap").map((entry) => entry.job);
+  const overCapacityJobs = attentionEntries.filter((entry) => entry.category === "over-capacity").map((entry) => entry.job);
+  const attentionTotal = attentionEntries.length;
+  const readinessByJobId = useMemo(
+    () => deriveCalendarReadiness(cleanedJobs, ptoRecords, { workdayMinutes, windowStart, windowEnd }),
+    [cleanedJobs, ptoRecords, workdayMinutes, windowStart, windowEnd],
+  );
 
   const [nowMinutes, setNowMinutes] = useState<number | null>(null);
   useEffect(() => {
@@ -433,15 +484,6 @@ export default function Board({
   }, [timezone]);
   const showNowLine = dayIso === todayIso && nowMinutes !== null && nowMinutes >= windowStart && nowMinutes <= windowEnd;
   const nowOffsetMinutes = nowMinutes !== null ? Math.max(0, Math.min(nowMinutes - windowStart, windowMinutes)) : 0;
-
-  const dayAppointments = useMemo(
-    () => appointments.filter((appointment) => appointment.scheduledDate === dayIso && !appointment.isAllDay),
-    [appointments, dayIso],
-  );
-  const dayAllDayAppointments = useMemo(
-    () => appointments.filter((appointment) => appointment.scheduledDate === dayIso && appointment.isAllDay),
-    [appointments, dayIso],
-  );
 
   // Escape cancels placement, matching the prototype's global handler.
   useEffect(() => {
@@ -511,7 +553,7 @@ export default function Board({
       `height:${pending.from.height}px`,
       `background:color-mix(in srgb, ${pending.color} 14%, var(--co-surface))`,
       `border:1px solid color-mix(in srgb, ${pending.color} 46%, var(--co-surface))`,
-      "box-shadow:0 8px 16px -8px rgba(20,26,46,.18), 0 24px 56px -24px rgba(36,54,104,.34)",
+      "box-shadow:var(--co-shadow-panel)",
     ].join(";");
     document.body.appendChild(flyer);
     toEl.style.opacity = "0";
@@ -533,6 +575,17 @@ export default function Board({
   function selectJob(jobId: string) {
     setSelectedJobId((current) => (current === jobId ? null : jobId));
     setPlacement(null);
+  }
+
+  function focusJob(jobId: string) {
+    setSelectedJobId(jobId);
+    setPlacement(null);
+    window.requestAnimationFrame(() => {
+      const element = jobCardRefs.current.get(jobId);
+      if (!element) return;
+      element.focus({ preventScroll: true });
+      element.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "nearest", inline: "nearest" });
+    });
   }
 
   function openTimeAssignment(job: CalendarJob) {
@@ -686,7 +739,7 @@ export default function Board({
     const clampedMinutes = dragMinutesRef.current;
     dragMinutesRef.current = null;
     if (clampedMinutes === null) {
-      setWarning("Drop the job inside a cleaner's time lane so its arrival time is clear.");
+      setWarning("Drop the job inside a crew member's time lane so its arrival time is clear.");
       return;
     }
     const nextTime = minutesToTime(clampedMinutes);
@@ -702,7 +755,7 @@ export default function Board({
           router.refresh();
           const targetEmployee = employeesById.get(employeeId);
           const targetName = targetEmployee ? `${targetEmployee.firstName} ${targetEmployee.lastName}` : "the new lane";
-          showUndo(isExistingLane ? "Job time updated" : isCrossLaneMove ? `Moved to ${targetName}` : "Technician added to the crew", () =>
+          showUndo(isExistingLane ? "Job time updated" : isCrossLaneMove ? `Moved to ${targetName}` : "Crew member added to the job", () =>
             commitJobPatch(
               job.id,
               { employeeIds: previousEmployees, scheduledStartTime: previousTime ?? null },
@@ -765,7 +818,7 @@ export default function Board({
       const minutes = dragMinutesRef.current;
       dragMinutesRef.current = null;
       if (minutes === null) {
-        setWarning("Drop the job inside a cleaner's time lane so its arrival time is clear.");
+        setWarning("Drop the job inside a crew member's time lane so its arrival time is clear.");
         return;
       }
       commitPlacement(employeeId, minutes);
@@ -797,7 +850,7 @@ export default function Board({
         onOptimistic: () => undefined,
         onSuccess: () => {
           router.refresh();
-          showUndo(`${displayCustomer(job)} unassigned — back in No crew yet`, () =>
+          showUndo(`${displayCustomer(job)} unassigned — back in Crew not assigned`, () =>
             commitJobPatch(
               job.id,
               { employeeIds: previousAssigned },
@@ -921,6 +974,10 @@ export default function Board({
     const ordinal = ordinalByJobId.get(job.id);
     const isConflict = doubleBookedJobIds.has(job.id);
     const isOnLeave = !isConflict && overLeaveJobIds.has(job.id);
+    const readiness = readinessByJobId.get(job.id) ?? deriveJobReadiness({
+      hasCrew: job.assignedUserIds.length > 0,
+      hasTime: hasArrivalTime(job),
+    });
     const leadEmployee = employeesById.get(job.assignedUserIds[0]);
     const crewColor = leadEmployee?.calendarColor ?? employeeColor(job.assignedUserIds[0]);
     const isLocked = LOCKED_STATUSES.includes(job.status);
@@ -929,6 +986,11 @@ export default function Board({
       : isOnLeave
         ? "border-[var(--co-warning)]"
         : "";
+    const resizeMaxDuration = Math.max(windowEnd - minutesFromTime(job.scheduledStartTime), PLACEMENT_SNAP_MINUTES);
+    const resizeDuration = Math.min(
+      Math.max(resize?.isResizing ? resizing?.previewDuration ?? job.estimatedDurationMinutes ?? 75 : job.estimatedDurationMinutes ?? 75, PLACEMENT_SNAP_MINUTES),
+      resizeMaxDuration,
+    );
     const card = (
       <Link
         ref={jobCardRefCallback(job.id) as unknown as React.Ref<HTMLAnchorElement>}
@@ -961,8 +1023,13 @@ export default function Board({
           event.preventDefault();
           openJobDetail(job.id);
         }}
-        aria-label={`${displayCustomer(job)}, ${clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime))}, ${leadEmployee ? `${leadEmployee.firstName} ${leadEmployee.lastName}` : ""}`}
-        className={`block h-full overflow-hidden rounded-lg border text-left shadow-[0_1px_2px_rgba(20,26,46,.06)] transition hover:z-[5] hover:-translate-y-px hover:shadow-[0_1px_2px_rgba(20,26,46,.05),0_8px_24px_-12px_rgba(36,54,104,.22)] ${compact ? "px-[7px] py-[3px]" : "px-2 py-[5px] pb-1.5"} ${tone}`}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" || !event.shiftKey) return;
+          event.preventDefault();
+          selectJob(job.id);
+        }}
+        aria-label={`${displayCustomer(job)}, ${clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime))}, ${leadEmployee ? `${leadEmployee.firstName} ${leadEmployee.lastName}` : ""}. Press Shift+Enter to select this job, then use a crew lane to move it.`}
+        className={`block h-full overflow-hidden rounded-lg border text-left shadow-[var(--co-shadow-control)] transition hover:z-[5] hover:-translate-y-px hover:shadow-[var(--co-shadow-control)] ${compact ? "px-[7px] py-[3px]" : "px-2 py-[5px] pb-1.5"} ${tone}`}
         style={{
           background: `color-mix(in srgb, ${crewColor} 10%, var(--co-surface))`,
           borderColor: isConflict || isOnLeave ? undefined : `color-mix(in srgb, ${crewColor} 36%, var(--co-surface))`,
@@ -975,6 +1042,7 @@ export default function Board({
             </span>
           ) : null}
           <span className="min-w-0 truncate text-xs font-bold text-[var(--co-ink)]">{displayCustomer(job)}</span>
+          <span className={`${readinessTone(readiness.primary)} shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold`} title={readiness.reasons.join("; ") || undefined}>{readiness.primary}</span>
           <JobMarks job={job} warn={isConflict || isOnLeave} />
         </div>
         <div className="mt-px truncate text-xs font-semibold text-[var(--co-body)]">
@@ -985,8 +1053,13 @@ export default function Board({
             {job.recurringSeriesId ? "↻ " : ""}{jobTypeLabel(job)} · {formatCustomerAddress(job)}
           </div>
         ) : null}
+        {!compact && readiness.primary !== "Ready" ? (
+          <div className="mt-px truncate text-[11px] font-semibold text-[var(--co-accent-text)]">
+            {readinessReason(readiness)} · {readinessAction(readiness)}
+          </div>
+        ) : null}
         {overflowCount > 0 ? (
-          <span className="absolute bottom-1 right-1 rounded bg-[var(--co-ink)] px-1.5 py-0.5 text-[10px] font-semibold text-white">+{overflowCount} more</span>
+          <span className="absolute bottom-1 right-1 rounded bg-[var(--co-faint)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--co-surface)]">+{overflowCount} more</span>
         ) : null}
       </Link>
     );
@@ -995,23 +1068,38 @@ export default function Board({
         {card}
         {resize && !isLocked ? (
           <div
-            role="button"
+            role="slider"
             tabIndex={0}
-            aria-label={`Adjust duration for ${displayCustomer(job)} in job details`}
+            aria-label={`Duration for ${displayCustomer(job)}`}
+            aria-orientation="vertical"
+            aria-valuemin={PLACEMENT_SNAP_MINUTES}
+            aria-valuemax={resizeMaxDuration}
+            aria-valuenow={resizeDuration}
+            aria-valuetext={formatDuration(resizeDuration)}
             data-job-id={job.id}
             onPointerDown={resize.onPointerDown}
             onPointerMove={resize.onPointerMove}
             onPointerUp={resize.onPointerUp}
             onPointerCancel={resize.onPointerUp}
             onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                setDetailJobId(job.id);
+              const maxDuration = resizeMaxDuration;
+              const currentDuration = resizeDuration;
+              let nextDuration: number | null = null;
+              if (event.key === "ArrowDown" || event.key === "ArrowRight") nextDuration = Math.min(currentDuration + PLACEMENT_SNAP_MINUTES, maxDuration);
+              if (event.key === "ArrowUp" || event.key === "ArrowLeft") nextDuration = Math.max(currentDuration - PLACEMENT_SNAP_MINUTES, PLACEMENT_SNAP_MINUTES);
+              if (event.key === "Home") nextDuration = PLACEMENT_SNAP_MINUTES;
+              if (event.key === "End") nextDuration = maxDuration;
+              if (nextDuration === null) return;
+              event.preventDefault();
+              if (resize.isResizing) {
+                setResizing((current) => current ? { ...current, previewDuration: nextDuration! } : current);
+              } else {
+                commitResize(job.id, currentDuration, nextDuration);
               }
             }}
             className={`absolute inset-x-0 bottom-0 z-20 flex h-11 cursor-ns-resize touch-none items-end justify-center pb-0.5 transition-opacity focus-visible:opacity-100 ${resize.isResizing ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
           >
-            <span className="h-1 w-8 rounded-full bg-[var(--co-ink)]/40" />
+            <span className="h-1 w-8 rounded-full bg-[var(--co-faint)]/40" />
           </div>
         ) : null}
       </div>
@@ -1019,17 +1107,24 @@ export default function Board({
   }
 
   function renderAppointment(appointment: CalendarAppointment, style: React.CSSProperties) {
+    const appointmentLabel = `${appointment.title}, ${formatAppointmentTime(appointment.startTime, appointment.durationMinutes)}`;
     return (
-      <button
+      <div
         key={appointment.id}
-        type="button"
-        onClick={() => setEditingAppointmentId(appointment.id)}
-        className={`absolute z-[3] flex flex-col items-start gap-0.5 overflow-hidden rounded-md px-2 py-1 text-left text-[10px] font-semibold shadow-sm ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}
+        className={`pointer-events-none absolute z-[3] overflow-visible rounded-md text-left shadow-sm ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}
         style={style}
       >
-        <span className="truncate">{appointment.title}</span>
-        <span className="truncate font-normal">{formatAppointmentTime(appointment.startTime, appointment.durationMinutes)}</span>
-      </button>
+        <div aria-hidden className="flex h-full min-w-0 flex-col items-start gap-0.5 overflow-hidden rounded-md px-2 py-1 text-[11px] font-semibold">
+          <span className="truncate">{appointment.title}</span>
+          <span className="truncate font-normal">{formatAppointmentTime(appointment.startTime, appointment.durationMinutes)}</span>
+        </div>
+        <button
+          type="button"
+          aria-label={`Edit appointment: ${appointmentLabel}`}
+          onClick={() => setEditingAppointmentId(appointment.id)}
+          className="pointer-events-auto absolute inset-x-0 top-1/2 min-h-11 -translate-y-1/2 rounded-md border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--co-focus-ring)]"
+        />
+      </div>
     );
   }
 
@@ -1051,7 +1146,7 @@ export default function Board({
           backgroundImage: "repeating-linear-gradient(-45deg, color-mix(in srgb, var(--co-faint) 22%, transparent) 0 5px, transparent 5px 11px)",
         }}
       >
-        <span className="whitespace-nowrap rounded border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-[7px] py-0.5 text-[10.5px] font-bold text-[var(--co-muted)]">{label}</span>
+        <span className="whitespace-nowrap rounded border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-[7px] py-0.5 text-[11px] font-bold text-[var(--co-muted)]">{label}</span>
       </div>
     );
   }
@@ -1068,7 +1163,7 @@ export default function Board({
             className={`pointer-events-none absolute inset-0 z-[1] rounded-[8px] ${verdictClasses("ok")}`}
           />
           <span
-            className="pointer-events-none absolute z-[8] flex items-center gap-[5px] whitespace-nowrap rounded-[7px] px-[9px] py-1 text-[11px] font-bold text-white shadow-[0_1px_2px_rgba(20,26,46,.05),0_8px_24px_-12px_rgba(36,54,104,.22)]"
+            className="pointer-events-none absolute z-[8] flex items-center gap-[5px] whitespace-nowrap rounded-[7px] px-[9px] py-1 text-[11px] font-bold text-[var(--co-accent-text)] shadow-[var(--co-shadow-control)]"
             style={axis === "vertical" ? { left: "50%", top: 14, transform: "translateX(-50%)" } : { left: 200, top: 26 }}
           >
             <Clock3 className="h-3 w-3" aria-hidden strokeWidth={1.75} />
@@ -1098,7 +1193,7 @@ export default function Board({
           style={{ ...ghostStyle, background: `color-mix(in srgb, ${verdict.state === "blocked" ? "var(--co-faint)" : verdict.state === "warn" ? "var(--co-warning)" : "var(--co-accent-fill)"} 12%, var(--co-surface))` }}
         />
         <span
-          className={`pointer-events-none absolute z-[8] flex items-center gap-[5px] whitespace-nowrap rounded-[7px] px-[9px] py-1 text-[11px] font-bold shadow-[0_1px_2px_rgba(20,26,46,.05),0_8px_24px_-12px_rgba(36,54,104,.22)] ${verdictNoteClasses(verdict.state)}`}
+          className={`pointer-events-none absolute z-[8] flex items-center gap-[5px] whitespace-nowrap rounded-[7px] px-[9px] py-1 text-[11px] font-bold shadow-[var(--co-shadow-control)] ${verdictNoteClasses(verdict.state)}`}
           style={noteStyle}
         >
           <VerdictIcon state={verdict.state} className="h-3 w-3" />
@@ -1110,7 +1205,7 @@ export default function Board({
 
   function laneAriaLabel(employee: CalendarEmployee) {
     const data = laneData.get(employee.id);
-    const capacityLabel = data ? `${formatDuration(data.capacity.usedMinutes)} of ${data.capacity.availableMinutes ? formatDuration(data.capacity.availableMinutes) : "0m"} used` : "";
+    const capacityLabel = data ? `${formatDuration(data.capacity.usedMinutes)} of ${data.capacity.availableMinutes ? formatDuration(data.capacity.availableMinutes) : "0m"} labor hours used` : "";
     if (selectedJob) {
       const start = hasArrivalTime(selectedJob) ? minutesFromTime(selectedJob.scheduledStartTime) : placement?.employeeId === employee.id ? (placement?.minutes ?? windowStart) : null;
       if (start !== null) {
@@ -1180,10 +1275,7 @@ export default function Board({
     setResizing((current) => (current ? { ...current, previewDuration: clamped } : current));
   }
 
-  function endResize() {
-    if (!resizing) return;
-    const { jobId, initialDuration, previewDuration } = resizing;
-    setResizing(null);
+  function commitResize(jobId: string, initialDuration: number, previewDuration: number) {
     if (previewDuration === initialDuration) return;
     setJobs((current) => current.map((entry) => (entry.id === jobId ? { ...entry, estimatedDurationMinutes: previewDuration } : entry)));
     commitJobPatch(
@@ -1214,6 +1306,13 @@ export default function Board({
     );
   }
 
+  function endResize() {
+    if (!resizing) return;
+    const { jobId, initialDuration, previewDuration } = resizing;
+    setResizing(null);
+    commitResize(jobId, initialDuration, previewDuration);
+  }
+
   function jobStyleHorizontal(job: CalendarJob, lane: number, laneCount: number, rowHeight: number) {
     const start = minutesFromTime(job.scheduledStartTime);
     const duration = jobWallClockDuration(job);
@@ -1229,7 +1328,7 @@ export default function Board({
   const untimedTrayJobs = noTimeJobs;
 
   return (
-    <div className={`grid grid-cols-1 items-start gap-3.5 ${attentionRailOpen ? "min-[1180px]:grid-cols-[286px_minmax(0,1fr)]" : "min-[1180px]:grid-cols-1"}`}>
+    <div className={`grid grid-cols-1 items-start gap-4 ${attentionRailOpen ? "min-[1180px]:grid-cols-[286px_minmax(0,1fr)]" : "min-[1180px]:grid-cols-1"}`}>
       {/* -------------------------------------------------------------- */}
       {/* Attention rail — always visible, four groups in priority order */}
       {/* -------------------------------------------------------------- */}
@@ -1237,7 +1336,7 @@ export default function Board({
         id="calendar-attention-rail"
         tabIndex={-1}
         aria-label="Needs attention"
-        className={`co-card sticky top-3 overflow-hidden outline-none ${attentionRailOpen ? "" : "hidden"}`}
+        className={`co-card sticky top-4 overflow-hidden outline-none ${attentionRailOpen ? "" : "hidden"}`}
         onDragOver={(event) => {
           if (!event.dataTransfer.types.includes("application/x-cleanops-source-employee")) return;
           event.preventDefault();
@@ -1256,7 +1355,7 @@ export default function Board({
             className="pointer-events-none absolute inset-0 z-[20] flex flex-col items-center justify-center gap-1.5 rounded-[inherit] border-2 border-dashed border-[var(--co-danger)] bg-[color-mix(in_srgb,var(--co-danger)_10%,var(--co-surface))]"
           >
             <Ban className="h-5 w-5 text-[var(--co-danger)]" aria-hidden strokeWidth={1.75} />
-            <span className="text-[13px] font-bold text-[var(--co-danger)]">Drop to remove the crew</span>
+            <span className="text-[13px] font-bold text-[var(--co-danger)]">Drop to unassign this job</span>
           </div>
         ) : null}
         <div className="border-b border-[var(--co-line-soft)] px-[15px] py-[13px] pb-[11px]">
@@ -1276,12 +1375,12 @@ export default function Board({
             </span>
           </div>
           <p className="mt-[5px] text-xs leading-[1.4] text-[var(--co-faint)]">
-            {attentionTotal ? "Pick a job, then choose a crew. The board shows you where it fits before you commit." : "Every job today has a crew and a time."}
+            {attentionTotal ? "Choose a job, then assign its crew and time. The Board shows where it fits before you save." : "Every job today has a crew and a scheduled time."}
           </p>
-          {attentionTotal ? <p className="mt-1 text-[11px] leading-[1.35] text-[var(--co-muted)]">Use <strong className="font-semibold text-[var(--co-body)]">Assign crew &amp; time</strong> for the guided path. Dragging is optional on desktop.</p> : null}
+          {attentionTotal ? <p className="mt-1 text-[11px] leading-[1.35] text-[var(--co-muted)]">Use <strong className="font-semibold text-[var(--co-body)]">Assign crew &amp; time</strong> for a guided path. Dragging is optional on desktop.</p> : null}
         </div>
-        <div className="max-h-[calc(100vh-190px)] overflow-y-auto">
-          <RailGroup icon={<Users className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />} label="No crew yet" jobs={noCrewJobs} collapsible defaultCollapsed>
+        <div className="max-h-[calc(100dvh-190px)] overflow-y-auto">
+          <RailGroup icon={<Users className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />} label="Crew not assigned" jobs={noCrewJobs} collapsible defaultCollapsed>
             {noCrewJobs.map((job) => (
               <RailCard
                 key={job.id}
@@ -1301,7 +1400,7 @@ export default function Board({
               />
             ))}
           </RailGroup>
-          <RailGroup icon={<Clock3 className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />} label="No arrival time" jobs={noTimeJobs}>
+          <RailGroup icon={<Clock3 className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />} label="Time not scheduled" jobs={noTimeJobs}>
             {noTimeJobs.map((job) => {
               const crew = employeesById.get(job.assignedUserIds[0]);
               return (
@@ -1320,22 +1419,28 @@ export default function Board({
               );
             })}
           </RailGroup>
-          <RailGroup icon={<TriangleAlert className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />} label="Assigned over leave" jobs={overLeaveJobs}>
+          <RailGroup icon={<TriangleAlert className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />} label="Crew unavailable" jobs={overLeaveJobs}>
             {overLeaveJobs.map((job) => {
               const crew = employeesById.get(job.assignedUserIds[0]);
-              return <InfoRailCard key={job.id} job={job} crewLabel={crew ? `${crew.firstName} ${crew.lastName} is on leave` : "On leave"} tone="warn" message="Conflicts with leave" />;
+              return <InfoRailCard key={job.id} job={job} readiness={readinessByJobId.get(job.id)} crewLabel={crew ? `${crew.firstName} ${crew.lastName} is on leave` : "Crew member on leave"} reason="Crew member is on leave" actionLabel="Change crew or time" onAction={() => openTimeAssignment(job)} onFocus={() => focusJob(job.id)} />;
             })}
           </RailGroup>
-          <RailGroup icon={<TriangleAlert className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />} label="Double-booked" jobs={doubleBookedJobs}>
+          <RailGroup icon={<TriangleAlert className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />} label="Overlapping jobs" jobs={doubleBookedJobs}>
             {doubleBookedJobs.map((job) => {
               const crew = employeesById.get(job.assignedUserIds[0]);
-              return <InfoRailCard key={job.id} job={job} crewLabel={crew ? `${crew.firstName} ${crew.lastName}` : undefined} tone="danger" message="Overlaps another stop" />;
+              return <InfoRailCard key={job.id} job={job} readiness={readinessByJobId.get(job.id)} crewLabel={crew ? `${crew.firstName} ${crew.lastName}` : undefined} reason="Overlaps another stop" actionLabel="Change crew or time" onAction={() => openTimeAssignment(job)} onFocus={() => focusJob(job.id)} />;
+            })}
+          </RailGroup>
+          <RailGroup icon={<TriangleAlert className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />} label="Over capacity" jobs={overCapacityJobs}>
+            {overCapacityJobs.map((job) => {
+              const crew = employeesById.get(job.assignedUserIds[0]);
+              return <InfoRailCard key={job.id} job={job} readiness={readinessByJobId.get(job.id)} crewLabel={crew ? `${crew.firstName} ${crew.lastName}` : undefined} reason="Over labor capacity" actionLabel="Review placement" onAction={() => openTimeAssignment(job)} onFocus={() => focusJob(job.id)} />;
             })}
           </RailGroup>
           {attentionTotal === 0 ? (
             <div className="px-[15px] py-[22px] text-center text-[12.5px] text-[var(--co-faint)]">
               <CheckCircle2 className="mx-auto mb-1.5 h-5 w-5 text-[var(--co-success)]" aria-hidden strokeWidth={1.75} />
-              <div>Nothing needs a decision.</div>
+              <div>No dispatch issues for this day.</div>
             </div>
           ) : null}
         </div>
@@ -1345,28 +1450,31 @@ export default function Board({
       {/* Board */}
       {/* -------------------------------------------------------------- */}
       <section className="co-card min-w-0 overflow-hidden">
-        <div className="flex flex-wrap items-center gap-3 border-b border-[var(--co-line-soft)] px-4 py-3">
-          <span className="text-[15px] font-bold text-[var(--co-ink)]">{dayLabel}</span>
-          <span className="text-xs tabular-nums text-[var(--co-faint)]">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-[var(--co-line-soft)] px-4 py-3 sm:px-5 sm:py-3.5">
+          <span className="type-admin-body font-bold text-[var(--co-ink)]">{dayLabel}</span>
+          <span className="type-admin-meta tabular-nums text-[var(--co-faint)]">
             {jobsPlacedCount} of {cleanedJobs.length} placed · workday {clockLabelFromMinutes(windowStart)}–{clockLabelFromMinutes(windowEnd)}
           </span>
-          <div className="ml-auto flex flex-wrap items-center gap-[13px]">
-            <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[var(--co-faint)]">
+          <details className="relative ml-auto">
+            <summary className="co-button-secondary flex min-h-9 cursor-pointer list-none items-center px-2.5 text-[11px] font-semibold [&::-webkit-details-marker]:hidden">Legend</summary>
+            <div className="absolute right-0 top-full z-20 mt-2 flex min-w-56 flex-col gap-2 rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] p-3 shadow-[var(--co-shadow-popover)]">
+            <span className="type-admin-micro inline-flex items-center gap-1.5 font-semibold text-[var(--co-faint)]">
               <span
                 className="h-3 w-3.5 rounded-[3px] border border-[var(--co-line)] bg-[var(--co-surface-muted-2)]"
                 style={{ backgroundImage: "repeating-linear-gradient(-45deg, var(--co-surface-muted-2) 0 4px, transparent 4px 8px)" }}
               />
               Leave
             </span>
-            <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[var(--co-faint)]">
+            <span className="type-admin-micro inline-flex items-center gap-1.5 font-semibold text-[var(--co-faint)]">
               <span className="h-3 w-3.5 rounded-[3px] border border-[color-mix(in_srgb,var(--co-danger)_40%,var(--co-tint-base))] bg-[color-mix(in_srgb,var(--co-danger)_16%,var(--co-tint-base))]" />
-              Double-booked
+              Overlapping jobs
             </span>
-            <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[var(--co-faint)]">
+            <span className="type-admin-micro inline-flex items-center gap-1.5 font-semibold text-[var(--co-faint)]">
               <span className="h-0.5 w-3.5 rounded-full bg-[var(--co-danger)]" />
               Now (company time)
             </span>
-          </div>
+            </div>
+          </details>
         </div>
 
         {error ? (
@@ -1386,21 +1494,21 @@ export default function Board({
           <div className="flex flex-wrap items-center gap-[10px] border-b border-[var(--co-line-soft)] bg-[color-mix(in_srgb,var(--co-spark-text)_6%,var(--co-tint-base))] px-4 py-[10px]">
             <span className="flex items-center gap-[7px] text-xs font-bold text-[var(--co-spark-text)]">
               <Clock3 className="h-3.5 w-3.5" aria-hidden strokeWidth={1.75} />
-              No arrival time
+              Time not scheduled
             </span>
             <div className="flex flex-wrap gap-2">
               {untimedTrayJobs.map((job) => {
                 const crew = employeesById.get(job.assignedUserIds[0]);
                 const color = crew?.calendarColor ?? employeeColor(job.assignedUserIds[0]);
                 return (
-                  <div key={job.id} className="flex items-center gap-[9px] rounded-lg border px-2.5 py-1.5 text-xs transition hover:-translate-y-px hover:shadow-[0_1px_2px_rgba(20,26,46,.05),0_8px_24px_-12px_rgba(36,54,104,.22)]" style={{ borderColor: "color-mix(in srgb, var(--co-spark-text) 30%, var(--co-tint-base))" }}>
+                  <div key={job.id} className="flex items-center gap-[9px] rounded-lg border px-2.5 py-1.5 text-xs transition hover:-translate-y-px hover:shadow-[var(--co-shadow-control)]" style={{ borderColor: "color-mix(in srgb, var(--co-spark-text) 30%, var(--co-tint-base))" }}>
                     <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />
                     <b className="font-bold text-[var(--co-ink)]">{displayCustomer(job)}</b>
                     <span className="tabular-nums text-[var(--co-faint)]">
-                      {formatDuration(jobDuration(job))} · {crew?.firstName ?? "Unassigned"}
+                      {formatDuration(jobDuration(job))} · {crew?.firstName ?? "Crew not assigned"}
                     </span>
                     <button type="button" className="text-[11.5px] font-bold text-[var(--co-accent-text)] hover:underline" onClick={() => selectJob(job.id)}>
-                      Set time
+                      Schedule time
                     </button>
                   </div>
                 );
@@ -1409,9 +1517,9 @@ export default function Board({
           </div>
         ) : null}
 
-        <div ref={gridScrollRef} onDragEnter={scrollBoardWhileDragging} onDragOver={scrollBoardWhileDragging} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) stopDragAutoScroll(); }} className="max-h-[calc(100dvh-232px)] overflow-auto overscroll-contain [scrollbar-gutter:stable]">
+        <div ref={gridScrollRef} onScroll={(event) => setBoardScrollTop(event.currentTarget.scrollTop)} onDragEnter={scrollBoardWhileDragging} onDragOver={scrollBoardWhileDragging} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) stopDragAutoScroll(); }} className="max-h-[calc(100dvh-232px)] overflow-auto overscroll-contain [scrollbar-gutter:stable]">
           {sortedEmployees.length === 0 ? (
-            <div className="flex items-center justify-center px-4 py-16 text-sm text-[var(--co-muted)]">Create or activate a technician to use the dispatch board.</div>
+            <div className="flex items-center justify-center px-4 py-16 text-sm text-[var(--co-muted)]">Add or activate a crew member to use the dispatch Board.</div>
           ) : axis === "vertical" ? (
             <div ref={gridRef} style={{ minWidth: `${TIME_GUTTER_WIDTH + sortedEmployees.length * CREW_COLUMN_MIN_WIDTH}px` }}>
               <div className="sticky top-0 z-[12] grid bg-[var(--co-surface)]" style={{ gridTemplateColumns: `${TIME_GUTTER_WIDTH}px repeat(${sortedEmployees.length}, minmax(${CREW_COLUMN_MIN_WIDTH}px, 1fr))` }}>
@@ -1436,7 +1544,21 @@ export default function Board({
                       setDraggedEmployeeId(null);
                     }}
                     onDragEnd={() => setDraggedEmployeeId(null)}
-                    className={laneEmployeeId ? "" : "cursor-grab active:cursor-grabbing"}
+                    tabIndex={laneEmployeeId ? -1 : 0}
+                    role={laneEmployeeId ? undefined : "button"}
+                    aria-label={laneEmployeeId ? undefined : `${employee.firstName} ${employee.lastName} crew lane. Use left and right arrow keys to reorder.`}
+                    onKeyDown={(event) => {
+                      if (laneEmployeeId || !["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+                      const ids = sortedEmployees.map((candidate) => candidate.id);
+                      const index = ids.indexOf(employee.id);
+                      const nextIndex = event.key === "ArrowLeft" ? index - 1 : index + 1;
+                      if (index < 0 || nextIndex < 0 || nextIndex >= ids.length) return;
+                      event.preventDefault();
+                      const next = [...ids];
+                      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+                      void saveColumnOrder(next);
+                    }}
+                    className={laneEmployeeId ? "" : "cursor-grab rounded-sm outline-none active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-[var(--co-focus-ring)]"}
                   >
                     {renderLaneHeader(employee)}
                   </div>
@@ -1467,15 +1589,13 @@ export default function Board({
                       onDragOver={(event) => laneDragOver(event, employee.id)}
                       onDragLeave={() => setDragOverEmployeeId(null)}
                       onDrop={(event) => laneDrop(event, employee.id)}
-                      className={`relative border-r border-[var(--co-line-soft)] outline-none ${dragOverEmployeeId === employee.id ? "bg-[var(--co-accent-tint)]" : ""} ${selectedJob ? "cursor-copy" : ""}`}
+                      className={`relative border-r border-[var(--co-line-soft)] outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--co-focus-ring)] ${dragOverEmployeeId === employee.id ? "bg-[var(--co-accent-tint)]" : ""} ${selectedJob ? "cursor-copy" : ""}`}
                       style={{ height: hours * HOUR_HEIGHT, backgroundImage: "repeating-linear-gradient(to bottom, color-mix(in srgb, var(--co-line-soft) 58%, transparent) 0 1px, transparent 1px 16px), repeating-linear-gradient(to bottom, var(--co-line-soft) 0 1px, transparent 1px 100%)", backgroundSize: `100% ${HOUR_HEIGHT / 4}px, 100% ${HOUR_HEIGHT}px` }}
                     >
                       {renderPto(employee.id)}
-                      {dayAllDayAppointments
-                        .filter((appointment) => appointment.attendeeUserIds.includes(employee.id))
+                      {(appointmentsByEmployee.get(employee.id)?.allDay ?? [])
                         .map((appointment) => renderAppointment(appointment, { left: 4, right: 4, top: 4, bottom: 4 }))}
-                      {dayAppointments
-                        .filter((appointment) => appointment.attendeeUserIds.includes(employee.id))
+                      {(appointmentsByEmployee.get(employee.id)?.timed ?? [])
                         .map((appointment) => {
                           const start = Math.max(windowStart, minutesFromTime(appointment.startTime));
                           const duration = Math.max(30, appointment.durationMinutes ?? 60);
@@ -1501,7 +1621,7 @@ export default function Board({
                   <>
                     <div className="pointer-events-none absolute z-[6] h-0.5 bg-[var(--co-danger)]" style={{ left: TIME_GUTTER_WIDTH, right: 0, top: (nowOffsetMinutes / 60) * HOUR_HEIGHT }} />
                     <span
-                      className="pointer-events-none absolute z-[7] whitespace-nowrap rounded bg-[var(--co-danger)] px-[5px] py-[1.5px] text-[10px] font-bold text-white shadow-[0_2px_6px_-2px_rgba(0,0,0,.4)]"
+                      className="pointer-events-none absolute z-[7] whitespace-nowrap rounded bg-[var(--co-danger)] px-[5px] py-[1.5px] text-[11px] font-bold text-[var(--co-surface)] shadow-[var(--co-shadow-control)]"
                       style={{ left: 5, top: (nowOffsetMinutes / 60) * HOUR_HEIGHT - 9 }}
                     >
                       {nowMinutes !== null ? clockLabelFromMinutes(nowMinutes) : ""}
@@ -1523,11 +1643,12 @@ export default function Board({
                 </div>
               </div>
               <div className="relative">
-                {sortedEmployees.map((employee) => {
+                {virtualRowsEnabled ? <div aria-hidden style={{ height: virtualStart * VIRTUAL_ROW_HEIGHT }} /> : null}
+                {visibleEmployees.map((employee) => {
                   const data = laneData.get(employee.id);
                   const rowHeight = Math.max(LANE_HEIGHT_BASE, 46 * (data?.maxLanes ?? 1) + 8);
                   return (
-                    <div key={employee.id} data-lane-row className="grid border-b border-[var(--co-line-soft)] last:border-b-0" style={{ gridTemplateColumns: `${LANE_HEADER_WIDTH}px ${hours * HOUR_WIDTH}px` }}>
+                    <div key={employee.id} data-lane-row className="grid border-b border-[var(--co-line-soft)] last:border-b-0 [content-visibility:auto] [contain-intrinsic-size:0_300px]" style={{ gridTemplateColumns: `${LANE_HEADER_WIDTH}px ${hours * HOUR_WIDTH}px` }}>
                       <div className="sticky left-0 z-[4] flex flex-col justify-center border-r border-[var(--co-line)] bg-[var(--co-surface)]">{renderLaneHeader(employee)}</div>
                       <div
                         data-calendar-time-lane
@@ -1541,15 +1662,13 @@ export default function Board({
                         onDragOver={(event) => laneDragOver(event, employee.id)}
                         onDragLeave={() => setDragOverEmployeeId(null)}
                         onDrop={(event) => laneDrop(event, employee.id)}
-                        className={`relative outline-none ${dragOverEmployeeId === employee.id ? "bg-[var(--co-accent-tint)]" : ""} ${selectedJob ? "cursor-copy" : ""}`}
+                        className={`relative outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--co-focus-ring)] ${dragOverEmployeeId === employee.id ? "bg-[var(--co-accent-tint)]" : ""} ${selectedJob ? "cursor-copy" : ""}`}
                         style={{ width: hours * HOUR_WIDTH, height: rowHeight, backgroundImage: "repeating-linear-gradient(to right, color-mix(in srgb, var(--co-line-soft) 58%, transparent) 0 1px, transparent 1px 16px), repeating-linear-gradient(to right, var(--co-line-soft) 0 1px, transparent 1px 100%)", backgroundSize: `${HOUR_WIDTH / 4}px 100%, ${HOUR_WIDTH}px 100%` }}
                       >
                         {renderPto(employee.id)}
-                        {dayAllDayAppointments
-                          .filter((appointment) => appointment.attendeeUserIds.includes(employee.id))
+                        {(appointmentsByEmployee.get(employee.id)?.allDay ?? [])
                           .map((appointment) => renderAppointment(appointment, { left: 4, right: 4, top: 4, bottom: 4 }))}
-                        {dayAppointments
-                          .filter((appointment) => appointment.attendeeUserIds.includes(employee.id))
+                        {(appointmentsByEmployee.get(employee.id)?.timed ?? [])
                           .map((appointment) => {
                             const start = Math.max(windowStart, minutesFromTime(appointment.startTime));
                             const duration = Math.max(30, appointment.durationMinutes ?? 60);
@@ -1566,6 +1685,7 @@ export default function Board({
                     </div>
                   );
                 })}
+                {virtualRowsEnabled ? <div aria-hidden style={{ height: Math.max(0, sortedEmployees.length - virtualEnd) * VIRTUAL_ROW_HEIGHT }} /> : null}
                 {showNowLine ? (
                   <>
                     <div
@@ -1573,7 +1693,7 @@ export default function Board({
                       style={{ left: LANE_HEADER_WIDTH + (nowOffsetMinutes / 60) * HOUR_WIDTH, top: 0, bottom: 0 }}
                     />
                     <span
-                      className="pointer-events-none absolute z-[7] whitespace-nowrap rounded bg-[var(--co-danger)] px-[5px] py-[1.5px] text-[10px] font-bold text-white shadow-[0_2px_6px_-2px_rgba(0,0,0,.4)]"
+                      className="pointer-events-none absolute z-[7] whitespace-nowrap rounded bg-[var(--co-danger)] px-[5px] py-[1.5px] text-[11px] font-bold text-[var(--co-surface)] shadow-[var(--co-shadow-control)]"
                       style={{ left: LANE_HEADER_WIDTH + (nowOffsetMinutes / 60) * HOUR_WIDTH + 4, top: 3 }}
                     >
                       {nowMinutes !== null ? clockLabelFromMinutes(nowMinutes) : ""}
@@ -1667,10 +1787,11 @@ function RailCard({
   onSkip?: () => void;
   onAssignAtTime?: () => void;
 }) {
+  const readiness = deriveJobReadiness({ hasCrew: job.assignedUserIds.length > 0, hasTime: hasArrivalTime(job) });
   return (
     <div
       ref={refCallback}
-      className={`relative w-full rounded-[10px] border px-[11px] py-[9px] pb-2.5 text-left shadow-[0_1px_1px_rgba(20,26,46,.03)] transition hover:-translate-y-px hover:border-[var(--co-accent-text)] hover:shadow-[0_1px_2px_rgba(20,26,46,.05),0_8px_24px_-12px_rgba(36,54,104,.22)] ${
+      className={`relative w-full rounded-[10px] border px-[11px] py-[9px] pb-2.5 text-left shadow-[var(--co-shadow-control)] transition hover:-translate-y-px hover:border-[var(--co-accent-text)] hover:shadow-[var(--co-shadow-control)] ${
         draggable ? "cursor-grab active:cursor-grabbing" : ""
       } ${
         selected ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-tint)] shadow-[0_0_0_3px_var(--co-focus-ring)]" : "border-[var(--co-line)] bg-[var(--co-surface)]"
@@ -1679,6 +1800,7 @@ function RailCard({
       <button type="button" onClick={onSelect} aria-pressed={selected} draggable={draggable} onDragStart={onDragStart} onDragEnd={onDragEnd} className="block w-full text-left">
       <div className="flex items-baseline gap-2">
         <span className="text-[13.5px] font-bold leading-[1.3] text-[var(--co-ink)]">{displayCustomer(job)}</span>
+        <span className={`${readinessTone(readiness.primary)} rounded px-1.5 py-0.5 text-[10px] font-bold`}>{readiness.primary}</span>
         <span className="ml-auto text-xs font-bold text-[var(--co-body)] tabular-nums">{job.scheduledStartTime ? clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime)) : "—"}</span>
       </div>
       <div className="mt-[3px] flex items-center gap-[5px] text-xs leading-[1.35] text-[var(--co-faint)]">
@@ -1702,14 +1824,14 @@ function RailCard({
         ) : null}
       </div>
       {selected ? (
-        <div className="mt-2 flex items-center gap-[5px] border-t border-dashed border-[var(--co-line)] pt-[7px] text-xs font-semibold text-[var(--co-accent-text)]">Choose a crew lane on the board</div>
+        <div className="mt-2 flex items-center gap-[5px] border-t border-dashed border-[var(--co-line)] pt-[7px] text-xs font-semibold text-[var(--co-accent-text)]">Choose a crew lane on the Board</div>
       ) : null}
       </button>
       {onBump || onSkip || onAssignAtTime ? (
         <div className="mt-2 flex gap-1.5 border-t border-[var(--co-line-soft)] pt-2">
           {onAssignAtTime ? <button type="button" onClick={(event) => { event.stopPropagation(); onAssignAtTime(); }} className="min-h-11 rounded-md border border-[var(--co-accent-fill)] bg-[var(--co-accent-tint)] px-3 py-2 text-xs font-bold text-[var(--co-accent-text)] hover:border-[var(--co-accent-text)]">Assign crew &amp; time</button> : null}
-          {onBump ? <button type="button" onClick={(event) => { event.stopPropagation(); onBump(); }} className="min-h-11 rounded-md border border-[var(--co-line)] px-3 py-2 text-xs font-bold text-[var(--co-body)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-accent-text)]">Bump date</button> : null}
-          {onSkip ? <button type="button" onClick={(event) => { event.stopPropagation(); onSkip(); }} className="min-h-11 rounded-md border border-[var(--co-danger)]/30 px-3 py-2 text-xs font-bold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/10">Skip visit</button> : null}
+          {onBump ? <button type="button" onClick={(event) => { event.stopPropagation(); onBump(); }} className="min-h-11 rounded-md border border-[var(--co-line)] px-3 py-2 text-xs font-bold text-[var(--co-body)] hover:border-[var(--co-accent-text)] hover:text-[var(--co-accent-text)]">Move to another date</button> : null}
+          {onSkip ? <button type="button" onClick={(event) => { event.stopPropagation(); onSkip(); }} className="min-h-11 rounded-md border border-[var(--co-danger)]/30 px-3 py-2 text-xs font-bold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/10">Skip this visit</button> : null}
         </div>
       ) : null}
     </div>
@@ -1729,10 +1851,10 @@ function AssignAtTimeDialog({ job, employees, initialMinutes, getVerdict, onClos
         <div className="border-b border-[var(--co-line-soft)] px-5 py-4"><h2 id="assign-at-time-title" className="text-lg font-semibold">Assign {displayCustomer(job)} at a time</h2><p className="mt-1 text-sm text-[var(--co-muted)]">Cleaner colors are calculated for this exact arrival time, including their other houses and time off.</p></div>
         <div className="min-h-0 overflow-y-auto p-5">
           <div className="flex flex-wrap items-end gap-3"><label className="text-sm font-semibold">Arrival time<input type="time" value={time} onChange={(event) => setTime(event.target.value)} className="co-input mt-1 block" /></label><div className="flex gap-2"><button type="button" onClick={() => setTime("09:00")} className="co-button-secondary py-2 text-xs">Morning · 9 AM</button><button type="button" onClick={() => setTime("13:00")} className="co-button-secondary py-2 text-xs">Afternoon · 1 PM</button><button type="button" onClick={() => setTime("14:00")} className="co-button-secondary py-2 text-xs">Second house · 2 PM</button></div></div>
-          <div className="mt-5 grid gap-2 sm:grid-cols-2">{employees.map((employee) => { const verdict = getVerdict(employee.id, minutes); const selected = selectedEmployeeId === employee.id; return <button key={employee.id} type="button" onClick={() => setSelectedEmployeeId(employee.id)} className={`rounded-xl border p-3 text-left ${selected ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-tint)] shadow-[0_0_0_3px_var(--co-focus-ring)]" : verdict.state === "blocked" ? "border-[var(--co-line)] bg-[var(--co-surface-muted)]" : verdict.state === "warn" ? "border-[var(--co-warning)]/50 bg-[var(--co-warning)]/10" : "border-[var(--co-accent-fill)]/40 bg-[var(--co-accent-tint)]/40"}`}><div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: employee.calendarColor ?? employeeColor(employee.id) }} /><span className="font-semibold">{employee.firstName} {employee.lastName}</span><span className="ml-auto text-xs font-bold">{verdict.state === "ok" ? "Available" : verdict.state === "warn" ? "Check" : "Unavailable"}</span></div><p className="mt-1 text-xs text-[var(--co-muted)]">{verdict.message}</p></button>; })}</div>
-          {selectedVerdict?.state === "blocked" ? <p className="mt-3 text-sm font-medium text-[var(--co-danger)]">Choose an available cleaner or another time.</p> : null}
+        <div className="mt-5 grid gap-2 sm:grid-cols-2">{employees.map((employee) => { const verdict = getVerdict(employee.id, minutes); const selected = selectedEmployeeId === employee.id; return <button key={employee.id} type="button" onClick={() => setSelectedEmployeeId(employee.id)} className={`rounded-xl border p-3 text-left ${selected ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-tint)] shadow-[0_0_0_3px_var(--co-focus-ring)]" : verdict.state === "blocked" ? "border-[var(--co-line)] bg-[var(--co-surface-muted)]" : verdict.state === "warn" ? "border-[var(--co-warning)]/50 bg-[var(--co-warning)]/10" : "border-[var(--co-accent-fill)]/40 bg-[var(--co-accent-tint)]/40"}`}><div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: employee.calendarColor ?? employeeColor(employee.id) }} /><span className="font-semibold">{employee.firstName} {employee.lastName}</span><span className="ml-auto text-xs font-bold">{verdict.state === "ok" ? "Available" : verdict.state === "warn" ? "Review labor capacity" : "Unavailable"}</span></div><p className="mt-1 text-xs text-[var(--co-muted)]">{verdict.message}</p></button>; })}</div>
+          {selectedVerdict?.state === "blocked" ? <p className="mt-3 text-sm font-medium text-[var(--co-danger)]">Choose an available crew member or another time.</p> : null}
         </div>
-        <div className="flex justify-end gap-2 border-t border-[var(--co-line-soft)] px-5 py-4"><button type="button" onClick={onClose} className="co-button-secondary">Cancel</button><button type="button" disabled={!selectedEmployeeId || selectedVerdict?.state === "blocked"} onClick={() => selectedEmployeeId && onConfirm(selectedEmployeeId, minutes)} className="co-button-primary disabled:opacity-50">Assign cleaner</button></div>
+        <div className="flex justify-end gap-2 border-t border-[var(--co-line-soft)] px-5 py-4"><button type="button" onClick={onClose} className="co-button-secondary">Cancel</button><button type="button" disabled={!selectedEmployeeId || selectedVerdict?.state === "blocked"} onClick={() => selectedEmployeeId && onConfirm(selectedEmployeeId, minutes)} className="co-button-primary disabled:opacity-50">Assign crew member</button></div>
       </div>
     </div>
   );
@@ -1750,7 +1872,7 @@ function RailActionDialog({ job, mode, policy, onClose, onConfirm }: { job: Cale
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-[var(--co-overlay)]" />
       <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="rail-action-title" className="relative w-full max-w-md rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-5 shadow-[var(--co-shadow-panel)]">
-        <h2 id="rail-action-title" className="text-lg font-semibold">{mode === "bump" ? "Bump this visit" : "Skip this visit"}</h2>
+        <h2 id="rail-action-title" className="text-lg font-semibold">{mode === "bump" ? "Move this visit" : "Skip this visit"}</h2>
         <p className="mt-1 text-sm text-[var(--co-muted)]">{displayCustomer(job)} · {job.scheduledDate}</p>
         {mode === "bump" ? (
           <div className="mt-5 space-y-4">
@@ -1764,27 +1886,38 @@ function RailActionDialog({ job, mode, policy, onClose, onConfirm }: { job: Cale
             <p className="whitespace-pre-line rounded-lg bg-[var(--co-surface-muted)] p-3 text-xs leading-5 text-[var(--co-muted)]">{policy ?? "Policy: less than 24 hours’ notice is 50%; same-day cancellations are 100%. A skip fee may be applied to the next catch-up cleaning."}</p>
           </div>
         )}
-        <div className="mt-6 flex justify-end gap-2"><button type="button" onClick={onClose} className="co-button-secondary">Keep visit</button><button type="button" disabled={!canSubmit} onClick={() => onConfirm(mode === "bump" ? { scheduledDate: date, scheduledStartTime: startTime } : { cancellationReason: `${reason.trim()} (Cancellation fee: ${fee === "0" ? "not billed" : `${fee}% billed`})` })} className="co-button-primary disabled:opacity-50">{mode === "bump" ? "Bump visit" : "Skip visit"}</button></div>
+        <div className="mt-6 flex justify-end gap-2"><button type="button" onClick={onClose} className="co-button-secondary">Keep visit</button><button type="button" disabled={!canSubmit} onClick={() => onConfirm(mode === "bump" ? { scheduledDate: date, scheduledStartTime: startTime } : { cancellationReason: `${reason.trim()} (Cancellation fee: ${fee === "0" ? "not billed" : `${fee}% billed`})` })} className="co-button-primary disabled:opacity-50">{mode === "bump" ? "Move visit" : "Skip this visit"}</button></div>
       </div>
     </div>
   );
 }
 
-function InfoRailCard({ job, crewLabel, tone, message }: { job: CalendarJob; crewLabel?: string; tone: "warn" | "danger"; message: string }) {
+function InfoRailCard({ job, readiness, crewLabel, reason, actionLabel, onAction, onFocus }: { job: CalendarJob; readiness?: ReturnType<typeof deriveJobReadiness>; crewLabel?: string; reason: string; actionLabel: string; onAction: () => void; onFocus: () => void }) {
+  const primary = readiness?.primary ?? (reason === "Over labor capacity" ? "Over capacity" : "Conflict");
+  const displayReason = primary === "Over capacity"
+    ? "Over labor capacity"
+    : readiness?.reasons.find((entry) => entry === "Crew member is on leave" || entry === "Overlaps another stop") ?? reason;
   return (
-    <div className="w-full cursor-default rounded-[10px] border border-[var(--co-line)] bg-[var(--co-surface)] px-[11px] py-[9px] pb-2.5 text-left shadow-[0_1px_1px_rgba(20,26,46,.03)]">
+    <div className="w-full cursor-default rounded-[10px] border border-[var(--co-line)] bg-[var(--co-surface)] px-[11px] py-[9px] pb-2.5 text-left shadow-[var(--co-shadow-control)]">
       <div className="flex items-baseline gap-2">
         <span className="text-[13.5px] font-bold leading-[1.3] text-[var(--co-ink)]">{displayCustomer(job)}</span>
         <span className="ml-auto text-xs font-bold text-[var(--co-body)] tabular-nums">
           {job.scheduledStartTime ? `${clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime))} – ${clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime) + jobWallClockDuration(job))}` : "—"}
         </span>
       </div>
-      {crewLabel ? <div className="mt-[3px] text-[11.5px] text-[var(--co-faint)]">{crewLabel}</div> : null}
+      {crewLabel ? <div className="mt-[3px] text-xs leading-[1.35] text-[var(--co-faint)]">{crewLabel}</div> : null}
       <div className="mt-[7px] flex flex-wrap gap-1">
-        <span className={`inline-flex h-[19px] items-center gap-1 rounded px-1.5 text-[10.5px] font-bold ${tone === "danger" ? "co-badge-danger" : "co-badge-warning"}`}>
-          <TriangleAlert className="h-[11px] w-[11px]" aria-hidden strokeWidth={1.75} />
-          {message}
+        <span className={`${readinessTone(primary)} inline-flex h-[19px] items-center rounded px-1.5 text-[11px] font-bold`}>
+          {primary}
         </span>
+        <span className={`${readinessTone(primary)} inline-flex h-[19px] items-center gap-1 rounded px-1.5 text-[11px] font-bold`}>
+          <TriangleAlert className="h-[11px] w-[11px]" aria-hidden strokeWidth={1.75} />
+          {displayReason}
+        </span>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button type="button" onClick={onAction} aria-label={`${actionLabel} for ${displayCustomer(job)}`} className="co-button-primary min-h-11 px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--co-focus-ring)]">{actionLabel}</button>
+        <button type="button" onClick={onFocus} aria-label={`Focus ${displayCustomer(job)} on board`} className="co-button-secondary min-h-11 px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--co-focus-ring)]">Focus on board</button>
       </div>
     </div>
   );
