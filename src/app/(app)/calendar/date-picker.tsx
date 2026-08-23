@@ -34,6 +34,13 @@ export default function DatePicker({ view, value, label }: { view: string; value
   const [dialogPosition, setDialogPosition] = useState({ left: 0, top: 0 });
   const dialogFocusRef = useDialogFocus<HTMLDivElement>(open);
   const [month, setMonth] = useState(new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), 1)));
+  const valueMonthKey = `${value.getUTCFullYear()}-${value.getUTCMonth()}`;
+  const previousValueMonthKey = useRef(valueMonthKey);
+  useEffect(() => {
+    if (previousValueMonthKey.current === valueMonthKey) return;
+    previousValueMonthKey.current = valueMonthKey;
+    setMonth(new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), 1)));
+  }, [value, valueMonthKey]);
   const daysInMonth = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 0)).getUTCDate();
   const cells = useMemo(() => Array.from({ length: mondayIndex(month) + daysInMonth }, (_, index) => index < mondayIndex(month) ? null : index - mondayIndex(month) + 1), [month, daysInMonth]);
 
@@ -58,7 +65,17 @@ export default function DatePicker({ view, value, label }: { view: string; value
     if (!open) return;
     function updateDialogPosition() {
       const bounds = pickerRef.current?.getBoundingClientRect();
-      if (bounds) setDialogPosition({ left: bounds.left, top: bounds.bottom + 8 });
+      const dialog = dialogFocusRef.current;
+      if (!bounds || !dialog) return;
+      const viewportGutter = 16;
+      const dialogBounds = dialog.getBoundingClientRect();
+      const maxLeft = Math.max(viewportGutter, window.innerWidth - dialogBounds.width - viewportGutter);
+      const left = Math.min(Math.max(bounds.left, viewportGutter), maxLeft);
+      const preferredTop = bounds.bottom + 8;
+      const top = preferredTop + dialogBounds.height <= window.innerHeight - viewportGutter
+        ? preferredTop
+        : Math.max(viewportGutter, bounds.top - dialogBounds.height - 8);
+      setDialogPosition({ left, top });
     }
     updateDialogPosition();
     window.addEventListener("resize", updateDialogPosition);
@@ -67,7 +84,7 @@ export default function DatePicker({ view, value, label }: { view: string; value
       window.removeEventListener("resize", updateDialogPosition);
       window.removeEventListener("scroll", updateDialogPosition, true);
     };
-  }, [open]);
+  }, [dialogFocusRef, month, open]);
 
   function selectDay(day: number) {
     const date = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), day));
@@ -98,10 +115,10 @@ export default function DatePicker({ view, value, label }: { view: string; value
     >
       <div className="flex items-center justify-between border-b border-[var(--co-line-soft)] pb-2">
         <button type="button" aria-label="Previous month" onClick={() => setMonth((current) => new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth() - 1, 1)))} className="co-date-nav h-11 w-11"><ChevronLeft className="h-4 w-4" aria-hidden /></button>
-        <p className="text-sm font-semibold text-[var(--co-ink)]">{month.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}</p>
+        <p className="type-admin-body font-semibold text-[var(--co-ink)]">{month.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}</p>
         <button type="button" aria-label="Next month" onClick={() => setMonth((current) => new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth() + 1, 1)))} className="co-date-nav h-11 w-11"><ChevronRight className="h-4 w-4" aria-hidden /></button>
       </div>
-      <div className="mt-2 grid grid-cols-7 text-center text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--co-faint)]">
+      <div className="type-admin-micro mt-2 grid grid-cols-7 text-center font-semibold uppercase tracking-[0.08em] text-[var(--co-faint)]">
         {["M", "T", "W", "T", "F", "S", "S"].map((day, index) => <span key={`${day}-${index}`} className="py-1.5">{day}</span>)}
         {cells.map((day, index) => day ? <button key={day} type="button" onClick={() => selectDay(day)} aria-pressed={selectedMonth && day === value.getUTCDate()} className={`co-date-day ${selectedMonth && day === value.getUTCDate() ? "co-date-day-selected" : ""}`}>{day}</button> : <span key={`empty-${index}`} />)}
       </div>
@@ -163,7 +180,7 @@ export function CalendarViewSelector({
           type="button"
           aria-pressed={view === entry.value}
           onClick={() => selectView(entry.value)}
-          className={`min-h-11 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${view === entry.value ? "bg-[var(--co-accent-fill)] text-white shadow-[var(--co-shadow-control)]" : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"}`}
+          className={`type-admin-body min-h-11 whitespace-nowrap rounded-lg px-3 py-1.5 font-semibold transition-colors ${view === entry.value ? "bg-[var(--co-accent-fill)] text-white shadow-[var(--co-shadow-control)]" : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"}`}
         >
           {entry.label}
         </button>

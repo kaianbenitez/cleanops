@@ -66,14 +66,20 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
     setCancellationReason("");
     try {
       const [jobBody, historyBody] = await Promise.all([
-        fetch(`/api/jobs/${id}/summary`).then((res) => res.json()),
-        fetch(`/api/jobs/${id}/history`).then((res) => res.json()),
+        fetch(`/api/jobs/${id}/summary`).then((res) => {
+          if (!res.ok) throw new Error("Job details could not be loaded.");
+          return res.json();
+        }),
+        fetch(`/api/jobs/${id}/history`).then((res) => {
+          if (!res.ok) throw new Error("Job history could not be loaded.");
+          return res.json();
+        }),
       ]);
       if (isCancelled()) return;
       setJob(jobBody.job ?? null);
       setHistory({ preferredCleaner: historyBody.preferredCleaner ?? null, previousVisit: historyBody.previousVisit ?? null });
     } catch {
-      if (!isCancelled()) setError("Couldn't load this job.");
+      if (!isCancelled()) setError("We couldn't load this job. Close the panel and try again.");
     } finally {
       if (!isCancelled()) setLoading(false);
     }
@@ -103,6 +109,9 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
 
   function patch(fields: Parameters<typeof commitJobPatch>[1]) {
     if (!job) return;
+    const previousJob = job;
+    const previousSelectedIds = [...selectedIds];
+    const previousAssigned = assigned;
     commitJobPatch(job.id, fields, {
       onOptimistic: () => {
         setJob((current) => (current ? { ...current, ...fields } : current));
@@ -116,6 +125,9 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
       },
       onWarning: setWarning,
       onError: (message) => {
+        setJob(previousJob);
+        setSelectedIds(previousSelectedIds);
+        setAssigned(previousAssigned);
         setError(message);
         router.refresh();
       },
@@ -151,10 +163,11 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
         </div>
 
         {loading && !job ? <div className="p-5 text-sm text-[var(--co-muted)]">Loading job…</div> : null}
+        {!job && error ? <p role="alert" aria-live="assertive" className="p-5 pt-0 text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
 
         {job ? (
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
-            {error ? <p className="text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
+            {error ? <p role="alert" aria-live="assertive" className="text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
             {warning ? <p role="status" className="co-badge-warning px-3 py-2 text-xs font-medium">Scheduling warning: {warning}</p> : null}
             {assigned ? <p className="rounded-xl bg-[var(--co-accent-tint)] px-3 py-2 text-xs font-medium text-[var(--co-accent-text)]">Assigned. This card will drop out of the unassigned queue on refresh.</p> : null}
 
@@ -209,7 +222,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
 
             <div className="border-t border-[var(--co-line-soft)] pt-4">
               <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Reschedule</p>
-              <div className="mt-2 grid grid-cols-2 gap-3">
+              <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="block text-xs font-semibold text-[var(--co-muted)]">
                   Date
                   <input
@@ -268,7 +281,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
               ) : confirmingCancel ? (
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-[var(--co-danger)]">Cancel this appointment?</p>
-                  <textarea value={cancellationReason} onChange={(event) => setCancellationReason(event.target.value)} rows={2} placeholder="Why is this job being cancelled?" className="co-input w-full resize-none text-xs" />
+                  <label className="block text-xs font-semibold text-[var(--co-danger)]">Cancellation reason<textarea aria-label="Cancellation reason" value={cancellationReason} onChange={(event) => setCancellationReason(event.target.value)} rows={2} placeholder="Why is this job being cancelled?" className="co-input mt-1 w-full resize-none text-xs" /></label>
                   <div className="flex gap-2">
                   <button type="button" disabled={saving} onClick={() => { setConfirmingCancel(false); setCancellationReason(""); }} className="co-button-secondary py-1 text-xs disabled:opacity-50">
                     Keep job

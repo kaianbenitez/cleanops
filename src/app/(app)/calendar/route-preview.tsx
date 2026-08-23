@@ -23,6 +23,14 @@ function minutesFromTime(value: string) {
   return hours * 60 + minutes;
 }
 
+const GEOCODE_CONCURRENCY = 2;
+const GEOCODE_TIMEOUT_MS = 8_000;
+const geocodeCache = new Map<string, { lat: number; lng: number }>();
+
+function coordinateKey(address: string) {
+  return address.trim().toLowerCase();
+}
+
 export default function RoutePreview({
   jobs,
   title,
@@ -41,8 +49,10 @@ export default function RoutePreview({
   const mapElement = useRef<HTMLDivElement>(null);
   const mapRef = useRef<GoogleMap | null>(null);
   const overlaysRef = useRef<Array<GoogleMarker | GooglePolyline>>([]);
+  const routeRef = useRef<GooglePolyline | null>(null);
   const [googleReady, setGoogleReady] = useState(Boolean(typeof window !== "undefined" && window.google?.maps));
   const [mapError, setMapError] = useState(false);
+  const [showStopList, setShowStopList] = useState(false);
 
   const orderedJobs = useMemo(
     () => [...jobs].sort((a, b) => minutesFromTime(a.time) - minutesFromTime(b.time)),
@@ -72,58 +82,97 @@ export default function RoutePreview({
 
     const geocoder = new maps.Geocoder();
     const bounds = new maps.LatLngBounds();
-    const points: GoogleLatLng[] = [];
-    let completed = 0;
+    const points: Array<GoogleLatLng | undefined> = [];
+    let active = true;
+    const cacheController = new AbortController();
+
+    const drawRoute = () => {
+      if (!active || points.length === 0) return;
+      map.fitBounds(bounds);
+      const routePoints = points.filter((point): point is GoogleLatLng => Boolean(point));
+      routeRef.current?.setMap(null);
+      routeRef.current = null;
+      if (routePoints.length > 1) {
+        routeRef.current = new maps.Polyline({ map, path: routePoints, strokeColor: "#2457ff", strokeOpacity: 0.85, strokeWeight: 3 });
+      }
+    };
 
     orderedJobs.forEach((job, index) => {
       if (job.latitude != null && job.longitude != null) {
         const position = { lat: job.latitude, lng: job.longitude };
-        completed += 1;
         points[index] = position;
         bounds.extend(position);
         const marker = new maps.Marker({ map, position, label: String(index + 1), title: `${index + 1}. ${job.firstName} ${job.lastName}` });
         overlaysRef.current.push(marker);
-        if (completed === orderedJobs.length && points.length > 0) {
-          map.fitBounds(bounds);
-          if (points.filter(Boolean).length > 1) overlaysRef.current.push(new maps.Polyline({ map, path: points.filter(Boolean), strokeColor: "#2457ff", strokeOpacity: 0.85, strokeWeight: 3 }));
-        }
-        return;
       }
-      geocoder.geocode({ address: `${job.address}, ${job.city} ${job.zip}` }, (results, status) => {
-        completed += 1;
-        if (status === "OK" && results[0]) {
-          const position = results[0].geometry.location;
-          const latitude = typeof position.lat === "function" ? position.lat() : position.lat;
-          const longitude = typeof position.lng === "function" ? position.lng() : position.lng;
-          points[index] = position;
-          bounds.extend(position);
-          const marker = new maps.Marker({
-            map,
-            position,
-            label: String(index + 1),
-            title: `${index + 1}. ${job.firstName} ${job.lastName}`,
-          });
-          overlaysRef.current.push(marker);
-          void fetch("/api/maps/geocode-cache", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customerId: job.customerId, latitude, longitude }) });
-        }
-
-        if (completed === orderedJobs.length && points.length > 0) {
-          map.fitBounds(bounds);
-          if (points.filter(Boolean).length > 1) {
-            const line = new maps.Polyline({
-              map,
-              path: points.filter(Boolean),
-              strokeColor: "#2457ff",
-              strokeOpacity: 0.85,
-              strokeWeight: 3,
-            });
-            overlaysRef.current.push(line);
-          }
-        }
-      });
     });
 
+    const geocode = (address: string) => {
+      const key = coordinateKey(address);
+      const cached = geocodeCache.get(key);
+      if (cached) return Promise.resolve<GoogleLatLng>(cached);
+      return new Promise<GoogleLatLng | null>((resolve) => {
+        let settled = false;
+        const finish = (position: GoogleLatLng | null) => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timeoutId);
+          if (position) {
+            const lat = typeof position.lat === "function" ? position.lat() : position.lat;
+            const lng = typeof position.lng === "function" ? position.lng() : position.lng;
+            geocodeCache.set(key, { lat, lng });
+          }
+          resolve(position);
+        };
+        const timeoutId = window.setTimeout(() => finish(null), GEOCODE_TIMEOUT_MS);
+        geocoder.geocode({ address }, (results, status) => {
+          finish(status === "OK" && results[0] ? results[0].geometry.location : null);
+        });
+      });
+    };
+
+    drawRoute();
+
+    const loadMissingStops = async () => {
+      const missingStops = orderedJobs
+        .map((job, index) => ({ job, index, address: `${job.address}, ${job.city} ${job.zip}` }))
+        .filter(({ job }) => job.latitude == null || job.longitude == null);
+      let nextStop = 0;
+      const worker = async () => {
+        while (active) {
+          const stop = missingStops[nextStop++];
+          if (!stop) return;
+          const position = await geocode(stop.address);
+          if (!active || !position) continue;
+          const latitude = typeof position.lat === "function" ? position.lat() : position.lat;
+          const longitude = typeof position.lng === "function" ? position.lng() : position.lng;
+          points[stop.index] = position;
+          bounds.extend(position);
+          overlaysRef.current.push(new maps.Marker({
+            map,
+            position,
+            label: String(stop.index + 1),
+            title: `${stop.index + 1}. ${stop.job.firstName} ${stop.job.lastName}`,
+          }));
+          drawRoute();
+          void fetch("/api/maps/geocode-cache", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ customerId: stop.job.customerId, latitude, longitude }),
+            signal: cacheController.signal,
+          }).catch(() => undefined);
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(GEOCODE_CONCURRENCY, missingStops.length) }, () => worker()));
+    };
+
+    void loadMissingStops();
+
     return () => {
+      active = false;
+      cacheController.abort();
+      routeRef.current?.setMap(null);
+      routeRef.current = null;
       overlaysRef.current.forEach((overlay) => overlay.setMap(null));
       overlaysRef.current = [];
       mapRef.current = null;
@@ -179,7 +228,61 @@ export default function RoutePreview({
 
       <div className="mt-4 overflow-hidden rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]">
         {apiKey && !mapError ? (
-          <div ref={mapElement} className="min-h-[210px] bg-[var(--co-surface-muted)]" aria-label="Route map" />
+          <>
+            <div
+              ref={mapElement}
+              className="min-h-[210px] bg-[var(--co-surface-muted)]"
+              role="region"
+              aria-roledescription="map"
+              aria-label={`Route map showing ${totalStops} stops in scheduled order`}
+            />
+            <div className="flex items-center justify-between gap-3 border-t border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-2">
+              <p className="min-w-0 text-xs text-[var(--co-muted)]">Open a stop for its full job details.</p>
+              <button
+                type="button"
+                onClick={() => setShowStopList((current) => !current)}
+                aria-expanded={showStopList}
+                aria-controls="route-preview-stop-list"
+                className="co-button-secondary min-h-11 shrink-0 px-3 py-2 text-xs font-semibold"
+              >
+                {showStopList ? "Hide stop list" : "View stop list"}
+              </button>
+            </div>
+            {showStopList ? (
+              <div id="route-preview-stop-list" className="border-t border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-3">
+                <ol className="max-h-72 space-y-2 overflow-y-auto" aria-label="Visible scheduled stop list">
+                  {orderedJobs.map((job, index) => (
+                    <li key={job.id}>
+                      <Link
+                        href={`/jobs/${job.id}`}
+                        className="flex min-w-0 w-full items-center gap-3 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-2 text-xs shadow-[var(--co-shadow-control)]"
+                      >
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--co-accent-fill)] text-xs font-semibold text-white">{index + 1}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-semibold text-[var(--co-ink)]">
+                            {job.firstName} {job.lastName}
+                          </span>
+                          <span className="mt-0.5 block break-words text-xs text-[var(--co-muted)]">
+                            {job.address}
+                            {job.city ? `, ${job.city}` : ""}
+                            {job.zip ? ` ${job.zip}` : ""}
+                          </span>
+                        </span>
+                        <span className="shrink-0 rounded-full bg-[var(--co-surface-muted)] px-2 py-1 text-xs font-medium text-[var(--co-accent-text)]">{job.time}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ) : null}
+            <ol className="sr-only" aria-label="Scheduled stop order">
+              {orderedJobs.map((job, index) => (
+                <li key={job.id}>
+                  Stop {index + 1}: {job.firstName} {job.lastName}, {job.address}, {job.city} {job.zip}
+                </li>
+              ))}
+            </ol>
+          </>
         ) : (
           <div
             className="relative min-h-[210px] overflow-hidden p-4"
@@ -190,7 +293,7 @@ export default function RoutePreview({
                   <Link
                     key={job.id}
                     href={`/jobs/${job.id}`}
-                    className="flex w-full items-center gap-3 rounded-2xl border border-white/90 bg-[var(--co-surface)] px-3 py-2 text-xs shadow-[0_8px_22px_rgba(27,41,37,0.08)]"
+                    className="flex w-full items-center gap-3 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-3 py-2 text-xs shadow-[var(--co-shadow-control)]"
                   >
                     <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--co-accent-fill)] text-xs font-semibold text-white">{index + 1}</span>
                     <span className="flex min-w-0 flex-1 flex-col">

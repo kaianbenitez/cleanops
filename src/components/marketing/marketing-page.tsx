@@ -80,6 +80,12 @@ export default function MarketingPage() {
         <div className="flex items-center gap-4 sm:gap-5">
           <a
             href="#product"
+            className="text-sm font-semibold text-[var(--co-muted)] hover:text-[var(--co-ink)] sm:hidden"
+          >
+            Explore
+          </a>
+          <a
+            href="#product"
             className="hidden text-sm font-semibold text-[var(--co-muted)] hover:text-[var(--co-ink)] sm:inline"
           >
             Product
@@ -148,6 +154,9 @@ export default function MarketingPage() {
                 How it works
               </a>
             </div>
+            <p className="mt-4 text-sm font-semibold text-[var(--co-ink)]">
+              Free during beta · no credit card · reply within one business day
+            </p>
             <p className="mt-7 flex items-center gap-2 text-sm font-medium text-[var(--co-muted)]">
               <Check
                 aria-hidden="true"
@@ -157,7 +166,7 @@ export default function MarketingPage() {
               Built for residential cleaning companies
             </p>
             <p className="mt-4 max-w-[540px] text-sm font-semibold leading-6 text-[var(--co-ink)]">
-              Already running full time on a real cleaning business.
+              Less schedule-chasing. Cleaner handoffs. Payroll-ready time.
             </p>
           </div>
           <div className="marketing-hero-visual">
@@ -218,7 +227,7 @@ export default function MarketingPage() {
             />
             <figcaption className="mt-4 text-sm font-medium text-[var(--co-muted)]">
               Customer details, the crew&apos;s app, and billing, all in one
-              place.
+              place. Illustrative screens from the Shimmer beta.
             </figcaption>
           </figure>
         </div>
@@ -234,8 +243,9 @@ export default function MarketingPage() {
               The operations work, connected.
             </h2>
             <p className="mt-3 leading-7 text-[var(--co-muted)]">
-              The everyday tools your office and crew need, without stitching
-              together a separate system for each job.
+              Keep the day moving, keep details from getting lost, and know what
+              got paid without stitching together a separate system for each
+              job.
             </p>
           </div>
           <div className="mt-10">
@@ -250,11 +260,11 @@ export default function MarketingPage() {
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
             <h2 className="text-3xl font-semibold tracking-[-0.025em]">
-              Everything else a growing crew needs.
+              Also included as you grow.
             </h2>
             <p className="mt-3 leading-7 text-[var(--co-muted)]">
-              Quality tracking, reporting, automation, and the day-to-day
-              details that keep a bigger team organized.
+              Quality tracking, reporting, automation, and the details that keep
+              a bigger team organized—without making the first day feel heavy.
             </p>
           </div>
           <div className="mt-10">
@@ -268,9 +278,6 @@ export default function MarketingPage() {
         className="scroll-mt-6 border-y border-[var(--co-line)] bg-[var(--co-surface-muted)]"
       >
         <div className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6 lg:px-8">
-          <span id="pricing" className="sr-only">
-            Pricing
-          </span>
           <h2 className="text-3xl font-semibold tracking-[-0.025em]">
             Questions, answered.
           </h2>
@@ -281,6 +288,18 @@ export default function MarketingPage() {
             <a href="#join-beta" className="co-button-primary">
               Try it with your crew
             </a>
+          </div>
+          <div
+            id="pricing"
+            className="mx-auto mt-10 max-w-xl rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-5 py-4 text-left"
+          >
+            <p className="text-sm font-semibold text-[var(--co-ink)]">
+              Beta pricing: free while we build with founding crews.
+            </p>
+            <p className="mt-1 text-sm leading-6 text-[var(--co-muted)]">
+              No credit card, no charge during beta, and full CSV export any
+              time.
+            </p>
           </div>
         </div>
         <div className="mx-auto max-w-3xl px-4 pb-20 text-left sm:px-6 lg:px-8">
@@ -351,7 +370,7 @@ export default function MarketingPage() {
                 </div>
                 <div className="border-t border-[var(--co-line-soft)] pt-6">
                   <p className="text-sm font-semibold text-[var(--co-accent)]">
-                    Our guarantees
+                    What you can expect
                   </p>
                   <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--co-muted)]">
                     <li className="flex gap-2">
@@ -368,7 +387,7 @@ export default function MarketingPage() {
                         className="mt-0.5 h-4 w-4 shrink-0 text-[var(--co-accent)]"
                         strokeWidth={3}
                       />
-                      We won&apos;t call unless you leave a phone number.
+                      We reply within one business day.
                     </li>
                     <li className="flex gap-2">
                       <Check

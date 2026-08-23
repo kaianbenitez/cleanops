@@ -135,19 +135,6 @@ export default function LeadForm() {
           }
         />
       </Field>
-      <Field label="Your name" name="contactName" error={errors.contactName}>
-        <input
-          id="contactName"
-          className={inputClass("contactName")}
-          value={form.contactName}
-          onChange={(event) => update("contactName", event.target.value)}
-          autoComplete="name"
-          aria-invalid={Boolean(errors.contactName)}
-          aria-describedby={
-            errors.contactName ? "contactName-error" : undefined
-          }
-        />
-      </Field>
       <Field label="Email" name="email" required error={errors.email}>
         <input
           id="email"
@@ -174,22 +161,6 @@ export default function LeadForm() {
           <option value="6-15">6-15</option>
           <option value="16+">16+</option>
         </select>
-      </Field>
-      <Field
-        label="Phone (only if you'd rather we call than email)"
-        name="phone"
-        error={errors.phone}
-      >
-        <input
-          id="phone"
-          type="tel"
-          className={inputClass("phone")}
-          value={form.phone}
-          onChange={(event) => update("phone", event.target.value)}
-          autoComplete="tel"
-          aria-invalid={Boolean(errors.phone)}
-          aria-describedby={errors.phone ? "phone-error" : undefined}
-        />
       </Field>
       <Field label="Message" name="message" error={errors.message}>
         <textarea
@@ -220,7 +191,7 @@ export default function LeadForm() {
       <div className="sm:col-span-2">
         <ul className="mb-4 space-y-1.5 text-sm leading-6 text-[var(--co-muted)]">
           <li>No credit card, and no charge during beta.</li>
-          <li>We won&apos;t call unless you leave a phone number.</li>
+          <li>We reply within one business day.</li>
           <li>Your data is yours: full CSV export any time, no lock-in.</li>
         </ul>
         {serverError ? (

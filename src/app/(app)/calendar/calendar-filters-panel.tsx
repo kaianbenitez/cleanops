@@ -121,45 +121,46 @@ export default function CalendarFiltersPanel({
       role="dialog"
       aria-label="Calendar filters"
       style={dialogPosition}
-      className="co-date-popover fixed z-[60] w-[min(22rem,calc(100vw-2rem))] space-y-3 p-4"
+      className="co-date-popover fixed z-[60] max-h-[min(32rem,calc(100dvh-2rem))] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain space-y-3 p-4"
     >
-      <select aria-label="Technician" value={employeeId} onChange={(event) => setParam("employeeId", event.target.value)} className="co-input w-full py-2 text-sm">
-        <option value="">All technicians</option>
+      <label className="block text-xs font-semibold text-[var(--co-muted)]">Crew member<select aria-label="Crew member" value={employeeId} onChange={(event) => setParam("employeeId", event.target.value)} className="co-input mt-1 w-full py-2 text-sm">
+        <option value="">All crew members</option>
         {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}{employee.isActive === false ? " (Inactive)" : ""}</option>)}
-      </select>
+      </select></label>
 
-      <select aria-label="Status" value={status} onChange={(event) => setParam("status", event.target.value)} className="co-input w-full py-2 text-sm">
+      <label className="block text-xs font-semibold text-[var(--co-muted)]">Status<select aria-label="Status" value={status} onChange={(event) => setParam("status", event.target.value)} className="co-input mt-1 w-full py-2 text-sm">
         <option value="">All statuses</option>
         {STATUSES.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}
-      </select>
+      </select></label>
 
-      <select aria-label="Assignment" value={assignment} onChange={(event) => setParam("assignment", event.target.value)} className="co-input w-full py-2 text-sm">
+      <label className="block text-xs font-semibold text-[var(--co-muted)]">Crew assignment<select aria-label="Crew assignment" value={assignment} onChange={(event) => setParam("assignment", event.target.value)} className="co-input mt-1 w-full py-2 text-sm">
         <option value="">All jobs</option>
-        <option value="unassigned">Unassigned only</option>
-      </select>
+        <option value="unassigned">Jobs without a crew</option>
+      </select></label>
 
-      <select aria-label="Recurrence" value={recurrence} onChange={(event) => setParam("recurrence", event.target.value)} className="co-input w-full py-2 text-sm">
-        <option value="">All recurrence</option>
+      <label className="block text-xs font-semibold text-[var(--co-muted)]">Schedule pattern<select aria-label="Schedule pattern" value={recurrence} onChange={(event) => setParam("recurrence", event.target.value)} className="co-input mt-1 w-full py-2 text-sm">
+        <option value="">All schedule patterns</option>
         {RECURRENCES.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}
-      </select>
+      </select></label>
 
-      <select aria-label="Service type" value={type} onChange={(event) => setParam("type", event.target.value)} className="co-input w-full py-2 text-sm">
+      <label className="block text-xs font-semibold text-[var(--co-muted)]">Service type<select aria-label="Service type" value={type} onChange={(event) => setParam("type", event.target.value)} className="co-input mt-1 w-full py-2 text-sm">
         <option value="">All service types</option>
         {TYPES.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}
-      </select>
+      </select></label>
 
-      <input
+      <label className="block text-xs font-semibold text-[var(--co-muted)]">ZIP code<input
         key={`zip-${zip}`}
         aria-label="ZIP code"
         defaultValue={zip}
         onBlur={(event) => setParam("zip", event.target.value.trim())}
         onKeyDown={(event) => event.key === "Enter" && setParam("zip", event.currentTarget.value.trim())}
-        placeholder="ZIP code"
-        className="co-input w-full py-2 text-sm"
-      />
+        placeholder="e.g. 60614"
+        inputMode="numeric"
+        className="co-input mt-1 w-full py-2 text-sm"
+      /></label>
 
       <button type="button" onClick={onClose} className="co-button-secondary w-full">
-        Done
+        Close filters
       </button>
     </div>
   );
