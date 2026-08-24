@@ -167,7 +167,7 @@ function Section({
 
 function InfoCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-[var(--co-radius-card)] border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 p-4 shadow-[0_8px_24px_rgba(27,41,37,0.03)]">
+    <div className="co-card !bg-[var(--co-surface-muted)]/40 p-4">
       <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">{label}</p>
       <p className="mt-2 text-sm font-semibold">{value}</p>
       {sub ? <p className="mt-1 text-xs text-[var(--co-muted)]">{sub}</p> : null}
@@ -727,8 +727,8 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               Allow text messaging
             </label>
             <div className="mt-4 flex flex-wrap gap-2">
-              <span className="rounded-full bg-[var(--co-surface-muted)] px-3 py-1 text-xs font-medium text-[var(--co-accent-text)]">Internal only</span>
-              <span className="rounded-full bg-[var(--co-surface-muted)] px-3 py-1 text-xs font-medium text-[var(--co-accent-text)]">Takeover ready</span>
+              <span className="rounded-full bg-[var(--co-accent-fill)] px-3 py-1 text-xs font-medium text-white">Internal only</span>
+              <span className="rounded-full bg-[var(--co-accent-fill)] px-3 py-1 text-xs font-medium text-white">Takeover ready</span>
             </div>
           </div>
         </div>
