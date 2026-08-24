@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.89",
+    date: "August 24, 2026",
+    title: "Customer profiles can now hold alarm and access details",
+    changes: [
+      "Alarm codes, key locations, vacuum locations, mop head locations, and trash bag locations can now be entered on a customer's profile — these already showed up on My Day for cleaners, but there was previously no way to record them.",
+      "Entry, garage, gate, and alarm codes are now hidden consistently on the profile edit screen, with a tap to reveal, instead of some codes showing in plain text.",
+      "Customer profile pages load a little faster for anyone just viewing, not editing.",
+    ],
+  },
+  {
     version: "v0.2.88",
     date: "August 23, 2026",
     title: "The Shimmer landing page is clearer about the beta",
