@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { db } from "@/db";
 import { auditLog, customers, customerLocations, invoices, jobAssignments, jobs, quotes, recurringSeries, users } from "@/db/schema";
-import { and, eq, asc, desc, sql } from "drizzle-orm";
+import { and, eq, asc, desc, gte, sql } from "drizzle-orm";
 import { syncToGhl } from "@/lib/ghl/sync";
 import { resolveCustomerServiceArea } from "@/lib/service-area";
 import { isFieldEligible } from "@/lib/auth/field-staff";
@@ -204,9 +204,29 @@ export async function PATCH(
   }
 
   const [beforeLocations] = await Promise.all([db.select().from(customerLocations).where(and(eq(customerLocations.customerId, customerId), eq(customerLocations.companyId, admin.companyId)))]);
+  const today = new Date().toISOString().slice(0, 10);
+  const archiveDate = new Date();
+  let cancelledJobIds: string[] = [];
+  let endedSeriesIds: string[] = [];
 
   await db.transaction(async (tx) => {
     await tx.update(customers).set({ ...customerFields, updatedAt: new Date() }).where(eq(customers.id, customerId));
+
+    if (parsed.data.isArchived === true) {
+      const cancelledJobs = await tx
+        .update(jobs)
+        .set({ status: "cancelled", cancellationReason: "Customer archived", updatedAt: archiveDate })
+        .where(and(eq(jobs.customerId, customerId), eq(jobs.companyId, admin.companyId), eq(jobs.status, "scheduled"), gte(jobs.scheduledDate, today)))
+        .returning({ id: jobs.id });
+      cancelledJobIds = cancelledJobs.map((job) => job.id);
+
+      const endedSeries = await tx
+        .update(recurringSeries)
+        .set({ isActive: false, endDate: today, updatedAt: archiveDate })
+        .where(and(eq(recurringSeries.customerId, customerId), eq(recurringSeries.companyId, admin.companyId), eq(recurringSeries.isActive, true)))
+        .returning({ id: recurringSeries.id });
+      endedSeriesIds = endedSeries.map((series) => series.id);
+    }
 
     // All locations are saved together, not just the one being actively
     // edited — otherwise switching to a newly-added location and saving would
@@ -239,6 +259,30 @@ export async function PATCH(
     before: { customer, locations: beforeLocations },
     after: { ...customer, ...customerFields, locations: locations ?? beforeLocations },
   });
+
+  if (cancelledJobIds.length > 0) {
+    await db.insert(auditLog).values(cancelledJobIds.map((jobId) => ({
+      companyId: admin.companyId,
+      userId: admin.id,
+      action: "job.updated",
+      entityType: "job",
+      entityId: jobId,
+      before: { status: "scheduled" },
+      after: { status: "cancelled", cancellationReason: "Customer archived", customerArchived: true },
+    })));
+  }
+
+  if (endedSeriesIds.length > 0) {
+    await db.insert(auditLog).values(endedSeriesIds.map((seriesId) => ({
+      companyId: admin.companyId,
+      userId: admin.id,
+      action: "recurring_service.suspended",
+      entityType: "recurring_series",
+      entityId: seriesId,
+      before: { isActive: true },
+      after: { isActive: false, endDate: today, customerArchived: true },
+    })));
+  }
 
   if (!isArchiveOnly) {
     if (parsed.data.status === "lost") {

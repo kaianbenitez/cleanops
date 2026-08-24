@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.75",
+    date: "August 25, 2026",
+    title: "Archiving a customer clears upcoming visits",
+    changes: [
+      "When you archive a customer, all of their scheduled visits from today onward are cancelled automatically and marked with the reason Customer archived.",
+      "Recurring service generation also stops for archived customers, so new visits are not created after the archive.",
+    ],
+  },
+  {
     version: "v0.2.74",
     date: "August 21, 2026",
     title: "Proposal approvals now keep scheduling separate",
