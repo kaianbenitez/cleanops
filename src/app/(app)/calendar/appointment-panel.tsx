@@ -327,7 +327,7 @@ export default function AppointmentPanel({
                       <option key={option.value} value={option.value}>{option.label}</option>
                     ))}
                   </select>
-                  <span className="mt-1 block text-[11px] font-normal normal-case text-[var(--co-muted)]">Each attendee is paid for this amount of time.</span>
+                  <span className="mt-1 block text-[12px] font-normal normal-case text-[var(--co-muted)]">Each attendee is paid for this amount of time.</span>
                 </label>
               </div>
             )}
@@ -355,7 +355,7 @@ export default function AppointmentPanel({
                     placeholder="Search crew member by name…"
                   />
                 </div>
-                <span className="mt-1 block text-[11px] font-normal normal-case text-[var(--co-muted)]">
+                <span className="mt-1 block text-[12px] font-normal normal-case text-[var(--co-muted)]">
                   This blocks the selected crew member&apos;s time. It does not create a job or affect payroll.
                 </span>
               </div>

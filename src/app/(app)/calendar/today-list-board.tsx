@@ -311,7 +311,7 @@ export default function TodayListBoard({
                   <button type="button" onClick={() => setDetailJobId(job.id)} className="mt-2 inline-flex min-h-11 max-w-full items-center truncate text-left text-base font-semibold text-[var(--co-accent-text)] hover:underline">
                     {displayCustomer(job)}
                   </button>
-                  {readinessByJobId.get(job.id) ? <span className={`${readinessTone(readinessByJobId.get(job.id)!.primary)} mt-1 inline-flex rounded px-1.5 py-0.5 text-[10px] font-bold`} title={readinessByJobId.get(job.id)!.reasons.join("; ") || undefined}>{readinessByJobId.get(job.id)!.primary}</span> : null}
+                  {readinessByJobId.get(job.id) ? <span className={`${readinessTone(readinessByJobId.get(job.id)!.primary)} mt-1 inline-flex rounded px-1.5 py-0.5 text-[12px] font-bold`} title={readinessByJobId.get(job.id)!.reasons.join("; ") || undefined}>{readinessByJobId.get(job.id)!.primary}</span> : null}
                   <p className="mt-1 text-sm text-[var(--co-muted)]">{job.serviceName ?? jobTypeLabel(job)} · {formatEstimatedTime(job.estimatedDurationMinutes)}</p>
                 </div>
                 <button type="button" onClick={() => setDetailJobId(job.id)} className="min-h-11 shrink-0 rounded-lg border border-[var(--co-line)] px-3 text-xs font-semibold text-[var(--co-body)]">Details</button>
@@ -435,7 +435,7 @@ export default function TodayListBoard({
                     >
                       {displayCustomer(job)}
                     </button>
-                    {readinessByJobId.get(job.id) ? <span className={`${readinessTone(readinessByJobId.get(job.id)!.primary)} ml-2 rounded px-1.5 py-0.5 text-[10px] font-bold`} title={readinessByJobId.get(job.id)!.reasons.join("; ") || undefined}>{readinessByJobId.get(job.id)!.primary}</span> : null}
+                    {readinessByJobId.get(job.id) ? <span className={`${readinessTone(readinessByJobId.get(job.id)!.primary)} ml-2 rounded px-1.5 py-0.5 text-[12px] font-bold`} title={readinessByJobId.get(job.id)!.reasons.join("; ") || undefined}>{readinessByJobId.get(job.id)!.primary}</span> : null}
                     {ordinalByJobId.get(job.id) ? (
                       <span className="ml-2 rounded bg-[var(--co-accent-tint)] px-1.5 py-0.5 text-xs font-semibold text-[var(--co-accent-text)]">
                         {ordinalLabel(ordinalByJobId.get(job.id)!)}

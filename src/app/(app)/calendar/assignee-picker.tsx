@@ -115,7 +115,7 @@ export default function AssigneePicker({
 
       {open ? (
         <div id={popupId} role="dialog" aria-label="Assign crew" className="absolute left-0 top-full z-50 mt-1 w-64 rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-2 shadow-[var(--co-shadow-popover)]">
-          <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Assign crew</p>
+          <p className="px-1 pb-1 text-[12px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Assign crew</p>
           <input
             type="search"
             value={query}
@@ -147,9 +147,9 @@ export default function AssigneePicker({
                     >
                       <span className="truncate">
                         {employee.firstName} {employee.lastName}
-                        {employee.isActive === false ? <span className="ml-1 text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--co-muted)]">Inactive</span> : null}
+                        {employee.isActive === false ? <span className="ml-1 text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--co-muted)]">Inactive</span> : null}
                       </span>
-                      {checked ? <span className="ml-auto shrink-0 text-[10px] font-semibold text-[var(--co-accent-text)]">Assigned</span> : null}
+                      {checked ? <span className="ml-auto shrink-0 text-[12px] font-semibold text-[var(--co-accent-text)]">Assigned</span> : null}
                     </button>
                     {checked ? (
                       <button

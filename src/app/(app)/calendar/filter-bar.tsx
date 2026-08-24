@@ -90,7 +90,7 @@ export default function FilterBar({
         className="co-button-secondary relative flex h-11 w-11 shrink-0 items-center justify-center !p-0 !text-[var(--co-warning)]"
       >
         <AlertCircle className="h-3.5 w-3.5" aria-hidden />
-        {attentionCount > 0 ? <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--co-warning)] px-1 text-[10px] font-bold leading-none text-[var(--co-surface)]">{attentionCount}</span> : null}
+        {attentionCount > 0 ? <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--co-warning)] px-1 text-[12px] font-bold leading-none text-[var(--co-surface)]">{attentionCount}</span> : null}
       </button>
 
       {hasFilters ? <button type="button" onClick={clearAll} className="min-h-11 whitespace-nowrap px-2 text-xs font-semibold text-[var(--co-accent-text)] hover:underline">Clear filters</button> : null}

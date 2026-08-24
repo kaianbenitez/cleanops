@@ -258,7 +258,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
                 <label className="block text-xs font-semibold text-[var(--co-muted)]">Value<input type="number" min="0" step="0.01" value={draftPrice} onChange={(event) => setDraftPrice(event.target.value)} className="co-input mt-1 w-full" /></label>
                 <label className="block text-xs font-semibold text-[var(--co-muted)]">Cleaning duration (hours:minutes)<input type="text" inputMode="numeric" pattern="[0-9]{1,2}:[0-5][0-9]" placeholder="03:01" aria-describedby="calendar-duration-help" value={draftDuration} onChange={(event) => setDraftDuration(event.target.value)} className="co-input mt-1 w-full" /></label>
               </div>
-              <p id="calendar-duration-help" className="mt-2 text-[11px] leading-4 text-[var(--co-muted)]">Enter hours and minutes, such as 03:00. This sets the job block length on the calendar.</p>
+              <p id="calendar-duration-help" className="mt-2 text-[12px] leading-4 text-[var(--co-muted)]">Enter hours and minutes, such as 03:00. This sets the job block length on the calendar.</p>
             </section>
 
             <div>
