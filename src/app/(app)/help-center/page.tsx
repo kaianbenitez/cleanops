@@ -7,6 +7,31 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.91",
+    date: "August 24, 2026",
+    title: "Payroll table is easier to scan and needs less scrolling",
+    changes: [
+      "The employee table now groups related numbers together (hours, base pay, mileage, tips & bonuses) instead of spreading them across 12 separate columns, so it fits on a normal laptop screen without side-scrolling.",
+      "Approvals that need your attention now show up above the summary numbers, so you see what needs action first.",
+      "The 'Total commission' column is renamed 'Base pay' since it was already showing office pay for hourly staff, not just commission — this was a confusing label, now fixed.",
+      "Removed a second stat panel at the bottom of the page that just repeated numbers already shown above.",
+      "The summary numbers no longer flash a row of zeros while the page is loading.",
+      "Fixed a leftover width rule that was forcing the table to scroll sideways even after the column cleanup above — verified in the browser that it now needs zero side-scroll on any normal-size laptop or desktop window.",
+    ],
+  },
+  {
+    version: "v0.2.90",
+    date: "August 24, 2026",
+    title: "Payroll page is easier to use with a keyboard or screen reader",
+    changes: [
+      "Editable hours, mileage, and bonus fields on the Payroll page now reliably show the saved value after you make a change, instead of sometimes showing what you typed before it was saved.",
+      "The employee row and 'Details' toggles now announce whether they're open or closed to screen readers, and the keyboard focus outline on editable fields is visible again.",
+      "The disabled 'Export blocked' control is now a real button people can tab to, and both payroll tables have hidden labels screen readers can announce.",
+      "The payroll table needs less scrolling on common laptop screens, and the small badge/label text is a bit larger and easier to read.",
+      "Opening and closing an employee's job details on the Payroll page is now snappier on periods with a lot of employees, since it no longer has to redraw every other row on screen.",
+    ],
+  },
+  {
     version: "v0.2.89",
     date: "August 24, 2026",
     title: "Customer profiles can now hold alarm and access details",

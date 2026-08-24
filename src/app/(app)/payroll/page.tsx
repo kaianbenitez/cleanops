@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, memo, useCallback, useEffect, useRef, useState } from "react";
 
 type Calculation = {
   jobId: string;
@@ -99,9 +99,9 @@ function SmallStat({ label, value, sub }: { label: string; value: string; sub: s
   );
 }
 
-function Metric({ label, value, hint }: { label: string; value: string; hint: string }) {
+function Metric({ label, value, hint, className }: { label: string; value: string; hint: string; className?: string }) {
   return (
-    <div className="co-card p-5">
+    <div className={`co-card p-5 ${className ?? ""}`}>
       <p className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--co-muted)]">{label}</p>
       <p className="mt-2 text-2xl font-semibold tracking-[-0.04em]">{value}</p>
       <p className="mt-1 text-xs text-[var(--co-muted)]">{hint}</p>
@@ -120,18 +120,9 @@ function EditableCell({ value, onSave, prefix, suffix, label }: { value: string;
         min="0"
         defaultValue={value}
         onBlur={(event) => onSave(Number(event.target.value || 0))}
-        className="min-h-11 w-20 border-b border-dashed border-[var(--co-line)] bg-transparent text-right outline-none focus:border-[var(--co-accent-text)]"
+        className="min-h-11 w-20 border-b border-dashed border-[var(--co-line)] bg-transparent text-right focus:border-[var(--co-accent-text)] focus-visible:outline-2 focus-visible:outline-[var(--co-accent-text)] focus-visible:outline-offset-2"
       />
       <span className="text-[var(--co-muted)]">{suffix}</span>
-    </div>
-  );
-}
-
-function ReviewFlag({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-[var(--co-line-soft)] p-3">
-      <p className="text-xs text-[var(--co-muted)]">{label}</p>
-      <p className="mt-1 text-sm font-medium">{value}</p>
     </div>
   );
 }
@@ -178,6 +169,9 @@ function PayrollDetail({
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1020px] text-left text-xs">
+          <caption className="sr-only">
+            Job-level calculations for {line.firstName} {line.lastName}
+          </caption>
           <thead className="border-b border-[var(--co-line)] text-[var(--co-muted)]">
             <tr>
               <th className="py-2">Date</th>
@@ -215,10 +209,10 @@ function PayrollDetail({
                 </td>
                 <td className="py-3">
                   {calculation.isAppointment ? (
-                    <span className="co-badge-spark rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]">meeting</span>
+                    <span className="co-badge-spark rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em]">meeting</span>
                   ) : (
                     <span
-                      className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] ${
                         calculation.crewRole === "lead"
                           ? "co-badge-success"
                           : "co-badge-neutral"
@@ -231,7 +225,7 @@ function PayrollDetail({
                 <td className="py-3 text-[var(--co-muted)]">{calculation.isAppointment ? "Internal meeting" : calculation.cleaningType.replaceAll("_", " ")}</td>
                 <td className="py-3 text-right">{(calculation.budgetHours ?? ((calculation.estimatedMinutes ?? 0) / 60)).toFixed(2)}</td>
                 <td className="py-3 text-right font-medium">{(calculation.hoursSpent ?? 0).toFixed(2)}</td>
-                <td className="py-3 text-right font-medium">{(calculation.paidHours ?? calculation.budgetHours ?? 0).toFixed(2)} {calculation.varianceStatus ? <span className="co-badge-warning ml-1 rounded px-1 text-[10px]">{calculation.varianceStatus}</span> : null}</td>
+                <td className="py-3 text-right font-medium">{(calculation.paidHours ?? calculation.budgetHours ?? 0).toFixed(2)} {calculation.varianceStatus ? <span className="co-badge-warning ml-1 rounded px-1 text-xs">{calculation.varianceStatus}</span> : null}</td>
                 <td className="py-3 text-right">{dollars(calculation.rateCents)}</td>
                 <td className="py-3 text-right">{dollars(calculation.averageCentsPerHour ?? 0)}</td>
                 <td className="py-3 text-right font-medium">{dollars(calculation.amountCents)}</td>
@@ -256,16 +250,125 @@ function PayrollDetail({
   );
 }
 
+const PayrollMobileCard = memo(function PayrollMobileCard({
+  line,
+  expanded,
+  toggleLine,
+}: {
+  line: Line;
+  expanded: boolean;
+  toggleLine: (id: string) => void;
+}) {
+  const detailId = `payroll-detail-mobile-${line.id}`;
+  return (
+    <article className="space-y-4 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <button type="button" onClick={() => toggleLine(line.id)} aria-expanded={expanded} aria-controls={detailId} className="min-h-11 text-left font-semibold text-[var(--co-ink)]">
+            {line.firstName} {line.lastName}
+          </button>
+          <p className="mt-1 text-sm text-[var(--co-muted)]">{line.title || "Team member"} · {line.jobsCount} job{line.jobsCount === 1 ? "" : "s"}</p>
+        </div>
+        <p className="text-right text-lg font-semibold">{dollars(line.finalCents)}</p>
+      </div>
+      <p className="text-sm text-[var(--co-muted)]">{line.payType === "commission_jth" ? "Job ticket hours" : "Office hourly"} · {line.calculation.length} job details</p>
+      <button type="button" onClick={() => toggleLine(line.id)} aria-expanded={expanded} aria-controls={detailId} className="min-h-11 w-full rounded-[var(--co-radius-control)] border border-[var(--co-line)] px-3 text-sm font-semibold text-[var(--co-accent-text)]">
+        {expanded ? "Hide job details" : "View job details"}
+      </button>
+      {expanded ? <div id={detailId} className="overflow-x-auto"><PayrollDetail line={line} /></div> : null}
+    </article>
+  );
+});
+
+const PayrollRow = memo(function PayrollRow({
+  line,
+  expanded,
+  toggleLine,
+  updateLine,
+}: {
+  line: Line;
+  expanded: boolean;
+  toggleLine: (id: string) => void;
+  updateLine: (id: string, fields: Record<string, number>) => Promise<void>;
+}) {
+  const clockedHours = line.payType === "commission_jth" ? Number(line.regularHours) : Number(line.officeHours);
+  const manualOfficeHours = line.payType === "office_hourly" ? Number(line.manualOfficeHours) : 0;
+  const totalPaidHours = clockedHours + manualOfficeHours;
+  const commission = line.payType === "commission_jth" ? line.commissionCents : line.officePayCents;
+  const bonuses = line.bonusCents + line.teamLeadBonusCents + line.trainerBonusCents + line.trainingCents;
+  const tips = line.clientTipsCents + line.tipsPaycheckCents + line.tipsCashCents;
+  const mileageEligible = line.calculation.some((entry) => entry.crewRole === "lead");
+  const workTypeLabel = line.payType === "commission_jth" ? "Job ticket hours" : "Office hourly";
+  const detailId = `payroll-detail-${line.id}`;
+  return (
+    <Fragment>
+      <tr className="hover:bg-[var(--co-surface-muted)]/50">
+        <td className="px-3 py-4 xl:px-5">
+          <button type="button" onClick={() => toggleLine(line.id)} aria-expanded={expanded} aria-controls={detailId} className="text-left font-semibold text-[var(--co-ink)]">
+            {line.calculation.length ? (expanded ? "▾ " : "▸ ") : ""}
+            {line.firstName} {line.lastName}
+          </button>
+          <span className="mt-1 block text-xs text-[var(--co-muted)]">
+            {workTypeLabel} · {line.title || "Team member"} · {line.jobsCount} job{line.jobsCount === 1 ? "" : "s"}
+          </span>
+        </td>
+        <td className="px-3 py-4 xl:px-5 text-right">
+          <div className="font-medium">{totalPaidHours.toFixed(2)} hrs</div>
+          <div className="text-xs text-[var(--co-muted)]">{clockedHours.toFixed(2)} clocked</div>
+        </td>
+        <td className="px-3 py-4 xl:px-5 text-right">
+          {line.role === "admin" && line.payType === "office_hourly" ? (
+            <EditableCell key={`manual-${line.id}-${line.manualOfficeHours}`} label={`${line.firstName} ${line.lastName} manual office hours`} value={line.manualOfficeHours} onSave={(value) => updateLine(line.id, { manualOfficeHours: value })} suffix=" hrs" />
+          ) : (
+            <span className="text-[var(--co-muted)]">—</span>
+          )}
+        </td>
+        <td className="px-3 py-4 xl:px-5 text-right">
+          <div className="font-medium">{dollars(commission)}</div>
+          {line.hourlyRateCents ? <div className="text-xs text-[var(--co-muted)]">{dollars(line.hourlyRateCents)}/hr</div> : null}
+        </td>
+        <td className="px-3 py-4 xl:px-5 text-right">
+          {mileageEligible ? (
+            <EditableCell key={`mileage-${line.id}-${line.mileageMiles}`} label={`${line.firstName} ${line.lastName} mileage miles`} value={line.mileageMiles} onSave={(value) => updateLine(line.id, { mileageMiles: value })} suffix=" mi" />
+          ) : (
+            <div className="text-right">
+              <div className="font-medium text-[var(--co-ink)]">{line.mileageMiles} mi</div>
+              <div className="text-xs text-[var(--co-muted)]">Lead row only</div>
+            </div>
+          )}
+        </td>
+        <td className="px-3 py-4 xl:px-5 text-right">
+          <div className="text-xs text-[var(--co-muted)]">{dollars(tips)} tips</div>
+          <EditableCell key={`bonus-${line.id}-${bonuses}`} label={`${line.firstName} ${line.lastName} bonuses`} value={dollars(bonuses)} onSave={(value) => updateLine(line.id, { bonusCents: Math.round(value * 100) })} prefix="$" suffix=" bonus" />
+        </td>
+        <td className="px-3 py-4 xl:px-5 text-right font-semibold">{dollars(line.finalCents)}</td>
+        <td className="px-3 py-4 xl:px-5 text-right">
+          <button type="button" className="min-h-11 min-w-11 px-2 text-xs font-medium text-[var(--co-accent-text)]" aria-expanded={expanded} aria-controls={detailId} onClick={() => toggleLine(line.id)}>
+            {expanded ? "Hide" : "Details"}
+          </button>
+        </td>
+      </tr>
+      {expanded ? (
+        <tr id={detailId}>
+          <td colSpan={8} className="bg-[var(--co-surface-muted)]/60 px-5 py-5">
+            <PayrollDetail line={line} />
+          </td>
+        </tr>
+      ) : null}
+    </Fragment>
+  );
+});
+
 function PayrollTable({
   lines,
   expandedLineId,
-  setExpandedLineId,
+  toggleLine,
   updateLine,
   totalPay,
 }: {
   lines: Line[];
   expandedLineId: string | null;
-  setExpandedLineId: (id: string | null) => void;
+  toggleLine: (id: string) => void;
   updateLine: (id: string, fields: Record<string, number>) => Promise<void>;
   totalPay: number;
 }) {
@@ -280,102 +383,36 @@ function PayrollTable({
       </div>
 
       <div className="divide-y divide-[var(--co-line-soft)] border-t border-[var(--co-line-soft)] sm:hidden">
-        {lines.map((line) => <article key={line.id} className="space-y-4 p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><button type="button" onClick={() => setExpandedLineId(expandedLineId === line.id ? null : line.id)} className="min-h-11 text-left font-semibold text-[var(--co-ink)]">{line.firstName} {line.lastName}</button><p className="mt-1 text-sm text-[var(--co-muted)]">{line.title || "Team member"} · {line.jobsCount} job{line.jobsCount === 1 ? "" : "s"}</p></div><p className="text-right text-lg font-semibold">{dollars(line.finalCents)}</p></div><p className="text-sm text-[var(--co-muted)]">{line.payType === "commission_jth" ? "Job ticket hours" : "Office hourly"} · {line.calculation.length} job details</p><button type="button" onClick={() => setExpandedLineId(expandedLineId === line.id ? null : line.id)} className="min-h-11 w-full rounded-[var(--co-radius-control)] border border-[var(--co-line)] px-3 text-sm font-semibold text-[var(--co-accent-text)]">{expandedLineId === line.id ? "Hide job details" : "View job details"}</button>{expandedLineId === line.id ? <div className="overflow-x-auto"><PayrollDetail line={line} /></div> : null}</article>)}
+        {lines.map((line) => (
+          <PayrollMobileCard key={line.id} line={line} expanded={expandedLineId === line.id} toggleLine={toggleLine} />
+        ))}
       </div>
       <div className="hidden overflow-x-auto sm:block">
-        <table className="w-full min-w-[1320px] text-left text-sm">
+        <table className="w-full text-left text-sm">
+          <caption className="sr-only">Payroll summary by employee, with pay breakdown and totals</caption>
           <thead className="bg-[var(--co-accent-fill)] text-xs uppercase tracking-[0.08em] text-white">
             <tr>
-              <th className="px-5 py-3">Employee</th>
-              <th className="px-5 py-3">Work type</th>
-              <th className="px-5 py-3 text-right">Clocked hours</th>
-              <th className="px-5 py-3 text-right">Manual office hrs</th>
-              <th className="px-5 py-3 text-right">Total paid hours</th>
-              <th className="px-5 py-3 text-right">Hourly rate</th>
-              <th className="px-5 py-3 text-right">Total commission</th>
-              <th className="px-5 py-3 text-right">Mileage</th>
-              <th className="px-5 py-3 text-right">Tips</th>
-              <th className="px-5 py-3 text-right">Bonuses</th>
-              <th className="px-5 py-3 text-right">Total pay</th>
-              <th className="px-5 py-3" />
+              <th className="px-3 py-3 xl:px-5">Employee</th>
+              <th className="px-3 py-3 xl:px-5 text-right">Hours</th>
+              <th className="px-3 py-3 xl:px-5 text-right">Manual office hrs</th>
+              <th className="px-3 py-3 xl:px-5 text-right">Base pay</th>
+              <th className="px-3 py-3 xl:px-5 text-right">Mileage</th>
+              <th className="px-3 py-3 xl:px-5 text-right">Tips &amp; bonuses</th>
+              <th className="px-3 py-3 xl:px-5 text-right">Total pay</th>
+              <th className="px-3 py-3 xl:px-5" />
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--co-line-soft)]">
-            {lines.map((line) => {
-              const clockedHours = line.payType === "commission_jth" ? Number(line.regularHours) : Number(line.officeHours);
-              const manualOfficeHours = line.payType === "office_hourly" ? Number(line.manualOfficeHours) : 0;
-              const totalPaidHours = clockedHours + manualOfficeHours;
-              const commission = line.payType === "commission_jth" ? line.commissionCents : line.officePayCents;
-              const bonuses = line.bonusCents + line.teamLeadBonusCents + line.trainerBonusCents + line.trainingCents;
-              const mileageEligible = line.calculation.some((entry) => entry.crewRole === "lead");
-              const expanded = expandedLineId === line.id;
-              return (
-                <Fragment key={line.id}>
-                  <tr className="hover:bg-[var(--co-surface-muted)]/50">
-                    <td className="px-5 py-4">
-                      <button onClick={() => setExpandedLineId(expanded ? null : line.id)} className="text-left font-semibold text-[var(--co-ink)]">
-                        {line.calculation.length ? (expanded ? "▾ " : "▸ ") : ""}
-                        {line.firstName} {line.lastName}
-                      </button>
-                      <span className="mt-1 block text-xs text-[var(--co-muted)]">
-                        {line.title || "Team member"} · {line.jobsCount} job{line.jobsCount === 1 ? "" : "s"}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-[var(--co-muted)]">{line.payType === "commission_jth" ? "Job ticket hours" : "Office hourly"}</td>
-                    <td className="px-5 py-4 text-right font-medium">{clockedHours.toFixed(2)}</td>
-                    <td className="px-5 py-4 text-right">
-                      {line.role === "admin" && line.payType === "office_hourly" ? (
-                        <EditableCell label={`${line.firstName} ${line.lastName} manual office hours`} value={line.manualOfficeHours} onSave={(value) => updateLine(line.id, { manualOfficeHours: value })} suffix=" hrs" />
-                      ) : (
-                        <span className="text-[var(--co-muted)]">—</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4 text-right font-medium">{totalPaidHours.toFixed(2)}</td>
-                    <td className="px-5 py-4 text-right text-[var(--co-muted)]">{line.hourlyRateCents ? dollars(line.hourlyRateCents) : "—"}</td>
-                    <td className="px-5 py-4 text-right font-medium">{dollars(commission)}</td>
-                    <td className="px-5 py-4 text-right">
-                      {mileageEligible ? (
-                        <EditableCell label={`${line.firstName} ${line.lastName} mileage miles`} value={line.mileageMiles} onSave={(value) => updateLine(line.id, { mileageMiles: value })} suffix=" mi" />
-                      ) : (
-                        <div className="text-right">
-                          <div className="font-medium text-[var(--co-ink)]">{line.mileageMiles} mi</div>
-                          <div className="text-[10px] text-[var(--co-muted)]">Lead row only</div>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <div className="text-right">
-                        <div className="font-medium">{dollars(line.clientTipsCents + line.tipsPaycheckCents + line.tipsCashCents)}</div>
-                        <div className="text-[10px] text-[var(--co-muted)]">Client + manual</div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <EditableCell label={`${line.firstName} ${line.lastName} bonuses`} value={dollars(bonuses)} onSave={(value) => updateLine(line.id, { bonusCents: Math.round(value * 100) })} prefix="$" />
-                    </td>
-                    <td className="px-5 py-4 text-right font-semibold">{dollars(line.finalCents)}</td>
-                    <td className="px-5 py-4 text-right">
-                      <button type="button" className="min-h-11 min-w-11 px-2 text-xs font-medium text-[var(--co-accent-text)]" onClick={() => setExpandedLineId(expanded ? null : line.id)}>
-                        {expanded ? "Hide" : "Details"}
-                      </button>
-                    </td>
-                  </tr>
-                  {expanded ? (
-                    <tr>
-                      <td colSpan={12} className="bg-[var(--co-surface-muted)]/60 px-5 py-5">
-                        <PayrollDetail line={line} />
-                      </td>
-                    </tr>
-                  ) : null}
-                </Fragment>
-              );
-            })}
+            {lines.map((line) => (
+              <PayrollRow key={line.id} line={line} expanded={expandedLineId === line.id} toggleLine={toggleLine} updateLine={updateLine} />
+            ))}
           </tbody>
           <tfoot className="border-t-2 border-[var(--co-accent-text)] bg-[var(--co-surface-muted)]">
             <tr>
-              <td className="px-5 py-4 font-semibold" colSpan={11}>
+              <td className="px-3 py-4 xl:px-5 font-semibold" colSpan={6}>
                 Total payroll
               </td>
-              <td className="px-5 py-4 text-right text-lg font-semibold">{dollars(totalPay)}</td>
+              <td className="px-3 py-4 xl:px-5 text-right text-lg font-semibold">{dollars(totalPay)}</td>
               <td />
             </tr>
           </tfoot>
@@ -397,6 +434,14 @@ export default function PayrollPage() {
   const [error, setError] = useState<string | null>(null);
   const weekEnd = addDaysISO(weekStart, 6);
   const payDate = addDaysISO(weekEnd, 5);
+  const linesRef = useRef<Line[]>(lines);
+  useEffect(() => {
+    linesRef.current = lines;
+  }, [lines]);
+
+  const toggleLine = useCallback((id: string) => {
+    setExpandedLineId((current) => (current === id ? null : id));
+  }, []);
 
   const loadDetail = useCallback(async (periodId: string) => {
     const response = await fetch(`/api/payroll-periods/${periodId}`, { cache: "no-store" });
@@ -450,9 +495,9 @@ export default function PayrollPage() {
     setGenerating(false);
   }
 
-  async function updateLine(lineId: string, fields: Record<string, number>) {
+  const updateLine = useCallback(async (lineId: string, fields: Record<string, number>) => {
     if (!period) return;
-    const current = lines.find((line) => line.id === lineId);
+    const current = linesRef.current.find((line) => line.id === lineId);
     const normalized = { ...fields };
     if (current && fields.tipsPaycheckCents !== undefined) normalized.tipsPaycheckCents = Math.max(0, fields.tipsPaycheckCents - current.tipsCashCents);
     if (current && fields.bonusCents !== undefined) normalized.bonusCents = Math.max(0, fields.bonusCents - current.teamLeadBonusCents - current.trainerBonusCents - current.trainingCents);
@@ -463,7 +508,7 @@ export default function PayrollPage() {
       return;
     }
     await loadDetail(period.id);
-  }
+  }, [period, loadDetail]);
 
   async function decideReview(reviewId: string, status: "approved" | "rejected", approvedMinutes?: number) {
     if (!period) return;
@@ -497,13 +542,6 @@ export default function PayrollPage() {
   const totalMiles = lines.reduce((sum, line) => sum + Number(line.mileageMiles), 0);
   const reviewedCount = lines.filter((line) => line.calculation.length > 0).length;
 
-  const quickFlags = [
-    { label: "Employees", value: `${lines.length} included` },
-    { label: "Reviewed jobs", value: `${reviewedCount} with detail` },
-    { label: "Total tips", value: dollars(totalTips) },
-    { label: "Manual audit", value: "Payroll edits logged" },
-  ];
-
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -527,9 +565,15 @@ export default function PayrollPage() {
               Export Gusto CSV
             </a>
           ) : (
-            <span className="co-button-secondary cursor-not-allowed opacity-60" title={period.status === "open" ? "Approve the period before exporting." : "Resolve export blockers before exporting."}>
+            <button
+              type="button"
+              aria-disabled="true"
+              title={period.status === "open" ? "Approve the period before exporting." : "Resolve export blockers before exporting."}
+              onClick={(event) => event.preventDefault()}
+              className="co-button-secondary cursor-not-allowed opacity-60"
+            >
               Export blocked
-            </span>
+            </button>
           ) : null}
         </div>
       </header>
@@ -585,16 +629,6 @@ export default function PayrollPage() {
         </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-        <Metric label="Employees" value={String(lines.length)} hint="included in this period" />
-        <Metric label="Total paid hours" value={totalPaidHours.toFixed(2)} hint="clocked + manual office time" />
-        <Metric label="Commission" value={dollars(totalCommission)} hint="service-based pay" />
-        <Metric label="Tips" value={dollars(totalTips)} hint="client + manual tips" />
-        <Metric label="Bonuses" value={dollars(totalBonuses)} hint="lead + trainer + training" />
-        <Metric label="Mileage" value={`${totalMiles.toFixed(1)} mi`} hint="editable reimbursement" />
-        <Metric label="Total pay" value={dollars(totalPay)} hint="ready for Gusto entry" />
-      </section>
-
       {loading ? (
         <div className="co-card p-10 text-center text-sm text-[var(--co-muted)]">Loading payroll…</div>
       ) : lines.length === 0 ? (
@@ -605,25 +639,26 @@ export default function PayrollPage() {
       ) : (
         <>
           <ReviewQueue reviews={jobReviews} lines={lines} onDecide={decideReview} />
-          <PayrollTable lines={lines} expandedLineId={expandedLineId} setExpandedLineId={setExpandedLineId} updateLine={updateLine} totalPay={totalPay} />
-        </>
-      )}
 
-      {lines.length > 0 ? (
-        <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="co-card p-5">
-            <p className="eyebrow">Review notes</p>
-            <h2 className="mt-1 text-lg font-semibold">Before paying Friday morning</h2>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {quickFlags.map((flag) => (
-                <ReviewFlag key={flag.label} label={flag.label} value={flag.value} />
-              ))}
-            </div>
-          </div>
+          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+            <Metric label="Employees" value={String(lines.length)} hint="included in this period" />
+            <Metric label="Total paid hours" value={totalPaidHours.toFixed(2)} hint="clocked + manual office time" />
+            <Metric label="Commission" value={dollars(totalCommission)} hint="service-based pay" />
+            <Metric label="Tips" value={dollars(totalTips)} hint="client + manual tips" />
+            <Metric label="Bonuses" value={dollars(totalBonuses)} hint="lead + trainer + training" />
+            <Metric label="Mileage" value={`${totalMiles.toFixed(1)} mi`} hint="editable reimbursement" />
+            <Metric label="Total pay" value={dollars(totalPay)} hint="ready for Gusto entry" className="lg:col-start-3 lg:col-span-2 xl:col-start-auto xl:col-span-1" />
+          </section>
 
-          <div className="co-card p-5">
-            <p className="eyebrow">Next steps</p>
-            <div className="mt-4 space-y-3 text-sm">
+          <PayrollTable lines={lines} expandedLineId={expandedLineId} toggleLine={toggleLine} updateLine={updateLine} totalPay={totalPay} />
+
+          <section className="co-card p-5">
+            <p className="eyebrow">Before paying Friday morning</p>
+            <h2 className="mt-1 text-lg font-semibold">Final checks</h2>
+            <p className="mt-2 text-sm text-[var(--co-muted)]">
+              {reviewedCount} of {lines.length} employee{lines.length === 1 ? "" : "s"} have job-level detail available to review.
+            </p>
+            <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
               <p>
                 <Step number="1" />
                 Review expanded job rows and adjust manual entries.
@@ -641,9 +676,9 @@ export default function PayrollPage() {
               <p className="text-xs uppercase tracking-[0.12em] text-[var(--co-muted)]">Payroll status</p>
               <p className="mt-1 font-medium">{period?.status === "open" ? "Changes are still live." : "This period is locked unless reopened."}</p>
             </div>
-          </div>
-        </section>
-      ) : null}
+          </section>
+        </>
+      )}
     </div>
   );
 }
