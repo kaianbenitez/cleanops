@@ -248,19 +248,29 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
     });
   }, [load]);
 
+  const roomTypesFetchedRef = useRef(false);
   useEffect(() => {
+    if (mode !== "edit" || roomTypesFetchedRef.current) return;
+    roomTypesFetchedRef.current = true;
     fetch("/api/room-types")
       .then((response) => response.json())
       .then((body) => setRoomTypes(body.roomTypes ?? []))
-      .catch(() => {});
-  }, []);
+      .catch(() => {
+        roomTypesFetchedRef.current = false;
+      });
+  }, [mode]);
 
+  const employeesFetchedRef = useRef(false);
   useEffect(() => {
+    if (mode !== "edit" || employeesFetchedRef.current) return;
+    employeesFetchedRef.current = true;
     fetch("/api/employees")
       .then((response) => response.json())
       .then((body) => setEmployees(body.employees ?? []))
-      .catch(() => {});
-  }, []);
+      .catch(() => {
+        employeesFetchedRef.current = false;
+      });
+  }, [mode]);
 
   const location = locations[activeLocationIndex] ?? null;
   const equipmentCustomer = customer as EquipmentCustomer | null;
