@@ -88,11 +88,21 @@ const SERVICE_BULLETS: Record<string, string[]> = {
   move_in_out: ["Full top-to-bottom deep clean", "Oven clean out included by default", "Fridge clean out included by default", "Window cleaning available as an add-on"],
 };
 
+// A small categorical palette for telling add-on icon tiles apart at a
+// glance — same reasoning as calendar/shared.ts's EMPLOYEE_PALETTE, not a
+// borrow from the unrelated chart-series token family.
+const ADD_ON_ACCENT = {
+  windows: "#0e7490",
+  oven: "#c2410c",
+  fridge: "#475569",
+  baseboards: "#78716c",
+} as const;
+
 const ADD_ON_STYLES: Record<AddOnKey, { icon: LucideIcon; color: string }> = {
-  inside_windows: { icon: PanelsTopLeft, color: "var(--chart-1)" },
-  oven_interior: { icon: Flame, color: "var(--chart-4)" },
-  fridge_interior: { icon: Refrigerator, color: "var(--chart-3)" },
-  baseboards: { icon: Ruler, color: "var(--chart-2)" },
+  inside_windows: { icon: PanelsTopLeft, color: ADD_ON_ACCENT.windows },
+  oven_interior: { icon: Flame, color: ADD_ON_ACCENT.oven },
+  fridge_interior: { icon: Refrigerator, color: ADD_ON_ACCENT.fridge },
+  baseboards: { icon: Ruler, color: ADD_ON_ACCENT.baseboards },
   cabinet_fronts: { icon: LayoutGrid, color: "var(--co-accent-text)" },
   laundry: { icon: Shirt, color: "var(--co-warning)" },
 };
@@ -430,7 +440,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                       } ${locked ? "cursor-default opacity-75" : ""}`}
                     >
                       {index === 1 ? (
-                        <span className="absolute -top-3 left-4 rounded-full bg-[var(--co-accent-fill)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-white">
+                        <span className="absolute -top-3 left-4 rounded-full bg-[var(--co-accent-fill)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-white">
                           Most popular
                         </span>
                       ) : null}
@@ -732,7 +742,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
         {!locked ? (
           <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--co-line-soft)] bg-[var(--co-surface)]/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden">
             <div className="mx-auto flex max-w-7xl items-center gap-3">
-              <div className="min-w-0 flex-1"><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Current total</p><p className="truncate text-lg font-semibold">{dollars(displayedTotalCents)}</p></div>
+              <div className="min-w-0 flex-1"><p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Current total</p><p className="truncate text-lg font-semibold">{dollars(displayedTotalCents)}</p></div>
               <button onClick={accept} disabled={accepting} className="co-button-primary min-h-11 shrink-0">{accepting ? "Approving..." : "Approve proposal"}</button>
             </div>
           </div>

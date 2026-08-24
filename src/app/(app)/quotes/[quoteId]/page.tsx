@@ -304,6 +304,18 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
         </section>
 
         <aside className="space-y-5">
+          {quote.bookedAt ? (
+            <PageCard title="Booked">
+              <div className="rounded-xl border border-[var(--co-success)]/30 bg-[var(--co-success)]/10 p-4 text-sm">
+                <p className="font-semibold text-[var(--co-success)]">This job is on the calendar</p>
+                <p className="mt-1 text-[var(--co-muted)]">The cleaning has been scheduled — no further action needed here.</p>
+              </div>
+              <Link href="/calendar" className="co-button-secondary mt-3 w-full justify-center">Open calendar</Link>
+            </PageCard>
+          ) : (
+            <BookJobPanel quoteId={quoteId} quoteStatus={quote.status} serviceType={selectedServiceType} customerName={customerName} address={customerAddress} serviceLabel={LABELS[selectedServiceType] ?? selectedServiceType} priceLabel={dollars(tiers.find(([type]) => type === selectedServiceType)?.[1].finalCents ?? quote.totalCents)} branchName={locationName} totalJthMinutes={(() => { const tier = tiers.find(([type]) => type === selectedServiceType)?.[1]; return tier && hourlyRateCents ? Math.round((tier.finalCents / hourlyRateCents) * 60) : null; })()} onBooked={(redirectTo) => router.push(redirectTo)} />
+          )}
+
           {quote.status !== "draft" || publicUrl ? (
             <PageCard title="Share quote">
               {publicUrl ? (
@@ -321,22 +333,16 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
             </PageCard>
           ) : null}
 
-          {quote.bookedAt ? (
-            <PageCard title="Booked"><Link href="/calendar" className="co-button-secondary w-full justify-center">Open calendar</Link></PageCard>
-          ) : (
-            <BookJobPanel quoteId={quoteId} quoteStatus={quote.status} serviceType={selectedServiceType} customerName={customerName} address={customerAddress} serviceLabel={LABELS[selectedServiceType] ?? selectedServiceType} priceLabel={dollars(tiers.find(([type]) => type === selectedServiceType)?.[1].finalCents ?? quote.totalCents)} branchName={locationName} totalJthMinutes={(() => { const tier = tiers.find(([type]) => type === selectedServiceType)?.[1]; return tier && hourlyRateCents ? Math.round((tier.finalCents / hourlyRateCents) * 60) : null; })()} onBooked={(redirectTo) => router.push(redirectTo)} />
-          )}
-
           <PageCard title="Quote activity">
             {bookingOverride ? (
-              <div className="co-badge-warning mb-3 px-4 py-3 text-sm">
+              <div className="co-badge-warning mb-3 rounded-xl px-4 py-3 text-sm">
                 <p className="font-semibold">Accepted by staff — no customer signature</p>
                 <p className="mt-1">{bookingOverride.reason}</p>
                 <p className="mt-1 text-xs">Scheduled <LocalDateTime value={bookingOverride.bookedAt} />{bookingOverride.staffName ? ` by ${bookingOverride.staffName}` : ""}.</p>
               </div>
             ) : null}
             {acceptanceActivity ? (
-              <div className="co-badge-success mb-3 px-4 py-3 text-sm">
+              <div className="co-badge-success mb-3 rounded-xl px-4 py-3 text-sm">
                 <p className="font-semibold">Customer approved the proposal</p>
                 <p className="mt-1">{acceptanceActivity.after?.desiredCleaningDate ? `Preferred date: ${acceptanceActivity.after.desiredCleaningDate}. ` : "No preferred date was provided. "}Approval does not schedule a cleaning.</p>
                 <p className="mt-1 text-xs"><LocalDateTime value={acceptanceActivity.createdAt} /></p>
@@ -356,12 +362,11 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
                 <p className="mt-2 text-sm font-medium"><LocalDateTime value={quote.acceptedAt} fallback="No response yet" /></p>
               </div>
               <div className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Viewed count</p>
-                <p className="mt-2 text-sm font-medium">{quote.viewCount ?? 0} times</p>
-              </div>
-              <div className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Last viewed</p>
                 <p className="mt-2 text-sm font-medium"><LocalDateTime value={quote.lastViewedAt} fallback="Not viewed yet" /></p>
+                {quote.viewCount ? (
+                  <p className="mt-1 text-xs text-[var(--co-muted)]">{quote.viewCount} {quote.viewCount === 1 ? "view" : "views"} total</p>
+                ) : null}
               </div>
             </div>
           </PageCard>
