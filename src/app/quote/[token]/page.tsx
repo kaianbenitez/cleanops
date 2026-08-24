@@ -714,7 +714,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
 
             <section className="rounded-[28px] bg-[var(--co-accent-fill)] p-6 text-white shadow-[0_18px_60px_rgba(36,87,255,0.2)]">
               <p className="text-sm font-semibold text-white">You&apos;re in good hands</p>
-              <p className="mt-3 text-sm leading-7 text-white/80">
+              <p className="mt-3 text-sm leading-7 text-white/90">
                 Background-checked and trained pros, thoughtful communication, and a service standard built to make your home feel calm and cared for.
               </p>
               <div className="mt-6 grid gap-3 text-sm text-white/90">
