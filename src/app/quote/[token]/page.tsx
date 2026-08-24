@@ -184,6 +184,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
   const [accepting, setAccepting] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [signatureInvalid, setSignatureInvalid] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [openFaq, setOpenFaq] = useState<string | null>(FAQS[0].q);
   const [selectedAddOns, setSelectedAddOns] = useState<SelectedAddOn[]>([]);
@@ -235,6 +236,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
 
   async function accept() {
     setError(null);
+    setSignatureInvalid(false);
     const serviceType = selectedType ?? recurringFrequency;
     if (!serviceType) {
       setError("Choose a service option first.");
@@ -246,6 +248,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
     }
     if (!signatureName.trim()) {
       setError("Type your full name to sign.");
+      setSignatureInvalid(true);
       return;
     }
 
@@ -268,6 +271,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
           ? Object.values(body.error.fieldErrors).flat().filter(Boolean).join(" ")
           : null;
         setError(typeof body.error === "string" ? body.error : validationMessage || "This proposal could not be approved. Check the highlighted details and try again.");
+        setSignatureInvalid(Boolean(body.error?.fieldErrors?.signatureName));
       }
       else {
         setDesiredCleaningDate(body.desiredCleaningDate ?? desiredCleaningDate);
@@ -407,7 +411,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
             </Section>
 
             <Section title="Choose a service">
-              <div className="grid gap-3 md:grid-cols-2">
+              <div role="group" aria-label="Choose a service" className="grid gap-3 md:grid-cols-2">
                 {mainTiers.map(([type, tier], index) => {
                   const selected = selectedType === type;
                   const Icon = SERVICE_ICONS[type];
@@ -481,15 +485,14 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
 
                   {recurringInterest ? (
                     <div className="mt-4">
-                      <div role="radiogroup" aria-label="Recurring frequency" className="grid gap-2 sm:grid-cols-3">
+                      <div role="group" aria-label="Recurring frequency" className="grid gap-2 sm:grid-cols-3">
                         {recurringTiers.map(([type, tier]) => {
                           const selected = recurringFrequency === type;
                           return (
                             <button
                               key={type}
                               type="button"
-                              role="radio"
-                              aria-checked={selected}
+                              aria-pressed={selected}
                               disabled={locked}
                               onClick={() => setRecurringFrequency(type)}
                               className={`min-w-0 rounded-xl border px-3 py-2.5 text-left transition ${
@@ -695,7 +698,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                     <input
                       id="signature-name"
                       name="signatureName"
-                      aria-invalid={Boolean(error)}
+                      aria-invalid={signatureInvalid}
                       aria-describedby={error ? "proposal-approval-error" : undefined}
                       value={signatureName}
                       onChange={(event) => setSignatureName(event.target.value)}
