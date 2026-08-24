@@ -152,8 +152,8 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
     return (
       <div className="space-y-4">
         <div className="h-4 w-32 animate-pulse rounded bg-[var(--co-line)]" />
-        <div className="h-36 animate-pulse rounded-2xl bg-[var(--co-surface)]" />
-        <div className="h-64 animate-pulse rounded-2xl bg-[var(--co-surface)]" />
+        <div className="h-36 animate-pulse rounded-xl bg-[var(--co-surface)]" />
+        <div className="h-64 animate-pulse rounded-xl bg-[var(--co-surface)]" />
       </div>
     );
   }
@@ -285,17 +285,17 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
                 <p className="mt-1 text-[var(--co-muted)]">The customer approved the service and price. Contact them with availability and confirm a cleaning date before booking.</p>
               </div>
             ) : null}
-            <div className="mb-4 rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
+            <div className="mb-4 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Customer&apos;s desired cleaning date</p>
               <p className="mt-2 text-sm font-medium">{quote.desiredCleaningDate ? formatDisplayDate(quote.desiredCleaningDate) : "No preference provided"}</p>
               {quote.desiredCleaningDate && !quote.bookedAt ? <p className="mt-1 text-xs text-[var(--co-muted)]">Requested date only — availability still needs to be confirmed.</p> : null}
             </div>
             <div className="grid gap-3 md:grid-cols-2">
-              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
+              <div className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Requested service</p>
                 <p className="mt-2 text-sm font-medium">{LABELS[quote.requestedServiceType ?? ""] ?? quote.requestedServiceType ?? "Not selected"}</p>
               </div>
-              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
+              <div className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Accepted service</p>
                 <p className="mt-2 text-sm font-medium">{LABELS[quote.acceptedServiceType ?? ""] ?? quote.acceptedServiceType ?? "Not accepted yet"}</p>
               </div>
@@ -304,11 +304,23 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
         </section>
 
         <aside className="space-y-5">
+          {quote.bookedAt ? (
+            <PageCard title="Booked">
+              <div className="rounded-xl border border-[var(--co-success)]/30 bg-[var(--co-success)]/10 p-4 text-sm">
+                <p className="font-semibold text-[var(--co-success)]">This job is on the calendar</p>
+                <p className="mt-1 text-[var(--co-muted)]">The cleaning has been scheduled — no further action needed here.</p>
+              </div>
+              <Link href="/calendar" className="co-button-secondary mt-3 w-full justify-center">Open calendar</Link>
+            </PageCard>
+          ) : (
+            <BookJobPanel quoteId={quoteId} quoteStatus={quote.status} serviceType={selectedServiceType} customerName={customerName} address={customerAddress} serviceLabel={LABELS[selectedServiceType] ?? selectedServiceType} priceLabel={dollars(tiers.find(([type]) => type === selectedServiceType)?.[1].finalCents ?? quote.totalCents)} branchName={locationName} totalJthMinutes={(() => { const tier = tiers.find(([type]) => type === selectedServiceType)?.[1]; return tier && hourlyRateCents ? Math.round((tier.finalCents / hourlyRateCents) * 60) : null; })()} onBooked={(redirectTo) => router.push(redirectTo)} />
+          )}
+
           {quote.status !== "draft" || publicUrl ? (
             <PageCard title="Share quote">
               {publicUrl ? (
                 <div className="flex gap-2">
-                  <input readOnly value={publicUrl} className="co-input min-w-0 flex-1 text-xs" />
+                  <input readOnly aria-label="Public proposal link" value={publicUrl} className="co-input min-w-0 flex-1 text-xs" />
                   <button className="co-button-secondary" onClick={copy}>
                     {copied ? "Copied" : "Copy"}
                   </button>
@@ -321,47 +333,40 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
             </PageCard>
           ) : null}
 
-          {quote.bookedAt ? (
-            <PageCard title="Booked"><Link href="/calendar" className="co-button-secondary w-full justify-center">Open calendar</Link></PageCard>
-          ) : (
-            <BookJobPanel quoteId={quoteId} quoteStatus={quote.status} serviceType={selectedServiceType} customerName={customerName} address={customerAddress} serviceLabel={LABELS[selectedServiceType] ?? selectedServiceType} priceLabel={dollars(tiers.find(([type]) => type === selectedServiceType)?.[1].finalCents ?? quote.totalCents)} branchName={locationName} totalJthMinutes={(() => { const tier = tiers.find(([type]) => type === selectedServiceType)?.[1]; return tier && hourlyRateCents ? Math.round((tier.finalCents / hourlyRateCents) * 60) : null; })()} onBooked={(redirectTo) => router.push(redirectTo)} />
-          )}
-
           <PageCard title="Quote activity">
             {bookingOverride ? (
-              <div className="co-badge-warning mb-3 px-4 py-3 text-sm">
+              <div className="co-badge-warning mb-3 rounded-xl px-4 py-3 text-sm">
                 <p className="font-semibold">Accepted by staff — no customer signature</p>
                 <p className="mt-1">{bookingOverride.reason}</p>
                 <p className="mt-1 text-xs">Scheduled <LocalDateTime value={bookingOverride.bookedAt} />{bookingOverride.staffName ? ` by ${bookingOverride.staffName}` : ""}.</p>
               </div>
             ) : null}
             {acceptanceActivity ? (
-              <div className="co-badge-success mb-3 px-4 py-3 text-sm">
+              <div className="co-badge-success mb-3 rounded-xl px-4 py-3 text-sm">
                 <p className="font-semibold">Customer approved the proposal</p>
                 <p className="mt-1">{acceptanceActivity.after?.desiredCleaningDate ? `Preferred date: ${acceptanceActivity.after.desiredCleaningDate}. ` : "No preferred date was provided. "}Approval does not schedule a cleaning.</p>
                 <p className="mt-1 text-xs"><LocalDateTime value={acceptanceActivity.createdAt} /></p>
               </div>
             ) : null}
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
+              <div className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Quoted by</p>
                 <p className="mt-2 text-sm font-medium">{quote.createdByName ?? "Not recorded"}</p>
               </div>
-              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
+              <div className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Sent</p>
                 <p className="mt-2 text-sm font-medium"><LocalDateTime value={quote.sentAt} fallback="Not sent" /></p>
               </div>
-              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
+              <div className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Viewed / accepted</p>
                 <p className="mt-2 text-sm font-medium"><LocalDateTime value={quote.acceptedAt} fallback="No response yet" /></p>
               </div>
-              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Viewed count</p>
-                <p className="mt-2 text-sm font-medium">{quote.viewCount ?? 0} times</p>
-              </div>
-              <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
+              <div className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Last viewed</p>
                 <p className="mt-2 text-sm font-medium"><LocalDateTime value={quote.lastViewedAt} fallback="Not viewed yet" /></p>
+                {quote.viewCount ? (
+                  <p className="mt-1 text-xs text-[var(--co-muted)]">{quote.viewCount} {quote.viewCount === 1 ? "view" : "views"} total</p>
+                ) : null}
               </div>
             </div>
           </PageCard>

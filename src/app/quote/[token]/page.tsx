@@ -88,11 +88,21 @@ const SERVICE_BULLETS: Record<string, string[]> = {
   move_in_out: ["Full top-to-bottom deep clean", "Oven clean out included by default", "Fridge clean out included by default", "Window cleaning available as an add-on"],
 };
 
+// A small categorical palette for telling add-on icon tiles apart at a
+// glance — same reasoning as calendar/shared.ts's EMPLOYEE_PALETTE, not a
+// borrow from the unrelated chart-series token family.
+const ADD_ON_ACCENT = {
+  windows: "#0e7490",
+  oven: "#c2410c",
+  fridge: "#475569",
+  baseboards: "#78716c",
+} as const;
+
 const ADD_ON_STYLES: Record<AddOnKey, { icon: LucideIcon; color: string }> = {
-  inside_windows: { icon: PanelsTopLeft, color: "var(--chart-1)" },
-  oven_interior: { icon: Flame, color: "var(--chart-4)" },
-  fridge_interior: { icon: Refrigerator, color: "var(--chart-3)" },
-  baseboards: { icon: Ruler, color: "var(--chart-2)" },
+  inside_windows: { icon: PanelsTopLeft, color: ADD_ON_ACCENT.windows },
+  oven_interior: { icon: Flame, color: ADD_ON_ACCENT.oven },
+  fridge_interior: { icon: Refrigerator, color: ADD_ON_ACCENT.fridge },
+  baseboards: { icon: Ruler, color: ADD_ON_ACCENT.baseboards },
   cabinet_fronts: { icon: LayoutGrid, color: "var(--co-accent-text)" },
   laundry: { icon: Shirt, color: "var(--co-warning)" },
 };
@@ -184,6 +194,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
   const [accepting, setAccepting] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [signatureInvalid, setSignatureInvalid] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [openFaq, setOpenFaq] = useState<string | null>(FAQS[0].q);
   const [selectedAddOns, setSelectedAddOns] = useState<SelectedAddOn[]>([]);
@@ -235,6 +246,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
 
   async function accept() {
     setError(null);
+    setSignatureInvalid(false);
     const serviceType = selectedType ?? recurringFrequency;
     if (!serviceType) {
       setError("Choose a service option first.");
@@ -246,6 +258,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
     }
     if (!signatureName.trim()) {
       setError("Type your full name to sign.");
+      setSignatureInvalid(true);
       return;
     }
 
@@ -268,6 +281,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
           ? Object.values(body.error.fieldErrors).flat().filter(Boolean).join(" ")
           : null;
         setError(typeof body.error === "string" ? body.error : validationMessage || "This proposal could not be approved. Check the highlighted details and try again.");
+        setSignatureInvalid(Boolean(body.error?.fieldErrors?.signatureName));
       }
       else {
         setDesiredCleaningDate(body.desiredCleaningDate ?? desiredCleaningDate);
@@ -407,7 +421,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
             </Section>
 
             <Section title="Choose a service">
-              <div className="grid gap-3 md:grid-cols-2">
+              <div role="group" aria-label="Choose a service" className="grid gap-3 md:grid-cols-2">
                 {mainTiers.map(([type, tier], index) => {
                   const selected = selectedType === type;
                   const Icon = SERVICE_ICONS[type];
@@ -426,7 +440,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                       } ${locked ? "cursor-default opacity-75" : ""}`}
                     >
                       {index === 1 ? (
-                        <span className="absolute -top-3 left-4 rounded-full bg-[var(--co-accent-fill)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-white">
+                        <span className="absolute -top-3 left-4 rounded-full bg-[var(--co-accent-fill)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-white">
                           Most popular
                         </span>
                       ) : null}
@@ -481,15 +495,14 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
 
                   {recurringInterest ? (
                     <div className="mt-4">
-                      <div role="radiogroup" aria-label="Recurring frequency" className="grid gap-2 sm:grid-cols-3">
+                      <div role="group" aria-label="Recurring frequency" className="grid gap-2 sm:grid-cols-3">
                         {recurringTiers.map(([type, tier]) => {
                           const selected = recurringFrequency === type;
                           return (
                             <button
                               key={type}
                               type="button"
-                              role="radio"
-                              aria-checked={selected}
+                              aria-pressed={selected}
                               disabled={locked}
                               onClick={() => setRecurringFrequency(type)}
                               className={`min-w-0 rounded-xl border px-3 py-2.5 text-left transition ${
@@ -695,7 +708,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
                     <input
                       id="signature-name"
                       name="signatureName"
-                      aria-invalid={Boolean(error)}
+                      aria-invalid={signatureInvalid}
                       aria-describedby={error ? "proposal-approval-error" : undefined}
                       value={signatureName}
                       onChange={(event) => setSignatureName(event.target.value)}
@@ -714,7 +727,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
 
             <section className="rounded-[28px] bg-[var(--co-accent-fill)] p-6 text-white shadow-[0_18px_60px_rgba(36,87,255,0.2)]">
               <p className="text-sm font-semibold text-white">You&apos;re in good hands</p>
-              <p className="mt-3 text-sm leading-7 text-white/80">
+              <p className="mt-3 text-sm leading-7 text-white/90">
                 Background-checked and trained pros, thoughtful communication, and a service standard built to make your home feel calm and cared for.
               </p>
               <div className="mt-6 grid gap-3 text-sm text-white/90">
@@ -729,7 +742,7 @@ export default function PublicQuotePage({ params }: { params: Promise<{ token: s
         {!locked ? (
           <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--co-line-soft)] bg-[var(--co-surface)]/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden">
             <div className="mx-auto flex max-w-7xl items-center gap-3">
-              <div className="min-w-0 flex-1"><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Current total</p><p className="truncate text-lg font-semibold">{dollars(displayedTotalCents)}</p></div>
+              <div className="min-w-0 flex-1"><p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Current total</p><p className="truncate text-lg font-semibold">{dollars(displayedTotalCents)}</p></div>
               <button onClick={accept} disabled={accepting} className="co-button-primary min-h-11 shrink-0">{accepting ? "Approving..." : "Approve proposal"}</button>
             </div>
           </div>
