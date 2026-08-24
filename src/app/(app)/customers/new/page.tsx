@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Minus, Plus } from "lucide-react";
+import { Eye, EyeOff, Minus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import AddressAutocomplete from "../address-autocomplete";
 
@@ -26,7 +26,15 @@ type CustomerForm = {
   entryCode: string;
   garageCode: string;
   gateCode: string;
+  alarmCode: string;
+  keyNumber: string;
+  vacuumLocation: string;
+  mopHeadsNeeded: string;
+  trashBags: string;
 };
+
+const MASKED_ACCESS_CODE_KEYS = ["entryCode", "garageCode", "gateCode", "alarmCode"] as const;
+const PLAIN_ACCESS_KEYS = ["keyNumber", "vacuumLocation", "mopHeadsNeeded", "trashBags"] as const;
 
 type RoomType = { id: string; name: string };
 
@@ -62,6 +70,11 @@ const FIELD_LABELS: Record<string, string> = {
   entryCode: "Entry code",
   garageCode: "Garage code",
   gateCode: "Gate code",
+  alarmCode: "Alarm code",
+  keyNumber: "Key location",
+  vacuumLocation: "Vacuum location",
+  mopHeadsNeeded: "Mop heads needed",
+  trashBags: "Trash bags",
 };
 
 function parseApiError(error: unknown) {
@@ -124,12 +137,18 @@ export default function NewCustomerPage() {
     entryCode: "",
     garageCode: "",
     gateCode: "",
+    alarmCode: "",
+    keyNumber: "",
+    vacuumLocation: "",
+    mopHeadsNeeded: "",
+    trashBags: "",
   });
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [roomCounts, setRoomCounts] = useState<Record<string, number>>({});
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [revealedCodes, setRevealedCodes] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetch("/api/room-types")
@@ -191,6 +210,11 @@ export default function NewCustomerPage() {
       entryCode: form.addressLine1 ? form.entryCode || undefined : undefined,
       garageCode: form.addressLine1 ? form.garageCode || undefined : undefined,
       gateCode: form.addressLine1 ? form.gateCode || undefined : undefined,
+      alarmCode: form.addressLine1 ? form.alarmCode || undefined : undefined,
+      keyNumber: form.addressLine1 ? form.keyNumber || undefined : undefined,
+      vacuumLocation: form.addressLine1 ? form.vacuumLocation || undefined : undefined,
+      mopHeadsNeeded: form.addressLine1 ? form.mopHeadsNeeded || undefined : undefined,
+      trashBags: form.addressLine1 ? form.trashBags || undefined : undefined,
     };
 
     const res = await fetch("/api/customers", {
@@ -329,16 +353,49 @@ export default function NewCustomerPage() {
             </div>
 
             {form.addressLine1 ? (
-              <div>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Access</p>
-                <div className="grid gap-4 sm:grid-cols-3">
-                  {(["entryCode", "garageCode", "gateCode"] as const).map((key) => (
-                    <label key={key}>
-                      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">{FIELD_LABELS[key]}</span>
-                      <input type={key === "entryCode" ? "password" : "text"} className="co-input w-full" value={form[key]} onChange={(event) => update(key, event.target.value)} />
-                      {fieldErrors[key] ? <p className="mt-1 text-xs text-[var(--co-danger)]">{fieldErrors[key]}</p> : null}
-                    </label>
-                  ))}
+              <div className="space-y-4">
+                <div>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Access codes</p>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    {MASKED_ACCESS_CODE_KEYS.map((key) => {
+                      const revealed = revealedCodes[key] ?? false;
+                      return (
+                        <label key={key}>
+                          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">{FIELD_LABELS[key]}</span>
+                          <div className="relative">
+                            <input
+                              type={revealed ? "text" : "password"}
+                              autoComplete="off"
+                              className="co-input w-full pr-10"
+                              value={form[key]}
+                              onChange={(event) => update(key, event.target.value)}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setRevealedCodes((current) => ({ ...current, [key]: !revealed }))}
+                              aria-label={revealed ? `Hide ${FIELD_LABELS[key].toLowerCase()}` : `Show ${FIELD_LABELS[key].toLowerCase()}`}
+                              className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-[var(--co-muted)]"
+                            >
+                              {revealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                          {fieldErrors[key] ? <p className="mt-1 text-xs text-[var(--co-danger)]">{fieldErrors[key]}</p> : null}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">Access details</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {PLAIN_ACCESS_KEYS.map((key) => (
+                      <label key={key}>
+                        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--co-muted)]">{FIELD_LABELS[key]}</span>
+                        <input className="co-input w-full" value={form[key]} onChange={(event) => update(key, event.target.value)} />
+                        {fieldErrors[key] ? <p className="mt-1 text-xs text-[var(--co-danger)]">{fieldErrors[key]}</p> : null}
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
             ) : null}

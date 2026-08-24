@@ -51,6 +51,11 @@ const createCustomerSchema = z.object({
   entryCode: z.string().trim().max(200).optional(),
   garageCode: z.string().trim().max(200).optional(),
   gateCode: z.string().trim().max(200).optional(),
+  alarmCode: z.string().trim().max(200).optional(),
+  keyNumber: z.string().trim().max(200).optional(),
+  vacuumLocation: z.string().trim().max(500).optional(),
+  mopHeadsNeeded: z.string().trim().max(500).optional(),
+  trashBags: z.string().trim().max(500).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -121,6 +126,11 @@ export async function POST(req: NextRequest) {
       entryCode: data.entryCode || null,
       garageCode: data.garageCode || null,
       gateCode: data.gateCode || null,
+      alarmCode: data.alarmCode || null,
+      keyNumber: data.keyNumber || null,
+      vacuumLocation: data.vacuumLocation || null,
+      mopHeadsNeeded: data.mopHeadsNeeded || null,
+      trashBags: data.trashBags || null,
       isPrimary: true,
     });
   }

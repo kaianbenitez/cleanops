@@ -3,7 +3,7 @@
 import { StatusPill } from "@/components/ui/status-pill";
 import Link from "next/link";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pencil, Plus, Repeat2 } from "lucide-react";
+import { Eye, EyeOff, Pencil, Plus, Repeat2 } from "lucide-react";
 import AddressAutocomplete from "../address-autocomplete";
 import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { CustomerViewCards } from "./view-cards";
@@ -101,6 +101,36 @@ function Field({
       ) : (
         <input type={type} value={value} onChange={(event) => onChange(event.target.value)} className={input} />
       )}
+    </label>
+  );
+}
+
+/** Access codes are effectively a house key — hidden by default so they aren't sitting
+ * in plain view on a glanced-at or screenshotted screen, matching the reveal pattern
+ * `MaskedCode` uses for these same values in view mode. `autoComplete="off"` keeps the
+ * browser's saved-password manager from treating a gate code as a login credential. */
+function MaskedField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  const [revealed, setRevealed] = useState(false);
+  return (
+    <label className="block text-sm">
+      <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">{label}</span>
+      <div className="relative">
+        <input
+          type={revealed ? "text" : "password"}
+          autoComplete="off"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className={`${input} pr-10`}
+        />
+        <button
+          type="button"
+          onClick={() => setRevealed((current) => !current)}
+          aria-label={revealed ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+          className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-[var(--co-muted)]"
+        >
+          {revealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
     </label>
   );
 }
@@ -574,9 +604,14 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
               <Field label="State" value={location.state ?? ""} onChange={(value) => updateLocation("state", value)} />
               <Field label="ZIP" value={location.zip ?? ""} onChange={(value) => updateLocation("zip", value)} />
               <Field label="Entrance notes" value={location.accessInstructions ?? ""} onChange={(value) => updateLocation("accessInstructions", value)} textarea />
-              <Field label="Entry code" value={location.entryCode ?? ""} onChange={(value) => updateLocation("entryCode", value)} type="password" />
-              <Field label="Garage code" value={location.garageCode ?? ""} onChange={(value) => updateLocation("garageCode", value)} />
-              <Field label="Gate code" value={location.gateCode ?? ""} onChange={(value) => updateLocation("gateCode", value)} />
+              <MaskedField label="Entry code" value={location.entryCode ?? ""} onChange={(value) => updateLocation("entryCode", value)} />
+              <MaskedField label="Garage code" value={location.garageCode ?? ""} onChange={(value) => updateLocation("garageCode", value)} />
+              <MaskedField label="Gate code" value={location.gateCode ?? ""} onChange={(value) => updateLocation("gateCode", value)} />
+              <MaskedField label="Alarm code" value={location.alarmCode ?? ""} onChange={(value) => updateLocation("alarmCode", value)} />
+              <Field label="Key location" value={location.keyNumber ?? ""} onChange={(value) => updateLocation("keyNumber", value)} />
+              <Field label="Vacuum location" value={location.vacuumLocation ?? ""} onChange={(value) => updateLocation("vacuumLocation", value)} />
+              <Field label="Mop heads needed" value={location.mopHeadsNeeded ?? ""} onChange={(value) => updateLocation("mopHeadsNeeded", value)} />
+              <Field label="Trash bags" value={location.trashBags ?? ""} onChange={(value) => updateLocation("trashBags", value)} />
             </>
           ) : (
             <p className="text-sm text-[var(--co-muted)] md:col-span-2">No service address yet — click &quot;Add service address&quot; above to add one.</p>
