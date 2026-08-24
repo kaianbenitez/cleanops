@@ -119,7 +119,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     after: {
       status: "accepted",
       serviceType: parsed.data.serviceType,
-      addOns: addOnEntries.map((addon) => addon.key),
+      addOns: addOnEntries.map((entry) => entry.addOn.key),
       desiredCleaningDate: parsed.data.desiredCleaningDate ?? null,
       scheduled: false,
     },

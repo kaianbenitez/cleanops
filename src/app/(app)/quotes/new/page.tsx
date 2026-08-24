@@ -23,8 +23,6 @@ import {
   MessageSquareText,
   Sparkles,
   Check,
-  Minus,
-  Plus,
   type LucideIcon,
 } from "lucide-react";
 import { ADD_ONS, MAX_ADD_ON_QTY, detectRequestedAddOns, type AddOnKey } from "@/lib/pricing/add-ons";

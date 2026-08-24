@@ -117,11 +117,6 @@ function addOnPriceLabel(item: (typeof ADD_ONS)[number]) {
   return item.priceCents != null ? `+${dollars(item.priceCents)}` : (item.priceLabel ?? "Ask for pricing");
 }
 
-function addOnLineLabel(item: (typeof ADD_ONS)[number], qty: number) {
-  if (item.priceCents == null) return item.priceLabel ?? "Ask for pricing";
-  return `+${dollars(addOnLineTotalCents(item, qty))}`;
-}
-
 function formatValidUntil(value: string | null) {
   return value ? formatDisplayDate(value) : null;
 }
