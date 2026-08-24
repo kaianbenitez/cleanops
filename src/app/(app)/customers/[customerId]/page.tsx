@@ -248,17 +248,15 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ cust
     });
   }, [load]);
 
-  const roomTypesFetchedRef = useRef(false);
   useEffect(() => {
-    if (mode !== "edit" || roomTypesFetchedRef.current) return;
-    roomTypesFetchedRef.current = true;
+    // Room types name the counts in customer.homeDetails.roomCounts for both the view-mode
+    // "House details" summary and the edit form's room-count inputs — unlike employees below,
+    // this isn't edit-only, so it has to load on mount, not deferred to edit mode.
     fetch("/api/room-types")
       .then((response) => response.json())
       .then((body) => setRoomTypes(body.roomTypes ?? []))
-      .catch(() => {
-        roomTypesFetchedRef.current = false;
-      });
-  }, [mode]);
+      .catch(() => {});
+  }, []);
 
   const employeesFetchedRef = useRef(false);
   useEffect(() => {

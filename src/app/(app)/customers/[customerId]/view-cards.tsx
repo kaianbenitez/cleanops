@@ -213,7 +213,13 @@ export function CustomerViewCards({
               <h2 className="text-lg font-semibold tracking-[-0.02em]">House details</h2>
             </div>
             <div className="flex flex-wrap items-center gap-2 p-5">
-              {roomSummary.length ? (
+              {roomTypes.length === 0 ? (
+                <div className="flex gap-2" aria-hidden="true">
+                  <div className="h-9 w-16 animate-pulse rounded-lg bg-[var(--co-surface-muted)]" />
+                  <div className="h-9 w-16 animate-pulse rounded-lg bg-[var(--co-surface-muted)]" />
+                  <div className="h-9 w-16 animate-pulse rounded-lg bg-[var(--co-surface-muted)]" />
+                </div>
+              ) : roomSummary.length ? (
                 roomSummary.map((room) => <div key={room.name} className="inline-flex h-9 items-center gap-2 rounded-lg bg-[var(--co-surface-muted)] px-2.5" title={room.name}><RoomIcon roomName={room.name} /><span className="sr-only">{room.name}</span><span className="text-sm font-semibold text-[var(--co-ink)]">{room.count}</span></div>)
               ) : <p className="text-sm text-[var(--co-muted)]">No room counts recorded yet.</p>}
               {houseDetails.map((detail) => { const Icon = detail.icon; return <span key={detail.label} title={detail.label} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--co-surface-muted)] px-2.5 text-xs font-semibold text-[var(--co-ink)]"><Icon className="h-3.5 w-3.5 text-[var(--co-accent-text)]" aria-hidden /><span className="sr-only">{detail.label}: </span>{detail.value}</span>; })}
