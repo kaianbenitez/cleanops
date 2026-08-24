@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { isHybridEmployee } from "@/lib/auth/field-staff";
+import { isFieldEligible, isHybridEmployee } from "@/lib/auth/field-staff";
 import { emailToUsername } from "@/lib/auth/username";
 import { db } from "@/db";
-import { appNotifications } from "@/db/schema";
+import { appNotifications, users } from "@/db/schema";
+import { toISODate } from "@/lib/scheduling/dates";
 import { createAdminClient } from "@/lib/supabase/admin";
 import AppNav from "./app-nav";
 import ActionFeedbackProvider from "./action-feedback-provider";
@@ -33,6 +34,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const initialNotifications = isAdmin
     ? await db.select({ id: appNotifications.id, title: appNotifications.title, body: appNotifications.body, href: appNotifications.href, readAt: appNotifications.readAt, createdAt: appNotifications.createdAt }).from(appNotifications).where(eq(appNotifications.companyId, user.companyId)).orderBy(desc(appNotifications.createdAt)).limit(20)
     : [];
+  // "Internal meeting" / "Block time" (PTO, sick leave, personal appointments)
+  // in the Create menu needs a field-staff roster to attend the appointment.
+  // The default date is just the panel's starting value — editable there.
+  const staffRoster = isAdmin
+    ? await db
+        .select({ id: users.id, firstName: users.firstName, lastName: users.lastName })
+        .from(users)
+        .where(and(eq(users.companyId, user.companyId), eq(users.isActive, true), isFieldEligible))
+        .orderBy(users.firstName, users.lastName)
+    : [];
+  const appointmentDefaultDate = toISODate(new Date());
 
   return (
     <ActionFeedbackProvider>
@@ -51,6 +63,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               userEmail={emailToUsername(user.email)}
               profilePhotoUrl={profilePhotoUrl}
               initialNotifications={initialNotifications}
+              staffRoster={staffRoster}
+              appointmentDefaultDate={appointmentDefaultDate}
             />
             <div data-app-frame className="transition-[padding] duration-200 xl:pl-[var(--app-nav-width)]">
               <header data-app-topbar className="sticky top-0 z-40 hidden border-b border-[var(--co-line-soft)] bg-[var(--co-surface)]/90 backdrop-blur-xl xl:block">
@@ -59,7 +73,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                     {isAdmin ? <GlobalSearch /> : null}
                     <ThemeToggle />
                     {isAdmin ? <NotificationsMenu initialNotifications={initialNotifications} /> : null}
-                    {isAdmin ? <CreateMenu /> : null}
+                    {isAdmin ? <CreateMenu appointments={{ staffRoster, defaultDate: appointmentDefaultDate }} /> : null}
                   </div>
                 </div>
               </header>

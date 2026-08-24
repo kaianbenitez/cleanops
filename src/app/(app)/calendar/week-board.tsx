@@ -141,7 +141,7 @@ export default function WeekBoard({
                 <div className="border-b border-[var(--co-line-soft)] px-3 py-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--co-faint)]">
+                      <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--co-faint)]">
                         {day.label.slice(0, 3)}
                       </p>
                       <p className="mt-0.5 text-lg font-semibold tabular-nums">
@@ -157,7 +157,7 @@ export default function WeekBoard({
                     >
                       {day.isHoliday ? "Closed" : `${formatLaborMinutes(scheduledMinutes)} scheduled`}
                     </span>
-                    {!day.isHoliday ? <span className="text-[11px] font-medium tabular-nums text-[var(--co-muted)]">of {formatLaborMinutes(availableMinutes)} available</span> : null}
+                    {!day.isHoliday ? <span className="text-[12px] font-medium tabular-nums text-[var(--co-muted)]">of {formatLaborMinutes(availableMinutes)} available</span> : null}
                     </div>
                   </div>
                   {day.isHoliday ? (
@@ -181,7 +181,7 @@ export default function WeekBoard({
                           key={appointment.id}
                           type="button"
                           onClick={() => setEditingAppointmentId(appointment.id)}
-                          className={`flex min-h-11 w-full items-center gap-1.5 rounded-md px-2 py-2 text-left text-[11px] font-semibold ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}
+                          className={`flex min-h-11 w-full items-center gap-1.5 rounded-md px-2 py-2 text-left text-[12px] font-semibold ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}
                         >
                           <CalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={1.75} />
                           <span className="truncate">{formatAppointmentTime(appointment.startTime, appointment.durationMinutes)} · {appointment.title}</span>
@@ -196,7 +196,7 @@ export default function WeekBoard({
                     if (!visibleGroup.length) return null;
                     return (
                       <div key={key}>
-                        <p className="mb-1.5 flex items-center gap-1.5 truncate text-[11px] font-semibold text-[var(--co-ink)]">
+                        <p className="mb-1.5 flex items-center gap-1.5 truncate text-[12px] font-semibold text-[var(--co-ink)]">
                           <span className="flex shrink-0 items-center gap-0.5">
                             {group[0].assignedUserIds.length ? (
                               group[0].assignedUserIds.map((id) => (

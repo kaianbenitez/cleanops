@@ -173,7 +173,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
 
             {history?.preferredCleaner ? (
               <div className="rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface-muted)]/60 p-3.5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Customer&apos;s preferred cleaner</p>
+                <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Customer&apos;s preferred cleaner</p>
                 <div className="mt-1.5 flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold">{history.preferredCleaner.firstName} {history.preferredCleaner.lastName}</p>
                   <button
@@ -190,7 +190,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
 
             {history?.previousVisit ? (
               <div className="rounded-2xl border border-[var(--co-line-soft)] p-3.5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Last cleaning for this customer</p>
+                <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Last cleaning for this customer</p>
                 <p className="mt-1.5 text-sm">
                   <span className="font-semibold">{history.previousVisit.employees.length ? names(history.previousVisit.employees) : "No one recorded"}</span>
                   <span className="text-[var(--co-muted)]"> · {formatVisitDate(history.previousVisit.scheduledDate)}{history.previousVisit.scheduledStartTime ? ` · ${history.previousVisit.scheduledStartTime.slice(0, 5)}` : ""}</span>

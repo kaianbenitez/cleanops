@@ -102,7 +102,7 @@ export default function AttendeePicker({
                 onClick={() => add(member.id)}
                 className="flex min-h-11 w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-sm hover:bg-[var(--co-surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--co-focus-ring)]"
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--co-surface-muted)] text-[10px] font-bold text-[var(--co-accent-text)]">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--co-surface-muted)] text-[12px] font-bold text-[var(--co-accent-text)]">
                   {member.firstName[0]}
                   {member.lastName[0]}
                 </span>

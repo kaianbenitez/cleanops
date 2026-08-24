@@ -9,7 +9,9 @@ import {
   CheckCircle2,
   Clock3,
   KeyRound,
+  Minus,
   PawPrint,
+  Plus,
   Repeat,
   TriangleAlert,
   Users,
@@ -178,7 +180,7 @@ function CapacityMeter({ usedMinutes, availableMinutes, isOver, onLeave }: { use
           style={{ transform: `scaleX(${percent / 100})`, background: fillColor, transition: "transform 550ms cubic-bezier(.16,1,.3,1)" }}
         />
       </div>
-      <span className={`whitespace-nowrap text-[11px] font-bold ${isOver ? "text-[var(--co-warning)]" : "text-[var(--co-faint)]"}`}>
+      <span className={`whitespace-nowrap text-[12px] font-bold ${isOver ? "text-[var(--co-warning)]" : "text-[var(--co-faint)]"}`}>
         Labor hours: {formatDuration(usedMinutes)} of {availableMinutes ? formatDuration(availableMinutes) : "off"}
       </span>
     </div>
@@ -1037,12 +1039,12 @@ export default function Board({
       >
         <div className="flex min-w-0 items-center gap-[5px]">
           {ordinal ? (
-            <span className="inline-flex h-[15px] shrink-0 items-center rounded border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-1 text-[9.5px] font-bold text-[var(--co-muted)]">
+            <span className="inline-flex h-[18px] shrink-0 items-center rounded border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-1 text-[12px] font-bold text-[var(--co-muted)]">
               {ordinalLabel(ordinal)}
             </span>
           ) : null}
           <span className="min-w-0 truncate text-xs font-bold text-[var(--co-ink)]">{displayCustomer(job)}</span>
-          <span className={`${readinessTone(readiness.primary)} shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold`} title={readiness.reasons.join("; ") || undefined}>{readiness.primary}</span>
+          <span className={`${readinessTone(readiness.primary)} shrink-0 rounded px-1.5 py-0.5 text-[12px] font-bold`} title={readiness.reasons.join("; ") || undefined}>{readiness.primary}</span>
           <JobMarks job={job} warn={isConflict || isOnLeave} />
         </div>
         <div className="mt-px truncate text-xs font-semibold text-[var(--co-body)]">
@@ -1054,12 +1056,12 @@ export default function Board({
           </div>
         ) : null}
         {!compact && readiness.primary !== "Ready" ? (
-          <div className="mt-px truncate text-[11px] font-semibold text-[var(--co-accent-text)]">
+          <div className="mt-px truncate text-[12px] font-semibold text-[var(--co-accent-text)]">
             {readinessReason(readiness)} · {readinessAction(readiness)}
           </div>
         ) : null}
         {overflowCount > 0 ? (
-          <span className="absolute bottom-1 right-1 rounded bg-[var(--co-faint)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--co-surface)]">+{overflowCount} more</span>
+          <span className="absolute bottom-1 right-1 rounded bg-[var(--co-faint)] px-1.5 py-0.5 text-[12px] font-semibold text-[var(--co-surface)]">+{overflowCount} more</span>
         ) : null}
       </Link>
     );
@@ -1114,7 +1116,7 @@ export default function Board({
         className={`pointer-events-none absolute z-[3] overflow-visible rounded-md text-left shadow-sm ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}
         style={style}
       >
-        <div aria-hidden className="flex h-full min-w-0 flex-col items-start gap-0.5 overflow-hidden rounded-md px-2 py-1 text-[11px] font-semibold">
+        <div aria-hidden className="flex h-full min-w-0 flex-col items-start gap-0.5 overflow-hidden rounded-md px-2 py-1 text-[12px] font-semibold">
           <span className="truncate">{appointment.title}</span>
           <span className="truncate font-normal">{formatAppointmentTime(appointment.startTime, appointment.durationMinutes)}</span>
         </div>
@@ -1146,7 +1148,7 @@ export default function Board({
           backgroundImage: "repeating-linear-gradient(-45deg, color-mix(in srgb, var(--co-faint) 22%, transparent) 0 5px, transparent 5px 11px)",
         }}
       >
-        <span className="whitespace-nowrap rounded border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-[7px] py-0.5 text-[11px] font-bold text-[var(--co-muted)]">{label}</span>
+        <span className="whitespace-nowrap rounded border border-[var(--co-line-soft)] bg-[var(--co-surface)] px-[7px] py-0.5 text-[12px] font-bold text-[var(--co-muted)]">{label}</span>
       </div>
     );
   }
@@ -1163,7 +1165,7 @@ export default function Board({
             className={`pointer-events-none absolute inset-0 z-[1] rounded-[8px] ${verdictClasses("ok")}`}
           />
           <span
-            className="pointer-events-none absolute z-[8] flex items-center gap-[5px] whitespace-nowrap rounded-[7px] px-[9px] py-1 text-[11px] font-bold text-[var(--co-accent-text)] shadow-[var(--co-shadow-control)]"
+            className="pointer-events-none absolute z-[8] flex items-center gap-[5px] whitespace-nowrap rounded-[7px] px-[9px] py-1 text-[12px] font-bold text-[var(--co-accent-text)] shadow-[var(--co-shadow-control)]"
             style={axis === "vertical" ? { left: "50%", top: 14, transform: "translateX(-50%)" } : { left: 200, top: 26 }}
           >
             <Clock3 className="h-3 w-3" aria-hidden strokeWidth={1.75} />
@@ -1193,7 +1195,7 @@ export default function Board({
           style={{ ...ghostStyle, background: `color-mix(in srgb, ${verdict.state === "blocked" ? "var(--co-faint)" : verdict.state === "warn" ? "var(--co-warning)" : "var(--co-accent-fill)"} 12%, var(--co-surface))` }}
         />
         <span
-          className={`pointer-events-none absolute z-[8] flex items-center gap-[5px] whitespace-nowrap rounded-[7px] px-[9px] py-1 text-[11px] font-bold shadow-[var(--co-shadow-control)] ${verdictNoteClasses(verdict.state)}`}
+          className={`pointer-events-none absolute z-[8] flex items-center gap-[5px] whitespace-nowrap rounded-[7px] px-[9px] py-1 text-[12px] font-bold shadow-[var(--co-shadow-control)] ${verdictNoteClasses(verdict.state)}`}
           style={noteStyle}
         >
           <VerdictIcon state={verdict.state} className="h-3 w-3" />
@@ -1226,7 +1228,7 @@ export default function Board({
         <div className="flex items-center gap-[7px] text-[12.8px] font-bold text-[var(--co-ink)]">
           <span className="h-[9px] w-[9px] shrink-0 rounded-full" style={{ background: color, boxShadow: `0 0 0 2px color-mix(in srgb, ${color} 22%, transparent)` }} />
           <span className="truncate">{employee.firstName} {employee.lastName}</span>
-          <span className="ml-auto shrink-0 text-[11px] font-semibold text-[var(--co-faint)]">{data?.jobs.length ?? 0}</span>
+          <span className="ml-auto shrink-0 text-[12px] font-semibold text-[var(--co-faint)]">{data?.jobs.length ?? 0}</span>
         </div>
         <CapacityMeter usedMinutes={data?.capacity.usedMinutes ?? 0} availableMinutes={data?.capacity.availableMinutes ?? 0} isOver={data?.capacity.isOver ?? false} onLeave={hasLeave} />
         {hasLeave ? (
@@ -1370,14 +1372,14 @@ export default function Board({
               <AlertCircle className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />
             </button>
             Needs attention
-            <span className="ml-auto flex h-5 min-w-[22px] items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--co-warning)_30%,var(--co-tint-base))] bg-[color-mix(in_srgb,var(--co-warning)_15%,var(--co-tint-base))] px-1.5 text-[11.5px] font-bold text-[var(--co-warning)] tabular-nums">
+            <span className="ml-auto flex h-5 min-w-[22px] items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--co-warning)_30%,var(--co-tint-base))] bg-[color-mix(in_srgb,var(--co-warning)_15%,var(--co-tint-base))] px-1.5 text-[12px] font-bold text-[var(--co-warning)] tabular-nums">
               {attentionTotal}
             </span>
           </div>
           <p className="mt-[5px] text-xs leading-[1.4] text-[var(--co-faint)]">
             {attentionTotal ? "Choose a job, then assign its crew and time. The Board shows where it fits before you save." : "Every job today has a crew and a scheduled time."}
           </p>
-          {attentionTotal ? <p className="mt-1 text-[11px] leading-[1.35] text-[var(--co-muted)]">Use <strong className="font-semibold text-[var(--co-body)]">Assign crew &amp; time</strong> for a guided path. Dragging is optional on desktop.</p> : null}
+          {attentionTotal ? <p className="mt-1 text-[12px] leading-[1.35] text-[var(--co-muted)]">Use <strong className="font-semibold text-[var(--co-body)]">Assign crew &amp; time</strong> for a guided path. Dragging is optional on desktop.</p> : null}
         </div>
         <div className="max-h-[calc(100dvh-190px)] overflow-y-auto">
           <RailGroup icon={<Users className="h-[13px] w-[13px]" aria-hidden strokeWidth={1.75} />} label="Crew not assigned" jobs={noCrewJobs} collapsible defaultCollapsed>
@@ -1456,7 +1458,7 @@ export default function Board({
             {jobsPlacedCount} of {cleanedJobs.length} placed · workday {clockLabelFromMinutes(windowStart)}–{clockLabelFromMinutes(windowEnd)}
           </span>
           <details className="relative ml-auto">
-            <summary className="co-button-secondary flex min-h-9 cursor-pointer list-none items-center px-2.5 text-[11px] font-semibold [&::-webkit-details-marker]:hidden">Legend</summary>
+            <summary className="co-button-secondary flex min-h-9 cursor-pointer list-none items-center px-2.5 text-[12px] font-semibold [&::-webkit-details-marker]:hidden">Legend</summary>
             <div className="absolute right-0 top-full z-20 mt-2 flex min-w-56 flex-col gap-2 rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] p-3 shadow-[var(--co-shadow-popover)]">
             <span className="type-admin-micro inline-flex items-center gap-1.5 font-semibold text-[var(--co-faint)]">
               <span
@@ -1507,7 +1509,7 @@ export default function Board({
                     <span className="tabular-nums text-[var(--co-faint)]">
                       {formatDuration(jobDuration(job))} · {crew?.firstName ?? "Crew not assigned"}
                     </span>
-                    <button type="button" className="text-[11.5px] font-bold text-[var(--co-accent-text)] hover:underline" onClick={() => selectJob(job.id)}>
+                    <button type="button" className="text-[12px] font-bold text-[var(--co-accent-text)] hover:underline" onClick={() => selectJob(job.id)}>
                       Schedule time
                     </button>
                   </div>
@@ -1567,7 +1569,7 @@ export default function Board({
               <div className="relative grid" style={{ gridTemplateColumns: `${TIME_GUTTER_WIDTH}px repeat(${sortedEmployees.length}, minmax(${CREW_COLUMN_MIN_WIDTH}px, 1fr))` }}>
                 <div className="sticky left-0 z-[4] border-r border-[var(--co-line)] bg-[var(--co-surface)]" style={{ height: hours * HOUR_HEIGHT }}>
                   {Array.from({ length: hours }, (_, index) => (
-                    <div key={index} className="relative flex items-start justify-end px-2 text-[11px] font-medium text-[var(--co-faint)]" style={{ height: HOUR_HEIGHT }}>
+                    <div key={index} className="relative flex items-start justify-end px-2 text-[12px] font-medium text-[var(--co-faint)]" style={{ height: HOUR_HEIGHT }}>
                       <span className="relative -top-[7px]">{clockLabelFromMinutes(windowStart + index * 60).replace(":00", "")}</span>
                     </div>
                   ))}
@@ -1621,7 +1623,7 @@ export default function Board({
                   <>
                     <div className="pointer-events-none absolute z-[6] h-0.5 bg-[var(--co-danger)]" style={{ left: TIME_GUTTER_WIDTH, right: 0, top: (nowOffsetMinutes / 60) * HOUR_HEIGHT }} />
                     <span
-                      className="pointer-events-none absolute z-[7] whitespace-nowrap rounded bg-[var(--co-danger)] px-[5px] py-[1.5px] text-[11px] font-bold text-[var(--co-surface)] shadow-[var(--co-shadow-control)]"
+                      className="pointer-events-none absolute z-[7] whitespace-nowrap rounded bg-[var(--co-danger)] px-[5px] py-[1.5px] text-[12px] font-bold text-[var(--co-surface)] shadow-[var(--co-shadow-control)]"
                       style={{ left: 5, top: (nowOffsetMinutes / 60) * HOUR_HEIGHT - 9 }}
                     >
                       {nowMinutes !== null ? clockLabelFromMinutes(nowMinutes) : ""}
@@ -1636,7 +1638,7 @@ export default function Board({
                 <div className="sticky left-0 z-[3] border-b border-r border-[var(--co-line)] bg-[var(--co-surface)]" />
                 <div className="grid border-b border-[var(--co-line)]" style={{ gridTemplateColumns: `repeat(${hours}, ${HOUR_WIDTH}px)` }}>
                   {Array.from({ length: hours }, (_, index) => (
-                    <span key={index} className="border-r border-[var(--co-line-soft)] py-[6px] pb-1.5 pl-2 text-[11px] font-semibold text-[var(--co-faint)]">
+                    <span key={index} className="border-r border-[var(--co-line-soft)] py-[6px] pb-1.5 pl-2 text-[12px] font-semibold text-[var(--co-faint)]">
                       {clockLabelFromMinutes(windowStart + index * 60).replace(":00", "")}
                     </span>
                   ))}
@@ -1693,7 +1695,7 @@ export default function Board({
                       style={{ left: LANE_HEADER_WIDTH + (nowOffsetMinutes / 60) * HOUR_WIDTH, top: 0, bottom: 0 }}
                     />
                     <span
-                      className="pointer-events-none absolute z-[7] whitespace-nowrap rounded bg-[var(--co-danger)] px-[5px] py-[1.5px] text-[11px] font-bold text-[var(--co-surface)] shadow-[var(--co-shadow-control)]"
+                      className="pointer-events-none absolute z-[7] whitespace-nowrap rounded bg-[var(--co-danger)] px-[5px] py-[1.5px] text-[12px] font-bold text-[var(--co-surface)] shadow-[var(--co-shadow-control)]"
                       style={{ left: LANE_HEADER_WIDTH + (nowOffsetMinutes / 60) * HOUR_WIDTH + 4, top: 3 }}
                     >
                       {nowMinutes !== null ? clockLabelFromMinutes(nowMinutes) : ""}
@@ -1749,11 +1751,17 @@ function RailGroup({ icon, label, jobs, children, collapsible = false, defaultCo
   if (!jobs.length) return null;
   return (
     <div className="border-b border-[var(--co-line-soft)] last:border-b-0">
-      <button type="button" onClick={() => collapsible && setCollapsed((current) => !current)} aria-expanded={collapsible ? !collapsed : undefined} className={`flex w-full items-center gap-[7px] bg-[var(--co-surface-muted)] px-[15px] py-[9px] text-left text-[11px] font-bold uppercase tracking-[0.07em] text-[var(--co-faint)] ${collapsible ? "cursor-pointer hover:bg-[var(--co-surface-muted-2)]" : "cursor-default"}`}>
+      <button type="button" onClick={() => collapsible && setCollapsed((current) => !current)} aria-expanded={collapsible ? !collapsed : undefined} className={`flex w-full items-center gap-[7px] bg-[var(--co-surface-muted)] px-[15px] py-[9px] text-left text-[12px] font-bold uppercase tracking-[0.07em] text-[var(--co-faint)] ${collapsible ? "cursor-pointer hover:bg-[var(--co-surface-muted-2)]" : "cursor-default"}`}>
         {icon}
         {label}
-        <span className="ml-auto text-[11px] font-semibold text-[var(--co-muted)]">{jobs.length}</span>
-        {collapsible ? <span className="ml-1 text-[13px] text-[var(--co-muted)]" aria-hidden>{collapsed ? "＋" : "−"}</span> : null}
+        <span className="ml-auto text-[12px] font-semibold text-[var(--co-muted)]">{jobs.length}</span>
+        {collapsible ? (
+          collapsed ? (
+            <Plus className="ml-1 h-[13px] w-[13px] shrink-0 text-[var(--co-muted)]" aria-hidden strokeWidth={1.75} />
+          ) : (
+            <Minus className="ml-1 h-[13px] w-[13px] shrink-0 text-[var(--co-muted)]" aria-hidden strokeWidth={1.75} />
+          )
+        ) : null}
       </button>
       {!collapsed ? <div className="flex flex-col gap-[7px] p-[9px]">{children}</div> : null}
     </div>
@@ -1800,7 +1808,7 @@ function RailCard({
       <button type="button" onClick={onSelect} aria-pressed={selected} draggable={draggable} onDragStart={onDragStart} onDragEnd={onDragEnd} className="block w-full text-left">
       <div className="flex items-baseline gap-2">
         <span className="text-[13.5px] font-bold leading-[1.3] text-[var(--co-ink)]">{displayCustomer(job)}</span>
-        <span className={`${readinessTone(readiness.primary)} rounded px-1.5 py-0.5 text-[10px] font-bold`}>{readiness.primary}</span>
+        <span className={`${readinessTone(readiness.primary)} rounded px-1.5 py-0.5 text-[12px] font-bold`}>{readiness.primary}</span>
         <span className="ml-auto text-xs font-bold text-[var(--co-body)] tabular-nums">{job.scheduledStartTime ? clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime)) : "—"}</span>
       </div>
       <div className="mt-[3px] flex items-center gap-[5px] text-xs leading-[1.35] text-[var(--co-faint)]">
@@ -1844,6 +1852,13 @@ function AssignAtTimeDialog({ job, employees, initialMinutes, getVerdict, onClos
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const selectedVerdict = selectedEmployeeId ? getVerdict(selectedEmployeeId, minutes) : null;
   const dialogRef = useDialogFocus<HTMLDivElement>(true);
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-[var(--co-overlay)]" />
@@ -1868,6 +1883,13 @@ function RailActionDialog({ job, mode, policy, onClose, onConfirm }: { job: Cale
   const startTime = period === "afternoon" ? "13:00:00" : "09:00:00";
   const canSubmit = mode === "bump" ? Boolean(date) : Boolean(reason.trim());
   const dialogRef = useDialogFocus<HTMLDivElement>(true);
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-[var(--co-overlay)]" />
@@ -1907,10 +1929,10 @@ function InfoRailCard({ job, readiness, crewLabel, reason, actionLabel, onAction
       </div>
       {crewLabel ? <div className="mt-[3px] text-xs leading-[1.35] text-[var(--co-faint)]">{crewLabel}</div> : null}
       <div className="mt-[7px] flex flex-wrap gap-1">
-        <span className={`${readinessTone(primary)} inline-flex h-[19px] items-center rounded px-1.5 text-[11px] font-bold`}>
+        <span className={`${readinessTone(primary)} inline-flex h-[19px] items-center rounded px-1.5 text-[12px] font-bold`}>
           {primary}
         </span>
-        <span className={`${readinessTone(primary)} inline-flex h-[19px] items-center gap-1 rounded px-1.5 text-[11px] font-bold`}>
+        <span className={`${readinessTone(primary)} inline-flex h-[19px] items-center gap-1 rounded px-1.5 text-[12px] font-bold`}>
           <TriangleAlert className="h-[11px] w-[11px]" aria-hidden strokeWidth={1.75} />
           {displayReason}
         </span>

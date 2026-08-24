@@ -131,6 +131,8 @@ export default function AppNav({
   userEmail,
   profilePhotoUrl,
   initialNotifications,
+  staffRoster,
+  appointmentDefaultDate,
 }: {
   isAdmin: boolean;
   isFieldStaff: boolean;
@@ -138,6 +140,8 @@ export default function AppNav({
   userEmail: string;
   profilePhotoUrl: string | null;
   initialNotifications: Notification[];
+  staffRoster: { id: string; firstName: string; lastName: string }[];
+  appointmentDefaultDate: string;
 }) {
   const pathname = usePathname();
   const visibleLinks = isAdmin ? links : fieldLinks;
@@ -248,7 +252,7 @@ export default function AppNav({
           </Link>
 
           <div className="flex items-center gap-1">
-            {isAdmin ? <CreateMenu compact /> : null}
+            {isAdmin ? <CreateMenu compact appointments={{ staffRoster, defaultDate: appointmentDefaultDate }} /> : null}
             <ThemeToggle />
             {isAdmin ? <NotificationsMenu initialNotifications={initialNotifications} /> : null}
             {showFieldGroup ? <SurfaceSwitcher onFieldSurface={onFieldSurface} variant="icon" /> : null}
