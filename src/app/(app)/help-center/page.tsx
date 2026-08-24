@@ -15,6 +15,7 @@ const RELEASES = [
       "The employee row and 'Details' toggles now announce whether they're open or closed to screen readers, and the keyboard focus outline on editable fields is visible again.",
       "The disabled 'Export blocked' control is now a real button people can tab to, and both payroll tables have hidden labels screen readers can announce.",
       "The payroll table needs less scrolling on common laptop screens, and the small badge/label text is a bit larger and easier to read.",
+      "Opening and closing an employee's job details on the Payroll page is now snappier on periods with a lot of employees, since it no longer has to redraw every other row on screen.",
     ],
   },
   {

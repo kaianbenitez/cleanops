@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, memo, useCallback, useEffect, useRef, useState } from "react";
 
 type Calculation = {
   jobId: string;
@@ -259,16 +259,125 @@ function PayrollDetail({
   );
 }
 
+const PayrollMobileCard = memo(function PayrollMobileCard({
+  line,
+  expanded,
+  toggleLine,
+}: {
+  line: Line;
+  expanded: boolean;
+  toggleLine: (id: string) => void;
+}) {
+  const detailId = `payroll-detail-mobile-${line.id}`;
+  return (
+    <article className="space-y-4 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <button type="button" onClick={() => toggleLine(line.id)} aria-expanded={expanded} aria-controls={detailId} className="min-h-11 text-left font-semibold text-[var(--co-ink)]">
+            {line.firstName} {line.lastName}
+          </button>
+          <p className="mt-1 text-sm text-[var(--co-muted)]">{line.title || "Team member"} · {line.jobsCount} job{line.jobsCount === 1 ? "" : "s"}</p>
+        </div>
+        <p className="text-right text-lg font-semibold">{dollars(line.finalCents)}</p>
+      </div>
+      <p className="text-sm text-[var(--co-muted)]">{line.payType === "commission_jth" ? "Job ticket hours" : "Office hourly"} · {line.calculation.length} job details</p>
+      <button type="button" onClick={() => toggleLine(line.id)} aria-expanded={expanded} aria-controls={detailId} className="min-h-11 w-full rounded-[var(--co-radius-control)] border border-[var(--co-line)] px-3 text-sm font-semibold text-[var(--co-accent-text)]">
+        {expanded ? "Hide job details" : "View job details"}
+      </button>
+      {expanded ? <div id={detailId} className="overflow-x-auto"><PayrollDetail line={line} /></div> : null}
+    </article>
+  );
+});
+
+const PayrollRow = memo(function PayrollRow({
+  line,
+  expanded,
+  toggleLine,
+  updateLine,
+}: {
+  line: Line;
+  expanded: boolean;
+  toggleLine: (id: string) => void;
+  updateLine: (id: string, fields: Record<string, number>) => Promise<void>;
+}) {
+  const clockedHours = line.payType === "commission_jth" ? Number(line.regularHours) : Number(line.officeHours);
+  const manualOfficeHours = line.payType === "office_hourly" ? Number(line.manualOfficeHours) : 0;
+  const totalPaidHours = clockedHours + manualOfficeHours;
+  const commission = line.payType === "commission_jth" ? line.commissionCents : line.officePayCents;
+  const bonuses = line.bonusCents + line.teamLeadBonusCents + line.trainerBonusCents + line.trainingCents;
+  const mileageEligible = line.calculation.some((entry) => entry.crewRole === "lead");
+  const detailId = `payroll-detail-${line.id}`;
+  return (
+    <Fragment>
+      <tr className="hover:bg-[var(--co-surface-muted)]/50">
+        <td className="px-3 py-4 xl:px-5">
+          <button type="button" onClick={() => toggleLine(line.id)} aria-expanded={expanded} aria-controls={detailId} className="text-left font-semibold text-[var(--co-ink)]">
+            {line.calculation.length ? (expanded ? "▾ " : "▸ ") : ""}
+            {line.firstName} {line.lastName}
+          </button>
+          <span className="mt-1 block text-xs text-[var(--co-muted)]">
+            {line.title || "Team member"} · {line.jobsCount} job{line.jobsCount === 1 ? "" : "s"}
+          </span>
+        </td>
+        <td className="px-3 py-4 xl:px-5 text-[var(--co-muted)]">{line.payType === "commission_jth" ? "Job ticket hours" : "Office hourly"}</td>
+        <td className="px-3 py-4 xl:px-5 text-right font-medium">{clockedHours.toFixed(2)}</td>
+        <td className="px-3 py-4 xl:px-5 text-right">
+          {line.role === "admin" && line.payType === "office_hourly" ? (
+            <EditableCell key={`manual-${line.id}-${line.manualOfficeHours}`} label={`${line.firstName} ${line.lastName} manual office hours`} value={line.manualOfficeHours} onSave={(value) => updateLine(line.id, { manualOfficeHours: value })} suffix=" hrs" />
+          ) : (
+            <span className="text-[var(--co-muted)]">—</span>
+          )}
+        </td>
+        <td className="px-3 py-4 xl:px-5 text-right font-medium">{totalPaidHours.toFixed(2)}</td>
+        <td className="px-3 py-4 xl:px-5 text-right text-[var(--co-muted)]">{line.hourlyRateCents ? dollars(line.hourlyRateCents) : "—"}</td>
+        <td className="px-3 py-4 xl:px-5 text-right font-medium">{dollars(commission)}</td>
+        <td className="px-3 py-4 xl:px-5 text-right">
+          {mileageEligible ? (
+            <EditableCell key={`mileage-${line.id}-${line.mileageMiles}`} label={`${line.firstName} ${line.lastName} mileage miles`} value={line.mileageMiles} onSave={(value) => updateLine(line.id, { mileageMiles: value })} suffix=" mi" />
+          ) : (
+            <div className="text-right">
+              <div className="font-medium text-[var(--co-ink)]">{line.mileageMiles} mi</div>
+              <div className="text-xs text-[var(--co-muted)]">Lead row only</div>
+            </div>
+          )}
+        </td>
+        <td className="px-3 py-4 xl:px-5 text-right">
+          <div className="text-right">
+            <div className="font-medium">{dollars(line.clientTipsCents + line.tipsPaycheckCents + line.tipsCashCents)}</div>
+            <div className="text-xs text-[var(--co-muted)]">Client + manual</div>
+          </div>
+        </td>
+        <td className="px-3 py-4 xl:px-5 text-right">
+          <EditableCell key={`bonus-${line.id}-${bonuses}`} label={`${line.firstName} ${line.lastName} bonuses`} value={dollars(bonuses)} onSave={(value) => updateLine(line.id, { bonusCents: Math.round(value * 100) })} prefix="$" />
+        </td>
+        <td className="px-3 py-4 xl:px-5 text-right font-semibold">{dollars(line.finalCents)}</td>
+        <td className="px-3 py-4 xl:px-5 text-right">
+          <button type="button" className="min-h-11 min-w-11 px-2 text-xs font-medium text-[var(--co-accent-text)]" aria-expanded={expanded} aria-controls={detailId} onClick={() => toggleLine(line.id)}>
+            {expanded ? "Hide" : "Details"}
+          </button>
+        </td>
+      </tr>
+      {expanded ? (
+        <tr id={detailId}>
+          <td colSpan={12} className="bg-[var(--co-surface-muted)]/60 px-5 py-5">
+            <PayrollDetail line={line} />
+          </td>
+        </tr>
+      ) : null}
+    </Fragment>
+  );
+});
+
 function PayrollTable({
   lines,
   expandedLineId,
-  setExpandedLineId,
+  toggleLine,
   updateLine,
   totalPay,
 }: {
   lines: Line[];
   expandedLineId: string | null;
-  setExpandedLineId: (id: string | null) => void;
+  toggleLine: (id: string) => void;
   updateLine: (id: string, fields: Record<string, number>) => Promise<void>;
   totalPay: number;
 }) {
@@ -283,28 +392,9 @@ function PayrollTable({
       </div>
 
       <div className="divide-y divide-[var(--co-line-soft)] border-t border-[var(--co-line-soft)] sm:hidden">
-        {lines.map((line) => {
-          const mobileExpanded = expandedLineId === line.id;
-          const mobileDetailId = `payroll-detail-mobile-${line.id}`;
-          return (
-            <article key={line.id} className="space-y-4 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <button type="button" onClick={() => setExpandedLineId(mobileExpanded ? null : line.id)} aria-expanded={mobileExpanded} aria-controls={mobileDetailId} className="min-h-11 text-left font-semibold text-[var(--co-ink)]">
-                    {line.firstName} {line.lastName}
-                  </button>
-                  <p className="mt-1 text-sm text-[var(--co-muted)]">{line.title || "Team member"} · {line.jobsCount} job{line.jobsCount === 1 ? "" : "s"}</p>
-                </div>
-                <p className="text-right text-lg font-semibold">{dollars(line.finalCents)}</p>
-              </div>
-              <p className="text-sm text-[var(--co-muted)]">{line.payType === "commission_jth" ? "Job ticket hours" : "Office hourly"} · {line.calculation.length} job details</p>
-              <button type="button" onClick={() => setExpandedLineId(mobileExpanded ? null : line.id)} aria-expanded={mobileExpanded} aria-controls={mobileDetailId} className="min-h-11 w-full rounded-[var(--co-radius-control)] border border-[var(--co-line)] px-3 text-sm font-semibold text-[var(--co-accent-text)]">
-                {mobileExpanded ? "Hide job details" : "View job details"}
-              </button>
-              {mobileExpanded ? <div id={mobileDetailId} className="overflow-x-auto"><PayrollDetail line={line} /></div> : null}
-            </article>
-          );
-        })}
+        {lines.map((line) => (
+          <PayrollMobileCard key={line.id} line={line} expanded={expandedLineId === line.id} toggleLine={toggleLine} />
+        ))}
       </div>
       <div className="hidden overflow-x-auto sm:block">
         <table className="w-full min-w-[1180px] text-left text-sm">
@@ -326,75 +416,9 @@ function PayrollTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--co-line-soft)]">
-            {lines.map((line) => {
-              const clockedHours = line.payType === "commission_jth" ? Number(line.regularHours) : Number(line.officeHours);
-              const manualOfficeHours = line.payType === "office_hourly" ? Number(line.manualOfficeHours) : 0;
-              const totalPaidHours = clockedHours + manualOfficeHours;
-              const commission = line.payType === "commission_jth" ? line.commissionCents : line.officePayCents;
-              const bonuses = line.bonusCents + line.teamLeadBonusCents + line.trainerBonusCents + line.trainingCents;
-              const mileageEligible = line.calculation.some((entry) => entry.crewRole === "lead");
-              const expanded = expandedLineId === line.id;
-              const detailId = `payroll-detail-${line.id}`;
-              return (
-                <Fragment key={line.id}>
-                  <tr className="hover:bg-[var(--co-surface-muted)]/50">
-                    <td className="px-3 py-4 xl:px-5">
-                      <button type="button" onClick={() => setExpandedLineId(expanded ? null : line.id)} aria-expanded={expanded} aria-controls={detailId} className="text-left font-semibold text-[var(--co-ink)]">
-                        {line.calculation.length ? (expanded ? "▾ " : "▸ ") : ""}
-                        {line.firstName} {line.lastName}
-                      </button>
-                      <span className="mt-1 block text-xs text-[var(--co-muted)]">
-                        {line.title || "Team member"} · {line.jobsCount} job{line.jobsCount === 1 ? "" : "s"}
-                      </span>
-                    </td>
-                    <td className="px-3 py-4 xl:px-5 text-[var(--co-muted)]">{line.payType === "commission_jth" ? "Job ticket hours" : "Office hourly"}</td>
-                    <td className="px-3 py-4 xl:px-5 text-right font-medium">{clockedHours.toFixed(2)}</td>
-                    <td className="px-3 py-4 xl:px-5 text-right">
-                      {line.role === "admin" && line.payType === "office_hourly" ? (
-                        <EditableCell key={`manual-${line.id}-${line.manualOfficeHours}`} label={`${line.firstName} ${line.lastName} manual office hours`} value={line.manualOfficeHours} onSave={(value) => updateLine(line.id, { manualOfficeHours: value })} suffix=" hrs" />
-                      ) : (
-                        <span className="text-[var(--co-muted)]">—</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-4 xl:px-5 text-right font-medium">{totalPaidHours.toFixed(2)}</td>
-                    <td className="px-3 py-4 xl:px-5 text-right text-[var(--co-muted)]">{line.hourlyRateCents ? dollars(line.hourlyRateCents) : "—"}</td>
-                    <td className="px-3 py-4 xl:px-5 text-right font-medium">{dollars(commission)}</td>
-                    <td className="px-3 py-4 xl:px-5 text-right">
-                      {mileageEligible ? (
-                        <EditableCell key={`mileage-${line.id}-${line.mileageMiles}`} label={`${line.firstName} ${line.lastName} mileage miles`} value={line.mileageMiles} onSave={(value) => updateLine(line.id, { mileageMiles: value })} suffix=" mi" />
-                      ) : (
-                        <div className="text-right">
-                          <div className="font-medium text-[var(--co-ink)]">{line.mileageMiles} mi</div>
-                          <div className="text-xs text-[var(--co-muted)]">Lead row only</div>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-3 py-4 xl:px-5 text-right">
-                      <div className="text-right">
-                        <div className="font-medium">{dollars(line.clientTipsCents + line.tipsPaycheckCents + line.tipsCashCents)}</div>
-                        <div className="text-xs text-[var(--co-muted)]">Client + manual</div>
-                      </div>
-                    </td>
-                    <td className="px-3 py-4 xl:px-5 text-right">
-                      <EditableCell key={`bonus-${line.id}-${bonuses}`} label={`${line.firstName} ${line.lastName} bonuses`} value={dollars(bonuses)} onSave={(value) => updateLine(line.id, { bonusCents: Math.round(value * 100) })} prefix="$" />
-                    </td>
-                    <td className="px-3 py-4 xl:px-5 text-right font-semibold">{dollars(line.finalCents)}</td>
-                    <td className="px-3 py-4 xl:px-5 text-right">
-                      <button type="button" className="min-h-11 min-w-11 px-2 text-xs font-medium text-[var(--co-accent-text)]" aria-expanded={expanded} aria-controls={detailId} onClick={() => setExpandedLineId(expanded ? null : line.id)}>
-                        {expanded ? "Hide" : "Details"}
-                      </button>
-                    </td>
-                  </tr>
-                  {expanded ? (
-                    <tr id={detailId}>
-                      <td colSpan={12} className="bg-[var(--co-surface-muted)]/60 px-5 py-5">
-                        <PayrollDetail line={line} />
-                      </td>
-                    </tr>
-                  ) : null}
-                </Fragment>
-              );
-            })}
+            {lines.map((line) => (
+              <PayrollRow key={line.id} line={line} expanded={expandedLineId === line.id} toggleLine={toggleLine} updateLine={updateLine} />
+            ))}
           </tbody>
           <tfoot className="border-t-2 border-[var(--co-accent-text)] bg-[var(--co-surface-muted)]">
             <tr>
@@ -423,6 +447,14 @@ export default function PayrollPage() {
   const [error, setError] = useState<string | null>(null);
   const weekEnd = addDaysISO(weekStart, 6);
   const payDate = addDaysISO(weekEnd, 5);
+  const linesRef = useRef<Line[]>(lines);
+  useEffect(() => {
+    linesRef.current = lines;
+  }, [lines]);
+
+  const toggleLine = useCallback((id: string) => {
+    setExpandedLineId((current) => (current === id ? null : id));
+  }, []);
 
   const loadDetail = useCallback(async (periodId: string) => {
     const response = await fetch(`/api/payroll-periods/${periodId}`, { cache: "no-store" });
@@ -476,9 +508,9 @@ export default function PayrollPage() {
     setGenerating(false);
   }
 
-  async function updateLine(lineId: string, fields: Record<string, number>) {
+  const updateLine = useCallback(async (lineId: string, fields: Record<string, number>) => {
     if (!period) return;
-    const current = lines.find((line) => line.id === lineId);
+    const current = linesRef.current.find((line) => line.id === lineId);
     const normalized = { ...fields };
     if (current && fields.tipsPaycheckCents !== undefined) normalized.tipsPaycheckCents = Math.max(0, fields.tipsPaycheckCents - current.tipsCashCents);
     if (current && fields.bonusCents !== undefined) normalized.bonusCents = Math.max(0, fields.bonusCents - current.teamLeadBonusCents - current.trainerBonusCents - current.trainingCents);
@@ -489,7 +521,7 @@ export default function PayrollPage() {
       return;
     }
     await loadDetail(period.id);
-  }
+  }, [period, loadDetail]);
 
   async function decideReview(reviewId: string, status: "approved" | "rejected", approvedMinutes?: number) {
     if (!period) return;
@@ -637,7 +669,7 @@ export default function PayrollPage() {
       ) : (
         <>
           <ReviewQueue reviews={jobReviews} lines={lines} onDecide={decideReview} />
-          <PayrollTable lines={lines} expandedLineId={expandedLineId} setExpandedLineId={setExpandedLineId} updateLine={updateLine} totalPay={totalPay} />
+          <PayrollTable lines={lines} expandedLineId={expandedLineId} toggleLine={toggleLine} updateLine={updateLine} totalPay={totalPay} />
         </>
       )}
 
