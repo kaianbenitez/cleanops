@@ -174,8 +174,8 @@ function CapacityMeter({ usedMinutes, availableMinutes, isOver, onLeave }: { use
     <div className="mt-1.5 flex items-center gap-[7px]">
       <div className="h-1 min-w-[26px] flex-1 overflow-hidden rounded-full bg-[var(--co-surface-muted-2)]">
         <div
-          className="h-full rounded-full"
-          style={{ width: `${percent}%`, background: fillColor }}
+          className="h-full w-full origin-left rounded-full"
+          style={{ transform: `scaleX(${percent / 100})`, background: fillColor, transition: "transform 550ms cubic-bezier(.16,1,.3,1)" }}
         />
       </div>
       <span className={`whitespace-nowrap text-[11px] font-bold ${isOver ? "text-[var(--co-warning)]" : "text-[var(--co-faint)]"}`}>

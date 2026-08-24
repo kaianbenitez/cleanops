@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.92",
+    date: "August 24, 2026",
+    title: "Calendar notes and room details are clearer",
+    changes: [
+      "Blank labels left by older imported customer notes are now hidden from the Calendar instead of appearing as empty Key, Pets, or Special Instructions fields.",
+      "Completed or in-progress jobs without a clock event now say so clearly in the daily list.",
+      "Customer room details now distinguish loading from a genuinely empty room list, and the daily Calendar table fits more comfortably on laptop screens.",
+    ],
+  },
+  {
     version: "v0.2.91",
     date: "August 24, 2026",
     title: "Payroll table is easier to scan and needs less scrolling",
