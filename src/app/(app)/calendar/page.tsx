@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import {
   and,
-  desc,
   eq,
   gte,
   ilike,
@@ -16,7 +15,6 @@ import {
 } from "drizzle-orm";
 import { db } from "@/db";
 import {
-  appNotifications,
   calendarEventAssignments,
   calendarEvents,
   companies,
@@ -565,16 +563,6 @@ export default async function CalendarPage({
     .where(and(eq(users.companyId, admin.companyId), eq(users.isActive, true), isFieldEligible))
     .orderBy(users.firstName, users.lastName);
 
-  // Calendar's toolbar absorbs NotificationsMenu (the app-wide top bar is
-  // hidden here, see calendar-toolbar.tsx), so it needs its own seed —
-  // same query and limit as layout.tsx's.
-  const notificationsQuery = db
-    .select({ id: appNotifications.id, title: appNotifications.title, body: appNotifications.body, href: appNotifications.href, readAt: appNotifications.readAt, createdAt: appNotifications.createdAt })
-    .from(appNotifications)
-    .where(eq(appNotifications.companyId, admin.companyId))
-    .orderBy(desc(appNotifications.createdAt))
-    .limit(20);
-
   const [
     employees,
     rows,
@@ -583,7 +571,6 @@ export default async function CalendarPage({
     monthRows,
     appointmentEvents,
     staffRoster,
-    notifications,
   ] = (await Promise.all([
     employeesQuery,
     rowsQuery,
@@ -592,7 +579,6 @@ export default async function CalendarPage({
     monthRowsQuery,
     appointmentEventsQuery,
     staffRosterQuery,
-    notificationsQuery,
   ])) as [
     CalendarEmployee[],
     Omit<CalendarJob, "assignedUserIds">[],
@@ -601,7 +587,6 @@ export default async function CalendarPage({
     CalendarDaySummary[],
     (typeof calendarEvents.$inferSelect)[],
     StaffRosterMember[],
-    Awaited<typeof notificationsQuery>,
   ];
 
   const appointmentEventIds = appointmentEvents.map((event) => event.id);
@@ -923,15 +908,12 @@ export default async function CalendarPage({
           prevHref={`/calendar${prev}`}
           nextHref={`/calendar${next}`}
           todayHref={`/calendar${todayQuery}`}
-          staffRoster={staffRoster}
-          appointmentDefaultDate={stateAnchor.length === 10 ? stateAnchor : toISODate(dayAnchor)}
           employees={employees}
           attentionCount={attentionCount}
           attentionJobCount={attentionJobCount}
           attentionDateIso={attentionDateIso}
           totalEmployees={activeEmployees.length}
           dailySummary={dailySummary}
-          initialNotifications={notifications}
         />
       </header>
       </section>

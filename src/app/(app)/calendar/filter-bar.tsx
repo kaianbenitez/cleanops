@@ -60,18 +60,6 @@ export default function FilterBar({
 
   return (
     <div aria-busy={isPending} className="flex min-w-0 shrink-0 flex-wrap items-center gap-2">
-      <button
-        type="button"
-        onClick={() => window.dispatchEvent(new Event(ATTENTION_RAIL_TOGGLE_EVENT))}
-        aria-controls="calendar-attention-rail"
-        aria-label={attentionCount ? `Show needs attention · ${attentionCount} item${attentionCount === 1 ? "" : "s"}` : "Show needs attention"}
-        title="Show needs attention"
-        className="co-button-secondary flex h-11 items-center gap-1 px-2.5 text-xs font-semibold !text-[var(--co-warning)]"
-      >
-        <AlertCircle className="h-3.5 w-3.5" aria-hidden />
-        {attentionCount ? `Needs attention · ${attentionCount}` : <span className="sr-only">Needs attention</span>}
-      </button>
-
       <div className="relative">
         <button
           ref={filtersTriggerRef}
@@ -92,6 +80,18 @@ export default function FilterBar({
           triggerRef={filtersTriggerRef}
         />
       </div>
+
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event(ATTENTION_RAIL_TOGGLE_EVENT))}
+        aria-controls="calendar-attention-rail"
+        aria-label={attentionCount ? `Needs attention · ${attentionCount} item${attentionCount === 1 ? "" : "s"}` : "Needs attention"}
+        title="Needs attention"
+        className="co-button-secondary relative flex h-11 w-11 shrink-0 items-center justify-center !p-0 !text-[var(--co-warning)]"
+      >
+        <AlertCircle className="h-3.5 w-3.5" aria-hidden />
+        {attentionCount > 0 ? <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--co-warning)] px-1 text-[10px] font-bold leading-none text-[var(--co-surface)]">{attentionCount}</span> : null}
+      </button>
 
       {hasFilters ? <button type="button" onClick={clearAll} className="min-h-11 whitespace-nowrap px-2 text-xs font-semibold text-[var(--co-accent-text)] hover:underline">Clear filters</button> : null}
       {activeFilters.map((filter) => (
