@@ -167,7 +167,7 @@ function Section({
 
 function InfoCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="co-card !bg-[var(--co-surface-muted)]/40 p-4">
+    <div className="co-card co-card-static !bg-[var(--co-surface-muted)]/40 p-4">
       <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--co-muted)]">{label}</p>
       <p className="mt-2 text-sm font-semibold">{value}</p>
       {sub ? <p className="mt-1 text-xs text-[var(--co-muted)]">{sub}</p> : null}
