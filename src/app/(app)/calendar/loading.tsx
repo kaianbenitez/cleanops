@@ -14,14 +14,16 @@ export default function CalendarLoading() {
       >
         <section className="co-card mx-3 mt-3 overflow-hidden sm:mx-4 lg:mx-5">
           <div className="border-b border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-3 lg:px-5">
-            <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-lg bg-[var(--co-surface-muted)]" />
-              <div className="h-9 w-11 rounded-lg bg-[var(--co-surface-muted)]" />
-              <div className="h-9 w-[170px] rounded-lg bg-[var(--co-surface-muted)]" />
-              <div className="h-9 w-11 rounded-lg bg-[var(--co-surface-muted)]" />
-              <div className="h-9 w-16 rounded-lg bg-[var(--co-surface-muted)]" />
-              <div className="h-9 w-[248px] rounded-lg bg-[var(--co-surface-muted)]" />
-              <div className="h-9 w-[68px] rounded-lg bg-[var(--co-surface-muted)]" />
+            <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-hidden">
+              <div className="h-11 w-11 shrink-0 rounded-lg bg-[var(--co-surface-muted)]" />
+              <div className="h-11 w-[170px] shrink-0 rounded-lg bg-[var(--co-surface-muted)]" />
+              <div className="h-11 w-11 shrink-0 rounded-lg bg-[var(--co-surface-muted)]" />
+              <div className="h-11 w-16 shrink-0 rounded-lg bg-[var(--co-surface-muted)]" />
+              <div className="h-11 w-[248px] shrink-0 rounded-lg bg-[var(--co-surface-muted)]" />
+              <div className="h-11 w-[68px] shrink-0 rounded-lg bg-[var(--co-surface-muted)]" />
+              <div className="h-11 w-11 shrink-0 rounded-lg bg-[var(--co-surface-muted)]" />
+              <div className="h-11 w-11 shrink-0 rounded-lg bg-[var(--co-surface-muted)]" />
+              <div className="h-11 w-[320px] shrink-0 rounded-lg bg-[var(--co-surface-muted)]" />
             </div>
           </div>
         </section>

@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.89",
+    date: "August 24, 2026",
+    title: "Calendar controls stay in one clean row",
+    changes: [
+      "Calendar date navigation, views, filters, attention, and the day summary now stay together in one compact row that can scroll horizontally when space is tight.",
+      "Needs attention is now a simple alert icon, and the separate fullscreen calendar mode has been removed so the normal app navigation always stays available.",
+    ],
+  },
+  {
     version: "v0.2.88",
     date: "August 23, 2026",
     title: "The Shimmer landing page is clearer about the beta",
