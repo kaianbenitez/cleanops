@@ -388,7 +388,7 @@ function PayrollTable({
         ))}
       </div>
       <div className="hidden overflow-x-auto sm:block">
-        <table className="w-full min-w-[1040px] text-left text-sm">
+        <table className="w-full text-left text-sm">
           <caption className="sr-only">Payroll summary by employee, with pay breakdown and totals</caption>
           <thead className="bg-[var(--co-accent-fill)] text-xs uppercase tracking-[0.08em] text-white">
             <tr>

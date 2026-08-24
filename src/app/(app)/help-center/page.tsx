@@ -16,6 +16,7 @@ const RELEASES = [
       "The 'Total commission' column is renamed 'Base pay' since it was already showing office pay for hourly staff, not just commission — this was a confusing label, now fixed.",
       "Removed a second stat panel at the bottom of the page that just repeated numbers already shown above.",
       "The summary numbers no longer flash a row of zeros while the page is loading.",
+      "Fixed a leftover width rule that was forcing the table to scroll sideways even after the column cleanup above — verified in the browser that it now needs zero side-scroll on any normal-size laptop or desktop window.",
     ],
   },
   {
