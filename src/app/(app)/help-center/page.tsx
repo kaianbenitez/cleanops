@@ -7,6 +7,17 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.89",
+    date: "August 24, 2026",
+    title: "Payroll page is easier to use with a keyboard or screen reader",
+    changes: [
+      "Editable hours, mileage, and bonus fields on the Payroll page now reliably show the saved value after you make a change, instead of sometimes showing what you typed before it was saved.",
+      "The employee row and 'Details' toggles now announce whether they're open or closed to screen readers, and the keyboard focus outline on editable fields is visible again.",
+      "The disabled 'Export blocked' control is now a real button people can tab to, and both payroll tables have hidden labels screen readers can announce.",
+      "The payroll table needs less scrolling on common laptop screens, and the small badge/label text is a bit larger and easier to read.",
+    ],
+  },
+  {
     version: "v0.2.88",
     date: "August 23, 2026",
     title: "The Shimmer landing page is clearer about the beta",
