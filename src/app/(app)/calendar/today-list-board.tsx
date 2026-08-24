@@ -258,7 +258,7 @@ export default function TodayListBoard({
         {warning ? <p role="status" className="co-badge-warning mt-2 px-3 py-2 text-xs font-medium">Scheduling warning: {warning}</p> : null}
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1240px] text-left text-base">
+        <table className="w-full min-w-[860px] text-left text-base">
           <thead className="bg-[var(--co-surface-muted)] text-sm uppercase tracking-[0.08em] text-[var(--co-muted)]">
             <tr>
               <th className="px-5 py-3">Time</th>
@@ -294,7 +294,11 @@ export default function TodayListBoard({
                 .map((id) => employees.find((employee) => employee.id === id))
                 .filter((employee): employee is Employee => Boolean(employee));
               const cancellable = job.status !== "cancelled" && job.status !== "completed";
-              const hasNotes = Boolean(job.gateCodeOrKeyNotes || job.petNotes || job.doNotClean || job.customerNotes);
+              const accessNote = cleanNoteText(job.gateCodeOrKeyNotes);
+              const petNote = cleanNoteText(job.petNotes);
+              const doNotCleanNote = cleanNoteText(job.doNotClean);
+              const customerNote = cleanNoteText(job.customerNotes);
+              const hasNotes = Boolean(accessNote || petNote || doNotCleanNote || customerNote);
               return (
                 <Fragment key={job.id}>
                 <tr className={`align-top hover:bg-[var(--co-surface-muted)]/50 ${savingId === job.id ? "opacity-50" : ""}`}>
@@ -374,6 +378,8 @@ export default function TodayListBoard({
                       <ul className="space-y-1">
                         {assignedEmployees.map((employee) => {
                           const state = clockStatus(entriesFor(job.id, employee.id), now);
+                          const statusWithoutClockEvent =
+                            state.label === "Not started" && (job.status === "completed" || job.status === "in_progress");
                           return (
                             <li key={employee.id} className="text-sm">
                               <span className="text-[var(--co-muted)]">
@@ -381,6 +387,9 @@ export default function TodayListBoard({
                                 {employee.isActive === false ? " (Inactive): " : ": "}
                               </span>
                               <span className={`inline-block whitespace-nowrap rounded-full px-2.5 py-1 font-semibold ${state.className}`}>{state.label}</span>
+                              {statusWithoutClockEvent ? (
+                                <span className="mt-0.5 block text-xs text-[var(--co-faint)]">No clock event recorded</span>
+                              ) : null}
                             </li>
                           );
                         })}
@@ -424,28 +433,28 @@ export default function TodayListBoard({
                   <tr className={savingId === job.id ? "opacity-50" : ""}>
                     <td colSpan={6} className="border-t border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/40 px-5 py-3 text-sm text-[var(--co-muted)]">
                       <div className="grid gap-3 sm:grid-cols-2">
-                        {job.gateCodeOrKeyNotes ? (
+                        {accessNote ? (
                           <p className="whitespace-pre-wrap break-words">
                             <span className="font-semibold text-[var(--co-ink)]">Access: </span>
-                            {cleanNoteText(job.gateCodeOrKeyNotes)}
+                            {accessNote}
                           </p>
                         ) : null}
-                        {job.petNotes ? (
+                        {petNote ? (
                           <p className="whitespace-pre-wrap break-words">
                             <span className="font-semibold text-[var(--co-ink)]">Pets: </span>
-                            {cleanNoteText(job.petNotes)}
+                            {petNote}
                           </p>
                         ) : null}
-                        {job.doNotClean ? (
+                        {doNotCleanNote ? (
                           <p className="whitespace-pre-wrap break-words">
                             <span className="font-semibold text-[var(--co-danger)]">Don&apos;t clean: </span>
-                            {cleanNoteText(job.doNotClean)}
+                            {doNotCleanNote}
                           </p>
                         ) : null}
-                        {job.customerNotes ? (
+                        {customerNote ? (
                           <p className="whitespace-pre-wrap break-words sm:col-span-2">
                             <span className="font-semibold text-[var(--co-ink)]">Notes: </span>
-                            {cleanNoteText(job.customerNotes)}
+                            {customerNote}
                           </p>
                         ) : null}
                       </div>

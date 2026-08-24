@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.68",
+    date: "August 24, 2026",
+    title: "Calendar: cleaner notes, a clearer completed-without-clock-in flag, and a narrower daily list",
+    changes: [
+      "Job notes on the Calendar's daily list (Access, Pets, Notes) no longer show leftover blank fields from old imported records, like a \"Key #:\" or \"# Names:\" label with nothing after it, or the same \"Special Instructions:\" heading repeated with nothing following the second time. A field with no real content is now left out entirely.",
+      "When a job is marked Completed or In progress but nobody actually clocked in for it, the Cleaning time column now says \"No clock event recorded\" instead of just showing a bare, confusing \"Not started\" next to \"Completed.\"",
+      "The Calendar's daily list no longer forces a wider-than-needed table — it now fits on a laptop screen without side-scrolling to see the Cleaning time and Actions columns.",
+    ],
+  },
+  {
     version: "v0.2.67",
     date: "August 20, 2026",
     title: "Calendar Board: drag a job onto a crew, or drag it back off",

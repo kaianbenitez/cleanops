@@ -38,6 +38,36 @@ const HTML_NAMED_ENTITIES: Record<string, string> = {
   middot: "·", bull: "•",
 };
 
+// Matches a legacy intake-form field label like "Key #:", "# Names:", or
+// "Special Instructions:" — an uppercase- or "#"-led run of characters
+// ending in a colon.
+const LEGACY_LABEL = /[A-Z#][A-Za-z0-9 /#&']{0,30}:/g;
+
+/**
+ * The same bulk import (see cleanNoteText below) left whole unfilled
+ * template fields in place — "Pet Instructions: Dogs: # Names: Cats: #
+ * Names:" when no pet details were ever entered, or a "Special
+ * Instructions:" label appended a second time with nothing after it. A
+ * label followed by nothing but another label (or the end of the string)
+ * carries no information, so drop it; a label followed by real content is
+ * left untouched.
+ */
+function stripEmptyLegacyLabels(text: string): string {
+  const matches = [...text.matchAll(LEGACY_LABEL)];
+  if (!matches.length) return text;
+  const parts: string[] = [];
+  const lead = text.slice(0, matches[0].index ?? 0).trim();
+  if (lead) parts.push(lead);
+  for (let i = 0; i < matches.length; i++) {
+    const label = matches[i][0];
+    const start = (matches[i].index ?? 0) + label.length;
+    const end = i + 1 < matches.length ? (matches[i + 1].index ?? text.length) : text.length;
+    const fieldValue = text.slice(start, end).trim();
+    if (fieldValue) parts.push(`${label} ${fieldValue}`);
+  }
+  return parts.join(" ").replace(/ {2,}/g, " ").trim();
+}
+
 /**
  * Old customer notes were bulk-imported from an HTML export (see HANDOFF.md's
  * TheCustomerFactor CSV backfill) with entities like "&rsquo;"/"&amp;"/"&#39;"
@@ -53,10 +83,11 @@ export function cleanNoteText(value: string | null | undefined): string {
     }
     return HTML_NAMED_ENTITIES[entity] ?? match;
   });
-  return decoded
+  const normalized = decoded
     .replace(/\r\n?/g, "\n")
     .replace(/[ \t]+/g, " ")
     .replace(/ *\n */g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+  return stripEmptyLegacyLabels(normalized);
 }
