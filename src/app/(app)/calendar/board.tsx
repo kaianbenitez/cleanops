@@ -1844,6 +1844,13 @@ function AssignAtTimeDialog({ job, employees, initialMinutes, getVerdict, onClos
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const selectedVerdict = selectedEmployeeId ? getVerdict(selectedEmployeeId, minutes) : null;
   const dialogRef = useDialogFocus<HTMLDivElement>(true);
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-[var(--co-overlay)]" />
@@ -1868,6 +1875,13 @@ function RailActionDialog({ job, mode, policy, onClose, onConfirm }: { job: Cale
   const startTime = period === "afternoon" ? "13:00:00" : "09:00:00";
   const canSubmit = mode === "bump" ? Boolean(date) : Boolean(reason.trim());
   const dialogRef = useDialogFocus<HTMLDivElement>(true);
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-[var(--co-overlay)]" />
