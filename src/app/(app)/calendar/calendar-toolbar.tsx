@@ -38,10 +38,12 @@ function CalendarDaySummary({
   );
 }
 
-/** The whole calendar toolbar stays one row: date navigation, view, filters,
- * attention, and the compact day summary. The app-wide navigation and tools
- * remain in the shell above it; Calendar does not replace that shell with a
- * alternate navigation mode. */
+/** The calendar toolbar: date navigation, view, filters, attention, and the
+ * compact day summary. Wraps onto a second line rather than scrolling
+ * horizontally when it doesn't fit — the row must stay fully visible without
+ * a horizontal scrollbar. The app-wide navigation and tools remain in the
+ * shell above it; Calendar does not replace that shell with an alternate
+ * navigation mode. */
 export default function CalendarToolbar({
   view,
   axis,
@@ -150,7 +152,7 @@ export default function CalendarToolbar({
   }
 
   return (
-    <div className="flex w-full min-w-0 flex-nowrap items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
       <div className="flex shrink-0 items-center gap-2">
         <div aria-busy={isDateNavPending} className="flex items-center gap-2">
           <Link

@@ -9,7 +9,9 @@ import {
   CheckCircle2,
   Clock3,
   KeyRound,
+  Minus,
   PawPrint,
+  Plus,
   Repeat,
   TriangleAlert,
   Users,
@@ -1753,7 +1755,13 @@ function RailGroup({ icon, label, jobs, children, collapsible = false, defaultCo
         {icon}
         {label}
         <span className="ml-auto text-[12px] font-semibold text-[var(--co-muted)]">{jobs.length}</span>
-        {collapsible ? <span className="ml-1 text-[13px] text-[var(--co-muted)]" aria-hidden>{collapsed ? "＋" : "−"}</span> : null}
+        {collapsible ? (
+          collapsed ? (
+            <Plus className="ml-1 h-[13px] w-[13px] shrink-0 text-[var(--co-muted)]" aria-hidden strokeWidth={1.75} />
+          ) : (
+            <Minus className="ml-1 h-[13px] w-[13px] shrink-0 text-[var(--co-muted)]" aria-hidden strokeWidth={1.75} />
+          )
+        ) : null}
       </button>
       {!collapsed ? <div className="flex flex-col gap-[7px] p-[9px]">{children}</div> : null}
     </div>
