@@ -7,6 +7,18 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.90",
+    date: "August 24, 2026",
+    title: "Payroll table is easier to scan and needs less scrolling",
+    changes: [
+      "The employee table now groups related numbers together (hours, base pay, mileage, tips & bonuses) instead of spreading them across 12 separate columns, so it fits on a normal laptop screen without side-scrolling.",
+      "Approvals that need your attention now show up above the summary numbers, so you see what needs action first.",
+      "The 'Total commission' column is renamed 'Base pay' since it was already showing office pay for hourly staff, not just commission — this was a confusing label, now fixed.",
+      "Removed a second stat panel at the bottom of the page that just repeated numbers already shown above.",
+      "The summary numbers no longer flash a row of zeros while the page is loading.",
+    ],
+  },
+  {
     version: "v0.2.89",
     date: "August 24, 2026",
     title: "Payroll page is easier to use with a keyboard or screen reader",
