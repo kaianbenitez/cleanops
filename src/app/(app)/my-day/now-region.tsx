@@ -36,35 +36,34 @@ export default function NowRegion({ now }: { now: WorkdayNow }) {
   return (
     <section
       aria-label="Right now"
-      className="sticky top-0 z-20 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)]/95 px-4 py-3 backdrop-blur sm:px-5"
+      className="co-my-day-now sticky top-0 z-20 border-b border-[var(--co-line-soft)] bg-[var(--co-surface)]/95 px-4 py-3 backdrop-blur sm:px-5"
     >
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-start gap-2.5">
         {isRecording ? (
           <span
-            className="h-2 w-2 shrink-0 rounded-full motion-safe:animate-pulse"
+            className="mt-1.5 h-2 w-2 shrink-0 rounded-full motion-safe:animate-pulse"
             style={{ background: "var(--co-success)" }}
             aria-hidden
           />
         ) : (
-          <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--co-faint)]" aria-hidden />
+          <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--co-faint)]" aria-hidden />
         )}
-        <p className="min-w-0 flex-1 type-field-body font-semibold text-[var(--co-ink)]">{now.recordedLine}</p>
-        {elapsed ? (
-          <span
-            className="shrink-0 font-mono text-[17px] font-semibold tabular-nums tracking-[-0.01em]"
-            style={{ color: "var(--co-success)" }}
-            aria-hidden
-          >
-            {elapsed}
-          </span>
-        ) : null}
+        <div className="min-w-0 flex-1">
+          {/* The elapsed number is the one place this screen spends real
+              visual weight — everything else stays quiet by comparison. */}
+          {elapsed ? (
+            <p className="type-field-hero leading-none tabular-nums" style={{ color: "var(--co-success)" }} aria-hidden>
+              {elapsed}
+            </p>
+          ) : null}
+          <p className={`type-field-body font-semibold text-[var(--co-ink)] ${elapsed ? "mt-1.5" : ""}`}>{now.recordedLine}</p>
+          {/* Only the work state is announced. Announcing the seconds counter
+              would make a screen reader talk over the whole workday. */}
+          <p aria-live="polite" className="mt-0.5 type-field-meta font-medium text-[var(--co-muted)]">
+            {now.workLine}
+          </p>
+        </div>
       </div>
-
-      {/* Only the work state is announced. Announcing the seconds counter
-          would make a screen reader talk over the whole workday. */}
-      <p aria-live="polite" className="mt-1 pl-[18px] type-field-meta font-medium text-[var(--co-muted)]">
-        {now.workLine}
-      </p>
     </section>
   );
 }

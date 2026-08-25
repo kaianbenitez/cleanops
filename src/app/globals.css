@@ -559,6 +559,19 @@ button:active { transform: translateY(1px); }
 .co-route-node.is-done { background: var(--co-success); border-color: var(--co-success); }
 .co-route-node.is-flagged { border-color: var(--co-spark-fill); }
 
+/* Route spine connector: a short segment of the same rail line, dropped
+   between the current-stop card and the row list below it, so the day
+   reads as one continuous route instead of a hero card floating above an
+   unrelated list. Colored to match the masthead edge when time is
+   currently recording. */
+.co-rail-connector {
+  width: 2px;
+  height: 18px;
+  margin: 0 auto;
+  background: var(--co-line-soft);
+}
+.co-rail-connector.is-active { background: var(--co-success); }
+
 /* Hybrid admin users retain the mobile app header above the field surface.
    Keep the field "Now" region below that header while ordinary field users,
    who have no top header, continue to pin it at the viewport edge. */

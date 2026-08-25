@@ -10,8 +10,8 @@ export default function MyDayError({ error, reset }: { error: Error & { digest?:
 
   return (
     <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center">
-      <h1 className="page-title !text-2xl">My Day couldn&apos;t load</h1>
-      <p className="text-sm text-[var(--co-muted)]">
+      <h1 className="type-field-display font-semibold text-[var(--co-ink)]">My Day couldn&apos;t load</h1>
+      <p className="type-field-meta text-[var(--co-muted)]">
         This screen is unavailable right now. Work already saved remains safe. Check My Day before trying another action,
         then try again. If it still will not load, contact the office.
       </p>

@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.97",
+    date: "August 25, 2026",
+    title: "My Day gets a clearer status readout",
+    changes: [
+      "The \"right now\" bar at the top of My Day now shows a large, easy-to-read timer while you're clocked in, instead of a small number squeezed into one line.",
+      "The card for your current stop is now a distinct card instead of a flat strip, so it's clearer which job you're on.",
+      "The stop detail screen and the time-off request screen now match the rest of My Day's text sizing for a more consistent feel.",
+    ],
+  },
+  {
     version: "v0.2.96",
     date: "August 25, 2026",
     title: "Choose how many rows show per page",

@@ -484,7 +484,7 @@ export default function MyDayClient({
       ) : null}
 
       {currentStop && !isStale ? (
-        <div className="mt-3 border-y border-[var(--co-line-soft)] bg-[var(--co-surface)] px-4 py-5 sm:px-5">
+        <div className="co-card mx-4 mt-3 px-4 py-5 sm:mx-5 sm:px-5">
           <p className="type-field-display font-semibold text-[var(--co-ink)]">
             {currentStop.customerFirstName} {currentStop.customerLastName}
           </p>
@@ -621,7 +621,13 @@ export default function MyDayClient({
 
           {currentStop.rotationalTaskReminder ? <RotationChecklist reminder={currentStop.rotationalTaskReminder} /> : null}
         </div>
-      ) : !currentStop ? (
+      ) : null}
+
+      {currentStop && !isStale && (waitingStops.length > 0 || routeStops.length > 0) ? (
+        <div className={`co-rail-connector ${workdayNow.recordingSince ? "is-active" : ""}`} aria-hidden />
+      ) : null}
+
+      {!currentStop ? (
         <div className="mt-3 flex flex-col items-center border-y border-[var(--co-line-soft)] px-4 py-10 text-center sm:px-5">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--co-surface-muted)]">
             <CalendarCheck className="h-7 w-7 text-[var(--co-muted)]" aria-hidden />

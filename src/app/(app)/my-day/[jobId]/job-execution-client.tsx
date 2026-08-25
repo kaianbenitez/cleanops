@@ -345,7 +345,7 @@ export default function JobExecutionClient({
 
       <div className="px-4 sm:px-5">
         <div className="mb-3 mt-2">
-          <Link href="/my-day" className="-ml-2 flex min-h-11 w-fit items-center gap-1 px-2 text-sm font-medium text-[var(--co-muted)] hover:text-[var(--co-ink)]">
+          <Link href="/my-day" className="-ml-2 flex min-h-11 w-fit items-center gap-1 px-2 type-field-meta font-medium text-[var(--co-muted)] hover:text-[var(--co-ink)]">
             ← Back to My Day
           </Link>
         </div>
@@ -369,10 +369,10 @@ export default function JobExecutionClient({
                 </span>
                 <span className="font-mono type-field-micro text-[var(--co-faint)]">ID: #{job.jobId.slice(0, 8).toUpperCase()}</span>
               </div>
-              <h1 className="page-title !text-2xl">{address}</h1>
+              <h1 className="type-field-display font-semibold tracking-[-0.01em] text-[var(--co-ink)]">{address}</h1>
               {/* The scheduled slot, not a second clock. The only counter on
                   this screen is the labelled one in the Now region above. */}
-              <p className="mt-1 text-sm text-[var(--co-muted)]">
+              <p className="mt-1 type-field-meta text-[var(--co-muted)]">
                 Scheduled {dateLabel(job.scheduledDate, companyTimezone)} · {timeLabel(job.scheduledStartTime)}
               </p>
             </div>
@@ -418,7 +418,7 @@ export default function JobExecutionClient({
         ) : null}
 
         {error ? (
-          <p role="alert" className="co-badge-danger mb-4 rounded-2xl px-4 py-3 text-sm">
+          <p role="alert" className="co-badge-danger mb-4 rounded-2xl px-4 py-3 type-field-meta">
             {error}
           </p>
         ) : null}
@@ -426,8 +426,8 @@ export default function JobExecutionClient({
         <div className="space-y-4">
           {receipt ? (
             <section role="status" className="co-card p-5">
-              <p className="text-base font-semibold text-[var(--co-ink)]">{receipt.receiptLine}</p>
-              <p className="mt-2 text-sm text-[var(--co-muted)]">
+              <p className="type-field-body font-semibold text-[var(--co-ink)]">{receipt.receiptLine}</p>
+              <p className="mt-2 type-field-meta text-[var(--co-muted)]">
                 {receipt.jobCompleted ? receipt.completionLine : crewWaitingSentence(receipt.completionLine)}
               </p>
               {receipt.jobCompleted && feedbackUrl ? (
@@ -441,9 +441,9 @@ export default function JobExecutionClient({
 
           {!recording && !receipt ? (
             <section className="co-card p-5">
-              <p className="text-sm text-[var(--co-ink)]">You haven&apos;t started this stop. Start travel from My Day when you&apos;re ready.</p>
+              <p className="type-field-meta text-[var(--co-ink)]">You haven&apos;t started this stop. Start travel from My Day when you&apos;re ready.</p>
               {otherRecording ? (
-                <p className="mt-2 text-sm font-semibold text-[var(--co-muted)]">
+                <p className="mt-2 type-field-meta font-semibold text-[var(--co-muted)]">
                   You&apos;re recording time at {otherRecording.customerFirstName} {otherRecording.customerLastName} right now.
                 </p>
               ) : null}
@@ -452,28 +452,28 @@ export default function JobExecutionClient({
           ) : null}
 
           <section className="co-card p-5">
-            <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-[var(--co-ink)]">Service details</h2>
+            <h2 className="mb-4 flex items-center gap-2 type-field-body font-semibold text-[var(--co-ink)]">Service details</h2>
             <div className="space-y-3">
               <div className="flex items-center justify-between border-b border-[var(--co-line-soft)] py-2">
-                <span className="text-sm text-[var(--co-muted)]">Service type</span>
-                <span className="text-sm font-semibold text-[var(--co-ink)]">{jobTypeLabel(job.type)}</span>
+                <span className="type-field-meta text-[var(--co-muted)]">Service type</span>
+                <span className="type-field-meta font-semibold text-[var(--co-ink)]">{jobTypeLabel(job.type)}</span>
               </div>
               <div className="flex items-center justify-between border-b border-[var(--co-line-soft)] py-2">
-                <span className="text-sm text-[var(--co-muted)]">Role</span>
-                <span className="text-sm font-semibold text-[var(--co-ink)]">{job.role === "lead" ? "Lead / driver" : "Helper"}</span>
+                <span className="type-field-meta text-[var(--co-muted)]">Role</span>
+                <span className="type-field-meta font-semibold text-[var(--co-ink)]">{job.role === "lead" ? "Lead / driver" : "Helper"}</span>
               </div>
               {job.estimatedDurationMinutes ? (
                 <div className="flex items-center justify-between border-b border-[var(--co-line-soft)] py-2">
-                  <span className="text-sm text-[var(--co-muted)]">Est. duration</span>
-                  <span className="text-sm font-semibold text-[var(--co-ink)]">{formatEstimatedTime(job.estimatedDurationMinutes)}</span>
+                  <span className="type-field-meta text-[var(--co-muted)]">Est. duration</span>
+                  <span className="type-field-meta font-semibold text-[var(--co-ink)]">{formatEstimatedTime(job.estimatedDurationMinutes)}</span>
                 </div>
               ) : null}
               {coworkers.length ? (
                 <div className="flex items-start justify-between gap-3 border-b border-[var(--co-line-soft)] py-2">
-                  <span className="text-sm text-[var(--co-muted)]">With you</span>
+                  <span className="type-field-meta text-[var(--co-muted)]">With you</span>
                   <span className="flex flex-col items-end gap-1">
                     {coworkers.map((coworker) => (
-                      <span key={`${coworker.firstName}-${coworker.lastName}`} className="flex items-center gap-1.5 text-sm font-semibold text-[var(--co-ink)]">
+                      <span key={`${coworker.firstName}-${coworker.lastName}`} className="flex items-center gap-1.5 type-field-meta font-semibold text-[var(--co-ink)]">
                         {coworker.firstName} {coworker.lastName}
                         <span className={`type-field-micro font-medium ${coworker.done ? "text-[var(--co-success)]" : "text-[var(--co-muted)]"}`}>
                           {/* "still on site" is a claim about right now, and it
@@ -487,7 +487,7 @@ export default function JobExecutionClient({
               ) : null}
               {job.keyNumber || job.garageCode || job.gateCode || job.alarmCode ? (
                 <div className="flex items-center justify-between py-2">
-                  <span className="text-sm text-[var(--co-muted)]">Access</span>
+                  <span className="type-field-meta text-[var(--co-muted)]">Access</span>
                   <MaskedCode>
                     {[job.keyNumber && `Key #${job.keyNumber}`, job.garageCode && `Garage ${job.garageCode}`, job.gateCode && `Gate ${job.gateCode}`, job.alarmCode && `Alarm ${job.alarmCode}`]
                       .filter(Boolean)
@@ -497,8 +497,8 @@ export default function JobExecutionClient({
               ) : null}
               {job.customerPhone ? (
                 <div className="flex items-center justify-between py-2">
-                  <span className="text-sm text-[var(--co-muted)]">Customer</span>
-                  <a href={`tel:${job.customerPhone}`} className="text-sm font-semibold text-[var(--co-accent-text)]">
+                  <span className="type-field-meta text-[var(--co-muted)]">Customer</span>
+                  <a href={`tel:${job.customerPhone}`} className="type-field-meta font-semibold text-[var(--co-accent-text)]">
                     {customerName} · {job.customerPhone}
                   </a>
                 </div>
@@ -508,7 +508,7 @@ export default function JobExecutionClient({
             {clientNote ? (
               <div className="mt-4 rounded-lg bg-[var(--co-accent-tint)] p-4">
                 <p className="mb-1 type-field-meta font-bold uppercase tracking-tight text-[var(--co-accent-text)]">Client notes</p>
-                <p className="whitespace-pre-line text-sm text-[var(--co-ink)]">{clientNote}</p>
+                <p className="whitespace-pre-line type-field-meta text-[var(--co-ink)]">{clientNote}</p>
               </div>
             ) : null}
 
@@ -516,7 +516,7 @@ export default function JobExecutionClient({
               <div className="mt-4 grid gap-2 sm:grid-cols-3">
                 {instructions.map((instruction) => {
                   const Icon = instruction.icon;
-                  return <section key={instruction.label} className={`rounded-lg p-3 ${instruction.tone}`}><div className="flex items-center gap-2 type-field-meta font-bold"><Icon className="h-4 w-4" />{instruction.label}</div><p className="mt-2 whitespace-pre-line text-sm leading-5">{instruction.value}</p></section>;
+                  return <section key={instruction.label} className={`rounded-lg p-3 ${instruction.tone}`}><div className="flex items-center gap-2 type-field-meta font-bold"><Icon className="h-4 w-4" />{instruction.label}</div><p className="mt-2 whitespace-pre-line type-field-meta leading-5">{instruction.value}</p></section>;
                 })}
               </div>
             ) : null}
@@ -536,7 +536,7 @@ export default function JobExecutionClient({
             <>
               <section className="co-card p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
-                  <h2 className="text-base font-semibold text-[var(--co-ink)]">Photos</h2>
+                  <h2 className="type-field-body font-semibold text-[var(--co-ink)]">Photos</h2>
                   <button type="button" onClick={() => openUpload("extra")} disabled={uploading} className="co-button-primary min-h-11 px-4 py-2 type-field-meta">
                     {uploading ? "Uploading…" : "Upload photo"}
                   </button>
@@ -591,7 +591,7 @@ export default function JobExecutionClient({
               </section>
 
               <section className="co-card p-5">
-                <h2 className="mb-4 text-base font-semibold text-[var(--co-ink)]">Close out</h2>
+                <h2 className="mb-4 type-field-body font-semibold text-[var(--co-ink)]">Close out</h2>
                 <div className="space-y-4">
                   <div className="rounded-2xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
                     <div className="flex items-start gap-3">
@@ -604,7 +604,7 @@ export default function JobExecutionClient({
                     {feedbackUrl ? <div className="mt-4 rounded-xl border border-[var(--co-line)] bg-[var(--co-surface)] p-3"><p className="type-field-meta font-semibold text-[var(--co-accent-text)]">Link ready — share it with the customer:</p><input readOnly value={feedbackUrl} className="co-input mt-2 w-full type-field-meta" onFocus={(event) => event.currentTarget.select()} /></div> : <button type="button" onClick={requestCustomerFeedback} disabled={sendingFeedback} className="co-button-secondary mt-4 min-h-11 w-full justify-center">{sendingFeedback ? "Creating link…" : "Create customer link"}</button>}
                   </div>
                   <label className="block">
-                    <span className="mb-1 block text-sm text-[var(--co-muted)]">Payment collected on-site</span>
+                    <span className="mb-1 block type-field-meta text-[var(--co-muted)]">Payment collected on-site</span>
                     <select
                       value={paymentMethod}
                       onChange={(event) => setPaymentMethod(event.target.value)}
@@ -620,7 +620,7 @@ export default function JobExecutionClient({
                   </label>
                   {paymentMethod === "check" ? (
                     <label className="block">
-                      <span className="mb-1 block text-sm text-[var(--co-muted)]">Check number</span>
+                      <span className="mb-1 block type-field-meta text-[var(--co-muted)]">Check number</span>
                       <input
                         type="text"
                         value={checkNumber}
@@ -631,7 +631,7 @@ export default function JobExecutionClient({
                     </label>
                   ) : null}
                   <label className="block">
-                    <span className="mb-1 block text-sm text-[var(--co-muted)]">Damages / notes for the office</span>
+                    <span className="mb-1 block type-field-meta text-[var(--co-muted)]">Damages / notes for the office</span>
                     <textarea
                       value={cleanerNotes}
                       onChange={(event) => setCleanerNotes(event.target.value)}
@@ -671,7 +671,7 @@ export default function JobExecutionClient({
                 type="button"
                 onClick={saveMyWork}
                 disabled={saving || !ready}
-                className="co-button-primary min-h-[56px] w-full justify-center py-4 text-base disabled:opacity-60"
+                className="co-button-primary min-h-[56px] w-full justify-center py-4 type-field-body disabled:opacity-60"
               >
                 {saving ? "Saving…" : `Save my work at ${customerName}`}
               </button>
@@ -681,12 +681,12 @@ export default function JobExecutionClient({
               type="button"
               onClick={() => startTravelToNext(nextStop.jobId)}
               disabled={travelling}
-              className="co-button-primary min-h-[56px] w-full justify-center py-4 text-base disabled:opacity-60"
+              className="co-button-primary min-h-[56px] w-full justify-center py-4 type-field-body disabled:opacity-60"
             >
               {travelling ? "Starting…" : `Start travel to ${nextStop.customerFirstName} ${nextStop.customerLastName}`}
             </button>
           ) : (
-            <Link href="/my-day" className="co-button-primary flex min-h-[56px] w-full items-center justify-center py-4 text-base">
+            <Link href="/my-day" className="co-button-primary flex min-h-[56px] w-full items-center justify-center py-4 type-field-body">
               Back to My Day
             </Link>
           )}
