@@ -17,8 +17,13 @@ export async function POST(req: NextRequest) {
   const notificationUrl = req.url;
 
   const webhookKeys = await getSquareWebhookKeys();
-  // Retain today's permissive mock behavior when no webhook key exists at all.
-  const signatureValid = webhookKeys.length === 0 || webhookKeys.some((key) => verifySquareSignature(rawBody, signature, notificationUrl, key));
+  const matchedKey = webhookKeys.find((entry) => verifySquareSignature(rawBody, signature, notificationUrl, entry.key)) ?? null;
+  // A configured key must actually match — never fall through. Only when NO
+  // key is configured anywhere do we fall back to permissive mock behavior,
+  // and only outside production: "no key configured" is this app's current
+  // production state for Square (see AI-NOW.md), so treating that as
+  // automatically valid would mean every production webhook is unverified.
+  const signatureValid = matchedKey !== null || (webhookKeys.length === 0 && process.env.NODE_ENV !== "production");
 
   let payload: unknown;
   try {
@@ -53,7 +58,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await processPaymentEvent(payload);
+    await processPaymentEvent(payload, matchedKey?.companyId ?? null);
     await db.update(webhookEvents).set({ processedAt: new Date() }).where(eq(webhookEvents.id, event.id));
   } catch (err) {
     await db
@@ -70,7 +75,7 @@ type SquareInvoiceEvent = {
   data?: { object?: { invoice?: { id?: string; status?: string; payment_requests?: Array<{ tip_money?: { amount?: number | string } }> }; payment?: { tip_money?: { amount?: number | string } } } };
 };
 
-async function processPaymentEvent(payload: unknown): Promise<void> {
+async function processPaymentEvent(payload: unknown, companyId: string | null): Promise<void> {
   const p = payload as SquareInvoiceEvent;
   if (p.type !== "invoice.payment_made" && p.type !== "invoice.updated") return;
 
@@ -79,10 +84,13 @@ async function processPaymentEvent(payload: unknown): Promise<void> {
   if (!squareInvoiceId) throw new Error("Payload missing invoice id");
   if (status !== "PAID") return; // only act on the actually-paid transition
 
+  // A signature that matched one company's key must only ever be able to act
+  // on that company's invoices — otherwise a valid key for Company A could
+  // authenticate a forged payment event for Company B's invoice.
   const [invoice] = await db
     .select({ id: invoices.id, jobId: invoices.jobId })
     .from(invoices)
-    .where(eq(invoices.squareInvoiceId, squareInvoiceId))
+    .where(companyId ? and(eq(invoices.squareInvoiceId, squareInvoiceId), eq(invoices.companyId, companyId)) : eq(invoices.squareInvoiceId, squareInvoiceId))
     .limit(1);
 
   if (!invoice) throw new Error(`No invoice found for Square invoice ${squareInvoiceId}`);

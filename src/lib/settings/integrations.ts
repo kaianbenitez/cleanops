@@ -42,8 +42,22 @@ export async function getCompanyGoogleMapsApiKey(companyId: string): Promise<str
   return decryptSettingSecret(company?.googleMapsApiKeyEncrypted) ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? null;
 }
 
-/** Webhooks have no authenticated company context, so accept a valid configured company key. */
-export async function getSquareWebhookKeys(): Promise<string[]> {
-  const rows = await db.select({ squareWebhookSignatureKeyEncrypted: companies.squareWebhookSignatureKeyEncrypted }).from(companies);
-  return [...new Set([...rows.map((row) => decryptSettingSecret(row.squareWebhookSignatureKeyEncrypted)).filter((key): key is string => Boolean(key)), ...(process.env.SQUARE_WEBHOOK_SIGNATURE_KEY ? [process.env.SQUARE_WEBHOOK_SIGNATURE_KEY] : [])])];
+export type SquareWebhookKey = { companyId: string | null; key: string };
+
+/** Webhooks have no authenticated company context, so every configured key is a
+ * candidate. Each key keeps its owning `companyId` so the caller can scope the
+ * invoice lookup to that company once a key matches — a signature valid for one
+ * company must never authenticate a payment event for a different company's
+ * invoice. The env-var key has no single owning company (`companyId: null`);
+ * a match against it stays unscoped, same as before. */
+export async function getSquareWebhookKeys(): Promise<SquareWebhookKey[]> {
+  const rows = await db.select({ id: companies.id, squareWebhookSignatureKeyEncrypted: companies.squareWebhookSignatureKeyEncrypted }).from(companies);
+  const perCompany: SquareWebhookKey[] = [];
+  for (const row of rows) {
+    const key = decryptSettingSecret(row.squareWebhookSignatureKeyEncrypted);
+    if (key) perCompany.push({ companyId: row.id, key });
+  }
+  return process.env.SQUARE_WEBHOOK_SIGNATURE_KEY
+    ? [...perCompany, { companyId: null, key: process.env.SQUARE_WEBHOOK_SIGNATURE_KEY }]
+    : perCompany;
 }
