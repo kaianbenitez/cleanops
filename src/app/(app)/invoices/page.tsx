@@ -7,11 +7,11 @@ import { customers, invoices, jobs } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { isOverdue, overdueSqlCondition } from "@/lib/invoices/overdue";
 import { formatDisplayDate } from "@/lib/scheduling/dates";
-import { PaginationControls } from "@/components/ui/pagination";
+import { PaginationControls, parsePageSize } from "@/components/ui/pagination";
 
 const PAGE_SIZE = 25;
 
-type SearchParams = { q?: string; status?: string; overdue?: string; page?: string };
+type SearchParams = { q?: string; status?: string; overdue?: string; page?: string; pageSize?: string };
 
 function hrefForPage(params: SearchParams, page: number) {
   const next = new URLSearchParams();
@@ -54,6 +54,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
   }
 
   const page = Math.max(1, Math.floor(Number(sp.page)) || 1);
+  const pageSize = parsePageSize(sp.pageSize, PAGE_SIZE);
   const overdueCondition = overdueSqlCondition();
 
   const [rows, [counts]] = await Promise.all([
@@ -76,8 +77,8 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
       .leftJoin(jobs, eq(invoices.jobId, jobs.id))
       .where(and(...conditions))
       .orderBy(desc(invoices.createdAt))
-      .limit(PAGE_SIZE)
-      .offset((page - 1) * PAGE_SIZE),
+      .limit(pageSize)
+      .offset((page - 1) * pageSize),
     db
       .select({
         all: sql<number>`count(*)`,
@@ -239,7 +240,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
           </>
         )}
 
-        <PaginationControls page={page} pageSize={PAGE_SIZE} total={total} itemLabel="invoice" hrefForPage={(target) => hrefForPage(sp, target)} />
+        <PaginationControls page={page} pageSize={pageSize} total={total} itemLabel="invoice" basePath="/invoices" searchParams={sp} hrefForPage={(target) => hrefForPage(sp, target)} />
       </section>
     </div>
   );

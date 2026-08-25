@@ -4,7 +4,7 @@ import { and, asc, desc, eq, ilike, isNotNull, isNull, ne, or, sql } from "drizz
 import { db } from "@/db";
 import { customers, invoices, jobs } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { PaginationControls } from "@/components/ui/pagination";
+import { PaginationControls, parsePageSize } from "@/components/ui/pagination";
 import { StatusPill, statusLabel, statusOptions, statusToneClass } from "@/components/ui/status-pill";
 import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { BulkArchiveTable, type EligibleCustomerRow } from "./bulk-archive-bar";
@@ -69,6 +69,7 @@ type SearchParams = {
   eligible?: string;
   sort?: string;
   page?: string;
+  pageSize?: string;
   history?: string;
   cancelled?: string;
   repeat?: string;
@@ -197,6 +198,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   }
 
   const page = Math.max(1, Math.floor(Number(sp.page)) || 1);
+  const pageSize = parsePageSize(sp.pageSize, PAGE_SIZE);
 
   // Sort is scoped to the normal filtered view — the archive-eligible view has its own
   // review flow (bulk-archive-bar) and doesn't render this filter form, so it keeps the
@@ -248,8 +250,8 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
       .from(customers)
       .where(and(...conditions))
       .orderBy(...orderBy)
-      .limit(PAGE_SIZE)
-      .offset((page - 1) * PAGE_SIZE),
+      .limit(pageSize)
+      .offset((page - 1) * pageSize),
     db
       .select({
         recurring: sql<number>`count(*) filter (where ${customers.recurrence} is not null and ${customers.recurrence} <> 'none')`,
@@ -530,7 +532,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           </>
         )}
         {!isEligibleView ? (
-          <PaginationControls page={page} pageSize={PAGE_SIZE} total={totalCount} itemLabel="customer" variant="pills" hrefForPage={(target) => hrefForPage(sp, target)} />
+          <PaginationControls page={page} pageSize={pageSize} total={totalCount} itemLabel="customer" basePath="/customers" searchParams={sp} hrefForPage={(target) => hrefForPage(sp, target)} />
         ) : null}
       </section>
     </div>

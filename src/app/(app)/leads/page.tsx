@@ -3,18 +3,31 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { productLeads } from "@/db/schema";
 import { desc, sql } from "drizzle-orm";
-import { PaginationControls } from "@/components/ui/pagination";
+import { PaginationControls, parsePageSize } from "@/components/ui/pagination";
 
 const PAGE_SIZE = 25;
 const CREW_SIZE_LABELS: Record<string, string> = { "1-5": "1-5", "6-15": "6-15", "16+": "16+" };
 
-export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+type SearchParams = { page?: string; pageSize?: string };
+
+function hrefForPage(params: SearchParams, page: number) {
+  const next = new URLSearchParams();
+  Object.entries(params).forEach(([name, current]) => {
+    if (name !== "page" && current) next.set(name, current);
+  });
+  if (page > 1) next.set("page", String(page));
+  const query = next.toString();
+  return query ? `/leads?${query}` : "/leads";
+}
+
+export default async function LeadsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const admin = await getCurrentUser();
   if (!admin) redirect("/login");
   if (admin.role !== "admin") redirect("/my-day");
 
   const sp = await searchParams;
   const page = Math.max(1, Math.floor(Number(sp.page)) || 1);
+  const pageSize = parsePageSize(sp.pageSize, PAGE_SIZE);
 
   const [rows, [counts]] = await Promise.all([
     db
@@ -30,8 +43,8 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       })
       .from(productLeads)
       .orderBy(desc(productLeads.createdAt))
-      .limit(PAGE_SIZE)
-      .offset((page - 1) * PAGE_SIZE),
+      .limit(pageSize)
+      .offset((page - 1) * pageSize),
     db.select({ total: sql<number>`count(*)` }).from(productLeads),
   ]);
 
@@ -95,10 +108,12 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
         )}
         <PaginationControls
           page={page}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           total={total}
           itemLabel="lead"
-          hrefForPage={(target) => (target > 1 ? `/leads?page=${target}` : "/leads")}
+          basePath="/leads"
+          searchParams={sp}
+          hrefForPage={(target) => hrefForPage(sp, target)}
         />
       </section>
     </div>

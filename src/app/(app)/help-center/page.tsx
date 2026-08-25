@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.96",
+    date: "August 25, 2026",
+    title: "Choose how many rows show per page",
+    changes: [
+      "Customers, invoices, leads, and sync issues now have a page size picker (10, 25, 50, or 100) alongside first/previous/next/last page buttons.",
+    ],
+  },
+  {
     version: "v0.2.95",
     date: "August 25, 2026",
     title: "A cleaner marketing and interaction system",

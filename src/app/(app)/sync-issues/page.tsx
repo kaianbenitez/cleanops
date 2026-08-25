@@ -4,18 +4,31 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { customers, ghlSyncLog } from "@/db/schema";
 import { and, desc, eq, ne, sql } from "drizzle-orm";
-import { PaginationControls } from "@/components/ui/pagination";
+import { PaginationControls, parsePageSize } from "@/components/ui/pagination";
 
 const PAGE_SIZE = 25;
 const STATUS_COLORS: Record<string, string> = { retrying: "bg-[var(--co-warning)]/10 text-[var(--co-warning)]", failed: "bg-[var(--co-danger)]/10 text-[var(--co-danger)]" };
 
-export default async function SyncIssuesPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+type SearchParams = { page?: string; pageSize?: string };
+
+function hrefForPage(params: SearchParams, page: number) {
+  const next = new URLSearchParams();
+  Object.entries(params).forEach(([name, current]) => {
+    if (name !== "page" && current) next.set(name, current);
+  });
+  if (page > 1) next.set("page", String(page));
+  const query = next.toString();
+  return query ? `/sync-issues?${query}` : "/sync-issues";
+}
+
+export default async function SyncIssuesPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const admin = await getCurrentUser();
   if (!admin) redirect("/login");
   if (admin.role !== "admin") redirect("/my-day");
 
   const sp = await searchParams;
   const page = Math.max(1, Math.floor(Number(sp.page)) || 1);
+  const pageSize = parsePageSize(sp.pageSize, PAGE_SIZE);
   const conditions = and(eq(ghlSyncLog.companyId, admin.companyId), ne(ghlSyncLog.status, "ok"));
 
   const [rows, [counts]] = await Promise.all([
@@ -35,8 +48,8 @@ export default async function SyncIssuesPage({ searchParams }: { searchParams: P
       .leftJoin(customers, eq(ghlSyncLog.customerId, customers.id))
       .where(conditions)
       .orderBy(desc(ghlSyncLog.createdAt))
-      .limit(PAGE_SIZE)
-      .offset((page - 1) * PAGE_SIZE),
+      .limit(pageSize)
+      .offset((page - 1) * pageSize),
     db
       .select({
         total: sql<number>`count(*)`,
@@ -121,10 +134,12 @@ export default async function SyncIssuesPage({ searchParams }: { searchParams: P
         )}
         <PaginationControls
           page={page}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           total={total}
           itemLabel="issue"
-          hrefForPage={(target) => (target > 1 ? `/sync-issues?page=${target}` : "/sync-issues")}
+          basePath="/sync-issues"
+          searchParams={sp}
+          hrefForPage={(target) => hrefForPage(sp, target)}
         />
       </section>
     </div>
