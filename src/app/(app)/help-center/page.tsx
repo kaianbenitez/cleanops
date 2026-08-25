@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.99",
+    date: "August 26, 2026",
+    title: "Customer names are readable on Calendar job cards",
+    changes: [
+      "Job cards on the Calendar board were cutting customer names down to a couple of letters (\"Hubb…\", \"Le…\"). The name now gets the whole first line of the card, so you can tell jobs apart at a glance without opening them.",
+      "The green \"Ready\" tag no longer shows on every card. It appeared on all of them, which told you nothing while crowding out the name — it now shows only when a job needs attention, so problems stand out.",
+      "The crew capacity readout at the top of each column was cut off mid-word (\"2h 27m o…\"). It now reads as a clean \"2h 27m / 8h\".",
+    ],
+  },
+  {
     version: "v0.2.98",
     date: "August 26, 2026",
     title: "A calmer, single-line Calendar toolbar",

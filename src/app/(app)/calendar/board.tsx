@@ -180,8 +180,16 @@ function CapacityMeter({ usedMinutes, availableMinutes, isOver, onLeave }: { use
           style={{ transform: `scaleX(${percent / 100})`, background: fillColor, transition: "transform 550ms cubic-bezier(.16,1,.3,1)" }}
         />
       </div>
-      <span className={`whitespace-nowrap text-[12px] font-bold ${isOver ? "text-[var(--co-warning)]" : "text-[var(--co-faint)]"}`}>
-        Labor hours: {formatDuration(usedMinutes)} of {availableMinutes ? formatDuration(availableMinutes) : "off"}
+      {/* "Labor hours: 2h 27m of 8h" did not fit a 174px lane header and
+        * truncated mid-word ("2h 27m o…"), which reads as broken rather than
+        * abbreviated. The bar beside it already says "capacity"; the prefix
+        * was the expendable part, so it moves to the tooltip. */}
+      <span
+        title={`Labor hours scheduled of available${onLeave ? " (on leave)" : ""}`}
+        className={`whitespace-nowrap text-[12px] font-bold tabular-nums ${isOver ? "text-[var(--co-warning)]" : "text-[var(--co-faint)]"}`}
+      >
+        <span className="sr-only">Labor hours: </span>
+        {formatDuration(usedMinutes)} / {availableMinutes ? formatDuration(availableMinutes) : "off"}
       </span>
     </div>
   );
@@ -1043,12 +1051,24 @@ export default function Board({
               {ordinalLabel(ordinal)}
             </span>
           ) : null}
-          <span className="min-w-0 truncate text-xs font-bold text-[var(--co-ink)]">{displayCustomer(job)}</span>
-          <span className={`${readinessTone(readiness.primary)} shrink-0 rounded px-1.5 py-0.5 text-[12px] font-bold`} title={readiness.reasons.join("; ") || undefined}>{readiness.primary}</span>
-          <JobMarks job={job} warn={isConflict || isOnLeave} />
+          {/* The customer name is what a scheduler scans for, so it gets the
+            * whole first line. Everything that used to share this row was
+            * shrink-0, which left the only flexible item — the name — with
+            * ~30px in a 174px lane ("Hubb…", "Le…"). The readiness badge now
+            * renders only when it is NOT "Ready": it was on every normal card,
+            * carrying no information while consuming the space the name
+            * needed, and an unready job already spells out reason + action on
+            * its own line below. Marks move down beside the time. */}
+          <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-[var(--co-ink)]" title={displayCustomer(job)}>{displayCustomer(job)}</span>
+          {readiness.primary !== "Ready" ? (
+            <span className={`${readinessTone(readiness.primary)} shrink-0 rounded px-1.5 py-0.5 text-[12px] font-bold`} title={readiness.reasons.join("; ") || undefined}>{readiness.primary}</span>
+          ) : null}
         </div>
-        <div className="mt-px truncate text-xs font-semibold text-[var(--co-body)]">
-          {clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime))} – {clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime) + jobWallClockDuration(job))}
+        <div className="mt-px flex min-w-0 items-center gap-[5px]">
+          <span className="min-w-0 truncate text-xs font-semibold text-[var(--co-body)]">
+            {clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime))} – {clockLabelFromMinutes(minutesFromTime(job.scheduledStartTime) + jobWallClockDuration(job))}
+          </span>
+          <JobMarks job={job} warn={isConflict || isOnLeave} />
         </div>
         {!compact ? (
           <div className="mt-px break-words text-xs leading-4 text-[var(--co-faint)]" title={formatCustomerAddress(job)}>
