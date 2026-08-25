@@ -403,7 +403,7 @@ button:active { transform: translateY(1px); }
   .marketing-hero-cards { animation: marketing-enter 560ms 320ms ease-out both; }
   .marketing-reveal.is-pending { opacity: 0; transform: translateY(18px); transition: opacity 500ms ease-out, transform 500ms ease-out; }
   .marketing-reveal.is-pending.is-visible { opacity: 1; transform: translateY(0); }
-  .co-card:hover {
+  .co-card-interactive:hover {
     transform: translateY(-1px);
     box-shadow: 0px 10px 32px rgba(15, 23, 42, 0.1);
   }

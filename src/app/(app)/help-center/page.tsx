@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.95",
+    date: "August 25, 2026",
+    title: "A cleaner marketing and interaction system",
+    changes: [
+      "Simplified the landing page hero so the main message and Join the beta action are easier to scan.",
+      "Standardized marketing feature icons and stopped static cards from lifting like clickable cards.",
+    ],
+  },
+  {
     version: "v0.2.94",
     date: "August 24, 2026",
     title: "Calendar controls stay in one clean row",

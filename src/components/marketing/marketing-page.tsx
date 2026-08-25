@@ -66,7 +66,7 @@ export default function MarketingPage() {
   return (
     <main className="min-h-[100dvh] bg-[var(--co-bg)] text-[var(--co-ink)]">
       <nav
-        className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6 lg:px-8"
+        className="mx-auto flex max-w-6xl flex-nowrap items-center justify-between gap-3 px-4 py-5 sm:px-6 lg:px-8"
         aria-label="Main navigation"
       >
         <Link
@@ -131,16 +131,15 @@ export default function MarketingPage() {
               <span className="text-[var(--co-accent)]">less chasing.</span>
             </h1>
             <p className="mt-6 max-w-[540px] text-lg leading-8 text-[var(--co-muted)]">
-              One place for scheduling, crew handoffs, customers, quotes,
-              invoicing, and payroll, built for cleaning companies with 2 to 30
-              cleaners.
+              Scheduling, crew handoffs, quotes, billing, and payroll for cleaning
+              companies with 2 to 30 cleaners.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <a
                 href="#join-beta"
                 className="co-button-primary px-5 py-3 text-sm"
               >
-                Get early access
+                Join the beta
               </a>
               <a
                 href="#product"
@@ -154,20 +153,6 @@ export default function MarketingPage() {
                 How it works
               </a>
             </div>
-            <p className="mt-4 text-sm font-semibold text-[var(--co-ink)]">
-              Free during beta · no credit card · reply within one business day
-            </p>
-            <p className="mt-7 flex items-center gap-2 text-sm font-medium text-[var(--co-muted)]">
-              <Check
-                aria-hidden="true"
-                className="h-4 w-4 shrink-0 text-[var(--co-accent)]"
-                strokeWidth={3}
-              />
-              Built for residential cleaning companies
-            </p>
-            <p className="mt-4 max-w-[540px] text-sm font-semibold leading-6 text-[var(--co-ink)]">
-              Less schedule-chasing. Cleaner handoffs. Payroll-ready time.
-            </p>
           </div>
           <div className="marketing-hero-visual">
             <HeroProductVisual />
@@ -286,7 +271,7 @@ export default function MarketingPage() {
           </p>
           <div className="mt-8">
             <a href="#join-beta" className="co-button-primary">
-              Try it with your crew
+              Join the beta
             </a>
           </div>
           <div

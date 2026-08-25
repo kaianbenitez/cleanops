@@ -2,70 +2,22 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import {
+  ClipboardCheck,
+  FileText,
+  Sparkles,
+  Smartphone,
+  UserRound,
+  Workflow,
+} from "lucide-react";
 import { useGroupReveal } from "./marketing-motion";
 
 type Feature = readonly [string, string, string];
 
 function FeatureIcon({ index }: { index: number }) {
-  const shared = {
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 2.2,
-    strokeLinejoin: "miter" as const,
-    strokeLinecap: "square" as const,
-  };
-  const icons = [
-    <>
-      <path
-        {...shared}
-        d="M12 4 20 8 12 12 4 8 12 4Z M4 8v8l8 4 8-4V8 M12 12v8"
-      />
-      <path
-        {...shared}
-        d="m16 2 1.5 3.5L21 7l-3.5 1.5L16 12l-1.5-3.5L11 7l3.5-1.5L16 2Z"
-      />
-    </>,
-    <>
-      <path {...shared} d="M8 3h8l3 3v12l-3 3H8l-3-3V6l3-3Z" />
-      <path {...shared} d="M9 12h6M12 9v6" />
-      <path
-        {...shared}
-        d="m18 2 1 2.5L22 6l-3 1.5-1 2.5-1-2.5L14 6l3-1.5L18 2Z"
-      />
-    </>,
-    <>
-      <path {...shared} d="M12 3 20 8v8l-8 5-8-5V8l8-5Z" />
-      <path {...shared} d="M8 15v-3.5C8 9.6 9.8 8 12 8s4 1.6 4 3.5V15" />
-      <path {...shared} d="M6 19h12" />
-    </>,
-    <>
-      <path {...shared} d="M7 3h10l3 3v15H7V3Z" />
-      <path {...shared} d="M17 3v4h3M10 11h7M10 15h4" />
-      <path
-        {...shared}
-        d="m5 8 1.5 3.5L10 13l-3.5 1.5L5 18l-1.5-3.5L0 13l3.5-1.5L5 8Z"
-      />
-    </>,
-    <>
-      <path {...shared} d="M5 5h14v14H5z" />
-      <path {...shared} d="M8 9h8M8 13h3" />
-      <path {...shared} d="m16 15 2 2 4-5" />
-    </>,
-    <>
-      <path {...shared} d="M4 7 12 3l8 4v10l-8 4-8-4V7Z" />
-      <path {...shared} d="M4 7l8 4 8-4M12 11v10" />
-      <path
-        {...shared}
-        d="m18 2 1 2.5L22 6l-3 1.5-1 2.5-1-2.5L14 6l3-1.5L18 2Z"
-      />
-    </>,
-  ];
-
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
-      {icons[index]}
-    </svg>
-  );
+  const icons = [Sparkles, Smartphone, UserRound, FileText, ClipboardCheck, Workflow];
+  const Icon = icons[index] ?? Sparkles;
+  return <Icon aria-hidden="true" className="h-5 w-5" strokeWidth={2} />;
 }
 
 export function FeatureTabs({ features }: { features: readonly Feature[] }) {
