@@ -28,6 +28,6 @@ export function StatTile({ label, value, note, trend, tone = "neutral", href, sp
     </>
   );
 
-  const classes = className ?? "co-card p-5";
+  const classes = className ?? `co-card${href ? " co-card-interactive" : ""} p-5`;
   return href ? <Link href={href} className={classes}>{content}</Link> : <div className={classes}>{content}</div>;
 }

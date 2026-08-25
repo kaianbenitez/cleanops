@@ -15,6 +15,10 @@ const eslintConfig = defineConfig([
     ".codex/**",
     ".claude/**",
     ".agents/**",
+    "cleanops-*/**",
+    "playwright-report/**",
+    "test-results/**",
+    "work/**",
   ]),
 ]);
 
