@@ -46,6 +46,7 @@ import WeekBoard from "./week-board";
 import MonthBoard from "./month-board";
 import TodayListBoard from "./today-list-board";
 import CalendarToolbar from "./calendar-toolbar";
+import DayLedger from "./day-ledger";
 import CalendarStateSync from "./state-sync";
 import WeekendOrphanBanner from "./weekend-orphan-banner";
 import { aggregateCalendarAttention, DEFAULT_WORKDAY_END_MINUTES, DEFAULT_WORKDAY_START_MINUTES, deriveCalendarReadiness, deriveJobReadiness, employeeColorAt } from "./shared";
@@ -883,7 +884,12 @@ export default async function CalendarPage({
       return counts;
     }, new Map<string, number>()),
   );
-  const dailySummaryJobs = jobsWithAssignments.filter(
+  // Derived from displayedJobs (not jobsWithAssignments) so every active
+  // filter chip — including "Jobs without a crew" (assignment=unassigned),
+  // which only narrows displayedJobs — actually moves these figures. The
+  // chips now sit right beside this summary in day-ledger.tsx, so the two
+  // must describe the same filtered set.
+  const dailySummaryJobs = displayedJobs.filter(
     (job) => job.scheduledDate === toISODate(dayAnchor) && !["cancelled", "no_show"].includes(job.status),
   );
   const activeEmployees = employees.filter((employee) => employee.isActive && employee.role === "employee");
@@ -912,8 +918,6 @@ export default async function CalendarPage({
           attentionCount={attentionCount}
           attentionJobCount={attentionJobCount}
           attentionDateIso={attentionDateIso}
-          totalEmployees={activeEmployees.length}
-          dailySummary={dailySummary}
         />
       </header>
       </section>
@@ -1022,6 +1026,13 @@ export default async function CalendarPage({
             }))}
             appointments={appointments.filter((appointment) => appointment.scheduledDate === toISODate(dayAnchor))}
             staffRoster={staffRoster}
+          />
+        ) : null}
+        {view === "board" || view === "list" ? (
+          <DayLedger
+            employees={employees}
+            totalEmployees={activeEmployees.length}
+            {...dailySummary}
           />
         ) : null}
       </main>

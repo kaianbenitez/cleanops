@@ -13,9 +13,13 @@ test("Board view renders crew lanes with the current calendar controls", async (
 
   await page.goto(`/calendar?view=staff&day=${DISPATCH_DAY}`);
 
-  await expect(page.getByRole("button", { name: /^board$/i })).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByRole("group", { name: /calendar view/i })).toBeVisible();
-  await expect(page.getByRole("group", { name: /board layout/i })).toBeVisible();
+  // "Board" is now the Timeline shape of the Day period — see the calendar
+  // layout remodel (calendar-toolbar.tsx, date-picker.tsx).
+  await expect(page.getByRole("button", { name: /^day$/i })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("group", { name: /calendar period/i })).toBeVisible();
+  await expect(page.getByRole("group", { name: /day layout/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^timeline$/i })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("group", { name: /crew axis/i })).toBeVisible();
   await expect(page.getByText(/application error/i)).toHaveCount(0);
 });
 
@@ -35,7 +39,7 @@ test("the compact desktop toolbar keeps tools and its shortcut guide visible", a
   const popupBox = await shortcuts.locator("..").boundingBox();
   expect(popupBox).not.toBeNull();
   expect(popupBox!.x + popupBox!.width).toBeLessThanOrEqual(1024);
-  await expect(page.getByRole("group", { name: /board layout/i })).toBeVisible();
+  await expect(page.getByRole("group", { name: /crew axis/i })).toBeVisible();
 });
 
 test("legacy vertical-board links still open crews as columns", async ({ page, context, baseURL }) => {

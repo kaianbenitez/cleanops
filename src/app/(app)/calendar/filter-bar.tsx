@@ -8,28 +8,19 @@ import { ATTENTION_RAIL_TOGGLE_EVENT } from "./shared";
 
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
-export default function FilterBar({
-  employees,
-  attentionCount,
-}: {
-  employees: Employee[];
-  attentionCount: number;
-}) {
+const TYPE_LABELS: Record<string, string> = { first_clean: "First clean", recurring: "Recurring", one_time: "One-time", deep_clean: "Deep clean", move_out: "Move in/out" };
+const RECURRENCE_LABELS: Record<string, string> = { recurring: "Recurring", weekly: "Weekly", biweekly: "Biweekly", every4weeks: "Every 4 weeks", monthly: "Monthly", custom: "Custom recurring", none: "One-time" };
+const STATUS_LABELS: Record<string, string> = { scheduled: "Scheduled", in_progress: "In progress", completed: "Completed", cancelled: "Cancelled", no_show: "No show" };
+
+/** Shared derivation of the calendar's query-param filters — active list,
+ * count, remove-one, and clear-all. Used by both the filter icon button in
+ * the toolbar (badge/count only) and FilterChips below (the chip row itself,
+ * now rendered in day-ledger.tsx), so the two never drift out of sync. */
+function useCalendarFilters(employees: Employee[]) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const filtersTriggerRef = useRef<HTMLButtonElement>(null);
-
-  function clearAll() {
-    const params = new URLSearchParams();
-    for (const key of ["view", "week", "day", "month"]) {
-      const value = searchParams.get(key);
-      if (value) params.set(key, value);
-    }
-    startTransition(() => router.push(`${pathname}?${params.toString()}`));
-  }
 
   const employeeId = searchParams.get("employeeId") ?? "";
   const type = searchParams.get("type") ?? "";
@@ -40,14 +31,11 @@ export default function FilterBar({
   const activeFilterCount = [employeeId, type, recurrence, status, assignment, zip].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
   const employeeLabel = employees.find((employee) => employee.id === employeeId);
-  const typeLabels: Record<string, string> = { first_clean: "First clean", recurring: "Recurring", one_time: "One-time", deep_clean: "Deep clean", move_out: "Move in/out" };
-  const recurrenceLabels: Record<string, string> = { recurring: "Recurring", weekly: "Weekly", biweekly: "Biweekly", every4weeks: "Every 4 weeks", monthly: "Monthly", custom: "Custom recurring", none: "One-time" };
-  const statusLabels: Record<string, string> = { scheduled: "Scheduled", in_progress: "In progress", completed: "Completed", cancelled: "Cancelled", no_show: "No show" };
   const activeFilters = [
     employeeId ? { key: "employeeId", label: employeeLabel?.firstName ?? "Crew member" } : null,
-    type ? { key: "type", label: typeLabels[type] ?? type } : null,
-    recurrence ? { key: "recurrence", label: recurrenceLabels[recurrence] ?? recurrence } : null,
-    status ? { key: "status", label: statusLabels[status] ?? status } : null,
+    type ? { key: "type", label: TYPE_LABELS[type] ?? type } : null,
+    recurrence ? { key: "recurrence", label: RECURRENCE_LABELS[recurrence] ?? recurrence } : null,
+    status ? { key: "status", label: STATUS_LABELS[status] ?? status } : null,
     assignment ? { key: "assignment", label: assignment === "unassigned" ? "Jobs without a crew" : assignment } : null,
     zip ? { key: "zip", label: `ZIP ${zip}` } : null,
   ].filter((filter): filter is { key: string; label: string } => Boolean(filter));
@@ -58,8 +46,36 @@ export default function FilterBar({
     startTransition(() => router.push(`${pathname}?${params.toString()}`));
   }
 
+  function clearAll() {
+    const params = new URLSearchParams();
+    for (const key of ["view", "week", "day", "month"]) {
+      const value = searchParams.get(key);
+      if (value) params.set(key, value);
+    }
+    startTransition(() => router.push(`${pathname}?${params.toString()}`));
+  }
+
+  return { activeFilters, activeFilterCount, hasFilters, isPending, removeFilter, clearAll };
+}
+
+/** The toolbar's filter and attention controls — the buttons that open the
+ * filters panel and the attention rail. The active-filter chips this button
+ * badges no longer render here; they moved to the day ledger below the
+ * board (FilterChips, below) so the counted figures sit next to what's being
+ * counted. See calendar-toolbar.tsx. */
+export default function FilterBar({
+  employees,
+  attentionCount,
+}: {
+  employees: Employee[];
+  attentionCount: number;
+}) {
+  const { hasFilters, activeFilterCount } = useCalendarFilters(employees);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const filtersTriggerRef = useRef<HTMLButtonElement>(null);
+
   return (
-    <div aria-busy={isPending} className="flex min-w-0 shrink-0 flex-wrap items-center gap-2">
+    <div className="flex shrink-0 items-center gap-2">
       <div className="relative">
         <button
           ref={filtersTriggerRef}
@@ -92,15 +108,28 @@ export default function FilterBar({
         <AlertCircle className="h-3.5 w-3.5" aria-hidden />
         {attentionCount > 0 ? <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--co-warning)] px-1 text-[12px] font-bold leading-none text-[var(--co-surface)]">{attentionCount}</span> : null}
       </button>
+    </div>
+  );
+}
 
-      {hasFilters ? <button type="button" onClick={clearAll} className="min-h-11 whitespace-nowrap px-2 text-xs font-semibold text-[var(--co-accent-text)] hover:underline">Clear filters</button> : null}
+/** The active-filter chips plus "Clear filters" — moved out of the toolbar
+ * and into the day ledger (day-ledger.tsx) so the metrics and the chips
+ * that define what's being counted read as one line. Same click-to-remove
+ * and clear-all behavior as before; renders nothing when no filter is set. */
+export function FilterChips({ employees }: { employees: Employee[] }) {
+  const { activeFilters, hasFilters, isPending, removeFilter, clearAll } = useCalendarFilters(employees);
+  if (!hasFilters) return null;
+
+  return (
+    <div aria-busy={isPending} className="flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-1.5">
+      <button type="button" onClick={clearAll} className="min-h-11 whitespace-nowrap px-2 text-xs font-semibold text-[var(--co-accent-text)] hover:underline">Clear filters</button>
       {activeFilters.map((filter) => (
         <button
           key={filter.key}
           type="button"
           onClick={() => removeFilter(filter.key)}
           aria-label={`Remove ${filter.label} filter`}
-          className="inline-flex min-h-11 max-w-[12rem] items-center gap-1 rounded-full border border-[var(--co-accent-text)]/30 bg-[var(--co-accent-tint)] px-2.5 py-1 text-xs font-semibold text-[var(--co-accent-text)] hover:border-[var(--co-accent-text)]"
+          className="inline-flex min-h-11 max-w-[10rem] items-center gap-1 rounded-full border border-[var(--co-accent-text)]/30 bg-[var(--co-accent-tint)] px-2.5 py-1 text-xs font-semibold text-[var(--co-accent-text)] hover:border-[var(--co-accent-text)]"
         >
           <span className="truncate">{filter.label}</span>
           <X className="h-3 w-3 shrink-0" aria-hidden strokeWidth={1.75} />

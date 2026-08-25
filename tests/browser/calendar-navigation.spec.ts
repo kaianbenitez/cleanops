@@ -5,12 +5,18 @@ const adminUsername = process.env.BROWSER_ADMIN_USERNAME ?? process.env.BROWSER_
 const adminPassword = process.env.BROWSER_ADMIN_PASSWORD ?? process.env.BROWSER_HYBRID_PASSWORD;
 const DISPATCH_DAY = "2026-08-18";
 
-test("navigating among Board, Day, Week, and Month views preserves the date and never errors", async ({ page, context, baseURL }) => {
+test("navigating among Day (Timeline/List), Week, and Month views preserves the date and never errors", async ({ page, context, baseURL }) => {
   test.skip(!adminUsername || !adminPassword, "Set BROWSER_ADMIN_USERNAME/PASSWORD or BROWSER_HYBRID_USERNAME/PASSWORD to run this check.");
   await signInAsAdmin(context, baseURL!, adminUsername!);
 
+  // The toolbar's Board/Day pill pair was merged into a single "Day" period
+  // pill, with the shape choice (Timeline = old Board, List = old Day) moved
+  // to its own toggle that only appears while Day is selected — see the
+  // calendar layout remodel (calendar-toolbar.tsx, date-picker.tsx).
   await page.goto(`/calendar?view=staff&day=${DISPATCH_DAY}`);
-  await expect(page.getByRole("button", { name: /^board$/i })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("button", { name: /^day$/i })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("button", { name: /^day$/i })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: /^timeline$/i })).toHaveAttribute("aria-pressed", "true");
 
   await page.getByRole("button", { name: /^week$/i }).click();
   await expect(page).toHaveURL(/view=week/);
@@ -20,16 +26,29 @@ test("navigating among Board, Day, Week, and Month views preserves the date and 
   await expect(page).toHaveURL(/view=month/);
   await expect(page.getByRole("button", { name: /^month$/i })).toHaveAttribute("aria-pressed", "true");
 
+  // Clicking "Day" from Month restores the last Day shape used this session
+  // (Timeline, from the initial load above) rather than always landing on
+  // one fixed shape.
+  await page.getByRole("button", { name: /^day$/i }).click();
+  await expect(page).toHaveURL(new RegExp(`view=board(?:&[^&]+)*&day=${DISPATCH_DAY}`));
+
+  // Switch to the List shape explicitly, then leave Day and come back — this
+  // time it should restore List, since that's what was last used.
+  await page.getByRole("button", { name: /^list$/i }).click();
+  await expect(page).toHaveURL(new RegExp(`view=list(?:&[^&]+)*&day=${DISPATCH_DAY}`));
+
+  await page.getByRole("button", { name: /^month$/i }).click();
+  await expect(page).toHaveURL(/view=month/);
   await page.getByRole("button", { name: /^day$/i }).click();
   await expect(page).toHaveURL(new RegExp(`view=list(?:&[^&]+)*&day=${DISPATCH_DAY}`));
 
-  await page.getByRole("button", { name: /^board$/i }).click();
+  await page.getByRole("button", { name: /^timeline$/i }).click();
   await expect(page).toHaveURL(new RegExp(`view=board(?:&[^&]+)*&day=${DISPATCH_DAY}`));
 
-  // Back to Board directly — the date param round-trips through every
-  // view above without ever resetting to today.
+  // Back to Day/Timeline directly — the date param round-trips through
+  // every view above without ever resetting to today.
   await page.goto(`/calendar?view=staff&day=${DISPATCH_DAY}`);
-  await expect(page.getByRole("button", { name: /^board$/i })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: /^day$/i })).toHaveAttribute("aria-pressed", "true");
 
   // No client-side error boundary / Next.js error overlay on any of these views.
   await expect(page.getByText(/application error/i)).toHaveCount(0);

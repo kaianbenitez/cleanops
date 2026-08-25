@@ -9,20 +9,32 @@ import { useDialogFocus } from "./dialog-focus";
 function iso(date: Date) { return date.toISOString().slice(0, 10); }
 function mondayIndex(date: Date) { return (date.getUTCDay() + 6) % 7; }
 
-// Four flat pills, no "More views" menu. "board" replaces the old
-// "staff"/"staff_vertical" pair now that crews-as-columns/crews-as-rows are
-// one Board behind the axis toggle (CalendarAxisToggle) instead of two
-// separate pills. page.tsx still accepts "staff"/"staff_vertical" as legacy
-// aliases for old bookmarks/cookies, resolving them to board+axis before
-// this component ever sees them.
-const VIEWS = [
-  { value: "board", label: "Board" },
-  { value: "list", label: "Day" },
+// Three period pills — Day / Week / Month. "Day" collapses the old
+// Board/Day pair: both are the same single day, just drawn differently
+// (timeline lanes vs. a list), so the shape choice moved to
+// CalendarShapeToggle below and only shows up once Day is selected. The URL
+// contract is unchanged — "Day" still resolves to view=board or view=list,
+// nothing bookmarked breaks. page.tsx still accepts legacy "staff"/
+// "staff_vertical" aliases for old bookmarks/cookies, resolving them to
+// board+axis before this component ever sees them.
+const PERIODS = [
+  { value: "day", label: "Day" },
   { value: "week", label: "Week" },
   { value: "month", label: "Month" },
 ] as const;
 
-type ViewValue = (typeof VIEWS)[number]["value"];
+type PeriodValue = (typeof PERIODS)[number]["value"];
+
+// Timeline vs. List — the two ways a single focused day can be drawn.
+// "Timeline" maps to view=board, "List" maps to view=list; the URL param
+// values are unchanged, only the button copy is friendlier than the old
+// literal "Board"/"Day" pill labels.
+const SHAPES = [
+  { value: "board", label: "Timeline" },
+  { value: "list", label: "List" },
+] as const;
+
+type ShapeValue = (typeof SHAPES)[number]["value"];
 
 export default function DatePicker({ view, value, label }: { view: string; value: Date; label: string }) {
   const router = useRouter();
@@ -151,8 +163,26 @@ export function CalendarViewSelector({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  // Remembers whichever Day shape (Timeline vs. List) was last used, purely
+  // for this component's lifetime — not written to the state cookie, which
+  // already stores "view" as whatever the *current* view is and would get
+  // clobbered the moment the admin leaves Day for Week/Month. Clicking back
+  // to "Day" restores this; an unknown value (fresh mount on a Week/Month
+  // URL) correctly falls back to Timeline per the design brief. Adjusted
+  // during render (React's documented pattern for state derived from a prop
+  // change) rather than in an Effect, so there's no extra cascading render.
+  const [lastDayShape, setLastDayShape] = useState<ShapeValue>(view === "list" ? "list" : "board");
+  const [trackedView, setTrackedView] = useState(view);
+  if (view !== trackedView) {
+    setTrackedView(view);
+    if (view === "board" || view === "list") setLastDayShape(view);
+  }
 
-  function selectView(nextView: ViewValue) {
+  const periodValue: PeriodValue = view === "week" ? "week" : view === "month" ? "month" : "day";
+
+  function selectPeriod(period: PeriodValue) {
+    const nextView = period === "day" ? lastDayShape : period;
+    if (nextView === view) return;
     const params = new URLSearchParams(searchParams.toString());
     params.set("view", nextView);
     params.set("axis", axis);
@@ -173,14 +203,49 @@ export function CalendarViewSelector({
   }
 
   return (
-    <div role="group" aria-label="Calendar view" className="flex gap-0.5 rounded-xl border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-1">
-      {VIEWS.map((entry) => (
+    <div role="group" aria-label="Calendar period" className="flex gap-0.5 rounded-xl border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-1">
+      {PERIODS.map((entry) => (
+        <button
+          key={entry.value}
+          type="button"
+          aria-pressed={periodValue === entry.value}
+          onClick={() => selectPeriod(entry.value)}
+          className={`type-admin-body min-h-11 whitespace-nowrap rounded-lg px-3 py-1.5 font-semibold transition-colors ${periodValue === entry.value ? "bg-[var(--co-accent-fill)] text-white shadow-[var(--co-shadow-control)]" : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"}`}
+        >
+          {entry.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Timeline vs. List — shown by calendar-toolbar.tsx only while the period
+ * selector above is on "Day". Preserves every other search param (axis
+ * included) exactly like CalendarAxisToggle does, so switching shape never
+ * moves the focused date or resets the board's column/row layout. */
+export function CalendarShapeToggle({ view, focusDayIso }: { view: ShapeValue; focusDayIso: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  function selectShape(shape: ShapeValue) {
+    if (shape === view) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("view", shape);
+    params.set("day", focusDayIso);
+    params.delete("week"); params.delete("month");
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
+  return (
+    <div role="group" aria-label="Day layout" className="flex gap-0.5 rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-1">
+      {SHAPES.map((entry) => (
         <button
           key={entry.value}
           type="button"
           aria-pressed={view === entry.value}
-          onClick={() => selectView(entry.value)}
-          className={`type-admin-body min-h-11 whitespace-nowrap rounded-lg px-3 py-1.5 font-semibold transition-colors ${view === entry.value ? "bg-[var(--co-accent-fill)] text-white shadow-[var(--co-shadow-control)]" : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"}`}
+          onClick={() => selectShape(entry.value)}
+          className={`type-admin-body min-h-11 whitespace-nowrap rounded-md px-2.5 py-1.5 font-semibold transition-colors ${view === entry.value ? "bg-[var(--co-surface)] text-[var(--co-accent-text)] shadow-[var(--co-shadow-control)]" : "text-[var(--co-muted)] hover:bg-[var(--co-surface)] hover:text-[var(--co-ink)]"}`}
         >
           {entry.label}
         </button>
@@ -211,7 +276,7 @@ export function CalendarAxisToggle({ axis }: { axis: "vertical" | "horizontal" }
   }
 
   return (
-    <div role="group" aria-label="Board layout" aria-describedby="calendar-axis-help" className="flex gap-0.5 rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-[3px]">
+    <div role="group" aria-label="Crew axis" aria-describedby="calendar-axis-help" className="flex gap-0.5 rounded-lg border border-[var(--co-line)] bg-[var(--co-surface-muted)] p-[3px]">
       <span id="calendar-axis-help" className="sr-only">Choose whether crews appear as columns or rows on the board.</span>
       <button
         type="button"

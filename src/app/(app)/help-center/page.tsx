@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.98",
+    date: "August 26, 2026",
+    title: "A calmer, single-line Calendar toolbar",
+    changes: [
+      "The Calendar's top bar no longer wraps onto a second line on laptop screens — date navigation, the Day/Week/Month switcher, and filters now stay on one row so the schedule underneath doesn't get pushed down.",
+      "The Board/Day pills are now \"Day\", with a small Timeline/List switch that appears only while you're looking at a single day, so it's clearer that both are the same day shown two ways.",
+      "The day's totals (crew working, recurring clients, revenue, discounts) moved out of the toolbar and into a new slim status line under the schedule — your active filter chips now sit right next to those numbers, so it's obvious the totals reflect exactly what's filtered.",
+    ],
+  },
+  {
     version: "v0.2.97",
     date: "August 25, 2026",
     title: "My Day gets a clearer status readout",
