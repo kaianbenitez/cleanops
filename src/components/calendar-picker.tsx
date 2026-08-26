@@ -94,13 +94,23 @@ export function CalendarPicker({ value, onChange, onClose, anchorRef, min, max, 
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  // Recompute on every render while open (scroll/resize included) so the
-  // popover tracks its trigger even inside scrollable panels.
+  // Recompute on every render (scroll/resize included, and no dep array so a
+  // content-height change like capacity data loading re-triggers it too) so
+  // the popover tracks its trigger and stays inside the viewport even inside
+  // scrollable panels. Falls back to an estimated height on the first pass,
+  // before the portal has mounted and containerRef has a real size.
   useLayoutEffect(() => {
     function updatePosition() {
       const rect = anchorRef.current?.getBoundingClientRect();
       if (!rect) return;
-      setPosition({ top: rect.bottom + 8, left: rect.left });
+      const popoverHeight = containerRef.current?.offsetHeight ?? 380;
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const openAbove = spaceBelow < popoverHeight + 8 && spaceAbove > spaceBelow;
+      const rawTop = openAbove ? rect.top - popoverHeight - 8 : rect.bottom + 8;
+      const top = Math.max(8, Math.min(rawTop, viewportHeight - popoverHeight - 8));
+      setPosition((prev) => (prev && prev.top === top && prev.left === rect.left ? prev : { top, left: rect.left }));
     }
     updatePosition();
     window.addEventListener("scroll", updatePosition, true);
@@ -109,7 +119,7 @@ export function CalendarPicker({ value, onChange, onClose, anchorRef, min, max, 
       window.removeEventListener("scroll", updatePosition, true);
       window.removeEventListener("resize", updatePosition);
     };
-  }, [anchorRef]);
+  });
 
   const year = date.getFullYear();
   const month = date.getMonth();
