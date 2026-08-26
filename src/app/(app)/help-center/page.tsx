@@ -7,6 +7,22 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.3.01",
+    date: "August 26, 2026",
+    title: "Calendar now folds the sidebar for more room",
+    changes: [
+      "Opening Calendar now automatically tucks the left sidebar down to just its icons, giving the schedule more width to work with. Leaving Calendar brings it back — and if you pin it open or closed yourself while on Calendar, that choice sticks instead of being undone when you navigate away.",
+    ],
+  },
+  {
+    version: "v0.3.00",
+    date: "August 26, 2026",
+    title: "Fixed the New Job date picker getting cut off",
+    changes: [
+      "The calendar popup on the New Job screen's Date field always opened downward, so if the field was near the bottom of the screen the last couple of rows of dates were cut off and unreachable. It now opens upward instead when there isn't room below, so every date stays clickable.",
+    ],
+  },
+  {
     version: "v0.2.99",
     date: "August 26, 2026",
     title: "Customer names are readable on Calendar job cards",

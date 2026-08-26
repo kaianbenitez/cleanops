@@ -158,10 +158,30 @@ export default function AppNav({
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const meDialogRef = useRef<HTMLDivElement>(null);
   const meTriggerRef = useRef<HTMLButtonElement>(null);
+  // Tracks whether the current collapsed state was set by the calendar
+  // auto-fold below, vs. the user's own minimize/expand click — so leaving
+  // calendar only restores the sidebar if the user didn't touch it while there.
+  const [navAutoCollapsed, setNavAutoCollapsed] = useState(false);
 
-  function setDesktopNavCollapsed(collapsed: boolean) {
+  function setDesktopNavCollapsed(collapsed: boolean, options?: { auto?: boolean }) {
     document.documentElement.style.setProperty("--app-nav-width", collapsed ? "76px" : "260px");
     setNavCollapsed(collapsed);
+    setNavAutoCollapsed(options?.auto === true);
+  }
+
+  // Calendar benefits from the extra width, so fold the sidebar on arrival
+  // and restore it on departure — unless the user manually changed it while
+  // there, in which case their choice wins.
+  const [navSyncedPathname, setNavSyncedPathname] = useState(pathname);
+  if (pathname !== navSyncedPathname) {
+    const onCalendar = pathname === "/calendar" || pathname.startsWith("/calendar/");
+    const wasOnCalendar = navSyncedPathname === "/calendar" || navSyncedPathname.startsWith("/calendar/");
+    setNavSyncedPathname(pathname);
+    if (onCalendar && !wasOnCalendar && !navCollapsed) {
+      setDesktopNavCollapsed(true, { auto: true });
+    } else if (!onCalendar && wasOnCalendar && navAutoCollapsed) {
+      setDesktopNavCollapsed(false);
+    }
   }
 
   useEffect(() => {
