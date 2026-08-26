@@ -22,6 +22,7 @@ import { useDialogFocus } from "./dialog-focus";
 import { UndoToast, useUndoToast } from "./undo-toast";
 import JobDetailPanel from "./job-detail-panel";
 import AppointmentPanel from "./appointment-panel";
+import SlotFinder, { type SlotFinderSelection } from "@/components/scheduling/slot-finder";
 import {
   APPOINTMENT_COLOR,
   APPOINTMENT_COLOR_CANCELLED,
@@ -265,7 +266,12 @@ export default function Board({
 
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [timeAssignmentJob, setTimeAssignmentJob] = useState<CalendarJob | null>(null);
-  const [railAction, setRailAction] = useState<{ job: CalendarJob; mode: "bump" | "skip" } | null>(null);
+  const [skipTarget, setSkipTarget] = useState<CalendarJob | null>(null);
+  // Reschedule (from the rail's "Move to another date") and rebook (offered
+  // after a skip/cancel) both open the same SlotFinder panel — only the
+  // intent differs.
+  const [slotFinderTarget, setSlotFinderTarget] = useState<{ job: CalendarJob; intent: "reschedule" | "rebook" } | null>(null);
+  const [rebookOffer, setRebookOffer] = useState<CalendarJob | null>(null);
   const [placement, setPlacement] = useState<{ employeeId: string; minutes: number } | null>(null);
   const [detailJobId, setDetailJobId] = useState<string | null>(null);
   const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
@@ -310,6 +316,12 @@ export default function Board({
     window.addEventListener(ATTENTION_RAIL_TOGGLE_EVENT, toggleAttentionRail);
     return () => window.removeEventListener(ATTENTION_RAIL_TOGGLE_EVENT, toggleAttentionRail);
   }, []);
+
+  useEffect(() => {
+    if (!rebookOffer) return;
+    const timer = setTimeout(() => setRebookOffer(null), 10000);
+    return () => clearTimeout(timer);
+  }, [rebookOffer]);
 
   const selectedJob = selectedJobId ? cleanedJobs.find((job) => job.id === selectedJobId) ?? null : null;
 
@@ -604,27 +616,62 @@ export default function Board({
     setTimeAssignmentJob(job);
   }
 
-  function applyRailAction(job: CalendarJob, mode: "bump" | "skip", fields: { scheduledDate?: string; scheduledStartTime?: string; cancellationReason?: string }) {
+  function applySkip(job: CalendarJob, fields: { cancellationReason?: string }) {
     const previous = { scheduledDate: job.scheduledDate, scheduledStartTime: job.scheduledStartTime, status: job.status };
-    const patch = mode === "skip"
-      ? { status: "cancelled", cancellationReason: fields.cancellationReason ?? "Skipped from calendar.", skipOccurrence: true }
-      : { scheduledDate: fields.scheduledDate!, scheduledStartTime: fields.scheduledStartTime ?? null };
-    const optimisticFields = mode === "skip"
-      ? { status: "cancelled" as const }
-      : { scheduledDate: fields.scheduledDate!, scheduledStartTime: fields.scheduledStartTime ?? null };
+    const patch = { status: "cancelled", cancellationReason: fields.cancellationReason ?? "Skipped from calendar.", skipOccurrence: true };
     commitJobPatch(job.id, patch, {
       onOptimistic: () => {
-        setRailAction(null);
+        setSkipTarget(null);
         setSelectedJobId(null);
-        setJobs((current) => current.map((entry) => (entry.id === job.id ? { ...entry, ...optimisticFields } : entry)));
+        setJobs((current) => current.map((entry) => (entry.id === job.id ? { ...entry, status: "cancelled" } : entry)));
       },
       onSuccess: () => {
         router.refresh();
-        showUndo(mode === "skip" ? `${displayCustomer(job)} skipped for this visit` : `${displayCustomer(job)} bumped to ${fields.scheduledDate}`, () =>
+        showUndo(`${displayCustomer(job)} skipped for this visit`, () =>
           commitJobPatch(job.id, previous, {
             onOptimistic: () => setJobs((current) => current.map((entry) => (entry.id === job.id ? { ...entry, ...previous } : entry))),
             onSuccess: () => router.refresh(),
-        onError: (message) => showJobError(job.id, message),
+            onError: (message) => showJobError(job.id, message),
+          }),
+        );
+        // Ending on a bare cancellation confirmation is a dead end — offer to
+        // put the visit right back on the calendar with the same crew/date as
+        // a starting point for the search.
+        setRebookOffer({ ...job, status: "cancelled" });
+      },
+      onWarning: setWarning,
+      onError: (message, retry) => showJobError(job.id, message, retry),
+    });
+  }
+
+  function applySlotSelection(job: CalendarJob, intent: "reschedule" | "rebook", selection: SlotFinderSelection) {
+    const previous = { scheduledDate: job.scheduledDate, scheduledStartTime: job.scheduledStartTime, employeeIds: job.assignedUserIds, status: job.status };
+    const patch: Parameters<typeof commitJobPatch>[1] = {
+      scheduledDate: selection.date,
+      scheduledStartTime: selection.startTime,
+      employeeIds: selection.employeeIds,
+    };
+    if (intent === "rebook") patch.status = "scheduled";
+    commitJobPatch(job.id, patch, {
+      onOptimistic: () => {
+        setSlotFinderTarget(null);
+        setRebookOffer(null);
+        setJobs((current) =>
+          current.map((entry) =>
+            entry.id === job.id
+              ? { ...entry, scheduledDate: selection.date, scheduledStartTime: selection.startTime, assignedUserIds: selection.employeeIds, status: intent === "rebook" ? "scheduled" : entry.status }
+              : entry,
+          ),
+        );
+      },
+      onSuccess: () => {
+        router.refresh();
+        const verb = intent === "rebook" ? "Rebooked" : "Moved";
+        showUndo(`${displayCustomer(job)} ${verb.toLowerCase()} to ${selection.date}`, () =>
+          commitJobPatch(job.id, previous, {
+            onOptimistic: () => setJobs((current) => current.map((entry) => (entry.id === job.id ? { ...entry, ...previous } : entry))),
+            onSuccess: () => router.refresh(),
+            onError: (message) => showJobError(job.id, message),
           }),
         );
       },
@@ -1412,8 +1459,8 @@ export default function Board({
                 draggable
                 onDragStart={(event) => startRailDrag(event, job)}
                 onDragEnd={() => setDragOverEmployeeId(null)}
-                onBump={() => setRailAction({ job, mode: "bump" })}
-                onSkip={job.recurringSeriesId ? () => setRailAction({ job, mode: "skip" }) : undefined}
+                onBump={() => setSlotFinderTarget({ job, intent: "reschedule" })}
+                onSkip={job.recurringSeriesId ? () => setSkipTarget(job) : undefined}
                 onAssignAtTime={() => openTimeAssignment(job)}
                 refCallback={(el) => {
                   if (el) railCardRefs.current.set(job.id, el);
@@ -1739,14 +1786,46 @@ export default function Board({
           onClose={() => setEditingAppointmentId(null)}
         />
       ) : null}
-      {railAction ? (
+      {skipTarget ? (
         <RailActionDialog
-          job={railAction.job}
-          mode={railAction.mode}
-          onClose={() => setRailAction(null)}
+          job={skipTarget}
+          onClose={() => setSkipTarget(null)}
           policy={cancellationPolicy}
-          onConfirm={(fields) => applyRailAction(railAction.job, railAction.mode, fields)}
+          onConfirm={(fields) => applySkip(skipTarget, fields)}
         />
+      ) : null}
+      {slotFinderTarget ? (
+        <SlotFinder
+          intent={slotFinderTarget.intent}
+          jobId={slotFinderTarget.job.id}
+          customerName={displayCustomer(slotFinderTarget.job)}
+          anchorDate={slotFinderTarget.job.scheduledDate > todayIso ? slotFinderTarget.job.scheduledDate : todayIso}
+          currentSchedule={{ date: slotFinderTarget.job.scheduledDate, startTime: slotFinderTarget.job.scheduledStartTime }}
+          currentEmployeeIds={slotFinderTarget.job.assignedUserIds}
+          employees={sortedEmployees}
+          onClose={() => setSlotFinderTarget(null)}
+          onConfirm={(selection) => applySlotSelection(slotFinderTarget.job, slotFinderTarget.intent, selection)}
+          onSkip={(reason) => {
+            const job = slotFinderTarget.job;
+            setSlotFinderTarget(null);
+            applySkip(job, { cancellationReason: reason });
+          }}
+        />
+      ) : null}
+      {rebookOffer && !slotFinderTarget ? (
+        <div role="status" aria-live="polite" className="fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] px-5 py-3 text-sm text-[var(--co-ink)] shadow-[var(--co-shadow-toast)]">
+          <span>Skipped for now — want to rebook {displayCustomer(rebookOffer)}?</span>
+          <button
+            type="button"
+            onClick={() => { setSlotFinderTarget({ job: rebookOffer, intent: "rebook" }); setRebookOffer(null); }}
+            className="font-semibold text-[var(--co-accent-text)] hover:underline"
+          >
+            Rebook this visit
+          </button>
+          <button type="button" aria-label="Dismiss" onClick={() => setRebookOffer(null)} className="text-[var(--co-muted)] hover:text-[var(--co-ink)]">
+            ✕
+          </button>
+        </div>
       ) : null}
       {timeAssignmentJob ? (
         <AssignAtTimeDialog
@@ -1895,13 +1974,14 @@ function AssignAtTimeDialog({ job, employees, initialMinutes, getVerdict, onClos
   );
 }
 
-function RailActionDialog({ job, mode, policy, onClose, onConfirm }: { job: CalendarJob; mode: "bump" | "skip"; policy?: string; onClose: () => void; onConfirm: (fields: { scheduledDate?: string; scheduledStartTime?: string; cancellationReason?: string }) => void }) {
-  const [date, setDate] = useState(job.scheduledDate);
-  const [period, setPeriod] = useState<"morning" | "afternoon">(job.scheduledStartTime && Number(job.scheduledStartTime.slice(0, 2)) >= 12 ? "afternoon" : "morning");
+/** Skip (cancel-with-reason) for a recurring visit. Rescheduling used to
+ * share this dialog in a "bump" mode with raw date/time inputs — that path
+ * now opens the scheduling assistant (`SlotFinder`) instead, so this dialog
+ * only ever handles skip. */
+function RailActionDialog({ job, policy, onClose, onConfirm }: { job: CalendarJob; policy?: string; onClose: () => void; onConfirm: (fields: { cancellationReason?: string }) => void }) {
   const [reason, setReason] = useState("");
   const [fee, setFee] = useState<"50" | "100" | "0">("50");
-  const startTime = period === "afternoon" ? "13:00:00" : "09:00:00";
-  const canSubmit = mode === "bump" ? Boolean(date) : Boolean(reason.trim());
+  const canSubmit = Boolean(reason.trim());
   const dialogRef = useDialogFocus<HTMLDivElement>(true);
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -1914,21 +1994,14 @@ function RailActionDialog({ job, mode, policy, onClose, onConfirm }: { job: Cale
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-[var(--co-overlay)]" />
       <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="rail-action-title" className="relative w-full max-w-md rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] p-5 shadow-[var(--co-shadow-panel)]">
-        <h2 id="rail-action-title" className="text-lg font-semibold">{mode === "bump" ? "Move this visit" : "Skip this visit"}</h2>
+        <h2 id="rail-action-title" className="text-lg font-semibold">Skip this visit</h2>
         <p className="mt-1 text-sm text-[var(--co-muted)]">{displayCustomer(job)} · {job.scheduledDate}</p>
-        {mode === "bump" ? (
-          <div className="mt-5 space-y-4">
-            <label className="block text-sm font-semibold">New date<input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="co-input mt-1 w-full" /></label>
-            <fieldset><legend className="text-sm font-semibold">Arrival window</legend><div className="mt-2 grid grid-cols-2 gap-2">{(["morning", "afternoon"] as const).map((value) => <button key={value} type="button" onClick={() => setPeriod(value)} className={`rounded-lg border px-3 py-2 text-sm font-semibold ${period === value ? "border-[var(--co-accent-fill)] bg-[var(--co-accent-tint)] text-[var(--co-accent-text)]" : "border-[var(--co-line)]"}`}>{value === "morning" ? "Morning · 9:00 AM" : "Afternoon · 1:00 PM"}</button>)}</div></fieldset>
-          </div>
-        ) : (
-          <div className="mt-5 space-y-4">
-            <label className="block text-sm font-semibold">Why is this visit being skipped?<textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={3} className="co-input mt-1 w-full resize-none" placeholder="Required for the client record" /></label>
-            <fieldset><legend className="text-sm font-semibold">Bill a cancellation fee?</legend><div className="mt-2 space-y-2 text-sm">{([["50", "50% of service rate"], ["100", "100% of service rate"], ["0", "Do not bill a fee"]] as const).map(([value, label]) => <label key={value} className="flex items-center gap-2"><input type="radio" name="skip-fee" value={value} checked={fee === value} onChange={() => setFee(value)} />{label}</label>)}</div></fieldset>
-            <p className="whitespace-pre-line rounded-lg bg-[var(--co-surface-muted)] p-3 text-xs leading-5 text-[var(--co-muted)]">{policy ?? "Policy: less than 24 hours’ notice is 50%; same-day cancellations are 100%. A skip fee may be applied to the next catch-up cleaning."}</p>
-          </div>
-        )}
-        <div className="mt-6 flex justify-end gap-2"><button type="button" onClick={onClose} className="co-button-secondary">Keep visit</button><button type="button" disabled={!canSubmit} onClick={() => onConfirm(mode === "bump" ? { scheduledDate: date, scheduledStartTime: startTime } : { cancellationReason: `${reason.trim()} (Cancellation fee: ${fee === "0" ? "not billed" : `${fee}% billed`})` })} className="co-button-primary disabled:opacity-50">{mode === "bump" ? "Move visit" : "Skip this visit"}</button></div>
+        <div className="mt-5 space-y-4">
+          <label className="block text-sm font-semibold">Why is this visit being skipped?<textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={3} className="co-input mt-1 w-full resize-none" placeholder="Required for the client record" /></label>
+          <fieldset><legend className="text-sm font-semibold">Bill a cancellation fee?</legend><div className="mt-2 space-y-2 text-sm">{([["50", "50% of service rate"], ["100", "100% of service rate"], ["0", "Do not bill a fee"]] as const).map(([value, label]) => <label key={value} className="flex items-center gap-2"><input type="radio" name="skip-fee" value={value} checked={fee === value} onChange={() => setFee(value)} />{label}</label>)}</div></fieldset>
+          <p className="whitespace-pre-line rounded-lg bg-[var(--co-surface-muted)] p-3 text-xs leading-5 text-[var(--co-muted)]">{policy ?? "Policy: less than 24 hours’ notice is 50%; same-day cancellations are 100%. A skip fee may be applied to the next catch-up cleaning."}</p>
+        </div>
+        <div className="mt-6 flex justify-end gap-2"><button type="button" onClick={onClose} className="co-button-secondary">Keep visit</button><button type="button" disabled={!canSubmit} onClick={() => onConfirm({ cancellationReason: `${reason.trim()} (Cancellation fee: ${fee === "0" ? "not billed" : `${fee}% billed`})` })} className="co-button-primary disabled:opacity-50">Skip this visit</button></div>
       </div>
     </div>
   );

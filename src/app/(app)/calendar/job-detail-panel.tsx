@@ -13,6 +13,7 @@ import ClientHomeSymbols from "./client-home-symbols";
 import { cleanNoteText } from "@/lib/format";
 import { ExternalLink } from "lucide-react";
 import { useDialogFocus } from "./dialog-focus";
+import SlotFinder, { type SlotFinderSelection } from "@/components/scheduling/slot-finder";
 
 type Employee = { id: string; firstName: string; lastName: string };
 
@@ -74,6 +75,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
   const [saving, setSaving] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
+  const [slotFinderOpen, setSlotFinderOpen] = useState(false);
   const dialogRef = useDialogFocus(Boolean(jobId));
 
   async function loadJob(id: string, isCancelled: () => boolean) {
@@ -87,6 +89,7 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
       setJob(data.job ?? null);
       setConfirmingCancel(false);
       setCancellationReason("");
+      setSlotFinderOpen(false);
       // Postgres makes no row-order guarantee without ORDER BY; assignedUserIds[0] must be the lead, so sort explicitly.
       const sortedAssignments = [...(data.assignments ?? [])].sort((a: { role: string }, b: { role: string }) =>
         a.role === b.role ? 0 : a.role === "lead" ? -1 : 1
@@ -191,7 +194,26 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
     patch({ status: "cancelled", cancellationReason: cancellationReason.trim() });
   }
 
+  function confirmSlot(selection: SlotFinderSelection) {
+    setDraftDate(selection.date);
+    setDraftTime(selection.startTime.slice(0, 5));
+    setDraftAssignedUserIds(selection.employeeIds);
+    setSlotFinderOpen(false);
+  }
+
+  function skipVisit(reason: string) {
+    setSlotFinderOpen(false);
+    // Same patch shape as the Calendar rail's own skip action, reached from
+    // the scheduling assistant instead of the raw cancel form.
+    setDraftStatus("cancelled");
+    patch({ status: "cancelled", cancellationReason: reason, skipOccurrence: true });
+  }
+
   const location = job ? [job.addressLine1, job.city, job.state, job.zip].filter(Boolean).join(", ") : "";
+  // Never anchor the slot search before today, even if the job's current
+  // date has slipped into the past (e.g. an overdue unscheduled visit).
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const slotAnchorDate = job && job.scheduledDate > todayIso ? job.scheduledDate : todayIso;
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4 sm:p-6">
@@ -227,7 +249,12 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
             </div>
 
             <section className="rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)]/35 p-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Schedule & status</p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Schedule & status</p>
+                <button type="button" disabled={saving} onClick={() => setSlotFinderOpen(true)} className="co-button-secondary py-1 text-xs disabled:opacity-50">
+                  Find a time
+                </button>
+              </div>
               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <DateInput
                   key={`date-${job.scheduledDate}`}
@@ -288,6 +315,20 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
           </div>
         ) : null}
       </aside>
+      {slotFinderOpen && job ? (
+        <SlotFinder
+          intent="reschedule"
+          jobId={job.id}
+          customerName={`${job.customerFirstName} ${job.customerLastName}`}
+          anchorDate={slotAnchorDate}
+          currentSchedule={{ date: job.scheduledDate, startTime: job.scheduledStartTime }}
+          currentEmployeeIds={draftAssignedUserIds}
+          employees={employees}
+          onClose={() => setSlotFinderOpen(false)}
+          onConfirm={confirmSlot}
+          onSkip={skipVisit}
+        />
+      ) : null}
     </div>
   );
 }

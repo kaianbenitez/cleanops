@@ -8,6 +8,7 @@ import { commitJobPatch } from "./drag-commit";
 import TeamSearchPicker from "@/components/team-search-picker";
 import { formatDisplayDate } from "@/lib/scheduling/dates";
 import { StatusPill } from "@/components/ui/status-pill";
+import SlotFinder, { type SlotFinderSelection } from "@/components/scheduling/slot-finder";
 
 type Employee = { id: string; firstName: string; lastName: string };
 
@@ -52,8 +53,12 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [assigned, setAssigned] = useState(false);
+  const [skipped, setSkipped] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
+  const [slotFinderOpen, setSlotFinderOpen] = useState(false);
+  const [slotSaving, setSlotSaving] = useState(false);
+  const [slotError, setSlotError] = useState<string | null>(null);
   const dialogRef = useDialogFocus(Boolean(jobId));
 
   async function load(id: string, isCancelled: () => boolean) {
@@ -61,9 +66,12 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
     setError(null);
     setWarning(null);
     setAssigned(false);
+    setSkipped(false);
     setSelectedIds([]);
     setConfirmingCancel(false);
     setCancellationReason("");
+    setSlotFinderOpen(false);
+    setSlotError(null);
     try {
       const [jobBody, historyBody] = await Promise.all([
         fetch(`/api/jobs/${id}/summary`).then((res) => {
@@ -140,9 +148,65 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
     patch({ employeeIds: ids });
   }
 
+  function confirmSlot(selection: SlotFinderSelection) {
+    if (!job) return;
+    setSlotSaving(true);
+    setSlotError(null);
+    commitJobPatch(
+      job.id,
+      { scheduledDate: selection.date, scheduledStartTime: selection.startTime, employeeIds: selection.employeeIds },
+      {
+        onOptimistic: () => {
+          setJob((current) => (current ? { ...current, scheduledDate: selection.date, scheduledStartTime: selection.startTime } : current));
+          setSelectedIds(selection.employeeIds);
+          setError(null);
+          setWarning(null);
+        },
+        onSuccess: () => {
+          setAssigned(true);
+          setSlotFinderOpen(false);
+          router.refresh();
+        },
+        onWarning: setWarning,
+        onError: (message) => setSlotError(message),
+        onSettled: () => setSlotSaving(false),
+      },
+    );
+  }
+
+  function skipVisit(reason: string) {
+    if (!job) return;
+    setSlotSaving(true);
+    setSlotError(null);
+    // Same patch shape as the Calendar rail's own skip action — status
+    // cancelled with a reason, skipOccurrence so a recurring series still
+    // regenerates its next visit. Not a second cancel path, just the same
+    // one reached from the scheduling assistant.
+    commitJobPatch(
+      job.id,
+      { status: "cancelled", cancellationReason: reason, skipOccurrence: true },
+      {
+        onOptimistic: () => {
+          setJob((current) => (current ? { ...current, status: "cancelled" } : current));
+          setError(null);
+          setWarning(null);
+        },
+        onSuccess: () => {
+          setSkipped(true);
+          setSlotFinderOpen(false);
+          router.refresh();
+        },
+        onWarning: setWarning,
+        onError: (message) => setSlotError(message),
+        onSettled: () => setSlotSaving(false),
+      },
+    );
+  }
+
   const location = job ? [job.addressLine1, job.city, job.state, job.zip].filter(Boolean).join(", ") : "";
 
   return (
+    <>
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4 sm:p-6">
       <button type="button" aria-label="Close assign panel" onClick={onClose} className="absolute inset-0 bg-[var(--co-overlay)]" />
       <aside ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="calendar-assign-title" className="relative flex h-[min(720px,calc(100dvh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface)] shadow-[var(--co-shadow-panel)] sm:h-[min(720px,calc(100dvh-3rem))]">
@@ -170,6 +234,7 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
             {error ? <p role="alert" aria-live="assertive" className="text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
             {warning ? <p role="status" className="co-badge-warning px-3 py-2 text-xs font-medium">Scheduling warning: {warning}</p> : null}
             {assigned ? <p className="rounded-xl bg-[var(--co-accent-tint)] px-3 py-2 text-xs font-medium text-[var(--co-accent-text)]">Assigned. This card will drop out of the unassigned queue on refresh.</p> : null}
+            {skipped ? <p className="rounded-xl bg-[var(--co-surface-muted)] px-3 py-2 text-xs font-medium text-[var(--co-muted)]">Skipped. This card will drop out of the unassigned queue on refresh.</p> : null}
 
             {history?.preferredCleaner ? (
               <div className="rounded-2xl border border-[var(--co-line)] bg-[var(--co-surface-muted)]/60 p-3.5">
@@ -211,7 +276,14 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
             )}
 
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Assign crew</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Find a time</p>
+              <button type="button" disabled={saving} onClick={() => setSlotFinderOpen(true)} className="co-button-primary mt-2 w-full disabled:opacity-50">
+                Find the best time to assign
+              </button>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Or assign manually</p>
               <div className="mt-2">
                 <TeamSearchPicker employees={employees} selectedIds={selectedIds} onChange={setSelectedIds} />
               </div>
@@ -313,5 +385,23 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
         ) : null}
       </aside>
     </div>
+    {slotFinderOpen && job ? (
+      <SlotFinder
+        intent="assign"
+        jobId={job.id}
+        customerName={`${job.customerFirstName} ${job.customerLastName}`}
+        anchorDate={job.scheduledDate}
+        currentSchedule={null}
+        manualDefaults={{ date: job.scheduledDate, startTime: job.scheduledStartTime }}
+        currentEmployeeIds={selectedIds}
+        employees={employees}
+        onClose={() => setSlotFinderOpen(false)}
+        onConfirm={confirmSlot}
+        onSkip={skipVisit}
+        saving={slotSaving}
+        submitError={slotError}
+      />
+    ) : null}
+    </>
   );
 }

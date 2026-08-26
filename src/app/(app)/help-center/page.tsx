@@ -7,6 +7,18 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.4.00",
+    date: "August 26, 2026",
+    title: "Scheduling assistant: find a time without doing the puzzle yourself",
+    changes: [
+      "Assigning, moving, and rebooking a job now open the same panel, which works out when you can actually go and shows you the options. Before this, moving a job meant typing a date and a time and only finding out afterwards if it clashed with something.",
+      "Each suggested time explains itself in one line, using this customer's own history — their regular day, the cleaners who usually go, how long visits here really take compared to the estimate. The bar down the left of each option shows how much past work that suggestion is based on, so a brand-new customer's options honestly look thinner than a long-standing one's.",
+      "The panel now tells you when a customer isn't due yet. If someone on a monthly service was cleaned four days ago, it says so and offers to skip the visit instead of booking it — with the available times still there underneath if you decide to go anyway.",
+      "Suggestions now take driving into account. A time where the crew already has a job a couple of miles away ranks higher, and a stranded stop miles from everything else gets flagged. There is also a \"Nearby this week\" list showing other jobs close to this address, with unassigned ones first, so you can batch neighbours onto one trip.",
+      "You can always ignore all of it — \"Pick a different time\" drops straight to the plain date, time, and crew fields.",
+    ],
+  },
+  {
     version: "v0.3.01",
     date: "August 26, 2026",
     title: "Calendar now folds the sidebar for more room",
