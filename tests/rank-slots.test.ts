@@ -63,7 +63,7 @@ test("a slot on the customer's usual day fires USUAL_DAY scaled by the share, no
   assert.ok(!codes.includes("OFF_USUAL_DAY"));
   const usualDay = ranked.signals.find((signal) => signal.code === "USUAL_DAY")!;
   assert.equal(usualDay.weight, 2.25); // 3 * 0.75
-  assert.match(usualDay.evidence, /6 of the last 8 visits were Thursday/);
+  assert.match(usualDay.evidence, /6 of the last 8 visits were on a Thursday/);
 });
 
 test("OFF_USUAL_DAY fires when the slot misses every usual weekday", () => {

@@ -214,15 +214,21 @@ function rankOne(rec: SchedulingRecommendation, profile: CustomerSchedulingProfi
   const weekdayName = WEEKDAY_NAMES[weekday];
 
   if (profile.usualWeekdays.includes(weekday)) {
+    // `usualWeekdayShare` describes the TOP weekday only, so a visit count is
+    // only citable when this slot lands on that day. On a secondary usual day
+    // the sentence stays true by not claiming a number it can't back.
+    const isTopWeekday = profile.usualWeekdays[0] === weekday;
     const count = Math.round(profile.usualWeekdayShare * profile.sampleSize);
     signals.push({
       code: "USUAL_DAY",
       weight: round2(3 * profile.usualWeekdayShare),
-      evidence: `Her regular day — ${count} of the last ${profile.sampleSize} visits were ${weekdayName}.`,
+      evidence: isTopWeekday
+        ? `The regular day — ${count} of the last ${profile.sampleSize} visits were on a ${weekdayName}.`
+        : `A regular day here — ${weekdayName} is one of the ${profile.usualWeekdays.length} this customer is usually booked on.`,
     });
   } else if (profile.usualWeekdays.length > 0) {
-    const usualNames = profile.usualWeekdays.map((day) => WEEKDAY_NAMES[day]).join("/");
-    signals.push({ code: "OFF_USUAL_DAY", weight: -2, evidence: `Not her usual day — she's typically booked ${usualNames}s.` });
+    const usualNames = profile.usualWeekdays.map((day) => WEEKDAY_NAMES[day]).join(" or ");
+    signals.push({ code: "OFF_USUAL_DAY", weight: -2, evidence: `Not the usual day — this customer is normally booked ${usualNames}.` });
   }
 
   if (profile.usualWindow && window === profile.usualWindow) {
@@ -242,7 +248,11 @@ function rankOne(rec: SchedulingRecommendation, profile: CustomerSchedulingProfi
   if (regularsOnCrew.length > 0) {
     const share = regularsOnCrew.length / rec.crewSize;
     const top = [...regularsOnCrew].sort((a, b) => b.visits - a.visits || Number(b.workedLastVisit) - Number(a.workedLastVisit))[0];
-    const lastVisitClause = top.workedLastVisit ? ", including the last visit" : "";
+    const lastVisitMemberForClause = regularsOnCrew.find((member) => member.workedLastVisit);
+    // LAST_CREW states the "worked the last visit" fact in its own sentence, so
+    // only fold it into REGULAR_CREW when LAST_CREW won't fire for this same
+    // person — otherwise the disclosure reads the fact out twice.
+    const lastVisitClause = top.workedLastVisit && lastVisitMemberForClause?.userId !== top.userId ? ", including the last visit" : "";
     signals.push({
       code: "REGULAR_CREW",
       weight: round2(2 * share),
@@ -250,16 +260,16 @@ function rankOne(rec: SchedulingRecommendation, profile: CustomerSchedulingProfi
     });
     const lastVisitMember = regularsOnCrew.find((member) => member.workedLastVisit);
     if (lastVisitMember) {
-      signals.push({ code: "LAST_CREW", weight: 1, evidence: `${lastVisitMember.firstName} was on the crew for her last visit too.` });
+      signals.push({ code: "LAST_CREW", weight: 1, evidence: `${lastVisitMember.firstName} was on the crew for the last visit too.` });
     }
   } else {
     signals.push({ code: "NEW_CREW", weight: -1, evidence: "None of this crew has cleaned here before." });
   }
 
   const statedMatches: string[] = [];
-  if (profile.stated.preferredCleanerId && rec.employeeIds.includes(profile.stated.preferredCleanerId)) statedMatches.push("her requested cleaner");
-  if (profile.stated.preferredWeekday != null && profile.stated.preferredWeekday === weekday) statedMatches.push(`her requested day (${weekdayName})`);
-  if (profile.stated.preferredWindow && profile.stated.preferredWindow === window) statedMatches.push("her requested time of day");
+  if (profile.stated.preferredCleanerId && rec.employeeIds.includes(profile.stated.preferredCleanerId)) statedMatches.push("the requested cleaner");
+  if (profile.stated.preferredWeekday != null && profile.stated.preferredWeekday === weekday) statedMatches.push(`the requested day (${weekdayName})`);
+  if (profile.stated.preferredWindow && profile.stated.preferredWindow === window) statedMatches.push("the requested time of day");
   if (statedMatches.length > 0) {
     signals.push({ code: "STATED_PREFERENCE", weight: 2, evidence: `Matches ${statedMatches.join(" and ")} on file.` });
   }
@@ -283,7 +293,7 @@ function rankOne(rec: SchedulingRecommendation, profile: CustomerSchedulingProfi
 
   // TOO_SOON: this customer was cleaned too recently for the cadence
   // they're on. Independent of every other check above — a slot can be the
-  // customer's usual Thursday morning with her regular crew and still be
+  // customer's usual Thursday morning with the regular crew and still be
   // wrong to book, because it's simply too early.
   if (profile.lastVisit && profile.nextDueDate) {
     const daysEarly = daysBetween(rec.date, profile.nextDueDate);
