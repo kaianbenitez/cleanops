@@ -273,6 +273,7 @@ export default function Board({
   const [slotFinderTarget, setSlotFinderTarget] = useState<{ job: CalendarJob; intent: "reschedule" | "rebook" } | null>(null);
   const [rebookOffer, setRebookOffer] = useState<CalendarJob | null>(null);
   const [placement, setPlacement] = useState<{ employeeId: string; minutes: number } | null>(null);
+  const [draggingJobId, setDraggingJobId] = useState<string | null>(null);
   const [detailJobId, setDetailJobId] = useState<string | null>(null);
   const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
   const [dragOverEmployeeId, setDragOverEmployeeId] = useState<string | null>(null);
@@ -845,6 +846,7 @@ export default function Board({
     event.dataTransfer.setData("application/x-cleanops-source-rail", "1");
     event.dataTransfer.effectAllowed = "move";
     setSelectedJobId(job.id);
+    setDraggingJobId(job.id);
     setPlacement(null);
     dragMinutesRef.current = null;
   }
@@ -855,13 +857,12 @@ export default function Board({
     if (!event.dataTransfer.types.includes("text/plain")) return;
     const minutes = minutesFromDragEvent(event);
     dragMinutesRef.current = minutes;
-    if (!event.dataTransfer.types.includes("application/x-cleanops-source-rail") || !selectedJob) return;
-    // Untimed job: the hovered position is a placement preview, same as
-    // laneMouseMove for the click path — drag suppresses native mousemove,
-    // so this is the drag equivalent.
-    if (!hasArrivalTime(selectedJob)) {
-      setPlacement((current) => (current && current.employeeId === employeeId && current.minutes === minutes ? current : { employeeId, minutes }));
-    }
+    if (!selectedJob) return;
+    // Dragging suppresses native mousemove, so keep the hovered time in the
+    // same placement state used by the click-to-place path. This intentionally
+    // applies to timed jobs too: an unassigned job may carry the old 09:00
+    // placeholder, but the drop position is the time that will be saved.
+    setPlacement((current) => (current && current.employeeId === employeeId && current.minutes === minutes ? current : { employeeId, minutes }));
   }
 
   function laneDrop(event: React.DragEvent<HTMLDivElement>, employeeId: string) {
@@ -1064,12 +1065,19 @@ export default function Board({
           const lane = laneOwnerId ?? job.assignedUserIds.find((id) => laneData.has(id));
           if (lane) event.dataTransfer.setData("application/x-cleanops-source-employee", lane);
           event.dataTransfer.effectAllowed = "move";
+          setSelectedJobId(job.id);
+          setDraggingJobId(job.id);
+          setPlacement(null);
           dragMinutesRef.current = null;
         }}
         onDragEnd={() => {
           // Safety net: a drag cancelled outside any drop target (Escape,
           // released off-window) may skip the rail's own dragleave.
           setRailDropActive(false);
+          setDragOverEmployeeId(null);
+          setDraggingJobId(null);
+          setPlacement(null);
+          setSelectedJobId((current) => (current === job.id ? null : current));
         }}
         onClick={(event) => {
           if (selectedJobId) {
@@ -1222,9 +1230,10 @@ export default function Board({
 
   function renderGhostAndNote(employeeId: string) {
     if (!selectedJob) return null;
-    const untimed = !hasArrivalTime(selectedJob);
-    const isActiveLane = !untimed || placement?.employeeId === employeeId;
-    if (untimed && !isActiveLane) {
+    const isDragging = draggingJobId === selectedJob.id;
+    const previewsHoveredTime = isDragging || !hasArrivalTime(selectedJob) || selectedJob.assignedUserIds.length === 0;
+    const isActiveLane = !previewsHoveredTime || placement?.employeeId === employeeId;
+    if (previewsHoveredTime && !isActiveLane) {
       // Generic invitation until this specific lane is hovered/focused.
       return (
         <>
@@ -1236,14 +1245,20 @@ export default function Board({
             style={axis === "vertical" ? { left: "50%", top: 14, transform: "translateX(-50%)" } : { left: 200, top: 26 }}
           >
             <Clock3 className="h-3 w-3" aria-hidden strokeWidth={1.75} />
-            Click to set the time
+            {isDragging ? "Drag over this lane to preview the time" : "Click to set the time"}
           </span>
         </>
       );
     }
-    const start = untimed ? (placement?.minutes ?? windowStart) : minutesFromTime(selectedJob.scheduledStartTime);
+    const start = previewsHoveredTime ? (placement?.minutes ?? windowStart) : minutesFromTime(selectedJob.scheduledStartTime);
     const duration = jobDuration(selectedJob);
     const verdict = laneVerdict(employeeId, start);
+    const timeLabel = clockLabelFromMinutes(start);
+    const noteMessage = previewsHoveredTime
+      ? verdict.state === "ok"
+        ? `Apply at ${timeLabel}`
+        : `Apply at ${timeLabel} · ${verdict.message}`
+      : verdict.message;
     const ghostStyle: React.CSSProperties =
       axis === "vertical"
         ? { left: 4, right: 4, top: ((start - windowStart) / 60) * HOUR_HEIGHT, height: (duration / 60) * HOUR_HEIGHT }
@@ -1266,7 +1281,7 @@ export default function Board({
           style={noteStyle}
         >
           <VerdictIcon state={verdict.state} className="h-3 w-3" />
-          {verdict.message}
+          {noteMessage}
         </span>
       </>
     );
@@ -1276,12 +1291,13 @@ export default function Board({
     const data = laneData.get(employee.id);
     const capacityLabel = data ? `${formatDuration(data.capacity.usedMinutes)} of ${data.capacity.availableMinutes ? formatDuration(data.capacity.availableMinutes) : "0m"} labor hours used` : "";
     if (selectedJob) {
-      const start = hasArrivalTime(selectedJob) ? minutesFromTime(selectedJob.scheduledStartTime) : placement?.employeeId === employee.id ? (placement?.minutes ?? windowStart) : null;
+      const previewsHoveredTime = draggingJobId === selectedJob.id || !hasArrivalTime(selectedJob) || selectedJob.assignedUserIds.length === 0;
+      const start = previewsHoveredTime ? placement?.employeeId === employee.id ? (placement?.minutes ?? windowStart) : null : minutesFromTime(selectedJob.scheduledStartTime);
       if (start !== null) {
         const verdict = laneVerdict(employee.id, start);
-        return `${employee.firstName} ${employee.lastName}. ${verdict.message}.`;
+        return `${employee.firstName} ${employee.lastName}. ${previewsHoveredTime ? `Apply at ${clockLabelFromMinutes(start)}. ` : ""}${verdict.message}.`;
       }
-      return `${employee.firstName} ${employee.lastName}. Press Enter to set the time here.`;
+      return `${employee.firstName} ${employee.lastName}. ${draggingJobId === selectedJob.id ? "Drag over this lane to preview the time." : "Press Enter to set the time here."}`;
     }
     return `${employee.firstName} ${employee.lastName}. ${capacityLabel}.`;
   }
@@ -1458,7 +1474,12 @@ export default function Board({
                 onSelect={() => openTimeAssignment(job)}
                 draggable
                 onDragStart={(event) => startRailDrag(event, job)}
-                onDragEnd={() => setDragOverEmployeeId(null)}
+                onDragEnd={() => {
+                  setDragOverEmployeeId(null);
+                  setDraggingJobId(null);
+                  setPlacement(null);
+                  setSelectedJobId((current) => (current === job.id ? null : current));
+                }}
                 onBump={() => setSlotFinderTarget({ job, intent: "reschedule" })}
                 onSkip={job.recurringSeriesId ? () => setSkipTarget(job) : undefined}
                 onAssignAtTime={() => openTimeAssignment(job)}

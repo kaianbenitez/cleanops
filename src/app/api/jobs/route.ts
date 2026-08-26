@@ -5,14 +5,13 @@ import { db } from "@/db";
 import { auditLog, jobs, customers, jobAssignments, users, services } from "@/db/schema";
 import { and, eq, gte, lte, inArray } from "drizzle-orm";
 import { findPtoConflicts, ptoConflictMessage } from "@/lib/scheduling/pto";
-import { resolveJobTicketMinutes } from "@/lib/payroll/job-ticket-hours";
 
 const createJobSchema = z.object({
   customerId: z.string().uuid(),
   type: z.enum(["first_clean", "recurring", "one_time", "deep_clean", "move_out"]),
   scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   scheduledStartTime: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).optional(),
-  estimatedDurationMinutes: z.number().int().positive().optional(),
+  estimatedDurationMinutes: z.number().int().min(15).max(600),
   priceCents: z.number().int().nonnegative(),
   employeeIds: z.array(z.string().uuid()).optional(),
   trainerId: z.string().uuid().nullable().optional(),
@@ -143,17 +142,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // JTH is explicit job data. Keep a safe legacy fallback for callers that do
-  // not provide a duration; payroll never derives it from ZIP or quote data.
-  const estimatedDurationMinutes =
-    data.estimatedDurationMinutes ??
-    (await resolveJobTicketMinutes({
-      companyId: admin.companyId,
-      priceCents: data.priceCents,
-      customerId: data.customerId,
-    })) ??
-    120;
-
   const [job] = await db
     .insert(jobs)
     .values({
@@ -163,7 +151,7 @@ export async function POST(req: NextRequest) {
       status: "scheduled",
       scheduledDate: data.scheduledDate,
       scheduledStartTime: data.scheduledStartTime ?? "09:00:00",
-      estimatedDurationMinutes,
+      estimatedDurationMinutes: data.estimatedDurationMinutes,
       priceCents: data.priceCents,
       serviceId: data.serviceId,
       addOnIds: data.addOnIds ?? [],

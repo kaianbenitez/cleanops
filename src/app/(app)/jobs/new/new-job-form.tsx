@@ -28,6 +28,13 @@ function parsePriceInput(value: string) {
   return Math.round(amount * 100);
 }
 
+function parseDurationInput(value: string) {
+  const match = /^(\d+):([0-5]\d)$/.exec(value.trim());
+  if (!match) return null;
+  const minutes = Number(match[1]) * 60 + Number(match[2]);
+  return Number.isInteger(minutes) && minutes >= 15 && minutes <= 600 ? minutes : null;
+}
+
 /**
  * The interactive half of `/jobs/new`. Owns the form state; the option lists
  * arrive as props from the server component, so there is no fetch-on-mount
@@ -42,6 +49,7 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
   const [addOnIds, setAddOnIds] = useState<string[]>([]);
   const [scheduledDate, setScheduledDate] = useState(searchParams.get("date") ?? "");
   const [scheduledStartTime, setScheduledStartTime] = useState("09:00");
+  const [durationInput, setDurationInput] = useState("");
   const [priceInput, setPriceInput] = useState("0.00");
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +79,7 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
       setServiceId(preset.id);
       setType("one_time");
       setPriceInput(((preset.defaultPriceCents ?? 0) / 100).toFixed(2));
+      setDurationInput(preset.defaultDurationMinutes == null ? "" : `${Math.floor(preset.defaultDurationMinutes / 60)}:${String(preset.defaultDurationMinutes % 60).padStart(2, "0")}`);
       // Add-ons picked for a previous preset may not apply to this one.
       setAddOnIds((current) => current.filter((id) => preset.availableAddOnIds.length === 0 || preset.availableAddOnIds.includes(id)));
     } else {
@@ -94,6 +103,11 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
       setError("Enter a valid non-negative amount with up to two decimal places.");
       return;
     }
+    const estimatedDurationMinutes = parseDurationInput(durationInput);
+    if (estimatedDurationMinutes === null) {
+      setError("Enter a duration from 0:15 to 10:00 in hours:minutes format.");
+      return;
+    }
     setSubmitting(true);
     const response = await fetch("/api/jobs", {
       method: "POST",
@@ -103,6 +117,7 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
         type,
         scheduledDate,
         scheduledStartTime: `${scheduledStartTime}:00`,
+        estimatedDurationMinutes,
         priceCents: totalCents,
         employeeIds: selectedEmployeeIds,
         serviceId: serviceId || undefined,
@@ -207,6 +222,21 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
               />
             </div>
           </label>
+          <label className="mt-4 block text-sm">
+            <span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Cleaning duration (HH:MM)</span>
+            <input
+              required
+              type="text"
+              inputMode="numeric"
+              pattern="\\d+:[0-5]\\d"
+              placeholder="02:00"
+              aria-describedby="new-job-duration-help"
+              value={durationInput}
+              onChange={(event) => setDurationInput(event.target.value)}
+              className="co-input w-full"
+            />
+            <span id="new-job-duration-help" className="mt-1 block text-xs text-[var(--co-muted)]">Required for scheduling and payroll. Enter hours and minutes, from 0:15 to 10:00.</span>
+          </label>
           {addOnIds.length > 0 && (
             <p className="mt-2 text-xs text-[var(--co-muted)]">
               + ${(addOnTotalCents / 100).toFixed(2)} in add-ons
@@ -247,6 +277,7 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
             <Summary label="Service" value={serviceLabel} />
             <Summary label="Date" value={scheduledDate || "Not selected"} />
             <Summary label="Time" value={scheduledStartTime || "Not selected"} />
+            <Summary label="Duration" value={durationInput || "Not entered"} />
             <Summary label="Team" value={selectedEmployeeIds.length ? `${selectedEmployeeIds.length} assigned` : "Assign later"} />
             <Summary label="Price" value={`$${(totalCents / 100).toFixed(2)}`} />
           </div>

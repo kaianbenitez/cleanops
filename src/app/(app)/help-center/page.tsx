@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.4.01",
+    date: "August 26, 2026",
+    title: "Calendar drops show the time you are about to apply",
+    changes: [
+      "When you drag a job onto a crew lane, the Calendar preview now follows the drop position and clearly shows the time that will be saved, instead of getting stuck on an old 9:00 AM placeholder.",
+      "Creating a new job now asks for its cleaning duration. Enter it as hours:minutes; the saved duration is used for the calendar block and payroll.",
+    ],
+  },
+  {
     version: "v0.4.00",
     date: "August 26, 2026",
     title: "Scheduling assistant: find a time without doing the puzzle yourself",
