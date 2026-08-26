@@ -228,7 +228,7 @@ export default function NewJobForm({ customers, employees, services }: NewJobOpt
               required
               type="text"
               inputMode="numeric"
-              pattern="\\d+:[0-5]\\d"
+              pattern="[0-9]{1,2}:[0-5][0-9]"
               placeholder="02:00"
               aria-describedby="new-job-duration-help"
               value={durationInput}

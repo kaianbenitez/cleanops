@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.4.03",
+    date: "August 26, 2026",
+    title: "New job duration accepts standard hours and minutes",
+    changes: [
+      "The New Job duration field now accepts entries such as 04:00 without showing a browser format error.",
+    ],
+  },
+  {
     version: "v0.4.02",
     date: "August 26, 2026",
     title: "Shared jobs now use each cleaner's fair capacity share",
