@@ -234,6 +234,22 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
           </div>
         </div>
 
+        {job && job.status !== "cancelled" && confirmingCancel ? (
+          <div className="shrink-0 border-b border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] px-5 py-3">
+            <div className="co-badge-danger rounded-lg p-3">
+              <p className="text-sm font-semibold">Cancel this job?</p>
+              <label className="mt-2 block text-xs font-semibold">
+                Cancellation reason
+                <textarea autoFocus value={cancellationReason} onChange={(event) => setCancellationReason(event.target.value)} rows={2} placeholder="Why is this job being cancelled?" className="co-input mt-1 w-full resize-none" />
+              </label>
+              <div className="mt-2 flex gap-2">
+                <button type="button" disabled={saving} onClick={() => { setConfirmingCancel(false); setCancellationReason(""); }} className="co-button-secondary py-1 text-xs disabled:opacity-50">Keep job</button>
+                <button type="button" disabled={saving || !cancellationReason.trim()} onClick={confirmCancelJob} className="rounded-lg border border-[var(--co-danger)]/30 bg-[var(--co-danger)]/10 px-3 py-1 text-xs font-semibold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/20 disabled:opacity-50">Confirm cancel</button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {loading && !job ? <div className="p-5 text-sm text-[var(--co-muted)]">Loading job...</div> : null}
         {!job && error ? <p role="alert" aria-live="assertive" className="p-5 pt-0 text-xs font-medium text-[var(--co-danger)]">{error}</p> : null}
 
@@ -299,18 +315,6 @@ export default function JobDetailPanel({ jobId, employees, onClose }: { jobId: s
 
             <div className="flex flex-wrap gap-2 border-t border-[var(--co-line-soft)] pt-4">
               {isDirty ? <button type="button" disabled={saving} onClick={() => { setDraftDate(job.scheduledDate); setDraftTime(job.scheduledStartTime?.slice(0, 5) ?? ""); setDraftStatus(job.status); setDraftPrice((job.priceCents / 100).toFixed(2)); setDraftDuration(formatDurationInput(job.estimatedDurationMinutes)); setDraftAssignedUserIds(assignedUserIds); }} className="co-button-secondary disabled:opacity-50">Discard changes</button> : null}
-              {job.status !== "cancelled" ? confirmingCancel ? (
-                <div className="w-full space-y-2 co-badge-danger rounded-lg p-3">
-                  <label className="block text-xs font-semibold text-[var(--co-danger)]">
-                    Cancellation reason
-                    <textarea value={cancellationReason} onChange={(event) => setCancellationReason(event.target.value)} rows={2} placeholder="Why is this job being cancelled?" className="co-input mt-1 w-full resize-none" />
-                  </label>
-                  <div className="flex gap-2">
-                    <button type="button" disabled={saving} onClick={() => { setConfirmingCancel(false); setCancellationReason(""); }} className="co-button-secondary py-1 text-xs disabled:opacity-50">Keep job</button>
-                    <button type="button" disabled={saving || !cancellationReason.trim()} onClick={confirmCancelJob} className="rounded-lg border border-[var(--co-danger)]/30 bg-[var(--co-danger)]/10 px-3 py-1 text-xs font-semibold text-[var(--co-danger)] hover:bg-[var(--co-danger)]/20 disabled:opacity-50">Confirm cancel</button>
-                  </div>
-                </div>
-              ) : null : null}
             </div>
           </div>
         ) : null}

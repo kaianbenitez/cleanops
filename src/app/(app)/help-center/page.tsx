@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.4.05",
+    date: "August 27, 2026",
+    title: "Cancellation reasons are visible right away",
+    changes: [
+      "When cancelling a job from Calendar, the cancellation reason form now appears at the top of the job details panel, so you can type the reason without scrolling to the bottom.",
+    ],
+  },
+  {
     version: "v0.4.04",
     date: "August 26, 2026",
     title: "Internal meetings stay visible and are faster to assign",
