@@ -505,13 +505,15 @@ export function minuteOfDayInTimeZone(date: Date, timeZone: string): number {
 }
 
 /**
- * Per-crew capacity for a working window, porting the prototype's corrected
- * `capacity()` maths exactly: PTO eats into the *working window*
+ * Per-employee capacity for a working window, porting the prototype's
+ * corrected `capacity()` maths exactly: PTO eats into the *working window*
  * (`windowStart`-`windowEnd`), not directly into the contracted workday, so a
  * cleaner on leave from noon still shows the morning as available. A
  * half-day cleaner reads e.g. "4h 30m / 5h" (window minus leave, capped at
  * the contracted day) — never "/ 1h" (window minus leave with no cap) and
  * never "/ 8h" (the full contracted day, ignoring the leave entirely).
+ * A shared job's labor hours are split evenly across its assigned crew before
+ * they are added to each employee's capacity.
  */
 export function capacityForCrew({
   jobs,
@@ -520,7 +522,11 @@ export function capacityForCrew({
   windowStart,
   windowEnd,
 }: {
-  jobs: { scheduledStartTime: string | null | undefined; estimatedDurationMinutes: number | null }[];
+  jobs: {
+    scheduledStartTime: string | null | undefined;
+    estimatedDurationMinutes: number | null;
+    assignedUserIds: string[];
+  }[];
   pto: { from: number; to: number } | null;
   workdayMinutes: number;
   windowStart: number;
@@ -528,7 +534,10 @@ export function capacityForCrew({
 }): { usedMinutes: number; availableMinutes: number; isOver: boolean } {
   const usedMinutes = jobs
     .filter((job) => job.scheduledStartTime != null)
-    .reduce((sum, job) => sum + jobDuration(job), 0);
+    .reduce((sum, job) => {
+      const crewSize = Math.max(1, job.assignedUserIds.length);
+      return sum + jobDuration(job) / crewSize;
+    }, 0);
   const off = pto ? Math.max(Math.min(pto.to, windowEnd) - Math.max(pto.from, windowStart), 0) : 0;
   const availableMinutes = Math.min(workdayMinutes, windowEnd - windowStart - off);
   const isOver = availableMinutes > 0 && usedMinutes > availableMinutes;

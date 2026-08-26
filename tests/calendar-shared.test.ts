@@ -78,6 +78,22 @@ test("clockLabelFromMinutes formats standard clock boundaries", async () => {
   assert.equal(clockLabelFromMinutes(13 * 60 + 30), "1:30 PM");
 });
 
+test("capacity splits shared-job labor across each assigned employee", async () => {
+  const { capacityForCrew } = await sharedModule();
+  const result = capacityForCrew({
+    jobs: [
+      { scheduledStartTime: "09:00", estimatedDurationMinutes: 120, assignedUserIds: ["u1"] },
+      { scheduledStartTime: "11:00", estimatedDurationMinutes: 120, assignedUserIds: ["u1", "u2"] },
+    ],
+    pto: null,
+    workdayMinutes: 8 * 60,
+    windowStart: 8 * 60,
+    windowEnd: 17 * 60,
+  });
+  assert.equal(result.usedMinutes, 180);
+  assert.equal(result.isOver, false);
+});
+
 test("categorizeForAttention puts an unassigned job in the unassigned bucket", async () => {
   const { categorizeForAttention } = await sharedModule();
   const entries = categorizeForAttention([job({ id: "a", assignedUserIds: [] })], [], DAY);

@@ -7,6 +7,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.4.02",
+    date: "August 26, 2026",
+    title: "Shared jobs now use each cleaner's fair capacity share",
+    changes: [
+      "When a job is assigned to two or more cleaners, each cleaner's capacity now includes only their share of the job hours instead of counting the full job against everyone.",
+    ],
+  },
+  {
     version: "v0.4.01",
     date: "August 26, 2026",
     title: "Calendar drops show the time you are about to apply",
