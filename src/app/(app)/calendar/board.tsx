@@ -1188,7 +1188,7 @@ export default function Board({
     return (
       <div
         key={appointment.id}
-        className={`pointer-events-none absolute z-[3] overflow-visible rounded-md text-left shadow-sm ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}
+        className={`pointer-events-none absolute z-[4] overflow-visible rounded-md text-left shadow-sm ${appointment.status === "cancelled" ? APPOINTMENT_COLOR_CANCELLED : APPOINTMENT_COLOR}`}
         style={style}
       >
         <div aria-hidden className="flex h-full min-w-0 flex-col items-start gap-0.5 overflow-hidden rounded-md px-2 py-1 text-[12px] font-semibold">

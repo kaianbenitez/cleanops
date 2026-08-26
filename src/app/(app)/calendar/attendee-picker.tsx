@@ -14,11 +14,13 @@ export default function AttendeePicker({
   selectedIds,
   onChange,
   placeholder = "Search staff by name…",
+  showSelectAll = false,
 }: {
   staff: StaffMember[];
   selectedIds: string[];
   onChange: (ids: string[]) => void;
   placeholder?: string;
+  showSelectAll?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -34,6 +36,7 @@ export default function AttendeePicker({
   }, [open]);
 
   const selectedStaff = selectedIds.map((id) => staff.find((member) => member.id === id)).filter((member): member is StaffMember => Boolean(member));
+  const everyoneSelected = staff.length > 0 && staff.every((member) => selectedIds.includes(member.id));
 
   const matches = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -65,6 +68,19 @@ export default function AttendeePicker({
 
   return (
     <div ref={containerRef} className="relative">
+      {showSelectAll && staff.length ? (
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <span className="text-[12px] font-normal text-[var(--co-muted)]">{everyoneSelected ? "Everyone is included" : `${selectedIds.length} of ${staff.length} included`}</span>
+          <button
+            type="button"
+            onClick={() => onChange(everyoneSelected ? [] : staff.map((member) => member.id))}
+            aria-pressed={everyoneSelected}
+            className="min-h-11 rounded-md px-2 text-[12px] font-semibold text-[var(--co-accent-text)] hover:bg-[var(--co-accent-tint)]"
+          >
+            {everyoneSelected ? "Remove everyone" : "Include everyone"}
+          </button>
+        </div>
+      ) : null}
       {selectedStaff.length ? (
         <div className="mb-2 flex flex-wrap gap-2">
           {selectedStaff.map((member) => (

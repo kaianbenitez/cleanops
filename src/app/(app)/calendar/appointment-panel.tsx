@@ -336,7 +336,7 @@ export default function AppointmentPanel({
               <div className="block text-xs font-semibold text-[var(--co-muted)]">
                 Attendees
                 <div className="mt-1">
-                  <AttendeePicker staff={staffRoster} selectedIds={form.employeeIds} onChange={(ids) => setForm((current) => ({ ...current, employeeIds: ids }))} />
+                  <AttendeePicker staff={staffRoster} selectedIds={form.employeeIds} onChange={(ids) => setForm((current) => ({ ...current, employeeIds: ids }))} showSelectAll />
                 </div>
               </div>
             ) : (

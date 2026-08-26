@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.4.04",
+    date: "August 26, 2026",
+    title: "Internal meetings stay visible and are faster to assign",
+    changes: [
+      "Internal meetings now remain visible on the Calendar even when they overlap a cleaning job, including meetings starting at 9:00 AM.",
+      "When creating a meeting, Include everyone adds the full active team in one step instead of requiring each attendee to be selected individually.",
+    ],
+  },
+  {
     version: "v0.4.03",
     date: "August 26, 2026",
     title: "New job duration accepts standard hours and minutes",
