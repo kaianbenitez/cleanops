@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { CARD_CLASS, formatTime, readableError, toDateTimeInputValue, type Employee, type TimeEntry } from "./types";
+import { DateTimeInput } from "@/components/date-time-input";
+import { TimeInput } from "@/components/time-input";
 
 /**
  * Office-side time management for a job: record hours manually for an assigned
@@ -214,8 +216,8 @@ export default function TimeEntriesPanel({
         <div className="mt-4 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface-muted)] p-4">
           <p className="text-sm font-semibold">Edit time entry</p>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <input aria-label="Edited clock in" type="datetime-local" value={editClockIn} onChange={(event) => setEditClockIn(event.target.value)} className="co-input" />
-            <input aria-label="Edited clock out" type="datetime-local" value={editClockOut} onChange={(event) => setEditClockOut(event.target.value)} className="co-input" />
+            <DateTimeInput label="Edited clock in" value={editClockIn} onChange={setEditClockIn} />
+            <DateTimeInput label="Edited clock out" value={editClockOut} onChange={setEditClockOut} />
           </div>
           <input value={editNotes} onChange={(event) => setEditNotes(event.target.value)} placeholder="Note (optional)" className="co-input mt-3 w-full" />
           <div className="mt-3 flex flex-wrap gap-2">
@@ -282,8 +284,8 @@ export default function TimeEntriesPanel({
                 />
               ) : (
                 <>
-                  <input aria-label="Clock in" type="time" value={clockIn} onChange={(event) => setClockIn(event.target.value)} className="co-input" />
-                  <input aria-label="Clock out" type="time" value={clockOut} onChange={(event) => setClockOut(event.target.value)} className="co-input" />
+                  <TimeInput ariaLabel="Clock in" value={clockIn} onChange={setClockIn} />
+                  <TimeInput ariaLabel="Clock out" value={clockOut} onChange={setClockOut} />
                 </>
               )}
               <input type="text" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Note (optional)" className="co-input md:col-span-2" />

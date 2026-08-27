@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { formatDayLabel } from "@/lib/scheduling/dates";
+import { DateTimeInput } from "@/components/date-time-input";
 
 type Job = {
   id: string;
@@ -500,24 +501,8 @@ export default function EmployeeBrowserClient({
             </select>
           </label>
           <div className="grid grid-cols-2 gap-3">
-            <label className="block text-sm">
-              <span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Clock in</span>
-              <input
-                type="datetime-local"
-                value={manualClockIn}
-                onChange={(event) => setManualClockIn(event.target.value)}
-                className="co-input w-full"
-              />
-            </label>
-            <label className="block text-sm">
-              <span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Clock out</span>
-              <input
-                type="datetime-local"
-                value={manualClockOut}
-                onChange={(event) => setManualClockOut(event.target.value)}
-                className="co-input w-full"
-              />
-            </label>
+            <DateTimeInput label="Clock in" value={manualClockIn} onChange={setManualClockIn} />
+            <DateTimeInput label="Clock out" value={manualClockOut} onChange={setManualClockOut} />
           </div>
           <label className="block text-sm">
             <span className="mb-2 block text-xs font-semibold text-[var(--co-muted)]">Notes</span>

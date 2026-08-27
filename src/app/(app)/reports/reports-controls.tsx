@@ -12,7 +12,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/date-input";
 
 const PRESETS = [
   ["all_time", "All time"],
@@ -138,22 +138,8 @@ export function ReportsFilters({
             aria-label="Custom date range"
             className="co-date-popover co-date-popover-responsive absolute right-0 top-full z-50 mt-2 w-72 max-w-[calc(100vw-2rem)] p-3"
           >
-            <label className="grid gap-1 text-sm text-[var(--co-muted)]">
-              From
-              <Input
-                type="date"
-                value={from}
-                onChange={(event) => setFrom(event.target.value)}
-              />
-            </label>
-            <label className="mt-3 grid gap-1 text-sm text-[var(--co-muted)]">
-              Through
-              <Input
-                type="date"
-                value={to}
-                onChange={(event) => setTo(event.target.value)}
-              />
-            </label>
+            <DateInput label="From" value={from} max={to} onChange={setFrom} />
+            <DateInput label="Through" className="mt-3" value={to} min={from} onChange={setTo} />
             <button
               type="button"
               className="co-button-primary mt-3 w-full"

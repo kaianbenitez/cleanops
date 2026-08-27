@@ -9,6 +9,8 @@ import TeamSearchPicker from "@/components/team-search-picker";
 import { formatDisplayDate } from "@/lib/scheduling/dates";
 import { StatusPill } from "@/components/ui/status-pill";
 import SlotFinder, { type SlotFinderSelection } from "@/components/scheduling/slot-finder";
+import { DateInput } from "@/components/date-input";
+import { TimeInput } from "@/components/time-input";
 
 type Employee = { id: string; firstName: string; lastName: string };
 
@@ -295,32 +297,8 @@ export default function UnassignedPanel({ jobId, employees, onClose }: { jobId: 
             <div className="border-t border-[var(--co-line-soft)] pt-4">
               <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--co-muted)]">Reschedule</p>
               <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label className="block text-xs font-semibold text-[var(--co-muted)]">
-                  Date
-                  <input
-                    key={`date-${job.scheduledDate}`}
-                    type="date"
-                    disabled={saving}
-                    defaultValue={job.scheduledDate}
-                    onBlur={(event) => event.target.value && event.target.value !== job.scheduledDate && patch({ scheduledDate: event.target.value })}
-                    className="co-input mt-1 w-full disabled:opacity-60"
-                  />
-                </label>
-                <label className="block text-xs font-semibold text-[var(--co-muted)]">
-                  Time
-                  <input
-                    key={`time-${job.scheduledStartTime}`}
-                    type="time"
-                    disabled={saving}
-                    defaultValue={job.scheduledStartTime?.slice(0, 5) ?? ""}
-                    onBlur={(event) => {
-                      if (!event.target.value) return;
-                      const withSeconds = `${event.target.value}:00`;
-                      if (withSeconds !== job.scheduledStartTime) patch({ scheduledStartTime: withSeconds });
-                    }}
-                    className="co-input mt-1 w-full disabled:opacity-60"
-                  />
-                </label>
+                <DateInput label="Date" disabled={saving} value={job.scheduledDate} onChange={(value) => value !== job.scheduledDate && patch({ scheduledDate: value })} />
+                <TimeInput label="Time" disabled={saving} value={job.scheduledStartTime?.slice(0, 5) ?? ""} onChange={(value) => { const withSeconds = `${value}:00`; if (value && withSeconds !== job.scheduledStartTime) patch({ scheduledStartTime: withSeconds }); }} />
               </div>
             </div>
 

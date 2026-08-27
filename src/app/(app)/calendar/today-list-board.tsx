@@ -15,6 +15,8 @@ import { formatElapsed } from "@/lib/my-day/job-format";
 import { cleanNoteText } from "@/lib/format";
 import ClientHomeSymbols from "./client-home-symbols";
 import type { CalendarAppointment, StaffRosterMember } from "./page";
+import { DateInput } from "@/components/date-input";
+import { TimeInput } from "@/components/time-input";
 
 type Employee = { id: string; firstName: string; lastName: string; isActive?: boolean };
 
@@ -305,8 +307,8 @@ export default function TodayListBoard({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <input key={`mobile-date-${job.scheduledDate}`} type="date" defaultValue={job.scheduledDate} onBlur={(event) => commitDate(job, event.target.value)} className="co-input min-h-11 w-[9.5rem] py-1.5 text-sm" aria-label={`Date for ${job.customerFirstName} ${job.customerLastName}`} />
-                    <input key={`mobile-time-${job.scheduledStartTime}`} type="time" defaultValue={job.scheduledStartTime?.slice(0, 5) ?? ""} onBlur={(event) => commitTime(job, event.target.value)} className="co-input min-h-11 w-[7rem] py-1.5 text-sm" aria-label={`Time for ${job.customerFirstName} ${job.customerLastName}`} />
+                    <DateInput value={job.scheduledDate} onChange={(value) => commitDate(job, value)} className="w-[10.5rem]" ariaLabel={`Date for ${job.customerFirstName} ${job.customerLastName}`} />
+                    <TimeInput value={job.scheduledStartTime?.slice(0, 5) ?? ""} onChange={(value) => commitTime(job, value)} className="w-[8rem]" ariaLabel={`Time for ${job.customerFirstName} ${job.customerLastName}`} />
                   </div>
                   <button type="button" onClick={() => setDetailJobId(job.id)} className="mt-2 inline-flex min-h-11 max-w-full items-center truncate text-left text-base font-semibold text-[var(--co-accent-text)] hover:underline">
                     {displayCustomer(job)}
@@ -408,22 +410,8 @@ export default function TodayListBoard({
                 <Fragment key={job.id}>
                 <tr className={`align-top hover:bg-[var(--co-surface-muted)]/50 ${savingId === job.id ? "opacity-50" : ""}`}>
                   <td className="px-4 py-3 align-top">
-                    <input
-                      key={`date-${job.scheduledDate}`}
-                      type="date"
-                      defaultValue={job.scheduledDate}
-                      onBlur={(event) => commitDate(job, event.target.value)}
-                      className="co-input py-1.5 text-sm"
-                      aria-label={`Date for ${job.customerFirstName} ${job.customerLastName}`}
-                    />
-                    <input
-                      key={`time-${job.scheduledStartTime}`}
-                      type="time"
-                      defaultValue={job.scheduledStartTime?.slice(0, 5) ?? ""}
-                      onBlur={(event) => commitTime(job, event.target.value)}
-                      className="co-input mt-1.5 py-1.5 text-sm"
-                      aria-label={`Time for ${job.customerFirstName} ${job.customerLastName}`}
-                    />
+                    <DateInput value={job.scheduledDate} onChange={(value) => commitDate(job, value)} ariaLabel={`Date for ${job.customerFirstName} ${job.customerLastName}`} />
+                    <TimeInput value={job.scheduledStartTime?.slice(0, 5) ?? ""} onChange={(value) => commitTime(job, value)} className="mt-1.5" ariaLabel={`Time for ${job.customerFirstName} ${job.customerLastName}`} />
                     <p className="mt-1.5 text-sm text-[var(--co-muted)]">{formatEstimatedTime(job.estimatedDurationMinutes)}</p>
                   </td>
                   <td className="max-w-[360px] px-4 py-3 font-medium">

@@ -20,10 +20,11 @@ interface DateInputProps {
   neededHours?: number | null;
   ariaLabel?: string;
   ariaDescribedBy?: string;
+  displayMode?: "date" | "month";
 }
 
 export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
-  ({ value, defaultValue, onChange, onBlur, label, required, disabled, className = "", name, placeholder = "Select a date", min, max, showCapacity, neededHours, ariaLabel, ariaDescribedBy }, ref) => {
+  ({ value, defaultValue, onChange, onBlur, label, required, disabled, className = "", name, placeholder = "Select a date", min, max, showCapacity, neededHours, ariaLabel, ariaDescribedBy, displayMode = "date" }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
     const [displayValue, setDisplayValue] = useState(value ?? defaultValue ?? "");
     const triggerRef = useRef<HTMLButtonElement>(null);
@@ -42,7 +43,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
     const formatDisplay = (dateStr: string) => {
       if (!dateStr) return "";
       const d = new Date(dateStr + "T00:00:00");
-      return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      return d.toLocaleDateString("en-US", displayMode === "month" ? { month: "long", year: "numeric" } : { month: "short", day: "numeric", year: "numeric" });
     };
 
     return (
@@ -57,6 +58,8 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
             className="co-date-input w-full text-left"
             aria-label={ariaLabel ?? label}
             aria-describedby={ariaDescribedBy}
+            aria-haspopup="dialog"
+            aria-expanded={isOpen}
           >
             <span className={`whitespace-nowrap ${displayValue ? "text-[var(--co-ink)]" : "text-[var(--co-input-placeholder)]"}`}>
               {displayValue ? formatDisplay(displayValue) : placeholder}
@@ -88,7 +91,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
             required={required}
             disabled={disabled}
             className="sr-only"
-            aria-hidden="true"
+            tabIndex={-1}
           />
           {isOpen && (
             <CalendarPicker
