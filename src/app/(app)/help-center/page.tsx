@@ -7,6 +7,15 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const RELEASES = [
   {
+    version: "v0.2.90",
+    date: "August 27, 2026",
+    title: "Dates and times are easier to choose",
+    changes: [
+      "Date fields across Shimmer now open the same calendar picker instead of asking you to type a date.",
+      "Time and clock-entry fields now use a consistent visual time picker, including combined date-and-time corrections.",
+    ],
+  },
+  {
     version: "v0.2.89",
     date: "August 24, 2026",
     title: "Calendar controls stay in one clean row",

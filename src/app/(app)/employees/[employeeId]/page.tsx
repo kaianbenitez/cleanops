@@ -11,6 +11,7 @@ import { statusLabel } from "@/components/ui/status-pill";
 import ReportNotes from "./report-notes";
 import PendingPtoRequests from "./pending-pto-requests";
 import EmployeeTags from "./employee-tags";
+import { DateInput } from "@/components/date-input";
 
 type PayTier = { minHours: number; maxHours: number | null; rateCents: number };
 type Employee = {
@@ -654,6 +655,10 @@ function Field({
   onSave: (value: string) => void;
   type?: string;
 }) {
+  if (type === "date") {
+    return <DateInput label={label} defaultValue={defaultValue} onChange={(value) => value !== defaultValue && onSave(value)} />;
+  }
+
   return (
     <div>
       <label className="mb-1.5 block text-xs font-semibold text-[var(--co-muted)]">{label}</label>

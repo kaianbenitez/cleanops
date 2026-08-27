@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { TimeInput } from "@/components/time-input";
 
 type Employee = { id: string; firstName: string; lastName: string; isActive: boolean };
 type Event = {
@@ -94,7 +95,7 @@ export default function CalendarEventsStrip({ dayIso, employees }: { dayIso: str
         <form className="mt-3 grid gap-3 border-t border-[var(--co-line-soft)] pt-3 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); void save(); }}>
           <label className="text-xs font-semibold text-[var(--co-muted)]">Title<input required maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} className="co-input mt-1 w-full" placeholder="Training, meeting, reminder" /></label>
           <label className="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" checked={allDay} onChange={(event) => setAllDay(event.target.checked)} />All day</label>
-          {!allDay ? <><label className="text-xs font-semibold text-[var(--co-muted)]">Start<input type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} className="co-input mt-1 w-full" /></label><label className="text-xs font-semibold text-[var(--co-muted)]">Duration<select value={durationMinutes} onChange={(event) => setDurationMinutes(Number(event.target.value))} className="co-input mt-1 w-full"><option value={30}>30 min</option><option value={60}>1 hour</option><option value={120}>2 hours</option></select></label></> : null}
+          {!allDay ? <><TimeInput label="Start" value={startTime} onChange={setStartTime} /><label className="text-xs font-semibold text-[var(--co-muted)]">Duration<select value={durationMinutes} onChange={(event) => setDurationMinutes(Number(event.target.value))} className="co-input mt-1 w-full"><option value={30}>30 min</option><option value={60}>1 hour</option><option value={120}>2 hours</option></select></label></> : null}
           <fieldset className="sm:col-span-2"><legend className="text-xs font-semibold text-[var(--co-muted)]">Employees</legend><div className="mt-1 flex flex-wrap gap-2">{employees.filter((employee) => employee.isActive).map((employee) => <label key={employee.id} className="flex items-center gap-1 break-words text-xs"><input type="checkbox" checked={employeeIds.includes(employee.id)} onChange={() => setEmployeeIds((current) => current.includes(employee.id) ? current.filter((id) => id !== employee.id) : [...current, employee.id])} />{employee.firstName}</label>)}</div></fieldset>
           <button className="co-button-primary justify-center sm:col-span-2 disabled:cursor-wait disabled:opacity-60" type="submit" disabled={saving}>{saving ? "Saving…" : "Save event"}</button>
         </form>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { TimeInput } from "@/components/time-input";
 import { DEFAULT_WORKDAY_END_MINUTES, DEFAULT_WORKDAY_START_MINUTES } from "../../calendar/shared";
 
 const DAYS: Array<[number, string]> = [
@@ -272,24 +273,8 @@ export default function CalendarSettingsPage() {
         </div>
         <div className="p-5">
           <div className="flex flex-wrap gap-4">
-            <label className="block text-sm">
-              <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Board starts at</span>
-              <input
-                type="time"
-                className="co-input"
-                value={workdayStart}
-                onChange={(event) => setWorkdayStart(event.target.value)}
-              />
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block text-xs font-semibold text-[var(--co-muted)]">Board ends at</span>
-              <input
-                type="time"
-                className="co-input"
-                value={workdayEnd}
-                onChange={(event) => setWorkdayEnd(event.target.value)}
-              />
-            </label>
+            <TimeInput label="Board starts at" value={workdayStart} onChange={setWorkdayStart} />
+            <TimeInput label="Board ends at" value={workdayEnd} onChange={setWorkdayEnd} />
           </div>
           <span className="mt-2 block max-w-md text-xs leading-5 text-[var(--co-muted)]">
             The working range the dispatch board draws jobs against. Untimed jobs and hours outside this window

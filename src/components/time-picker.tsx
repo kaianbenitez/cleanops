@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { createPortal } from "react-dom";
 
 interface TimePickerProps {
   value: string;
   onChange: (value: string) => void;
   onClose: () => void;
+  anchorRef: RefObject<HTMLElement | null>;
 }
 
 function to12Hour(h: number) {
@@ -14,19 +16,45 @@ function to12Hour(h: number) {
   return { hour12, period };
 }
 
-export function TimePicker({ value, onChange, onClose }: TimePickerProps) {
+export function TimePicker({ value, onChange, onClose, anchorRef }: TimePickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const selectedHourRef = useRef<HTMLButtonElement>(null);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (anchorRef.current?.contains(target)) return;
+      if (containerRef.current && !containerRef.current.contains(target)) {
         onClose();
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose, anchorRef]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
+
+  useLayoutEffect(() => {
+    function updatePosition() {
+      const rect = anchorRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setPosition({ top: rect.bottom + 8, left: Math.min(rect.left, window.innerWidth - 272) });
+    }
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [anchorRef]);
 
   useEffect(() => {
     // Only run on open — later hour changes shouldn't yank the scroll position.
@@ -43,12 +71,15 @@ export function TimePicker({ value, onChange, onClose }: TimePickerProps) {
     onChange(newTime);
   };
 
-  return (
+  if (!position) return null;
+
+  return createPortal(
     <div
       ref={containerRef}
       role="dialog"
       aria-label="Choose time"
-      className="co-date-popover absolute top-full left-0 z-50 mt-2 w-64 p-3"
+      className="co-date-popover fixed z-50 w-64 max-w-[calc(100vw-1rem)] p-3"
+      style={{ top: position.top, left: Math.max(8, position.left) }}
     >
       <div className="mb-2 flex items-center justify-between border-b border-[var(--co-line-soft)] pb-2">
         <p className="text-sm font-semibold text-[var(--co-ink)]">
@@ -112,6 +143,7 @@ export function TimePicker({ value, onChange, onClose }: TimePickerProps) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

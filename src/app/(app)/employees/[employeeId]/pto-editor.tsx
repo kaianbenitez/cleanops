@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { DateInput } from "@/components/date-input";
 
 export type EmployeePto = {
   id: string;
@@ -105,8 +106,8 @@ export default function PtoEditor({ employeeId, onChange }: { employeeId: string
 
       {open ? (
         <form onSubmit={addPto} className="mt-4 grid gap-3 rounded-xl border border-[var(--co-line-soft)] bg-[var(--co-surface)] p-3 sm:grid-cols-2">
-          <label className="text-xs font-semibold text-[var(--co-muted)]">Start date<input required type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="co-input mt-1 w-full text-sm" /></label>
-          <label className="text-xs font-semibold text-[var(--co-muted)]">End date<input required type="date" value={endDate || startDate} onChange={(event) => setEndDate(event.target.value)} className="co-input mt-1 w-full text-sm" /></label>
+          <DateInput label="Start date" required value={startDate} onChange={setStartDate} />
+          <DateInput label="End date" required value={endDate || startDate} min={startDate || undefined} onChange={setEndDate} />
           <label className="text-xs font-semibold text-[var(--co-muted)]">Start period<select value={startPeriod} onChange={(event) => setStartPeriod(event.target.value as EmployeePto["startPeriod"])} className="co-input mt-1 w-full text-sm">{Object.entries(periodLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label className="text-xs font-semibold text-[var(--co-muted)]">End period<select value={endPeriod} onChange={(event) => setEndPeriod(event.target.value as EmployeePto["endPeriod"])} className="co-input mt-1 w-full text-sm">{Object.entries(periodLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label className="text-xs font-semibold text-[var(--co-muted)] sm:col-span-2">Note (optional)<input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Vacation, appointment, training…" className="co-input mt-1 w-full text-sm" /></label>
