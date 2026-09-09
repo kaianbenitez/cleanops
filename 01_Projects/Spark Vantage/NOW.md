@@ -13,18 +13,38 @@ as Shimmer, his other product.
 
 ## Domain
 
-**`sparkvantage.io` is picked but not yet purchased.** Confirmed available
-via WHOIS + DNS check 2026-09-09. Not registered by Claude — buying a
-domain is a real purchase, left to Kaian to do himself (Porkbun tends to be
-cheapest for `.io`).
+**`sparkvantage.co` — bought 2026-09-09 at Namecheap.** Note the `.co`, not
+the `.io` originally shortlisted. Both `sparkvantage.co` and
+`www.sparkvantage.co` are already attached to the Vercel project
+`kaiann/spark-vantage`.
 
-Once purchased:
-1. Set up free branded email via Cloudflare Email Routing (forward
-   `kaian@sparkvantage.io` → real Gmail), plus a Gmail "Send As" alias.
-2. Get a free Web3Forms access key at web3forms.com using that email, paste
-   it into `site/index.html`'s `access_key` hidden input (currently a
-   PLACEHOLDER — the quote form does not deliver anywhere yet).
-3. Point the domain at the Vercel deployment below.
+**DNS is not pointed yet.** As of 2026-09-09 the nameservers are still
+Namecheap's defaults (`dns1/dns2.registrar-servers.com`) and the domain
+resolves to Namecheap's parking page.
+
+**Route it through Cloudflare, not Vercel DNS.** Cloudflare Email Routing —
+the free way to get `kaian@sparkvantage.co` forwarding to Gmail — only works
+when Cloudflare runs the domain's DNS. Vercel DNS has no free email
+forwarding, so using it would cost the branded email plan.
+
+Steps (all need Kaian's own logins):
+1. Add `sparkvantage.co` to a free Cloudflare account; Cloudflare gives two
+   nameservers.
+2. In Namecheap → Domain List → Manage → Nameservers, switch to "Custom DNS"
+   and paste Cloudflare's two. Propagation is usually under an hour.
+3. In Cloudflare DNS add:
+   - `A` · name `@` · value `76.76.21.21` · **proxy OFF (grey cloud)**
+   - `CNAME` · name `www` · value `cname.vercel-dns.com` · **proxy OFF**
+   The grey cloud matters — leaving Cloudflare's orange proxy on breaks
+   Vercel's SSL issuance.
+4. Cloudflare → Email → Email Routing: forward `kaian@sparkvantage.co` to the
+   real Gmail, then add a Gmail "Send As" alias so replies come from it.
+5. Get a free Web3Forms access key at web3forms.com using that address and
+   paste it into `site/index.html`'s `access_key` hidden input (currently a
+   PLACEHOLDER — the contact form does not deliver anywhere until this is
+   done).
+6. Fill in the real email/phone in the footer, which are still marked
+   PLACEHOLDER.
 
 ## Site
 
