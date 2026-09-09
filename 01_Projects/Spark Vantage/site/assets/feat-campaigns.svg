@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 430" role="img" aria-label="Campaign dashboard with prebuilt referral and repeat customer campaigns activated by a single toggle">
+  <defs><style>
+    .nv{fill:#1B1F30}.wh{fill:#FFFFFF}.g1{fill:#EEF0F4}.rd{fill:#E0261B}.mt{fill:#8A90A0}.lbl{fill:#C6CBD5}
+  </style></defs>
+
+  <!-- dashboard window -->
+  <rect fill="#000" opacity=".12" x="42" y="46" width="486" height="332" rx="22"/>
+  <rect class="wh" x="34" y="34" width="486" height="332" rx="22"/>
+  <rect fill="none" stroke="#E3E6ED" stroke-width="2" x="35" y="35" width="484" height="330" rx="22"/>
+
+  <!-- title bar -->
+  <path class="nv" d="M34 56c0-12 10-22 22-22h442c12 0 22 10 22 22v26H34z"/>
+  <circle fill="#FF6F5E" cx="60" cy="58" r="6"/>
+  <circle fill="#FFFFFF" cx="80" cy="58" r="6" opacity=".3"/>
+  <circle fill="#FFFFFF" cx="100" cy="58" r="6" opacity=".3"/>
+  <rect fill="#FFFFFF" x="124" y="53" width="104" height="9" rx="4.5" opacity=".8"/>
+
+  <!-- sidebar -->
+  <rect class="g1" x="34" y="82" width="118" height="284"/>
+  <g class="lbl">
+    <rect x="52" y="106" width="76" height="8" rx="4"/>
+    <rect x="52" y="152" width="64" height="8" rx="4"/>
+    <rect x="52" y="176" width="72" height="8" rx="4"/>
+    <rect x="52" y="200" width="58" height="8" rx="4"/>
+  </g>
+  <rect class="rd" x="42" y="122" width="102" height="22" rx="11" opacity=".12"/>
+  <rect fill="#B81D14" x="52" y="129" width="70" height="8" rx="4"/>
+
+  <!-- heading -->
+  <rect fill="#1B1F30" x="176" y="104" width="150" height="11" rx="5.5"/>
+  <rect class="mt" x="176" y="124" width="212" height="8" rx="4"/>
+
+  <!-- campaign card 1 : ON -->
+  <rect class="wh" x="176" y="152" width="320" height="68" rx="14"/>
+  <rect fill="none" stroke="#E3E6ED" stroke-width="2" x="177" y="153" width="318" height="66" rx="14"/>
+  <rect fill="#FFE9E7" x="192" y="168" width="36" height="36" rx="11"/>
+  <path fill="#E0261B" d="M210 176l-8 11h5l-2 9 9-12h-6z"/>
+  <rect fill="#1B1F30" x="242" y="170" width="112" height="9" rx="4.5"/>
+  <rect class="lbl" x="242" y="188" width="164" height="8" rx="4"/>
+  <rect class="rd" x="432" y="176" width="48" height="26" rx="13"/>
+  <circle fill="#FFFFFF" cx="467" cy="189" r="9"/>
+
+  <!-- campaign card 2 : ON -->
+  <rect class="wh" x="176" y="232" width="320" height="68" rx="14"/>
+  <rect fill="none" stroke="#E3E6ED" stroke-width="2" x="177" y="233" width="318" height="66" rx="14"/>
+  <rect fill="#FFE9E7" x="192" y="248" width="36" height="36" rx="11"/>
+  <path fill="#E0261B" d="M210 256l-8 11h5l-2 9 9-12h-6z"/>
+  <rect fill="#1B1F30" x="242" y="250" width="132" height="9" rx="4.5"/>
+  <rect class="lbl" x="242" y="268" width="148" height="8" rx="4"/>
+  <rect class="rd" x="432" y="256" width="48" height="26" rx="13"/>
+  <circle fill="#FFFFFF" cx="467" cy="269" r="9"/>
+
+  <!-- campaign card 3 : OFF -->
+  <rect class="wh" x="176" y="312" width="320" height="40" rx="14"/>
+  <rect fill="none" stroke="#E3E6ED" stroke-width="2" x="177" y="313" width="318" height="38" rx="14"/>
+  <rect class="g1" x="192" y="322" width="20" height="20" rx="7"/>
+  <rect class="lbl" x="226" y="328" width="120" height="8" rx="4"/>
+  <rect fill="#DDE1E8" x="432" y="320" width="48" height="24" rx="12"/>
+  <circle fill="#FFFFFF" cx="445" cy="332" r="8"/>
+
+  <!-- cursor -->
+  <g transform="translate(452 196)">
+    <path fill="#1B1F30" d="M0 0l6 26 5-10 11 4z" stroke="#FFFFFF" stroke-width="2.5" stroke-linejoin="round"/>
+  </g>
+</svg>

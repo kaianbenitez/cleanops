@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 430" role="img" aria-label="Laptop showing a service website with a lead text message arriving on a phone">
+  <defs><style>
+    .nv{fill:#1B1F30}.wh{fill:#FFFFFF}.g1{fill:#EEF0F4}.g2{fill:#D8DCE4}.rd{fill:#E0261B}.mt{fill:#8A90A0}
+  </style></defs>
+
+  <!-- laptop -->
+  <rect class="nv" x="54" y="26" width="404" height="258" rx="16"/>
+  <rect class="wh" x="68" y="40" width="376" height="230" rx="6"/>
+
+  <!-- site nav -->
+  <rect class="nv" x="68" y="40" width="376" height="34" rx="6"/>
+  <rect class="nv" x="68" y="60" width="376" height="14"/>
+  <circle fill="#FF6F5E" cx="90" cy="57" r="7"/>
+  <rect class="wh" x="104" y="53" width="52" height="8" rx="4" opacity=".85"/>
+  <g fill="#FFFFFF" opacity=".45">
+    <rect x="268" y="53" width="34" height="8" rx="4"/>
+    <rect x="312" y="53" width="34" height="8" rx="4"/>
+  </g>
+  <rect class="rd" x="358" y="48" width="70" height="18" rx="9"/>
+
+  <!-- hero band -->
+  <rect fill="#1B1F30" x="68" y="74" width="376" height="112"/>
+  <rect fill="#FFFFFF" x="92" y="98" width="150" height="13" rx="6"/>
+  <rect fill="#FFFFFF" x="92" y="118" width="118" height="13" rx="6"/>
+  <rect fill="#FFFFFF" x="92" y="140" width="80" height="9" rx="4" opacity=".5"/>
+  <rect class="rd" x="92" y="158" width="92" height="20" rx="10"/>
+  <rect fill="#FFFFFF" x="278" y="96" width="142" height="76" rx="8" opacity=".12"/>
+  <rect fill="#FFFFFF" x="292" y="110" width="114" height="9" rx="4" opacity=".5"/>
+  <rect fill="#FFFFFF" x="292" y="126" width="114" height="9" rx="4" opacity=".5"/>
+  <rect class="rd" x="292" y="144" width="114" height="16" rx="8"/>
+
+  <!-- body blocks -->
+  <g class="g1">
+    <rect x="92" y="202" width="98" height="50" rx="7"/>
+    <rect x="206" y="202" width="98" height="50" rx="7"/>
+    <rect x="320" y="202" width="98" height="50" rx="7"/>
+  </g>
+
+  <!-- laptop base -->
+  <path class="g2" d="M28 288h504l-22 26H50z"/>
+  <rect class="g2" x="24" y="282" width="512" height="12" rx="6"/>
+  <rect fill="#B9BFCB" x="242" y="296" width="76" height="7" rx="3.5"/>
+
+  <!-- phone with incoming lead text -->
+  <g transform="translate(360 168)">
+    <rect fill="#000" opacity=".14" x="6" y="12" width="176" height="238" rx="26"/>
+    <rect class="nv" x="0" y="0" width="176" height="240" rx="26"/>
+    <rect class="wh" x="9" y="9" width="158" height="222" rx="19"/>
+    <rect class="nv" x="60" y="16" width="56" height="9" rx="4.5"/>
+
+    <rect class="rd" x="22" y="40" width="132" height="22" rx="11"/>
+    <rect fill="#FFFFFF" x="32" y="47" width="76" height="8" rx="4"/>
+
+    <rect class="g1" x="22" y="76" width="106" height="40" rx="12"/>
+    <g class="mt"><rect x="32" y="87" width="76" height="7" rx="3.5"/><rect x="32" y="100" width="52" height="7" rx="3.5"/></g>
+
+    <rect class="rd" x="48" y="128" width="106" height="40" rx="12"/>
+    <g fill="#FFFFFF" opacity=".9"><rect x="58" y="139" width="76" height="7" rx="3.5"/><rect x="58" y="152" width="52" height="7" rx="3.5"/></g>
+
+    <rect class="g1" x="22" y="180" width="90" height="32" rx="12"/>
+    <g class="mt"><rect x="32" y="191" width="60" height="7" rx="3.5"/></g>
+  </g>
+</svg>

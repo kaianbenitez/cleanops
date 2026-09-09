@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 430" role="img" aria-label="Google search results showing the business ranked first in the local map pack">
+  <defs><style>
+    .nv{fill:#1B1F30}.wh{fill:#FFFFFF}.g1{fill:#EEF0F4}.rd{fill:#E0261B}.mt{fill:#8A90A0}.lbl{fill:#C6CBD5}.st{fill:#F5A524}
+  </style>
+    <path id="s2" d="M7 0l2 4.4 4.8.6-3.5 3.4.9 4.8L7 10.9 2.8 13.2l.9-4.8L.2 5 5 4.4z"/>
+  </defs>
+
+  <!-- browser window -->
+  <rect fill="#000" opacity=".12" x="32" y="38" width="470" height="356" rx="20"/>
+  <rect class="wh" x="24" y="26" width="470" height="356" rx="20"/>
+  <rect fill="none" stroke="#E3E6ED" stroke-width="2" x="25" y="27" width="468" height="354" rx="20"/>
+
+  <!-- chrome bar -->
+  <path class="g1" d="M24 46c0-11 9-20 20-20h430c11 0 20 9 20 20v28H24z"/>
+  <circle fill="#C6CBD5" cx="48" cy="50" r="5"/>
+  <circle fill="#C6CBD5" cx="66" cy="50" r="5"/>
+  <circle fill="#C6CBD5" cx="84" cy="50" r="5"/>
+
+  <!-- search field -->
+  <rect class="wh" x="46" y="90" width="330" height="34" rx="17"/>
+  <rect fill="none" stroke="#E3E6ED" stroke-width="2" x="47" y="91" width="328" height="32" rx="16"/>
+  <circle fill="none" stroke="#8A90A0" stroke-width="3" cx="70" cy="107" r="8"/>
+  <path stroke="#8A90A0" stroke-width="3" stroke-linecap="round" d="M76 113l6 6"/>
+  <rect class="mt" x="94" y="103" width="172" height="8" rx="4"/>
+
+  <!-- map pack panel -->
+  <rect class="g1" x="46" y="142" width="426" height="128" rx="14"/>
+  <rect class="wh" x="58" y="154" width="264" height="104" rx="10"/>
+
+  <!-- rank 1 row (highlighted) -->
+  <rect fill="#FFF1EF" x="66" y="162" width="248" height="42" rx="9"/>
+  <circle class="rd" cx="88" cy="183" r="13"/>
+  <text x="88" y="188" font-family="Sora, Arial, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">1</text>
+  <rect fill="#1B1F30" x="110" y="171" width="104" height="9" rx="4.5"/>
+  <g class="st" transform="translate(110 187)">
+    <use href="#s2"/><use href="#s2" x="18"/><use href="#s2" x="36"/><use href="#s2" x="54"/><use href="#s2" x="72"/>
+  </g>
+
+  <!-- rank 2 + 3 -->
+  <g>
+    <circle fill="#DDE1E8" cx="88" cy="220" r="11"/>
+    <rect class="lbl" x="110" y="216" width="88" height="8" rx="4"/>
+    <circle fill="#DDE1E8" cx="88" cy="246" r="11"/>
+    <rect class="lbl" x="110" y="242" width="72" height="8" rx="4"/>
+  </g>
+
+  <!-- mini map -->
+  <rect fill="#DDE4EC" x="334" y="154" width="126" height="104" rx="10"/>
+  <g stroke="#C3CDD9" stroke-width="4" stroke-linecap="round">
+    <path d="M334 190h126M334 226h126M372 154v104M420 154v104"/>
+  </g>
+  <path fill="#E0261B" d="M397 178c11 0 20 9 20 20 0 14-20 34-20 34s-20-20-20-34c0-11 9-20 20-20z"/>
+  <circle fill="#FFFFFF" cx="397" cy="198" r="7"/>
+
+  <!-- organic results -->
+  <g>
+    <rect fill="#1B1F30" x="46" y="292" width="196" height="10" rx="5"/>
+    <rect class="lbl" x="46" y="312" width="380" height="8" rx="4"/>
+    <rect class="lbl" x="46" y="328" width="316" height="8" rx="4"/>
+    <rect class="lbl" x="46" y="352" width="150" height="8" rx="4"/>
+  </g>
+
+  <!-- rising arrow badge -->
+  <g transform="translate(408 300)">
+    <rect fill="#000" opacity=".12" x="6" y="10" width="118" height="72" rx="16"/>
+    <rect class="nv" x="0" y="0" width="118" height="74" rx="16"/>
+    <path fill="none" stroke="#FF6F5E" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M20 52l22-22 16 14 24-28"/>
+    <path fill="#FF6F5E" d="M96 10l6 22-22-6z"/>
+    <rect fill="#FFFFFF" x="20" y="60" width="62" height="7" rx="3.5" opacity=".45"/>
+  </g>
+</svg>

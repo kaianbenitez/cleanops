@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 430" role="img" aria-label="Phone showing a missed call followed by an automatic text message reply to the customer">
+  <defs><style>
+    .nv{fill:#1B1F30}.wh{fill:#FFFFFF}.g1{fill:#EEF0F4}.rd{fill:#E0261B}.mt{fill:#8A90A0}
+  </style></defs>
+
+  <!-- missed call notification card -->
+  <g transform="translate(38 60)">
+    <rect fill="#000" opacity=".12" x="6" y="12" width="232" height="112" rx="20"/>
+    <rect class="wh" x="0" y="0" width="232" height="114" rx="20"/>
+    <rect fill="none" stroke="#E3E6ED" stroke-width="2" x="1" y="1" width="230" height="112" rx="20"/>
+
+    <circle fill="#FFE9E7" cx="42" cy="42" r="20"/>
+    <path fill="#E0261B" d="M35 34c1-1 3-1 4 1l3 5c1 2 0 3-1 4l-2 2c2 4 5 7 9 9l2-2c1-1 2-2 4-1l5 3c2 1 2 3 1 4l-3 3c-2 2-4 2-7 1-8-3-14-9-17-17-1-3-1-5 1-7z"/>
+    <path fill="#E0261B" d="M54 26l14 14M68 26L54 40" stroke="#E0261B" stroke-width="3" stroke-linecap="round"/>
+
+    <rect fill="#1B1F30" x="74" y="30" width="96" height="10" rx="5"/>
+    <rect class="mt" x="74" y="48" width="128" height="8" rx="4"/>
+    <rect fill="#E0261B" x="74" y="76" width="82" height="20" rx="10" opacity=".12"/>
+    <rect fill="#B81D14" x="86" y="82" width="58" height="8" rx="4"/>
+  </g>
+
+  <!-- arrow -->
+  <path fill="none" stroke="#E0261B" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 14" d="M154 194v52"/>
+  <path fill="#E0261B" d="M154 262l-11-18h22z"/>
+
+  <!-- phone with auto-reply thread -->
+  <g transform="translate(268 24)">
+    <rect fill="#000" opacity=".14" x="8" y="14" width="230" height="376" rx="34"/>
+    <rect class="nv" x="0" y="0" width="230" height="378" rx="34"/>
+    <rect class="wh" x="11" y="11" width="208" height="356" rx="25"/>
+    <rect class="nv" x="83" y="20" width="64" height="10" rx="5"/>
+
+    <!-- thread header -->
+    <rect class="g1" x="11" y="38" width="208" height="48"/>
+    <circle fill="#C3C9D4" cx="40" cy="62" r="14"/>
+    <rect fill="#1B1F30" x="64" y="52" width="76" height="9" rx="4.5"/>
+    <rect class="mt" x="64" y="67" width="48" height="7" rx="3.5"/>
+
+    <!-- auto reply out -->
+    <rect class="rd" x="46" y="104" width="162" height="76" rx="16"/>
+    <g fill="#FFFFFF" opacity=".92">
+      <rect x="60" y="118" width="132" height="8" rx="4"/>
+      <rect x="60" y="133" width="132" height="8" rx="4"/>
+      <rect x="60" y="148" width="104" height="8" rx="4"/>
+      <rect x="60" y="163" width="70" height="8" rx="4"/>
+    </g>
+    <rect fill="#FFFFFF" x="150" y="186" width="58" height="7" rx="3.5" opacity=".35"/>
+
+    <!-- customer replies -->
+    <rect class="g1" x="22" y="206" width="140" height="56" rx="16"/>
+    <g class="mt">
+      <rect x="36" y="220" width="112" height="8" rx="4"/>
+      <rect x="36" y="235" width="82" height="8" rx="4"/>
+    </g>
+
+    <rect class="g1" x="22" y="272" width="112" height="38" rx="16"/>
+    <g class="mt"><rect x="36" y="287" width="84" height="8" rx="4"/></g>
+
+    <!-- booked chip -->
+    <rect fill="#E7F5EC" x="22" y="322" width="150" height="32" rx="16"/>
+    <circle fill="#1F8A4C" cx="42" cy="338" r="10"/>
+    <path fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M37 338l4 4 7-7"/>
+    <rect fill="#1F8A4C" x="60" y="334" width="94" height="8" rx="4" opacity=".75"/>
+  </g>
+</svg>
