@@ -74,10 +74,12 @@ Real content used:
   his exact words, no edits. A video testimonial from him is expected later;
   add it to the Reviews section when it arrives (currently a text-only note
   on the page says it's coming).
-- **Portfolio section** shows real screenshots + live links to Mr. Pink's
-  Cleaning Service (delivered client, tagged "Client Project — Live") and
-  JL Construction (tagged "Free Sample" — that lead hasn't closed yet, so
-  it's deliberately not presented as a client).
+- **No portfolio/"Our Work" section.** Removed 2026-09-09 — it showed real
+  screenshots + live links to Mr. Pink's Cleaning Service and JL Construction
+  (the latter a free sample, lead not closed). Instead, "Mr. Pink's Cleaning
+  Service" in the testimonial byline is now a live hyperlink to
+  mrpinkscleaningservice.com, so the one proof point lives inside the
+  testimonial itself.
 - Services: Website Design (free sample first) and SEO + GBP Optimization
   ($75/mo, the real price already quoted to Nemo).
 

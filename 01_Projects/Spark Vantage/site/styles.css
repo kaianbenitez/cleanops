@@ -241,29 +241,9 @@ p:last-child { margin-bottom: 0; }
 .quote__avatar { width: 52px; height: 52px; flex: none; border-radius: 50%; background: var(--red); display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 1.1rem; }
 .quote__name { font-weight: 800; color: var(--ink); }
 .quote__role { font-size: .89rem; color: var(--muted); }
+.quote__role a { color: var(--red); font-weight: 700; text-decoration: none; }
+.quote__role a:hover { text-decoration: underline; }
 .note { margin-top: 22px; text-align: center; font-size: .88rem; color: var(--muted); }
-
-/* =========================================================================
-   WORK
-   ========================================================================= */
-.work-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; }
-.work {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
-  overflow: hidden; transition: transform .22s var(--ease), box-shadow .22s var(--ease);
-}
-.work:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
-.work__shot { aspect-ratio: 16 / 10; width: 100%; object-fit: cover; object-position: top center; background: var(--grey-bg); }
-.work__body { padding: 24px 26px 28px; }
-.work__tag {
-  display: inline-block; margin-bottom: 12px; padding: 5px 12px; border-radius: 99px;
-  font-size: .7rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
-}
-.work__tag--client { background: var(--red-tint); color: var(--red-dark); }
-.work__tag--sample { background: #EEF0F4; color: var(--ink-soft); }
-.work h3 { font-size: 1.28rem; }
-.work p { margin-top: 10px; font-size: .95rem; color: var(--muted); }
-.work__link { display: inline-flex; align-items: center; gap: 7px; margin-top: 16px; font-weight: 700; font-size: .93rem; color: var(--red); }
-.work__link:hover { gap: 11px; }
 
 /* =========================================================================
    FEATURE ROWS
@@ -426,7 +406,7 @@ p:last-child { margin-bottom: 0; }
   .nav a { padding: 13px 0; border-bottom: 1px solid var(--border); }
   .nav .btn { margin-top: 14px; }
   .nav-toggle { display: flex; }
-  .work-grid, .steps, .why-grid, .form__row { grid-template-columns: 1fr; }
+  .steps, .why-grid, .form__row { grid-template-columns: 1fr; }
   .trades { grid-template-columns: repeat(2, 1fr); }
   .footer__grid { grid-template-columns: 1fr; gap: 30px; }
   .hero__cta { gap: 14px; }
