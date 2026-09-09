@@ -60,11 +60,11 @@ for small accent text on navy. Never use `#E0261B` for text on navy — the
 contrast is too low; that's what the coral is for. Type is **Sora** (900 for
 display), matching the reference.
 
-**Mascot is a placeholder.** `site/assets/mascot-hero.svg` is a hand-coded
-flat bunny ("Spark", with a headset — deliberately not a hard hat) used as a
-stand-in so the hero isn't empty. Kaian is producing the real artwork with
-ChatGPT. To swap it: replace that file, or point the two `<img>` tags in
-`index.html` (hero + closing CTA) at the new file. Sized for ~400x580.
+**Mascot artwork is final**, done 2026-09-09 by Kaian via ChatGPT — the
+hand-coded SVG placeholder is gone. Two poses in `site/assets/`:
+`mascot-hero.png` (arms crossed, confident — used in the hero) and
+`mascot-wave.png` (waving — used in the closing CTA card). Both were split
+out of one source image ChatGPT generated with both poses side by side.
 
 The five feature rows use hand-coded SVG mockups in `site/assets/feat-*.svg`
 standing in for real GHL product screenshots, which don't exist yet.
