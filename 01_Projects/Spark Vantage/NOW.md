@@ -69,37 +69,11 @@ out of one source image ChatGPT generated with both poses side by side.
 The five feature rows use hand-coded SVG mockups in `site/assets/feat-*.svg`
 standing in for real GHL product screenshots, which don't exist yet.
 
-**Copy overhauled 2026-09-11.** The build originally carried the GHL-template
-voice it was cloned from — winking asides ("we're fired and extremely
-embarrassed", "beauty sleep", "the proof is in the pudding"), Title Case
-headings, and four feature bullets that repeated their own intro line
-verbatim. All of it is gone. The voice now is short sentences, sentence case,
-concrete nouns, no jokes and no over-explaining. Three substantive changes
-beyond tone, each a judgement call worth knowing about:
-
-1. **The hero star ratings were removed.** The strip used Google, Facebook and
-   Trustpilot logos with five filled stars each, against ratings that don't
-   exist on any of those platforms. It's now three plain facts: "Live in 7–10
-   days", "One builder, start to finish", "You see it before you pay".
-2. **"5-Star Reviews Only / five stars, every time" is gone.** Steering only
-   happy customers to Google is review gating and breaks Google's policy. The
-   section now sells timing (asked the same day) and private routing for
-   unhappy customers, which is the defensible version of the same feature.
-3. **"87% of people visit websites on their phone" is gone** — an unsourced
-   number. Replaced with a qualitative line.
-
-Two claims on the page need Kaian's sign-off because they are business
-decisions, not copy: **"You see it before you pay"** in the hero (the free
-sample offer — pull it if it isn't offered to everyone) and **"Live in 7–10
-days"**, which now appears in the hero as a promise rather than only in the
-process steps. US spelling throughout ("inquiry", not "enquiry").
-
 Real content used:
 - **One real testimonial** from Nemo (owner, Mr. Pink's Cleaning Service) —
   his exact words, no edits. A video testimonial from him is expected later;
-  add it to the Reviews section when it arrives. The on-page note announcing
-  that it was coming was removed 2026-09-11 (advertising a missing testimonial
-  reads as an apology) — there's an HTML comment marking the slot instead.
+  add it to the Reviews section when it arrives (currently a text-only note
+  on the page says it's coming).
 - **No portfolio/"Our Work" section.** Removed 2026-09-09 — it showed real
   screenshots + live links to Mr. Pink's Cleaning Service and JL Construction
   (the latter a free sample, lead not closed). Instead, "Mr. Pink's Cleaning

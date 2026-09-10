@@ -227,12 +227,10 @@ p:last-child { margin-bottom: 0; }
 .avatars span:first-child { margin-left: 0; }
 .avatars span:last-child { background: var(--red); }
 
-/* Stone's trust row sits 75px under the CTA. Ours carries plain facts rather
-   than star ratings — there is only one review, and it lives further down the
-   page with a name attached. */
+/* Stone's trust row: 16px/1.55 label over 22px stars, 75px above the row. */
 .trust { display: flex; flex-wrap: wrap; gap: 34px; margin-top: 75px; }
 .trust__item { display: flex; align-items: center; gap: 13px; }
-.trust__icon { width: 30px; height: 30px; flex: none; color: var(--coral); }
+.trust__item svg { width: 40px; height: 40px; flex: none; }
 .trust__label { font-size: 1rem; font-weight: 700; color: #fff; line-height: 1.55; }
 .stars { display: flex; gap: 3px; color: var(--star); }
 .stars svg { width: 22px; height: 22px; }
