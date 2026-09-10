@@ -71,7 +71,7 @@ h3 { font-size: clamp(1.4rem, 2.4vw, 2.05rem); }
 p { margin: 0 0 1rem; }
 p:last-child { margin-bottom: 0; }
 
-.container { width: min(1160px, calc(100% - 44px)); margin-inline: auto; }
+.container { width: min(1320px, calc(100% - 44px)); margin-inline: auto; }
 
 /* ---------- sections ---------- */
 .section { padding: clamp(72px, 9vw, 118px) 0; }
@@ -130,9 +130,12 @@ p:last-child { margin-bottom: 0; }
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 15px 30px;
+  /* Stone's buttons are 60px tall with 32px side padding; match the box and
+     keep Spark's rounder radius. */
+  min-height: 58px;
+  padding: 0 32px;
   border-radius: 10px;
-  font-size: .98rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   letter-spacing: .01em;
   transition: transform .18s var(--ease), background-color .18s var(--ease), box-shadow .18s var(--ease);
@@ -143,7 +146,7 @@ p:last-child { margin-bottom: 0; }
 .btn--ghost:hover { border-color: var(--red); color: var(--red); }
 .btn--onnavy { border: 2px solid rgba(255, 255, 255, .28); color: #fff; }
 .btn--onnavy:hover { border-color: #fff; background: rgba(255, 255, 255, .08); }
-.btn--sm { padding: 11px 22px; font-size: .9rem; }
+.btn--sm { min-height: 52px; padding: 0 26px; font-size: 1rem; }
 
 /* =========================================================================
    HEADER
@@ -171,8 +174,10 @@ p:last-child { margin-bottom: 0; }
 .brand__name span { color: var(--red); }
 
 .nav { display: flex; align-items: center; gap: 26px; }
-.nav a { font-size: .94rem; font-weight: 600; color: var(--ink); transition: color .15s var(--ease); }
-.nav a:hover { color: var(--red); }
+/* :not(.btn) so the nav's link styling never overrides the Book A Call button
+   (it would win on specificity and turn its label red-on-red on hover). */
+.nav a:not(.btn) { font-size: .94rem; font-weight: 600; color: var(--ink); transition: color .15s var(--ease); }
+.nav a:not(.btn):hover { color: var(--red); }
 
 .nav-toggle { display: none; width: 44px; height: 44px; align-items: center; justify-content: center; }
 .nav-toggle span, .nav-toggle span::before, .nav-toggle span::after {
@@ -188,18 +193,30 @@ p:last-child { margin-bottom: 0; }
 /* =========================================================================
    HERO
    ========================================================================= */
-.hero { background: var(--navy); color: #C4C6CD; padding: clamp(56px, 7vw, 92px) 0 clamp(76px, 9vw, 120px); overflow: hidden; }
-.hero__grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 48px; align-items: center; }
+/* Hero metrics mirror stonesystems.io: 120px band padding, 4.8rem/1.2 title,
+   350px art column that is allowed to overflow so the TEXT column sets the
+   hero height (the art must never be the tallest child). */
+.hero { background: var(--navy); color: #C4C6CD; padding: 120px 0; overflow: hidden; }
+.hero__grid { display: flex; justify-content: space-between; align-items: center; gap: 48px; }
+.hero__copy { flex: 1 1 auto; min-width: 0; }
 
-.hero__title { position: relative; padding-left: 26px; color: #fff; }
+.hero__title {
+  position: relative; padding-left: 26px; color: #fff;
+  /* 5.82vw hits exactly 4.8rem at a 1320px viewport, so any desktop wider than
+     the container renders Stone's flat 76.8px; narrower screens scale down
+     instead of overflowing the way the reference does. */
+  font-size: clamp(2.75rem, 5.82vw, 4.8rem); line-height: 1.2; letter-spacing: normal;
+}
 .hero__title::before {
   content: ""; position: absolute; left: 0; top: 6px; bottom: 6px;
   width: 5px; border-radius: 3px; background: var(--red);
 }
-.hero__lede { max-width: 46ch; margin-top: 26px; font-size: 1.02rem; color: #AEB3C1; }
+.hero__lede { max-width: 590px; margin-top: 50px; font-size: 1.25rem; line-height: 1.55; color: #AEB3C1; }
 .hero__lede strong { color: #fff; font-weight: 700; }
 
 .hero__cta { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-top: 32px; }
+/* Stone's hero CTA is a size up from the rest of the page: 20px, 60px tall. */
+.hero__cta .btn { min-height: 60px; font-size: 1.25rem; }
 
 .avatars { display: flex; }
 .avatars span {
@@ -210,15 +227,16 @@ p:last-child { margin-bottom: 0; }
 .avatars span:first-child { margin-left: 0; }
 .avatars span:last-child { background: var(--red); }
 
-.trust { display: flex; flex-wrap: wrap; gap: 26px; margin-top: 38px; }
-.trust__item { display: flex; align-items: center; gap: 11px; }
-.trust__item svg { width: 26px; height: 26px; flex: none; }
-.trust__label { font-size: .8rem; font-weight: 700; color: #fff; line-height: 1.25; }
-.stars { display: flex; gap: 2px; color: var(--star); }
-.stars svg { width: 13px; height: 13px; }
+/* Stone's trust row: 16px/1.55 label over 22px stars, 75px above the row. */
+.trust { display: flex; flex-wrap: wrap; gap: 34px; margin-top: 75px; }
+.trust__item { display: flex; align-items: center; gap: 13px; }
+.trust__item svg { width: 40px; height: 40px; flex: none; }
+.trust__label { font-size: 1rem; font-weight: 700; color: #fff; line-height: 1.55; }
+.stars { display: flex; gap: 3px; color: var(--star); }
+.stars svg { width: 22px; height: 22px; }
 
-.hero__art { position: relative; display: grid; place-items: center; }
-.hero__art img { width: min(100%, 400px); filter: drop-shadow(0 26px 44px rgba(0, 0, 0, .42)); }
+.hero__art { position: relative; flex: 0 1 350px; min-width: 0; display: grid; place-items: center; }
+.hero__art img { width: 100%; max-width: 350px; filter: drop-shadow(0 26px 44px rgba(0, 0, 0, .42)); }
 .hero__art::after {
   content: ""; position: absolute; inset: auto 0 6%; height: 62%; z-index: -1;
   background: radial-gradient(ellipse at center, rgba(224, 38, 27, .28), transparent 68%);
@@ -381,9 +399,13 @@ p:last-child { margin-bottom: 0; }
    RESPONSIVE
    ========================================================================= */
 @media (max-width: 1000px) {
-  .hero__grid { grid-template-columns: 1fr; gap: 40px; }
-  .hero__art { order: -1; }
-  .hero__art img { width: min(72%, 300px); }
+  .hero { padding: 40px 0; }
+  .hero__grid { flex-direction: column; align-items: stretch; gap: 40px; }
+  .hero__art { display: none; }
+  /* 13.5vw re-clamped straight back to 4.8rem on phones (a 570px screen got the
+     full 76.8px and six wrapped lines); 7.2vw scales down properly. */
+  .hero__title { font-size: clamp(2.25rem, 7.2vw, 4.8rem); }
+  .hero__lede { margin-top: 28px; }
   .feature, .feature--flip { grid-template-columns: 1fr; }
   .feature--flip .feature__art { order: 0; }
   .why-grid { grid-template-columns: repeat(2, 1fr); }
@@ -403,7 +425,7 @@ p:last-child { margin-bottom: 0; }
     transition: opacity .2s var(--ease), transform .2s var(--ease);
   }
   .nav[data-open="true"] { transform: none; opacity: 1; pointer-events: auto; }
-  .nav a { padding: 13px 0; border-bottom: 1px solid var(--border); }
+  .nav a:not(.btn) { padding: 13px 0; border-bottom: 1px solid var(--border); }
   .nav .btn { margin-top: 14px; }
   .nav-toggle { display: flex; }
   .steps, .why-grid, .form__row { grid-template-columns: 1fr; }

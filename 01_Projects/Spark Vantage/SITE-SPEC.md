@@ -111,3 +111,36 @@ All under `01_Projects/Spark Vantage/site/`:
 
 Existing `assets/work-mrpinks.jpg` and `assets/work-jlconstruction.jpg` are reused
 unchanged.
+
+## Hero metrics measured from stonesystems.io (2026-09-10)
+
+Read off the live Stone Systems DOM at a 2504px viewport, so these are exact, not
+eyeballed. Spark's hero now matches them. Re-measure before assuming they still hold.
+
+| Thing | Stone value |
+| --- | --- |
+| Container | `max-width: 1320px`, 16px side padding |
+| Hero band padding | `120px 0` (drops to `40px` under 62em) |
+| H1 | `4.8rem` (76.8px) **flat**, `line-height: 1.2`, `letter-spacing: normal`, weight 900 |
+| Gap under H1 block | `50px` |
+| Lede | `20px / 31px`, `max-width: 590px` |
+| Gap above trust row | `75px` |
+| Trust label | `16px / 24.8px`, weight 600 |
+| Trust stars | `22px` |
+| Hero CTA button | `20px` text, `60px` tall, `0 32px` padding |
+| Nav button | `17px` text, `60px` tall |
+| Mascot column | `350px` wide, **allowed to overflow** the padding box |
+
+Two things that make or break the match:
+
+1. **The H1 is a flat 4.8rem, not fluid.** A `clamp()` that caps below 76.8px will never
+   look right no matter how the rest is tuned. Spark uses `clamp(2.75rem, 5.82vw, 4.8rem)`
+   — 5.82vw hits exactly 76.8px at a 1320px viewport, so every desktop gets Stone's flat
+   size while narrower screens scale instead of overflowing.
+2. **The text column sets the hero height, not the art.** Stone's mascot is only 350px wide
+   and overflows the 120px padding box. Spark's rabbit was 440px wide inside a centred
+   grid, so the *art* drove the height and the band never matched. Keeping the art column
+   at 350px is what makes the hero land at ~890px like Stone's.
+
+At 1320px the title needs ~795px of width ("Marketing Systems" alone is 769px), which is
+why the container had to go 1160 → 1320. Anything narrower forces a wrap.
