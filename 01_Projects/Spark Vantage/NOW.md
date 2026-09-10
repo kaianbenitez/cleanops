@@ -80,14 +80,23 @@ Real content used:
   Service" in the testimonial byline is now a live hyperlink to
   mrpinkscleaningservice.com, so the one proof point lives inside the
   testimonial itself.
-- Services: Website Design (free sample first) and SEO + GBP Optimization
-  ($75/mo, the real price already quoted to Nemo).
+- Services: Website Design (free sample first), then the GHL system at
+  $97/month flat, with Local SEO + GBP optimization as an add-on — $100
+  one-time setup, waived if the client commits to quarterly billing
+  (3 × $97 paid upfront). Corrected 2026-09-10; supersedes the earlier
+  "$75/mo flat" note. **No price is shown on the live site** — the Local SEO
+  section's 4th bullet was changed from a price line to "Google Business
+  Profile Included" on 2026-09-10.
 
-**Still placeholder, by Kaian's choice (2026-09-09):** contact email/phone
-in the footer, the Web3Forms `access_key`, and the "what happens if I cancel"
-FAQ answer (blocked on a settled contract/pricing policy). All three are
-marked in-page with the `.tbd` class so they're easy to find — search
-`index.html` for `PLACEHOLDER`.
+**Footer email filled in 2026-09-10:** `kaian@sparkvantage.co`, as a `mailto:` link.
+This only actually delivers mail if the Cloudflare Email Routing forward (step 4
+above) has been set up — confirm that before relying on it for real leads.
+
+**Still placeholder, by Kaian's choice:** contact phone in the footer (he may
+get a second number later so his current one isn't at risk of a spam flag), the
+Web3Forms `access_key`, and the "what happens if I cancel" FAQ answer (blocked
+on a settled contract/pricing policy). These are marked in-page with the `.tbd`
+class so they're easy to find — search `index.html` for `PLACEHOLDER`.
 
 **"Book A Call" has no booking link yet.** Every CTA anchors to the on-page
 `#contact` form. Swap those `href="#contact"` values for a real Calendly/GHL
